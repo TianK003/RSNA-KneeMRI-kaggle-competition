@@ -114,6 +114,31 @@ sources are ~1.5 effective votes: averaging them double-counts one reader and in
 `agreement` term of `confidence_weights`. Check pairwise error correlation before trusting a
 blend of public label sets; `src/label_audit.py` does it.
 
+### 6d. One flag meaning both "which preprocessing" and "read the cache"
+
+`cfg.use_cache` selected the *preprocessing* (130 mm crop, per-series 1/99 normalisation,
+laterality) **and** whether to `np.load` a cached array. Only the second is unavailable at
+inference — no test study is ever in the cache. So when `rsna-knee-infer` mounted no cache, the
+loader flipped `use_cache = False` and fed a **v03 model v02 pixels**: uncropped, unmirrored.
+Nothing raised; the submission would just have scored lower for no visible reason.
+
+**Do:** when a flag controls two things, ask whether both are actually unavailable in the branch
+that turns it off. Here the fallback is correct for training and wrong for inference, so it is
+now gated on `mode == "train"`. **Verify by equality, not by absence of errors**: after the fix
+the infer kernel reproduced the training kernel's predictions byte-for-byte on the same studies.
+
+### 6e. Augmentation that never augments
+
+PyTorch's DataLoader seeds only **torch's** RNG per worker. `numpy` and `random` are inherited
+from the parent by fork, and workers are recreated every epoch from a parent whose state has not
+moved — so `np.random`-driven slice jitter and `random`-driven noise produce **byte-identical
+augmentation in every epoch**. An ablation of such an augmentation measures nothing and reports
+"no effect."
+
+**Do:** pass a `worker_init_fn` that reseeds `numpy` and `random` from `torch.initial_seed()`.
+Note this cannot be reproduced on Windows, which spawns workers instead of forking — a local
+green run is not evidence the bug is absent on Kaggle.
+
 ### 7. Base-rate collapse
 
 The known failure mode of this setup: the model outputs nearly the same score for every
@@ -220,6 +245,18 @@ infers in one pass, the rerun trains a *new* model (different data order, possib
 the time limit) and scores that, not the one you validated. `MODE="infer"` loads
 `{version}_fold*_best.pt` from a mounted kernel output and only predicts. Submit the
 inference-mode version, never the training one.
+
+### 12d. A real-mode default that smoke mode can never reveal
+
+`Config.__post_init__` forces `folds=(0,)` in smoke. So a smoke run cannot show you that in
+**real** mode every arm inherits `folds=(0,1,2,3,4)` — five arms would have been 25 folds, ≈18 h
+against an 8.3 h guard. The smoke was green four times over.
+
+**Do:** for anything smoke mode overrides (`folds`, `epochs`, `slices_per_slot`,
+`runtime_limit_hours`, `num_workers`), read the real-mode value from the config rather than
+inferring it from a smoke log — and print the resolved value in the run banner so the real run
+says it out loud in its first seconds. Related: 12 (always smoke first) tells you the code runs;
+it does not tell you what the code will do at production settings.
 
 ### 13. Horizontal-flip augmentation
 

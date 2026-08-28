@@ -33,7 +33,8 @@ import math
 import os
 import random
 import time
-from dataclasses import dataclass, field, asdict
+import traceback
+from dataclasses import dataclass, field, asdict, replace
 
 import numpy as np
 import pandas as pd
@@ -125,6 +126,31 @@ FORCE_SMOKE = True
 # └──────────────────────────────────────────────────────────────────────────┘
 MODE = "auto"
 
+# ┌──────────────────────────────────────────────────────────────────────────┐
+# │ ARMS: run several fold-0 configurations back to back in ONE session.     │
+# │ Each arm gets its own version string, so its checkpoints and OOF csvs    │
+# │ (`{version}_fold0_*`) never collide. An arm that raises is logged and    │
+# │ skipped -- the session, not the code, is the scarce resource.            │
+# │ Set ARMS = None for a single run of the plain config.                    │
+# └──────────────────────────────────────────────────────────────────────────┘
+# Ordered by what we most need if the runtime guard ever fires: the reference and the
+# noise floor first, then the impact card, then the two ablations.
+ARMS = [
+    ("v04base", {}),                         # reference: v03 config, seed 42, THIS code
+    ("v04a", {"seed": 43}),                  # P-02 step 1: |v04a - v04base| IS the floor
+    ("v04c", {"head_type": "attn"}),         # P-09: per-label masked slot attention
+    ("v04b", {"lat_undo": True}),            # P-05: is laterality the driver of +0.022?
+    ("v04d", {"cache_jitter": True}),        # P-08 sub-arm: slice jitter as augmentation
+]
+# v04base exists because arms b/c/d must differ from their baseline in ONE thing. Kernel
+# v8 is not that baseline any more: seed_worker() changed how augmentation is randomised,
+# so v8 vs v04base measures the code revision and v04a vs v04base measures the seed.
+PRIMARY_ARM = "v04c"
+# Every arm is a fold-0 run. Without this, a real-mode run inherits folds (0,1,2,3,4) and
+# four arms become 20 folds ~= 18 h -- the runtime guard would kill it mid-session and the
+# smoke run would never show it (smoke forces folds=(0,) in __post_init__).
+ARM_FOLDS = (0,)
+
 
 @dataclass
 class Config:
@@ -146,10 +172,21 @@ class Config:
     cache_px: int = 224
     crop_mm: float = 130.0
     lat_dead_zone_mm: float = 20.0
+    # P-05 ablation. The cache stores every knee in a canonical left-knee frame; this puts
+    # the right knees back into their own chirality at load time (both cache operations are
+    # involutions), so laterality can be ablated without rebuilding 21 GB of cache.
+    lat_undo: bool = False
+    # P-08 sub-arm: jitter the K sampled slice centres by +-1 cached slice each epoch. The
+    # only real augmentation this pipeline has (the other is Gaussian noise at sigma 0.01).
+    cache_jitter: bool = False
 
     # model
     backbone_dir: str = ""           # filled in below
     dropout: float = 0.1
+    # P-09. "concat" = v03 baseline (6 slot vectors + mask -> one Linear); "attn" = 12
+    # learned label queries doing masked attention over the present slot vectors.
+    head_type: str = "concat"
+    slot_dropout: float = 0.0        # P-09 sub-arm; 0 keeps the head A/B clean
 
     # optimisation
     folds: tuple = (0, 1, 2, 3, 4)
@@ -890,6 +927,27 @@ def array_to_tensor(arr, mask, cfg, train):
     x = x * m.view(-1, 1, 1, 1, 1)                # absent slots stay exactly zero
     return x, m
 
+
+def undo_laterality(arr):
+    """P-05 ablation: put a right knee back into its own chirality.
+
+    The cache stores every study in a canonical left-knee frame -- coronal/axial mirrored
+    left-right, sagittal stacks reversed. Both are involutions, so re-applying them to the
+    R studies restores the two-chirality condition P-05 removed, with no cache rebuild.
+
+    It does not reconstruct the original bytes: the per-series `col_to_left` sign that
+    decided the mirror is not in the manifest. It reproduces the thing being ablated --
+    chirality that varies with knee side -- which is what the arm is asking about. This is
+    a cleaner test than v03-vs-v02, where the 130 mm crop varied at the same time.
+    """
+    out = arr.copy()
+    for si, slot in enumerate(SLOTS):
+        if PLANE_OF_SLOT[slot] == "Sagittal":
+            out[si] = out[si][::-1]           # reverse the slice axis
+        else:
+            out[si] = out[si][:, :, ::-1]     # mirror the width axis (coronal / axial)
+    return np.ascontiguousarray(out)
+
 # %% [markdown]
 # ## Section 5: dataset
 #
@@ -932,6 +990,8 @@ class KneeStudyDataset(Dataset):
                 mask_np = np.array([float(c) for c in mk], np.float32)
             else:                       # test study, or a study the cache missed
                 arr, mask_np = build_study_array(study, row, self.root, self.cfg)
+            if self.cfg.lat_undo and str(row.get("side", "")) == "R":
+                arr = undo_laterality(arr)      # P-05 ablation arm; counted in train_fold
             imgs, mask = array_to_tensor(arr, mask_np, self.cfg, self.train)
         else:
             imgs = torch.zeros(len(SLOTS), self.cfg.slices_per_slot, 3,
@@ -1005,15 +1065,60 @@ class AttnPool(nn.Module):
         return (a.unsqueeze(-1) * x).sum(0)
 
 
+class SlotAttnHead(nn.Module):
+    """P-09: 12 learned label queries attending over the slot vectors that are present.
+
+    The concat head maps [6 x dim | mask] through one Linear, so every label reads all six
+    slots through one shared weight matrix: "for MCL, weight coronal and ignore axial" has
+    to be learned as 12 independent 2,310-dim rows from 3,525 studies of noisy targets.
+    Here each label owns a query, a per-(label, slot) bias states that plane preference in
+    72 parameters, and absent slots are masked out *before* the softmax so the context
+    vector has the same scale whether a study has four slots or six (mean slots is 4.78 of
+    6; COR_T1 fills 62.5%, SAG_T1 50%). 9,300 parameters against the concat head's 27,720.
+
+    Risk on record (research.md): correlated label pairs may lose the shared-vector
+    benefit -- report Effusion~Synovitis, Medial OA~Medial Meniscus and Contusion~Fracture
+    separately, not just the macro.
+    """
+
+    def __init__(self, dim: int, n_labels=len(LABELS), n_slots=len(SLOTS)):
+        super().__init__()
+        self.q = nn.Parameter(torch.randn(n_labels, dim) * dim ** -0.5)
+        # 2-D, so param_groups gives it weight decay. Decaying it toward zero is a
+        # uniform-plane prior, which is the right default for a term with no data yet.
+        self.slot_bias = nn.Parameter(torch.zeros(n_labels, n_slots))
+        self.w = nn.Parameter(torch.randn(n_labels, dim) * dim ** -0.5)
+        self.b = nn.Parameter(torch.zeros(n_labels))
+        self.scale = dim ** -0.5
+
+    def forward(self, pooled, mask):             # pooled (B, NS, dim), mask (B, NS)
+        att = torch.einsum("ld,bsd->bls", self.q, pooled) * self.scale
+        att = att + self.slot_bias.unsqueeze(0)
+        keep = (mask > 0.5).unsqueeze(1)                             # (B, 1, NS)
+        att = att.masked_fill(~keep, torch.finfo(att.dtype).min)     # fp16-safe, not -inf
+        # A study with no present slot cannot reach here (the manifest requires
+        # n_slots > 0), but an all-masked row would softmax to NaN. Fall back to uniform.
+        dead = (~keep).all(-1, keepdim=True).expand_as(att)
+        att = torch.where(dead, torch.zeros_like(att), att)
+        ctx = torch.einsum("bls,bsd->bld", torch.softmax(att, dim=-1), pooled)
+        return (ctx * self.w.unsqueeze(0)).sum(-1) + self.b
+
+
 class KneeNet(nn.Module):
-    def __init__(self, backbone_dir: str, n_labels=len(LABELS), dropout=0.1):
+    def __init__(self, backbone_dir: str, n_labels=len(LABELS), dropout=0.1,
+                 head_type="concat", slot_dropout=0.0):
         super().__init__()
         from transformers import Dinov2Model
         self.enc = Dinov2Model.from_pretrained(backbone_dir)
         self.dim = self.enc.config.hidden_size
         self.pool = AttnPool(self.dim)
         self.drop = nn.Dropout(dropout)
-        self.head = nn.Linear(self.dim * len(SLOTS) + len(SLOTS), n_labels)
+        self.head_type = head_type
+        self.slot_dropout = slot_dropout
+        if head_type == "attn":
+            self.attn_head = SlotAttnHead(self.dim, n_labels)
+        else:
+            self.head = nn.Linear(self.dim * len(SLOTS) + len(SLOTS), n_labels)
 
     def forward(self, imgs, mask):
         # imgs: (B, SLOT, S, 3, H, W)   mask: (B, SLOT)
@@ -1026,6 +1131,15 @@ class KneeNet(nn.Module):
             for b in range(B)
         ])                                                            # (B, NS, dim)
         pooled = pooled * mask.unsqueeze(-1)      # zero out absent slots
+        if self.training and self.slot_dropout > 0:
+            drop = (torch.rand_like(mask) > self.slot_dropout).float()
+            # never drop a study's last remaining slot
+            drop = torch.where((mask * drop).sum(1, keepdim=True) > 0,
+                               drop, torch.ones_like(drop))
+            mask = mask * drop
+            pooled = pooled * mask.unsqueeze(-1)
+        if self.head_type == "attn":
+            return self.attn_head(self.drop(pooled), mask)
         x = torch.cat([pooled.reshape(B, -1), mask], dim=1)
         return self.head(self.drop(x))
 
@@ -1057,6 +1171,20 @@ def weighted_bce(logits, y, w):
 
 # %%
 # ── Section 7: training ───────────────────────────────────────────────────────
+def seed_worker(worker_id):
+    """Re-seed numpy and `random` inside each DataLoader worker.
+
+    PyTorch seeds only torch's RNG per worker; numpy and `random` are inherited from the
+    parent by fork. Workers are recreated every epoch from the same parent state, so
+    without this the "random" slice jitter (P-08) and the Gaussian noise are byte-identical
+    in every epoch -- augmentation that never augments. `torch.initial_seed()` inside a
+    worker is base_seed + worker_id, and base_seed advances each epoch.
+    """
+    s = torch.initial_seed() % (2 ** 32)
+    np.random.seed(s)
+    random.seed(s)
+
+
 def make_loaders(manifest, targets, image_root, cfg, fold):
     tr_studies = targets.loc[targets.fold != fold, "StudyInstanceUID"].tolist()
     va_studies = targets.loc[targets.fold == fold, "StudyInstanceUID"].tolist()
@@ -1071,7 +1199,7 @@ def make_loaders(manifest, targets, image_root, cfg, fold):
     print(f"  fold {fold}: train {len(tr_ds)} / val {len(va_ds)} studies")
     nw = 0 if cfg.smoke else cfg.num_workers
     return (DataLoader(tr_ds, batch_size=cfg.batch_studies, shuffle=True,
-                       num_workers=nw, drop_last=False),
+                       num_workers=nw, drop_last=False, worker_init_fn=seed_worker),
             DataLoader(va_ds, batch_size=cfg.batch_studies, shuffle=False,
                        num_workers=nw))
 
@@ -1185,13 +1313,21 @@ def param_groups(model, cfg):
             depth = n_blocks + 1
         lr = cfg.lr_backbone * (cfg.llrd_decay ** (n_blocks + 1 - depth))
         add(name, p, lr)
-    for mod in (model.pool, model.head):
+    # Everything that is not the encoder is freshly initialised and gets lr_head undecayed.
+    # Enumerated by name rather than hard-coded, so P-09's `attn_head` cannot silently end
+    # up with no optimizer group when head_type="attn".
+    n_head = 0
+    for mname, mod in model.named_children():
+        if mname == "enc":
+            continue
         for name, p in mod.named_parameters():
-            add(name, p, cfg.lr_head)
+            add(f"{mname}.{name}", p, cfg.lr_head)
+            n_head += p.numel()
     out = list(groups.values())
     lrs = sorted({g["lr"] for g in out if g["lr"] < cfg.lr_head})
     print(f"  backbone LR range {lrs[0]:.2e} .. {lrs[-1]:.2e} over {n_blocks} blocks "
-          f"(decay {cfg.llrd_decay}); head {cfg.lr_head:.0e}")
+          f"(decay {cfg.llrd_decay}); head {cfg.lr_head:.0e} over {n_head:,} params "
+          f"(head_type={getattr(model, 'head_type', 'concat')})")
     return out
 
 
@@ -1223,7 +1359,8 @@ def train_fold(fold, manifest, targets, image_root, cfg, device):
     ckpt_last = os.path.join(WORK, f"{cfg.version}_fold{fold}_last.pt")
     oof_path = os.path.join(WORK, f"{cfg.version}_fold{fold}_oof.csv")
 
-    model = KneeNet(cfg.backbone_dir, dropout=cfg.dropout).to(device)
+    model = KneeNet(cfg.backbone_dir, dropout=cfg.dropout,
+                    head_type=cfg.head_type, slot_dropout=cfg.slot_dropout).to(device)
     opt = torch.optim.AdamW(param_groups(model, cfg))
     ema = EMA(model, cfg.ema_decay) if cfg.ema_decay > 0 else None
 
@@ -1421,12 +1558,16 @@ if mode == "infer":
     st0 = torch.load(mounted_ckpts[min(mounted_ckpts)], map_location="cpu", weights_only=False)
     saved = st0.get("config", {})
     for k in ("slices_per_slot", "triplet_gap", "img_size", "use_cache", "cache_n_slices",
-              "cache_px", "crop_mm", "lat_dead_zone_mm"):
+              "cache_px", "crop_mm", "lat_dead_zone_mm", "head_type", "lat_undo"):
         if k in saved and getattr(cfg, k) != saved[k]:
             print(f"  infer: {k} {getattr(cfg, k)} -> {saved[k]} (from checkpoint)")
             setattr(cfg, k, saved[k])
-    if cfg.smoke and set(mounted_ckpts) != set(cfg.folds):
-        print(f"  infer: using all mounted folds {sorted(mounted_ckpts)} (smoke folds ignored)")
+    # Predict with exactly the checkpoints that are mounted. Previously this was gated on
+    # cfg.smoke, so a real-mode infer kernel kept folds (0,1,2,3,4), looked for four
+    # checkpoints that do not exist and rank-meaned a single fold anyway.
+    if set(mounted_ckpts) != set(cfg.folds):
+        print(f"  infer: using the mounted folds {sorted(mounted_ckpts)} "
+              f"(configured folds {sorted(cfg.folds)} ignored)")
         cfg.folds = tuple(sorted(mounted_ckpts))
     del st0
 else:
@@ -1463,8 +1604,17 @@ def load_cache_manifests():
 
 cache_manifest = load_cache_manifests() if cfg.use_cache else None
 if cfg.use_cache and cache_manifest is None:
-    print("  ! use_cache=True but no cache is mounted -- falling back to per-epoch DICOM decode")
-    cfg.use_cache = False
+    if mode == "infer":
+        # `use_cache` selects the PREPROCESSING (130 mm crop, per-series 1/99 normalisation,
+        # laterality) as well as the .npy read. No TEST study is ever in the cache, so infer
+        # builds every study through build_study_array -- the same functions the cache was
+        # built with. Flipping it off here would take the v02 decode branch and score a v03
+        # model on v02 pixels, and nothing would say so (traps.md 12d).
+        print("  infer: no cache mounted (expected) -- test studies built on the fly by the "
+              "cache-era preprocessing")
+    else:
+        print("  ! use_cache=True but no cache is mounted -- falling back to per-epoch DICOM decode")
+        cfg.use_cache = False
 if cache_manifest is not None:
     CACHE_INDEX.update(dict(zip(cache_manifest.StudyInstanceUID, cache_manifest.npy)))
     print(f"  cache: {len(CACHE_INDEX)} studies indexed ({CACHE_VERSION})")
@@ -1504,16 +1654,48 @@ if mode == "train":
             add[f"w__{l}"] = cfg.weak_weight_floor
         targets = pd.concat([targets, add], ignore_index=True)
 
-    for fold in cfg.folds:
-        if out_of_time():
-            print(f"skipping fold {fold}: out of time")
-            continue
-        print(f"\n=== fold {fold} ===")
-        _, best, done = train_fold(fold, manifest, targets, TRAIN_IMG, cfg, device)
-        results[fold] = {"best": best, "completed": done}
-        gc.collect()
-        if device.type == "cuda":
-            torch.cuda.empty_cache()
+    base_cfg = replace(cfg)
+    for arm_version, overrides in (ARMS or [(cfg.version, {})]):
+        # Rebind the module-level `cfg`: out_of_time(), the dataset and the loaders all
+        # read the global, so a local copy would silently leave them on the previous arm.
+        cfg = replace(base_cfg, version=arm_version,
+                      **({"folds": ARM_FOLDS} if ARMS else {}), **overrides)
+        globals()["cfg"] = cfg
+        if ARMS:
+            print(f"\n########## arm {arm_version}: {overrides or 'baseline'} "
+                  f"| folds {cfg.folds} epochs {cfg.epochs} seed {cfg.seed} ##########")
+            if cfg.lat_undo:
+                n_r = int((manifest["side"].astype(str) == "R").sum())                     if "side" in manifest.columns else 0
+                print(f"  lat_undo: {n_r} of {len(manifest)} studies "
+                      f"({n_r/max(len(manifest),1):.1%}) de-canonicalised at load time")
+        try:
+            for fold in cfg.folds:
+                if out_of_time():
+                    print(f"skipping fold {fold}: out of time")
+                    continue
+                print(f"\n=== {cfg.version} fold {fold} ===")
+                _, best, done = train_fold(fold, manifest, targets, TRAIN_IMG, cfg, device)
+                results[f"{cfg.version}/{fold}"] = {"best": best, "completed": done}
+                gc.collect()
+                if device.type == "cuda":
+                    torch.cuda.empty_cache()
+        except Exception:
+            # One arm failing must not cost the other three -- the Kaggle session is the
+            # scarce resource here, not the code. Loud, logged, and on to the next arm.
+            print(f"  !! arm {arm_version} FAILED -- continuing with the next arm")
+            traceback.print_exc()
+            results[f"{arm_version}/failed"] = {"best": float("nan"), "completed": False}
+            gc.collect()
+            if device.type == "cuda":
+                torch.cuda.empty_cache()
+
+    # The inference below runs for ONE arm. It is a free smoke of the infer path, not a
+    # submission -- what gets submitted is kaggle/rsna-knee-infer (traps.md 12c).
+    if ARMS:
+        cfg = replace(base_cfg, version=PRIMARY_ARM, folds=ARM_FOLDS,
+                      **dict(ARMS)[PRIMARY_ARM])
+        globals()["cfg"] = cfg
+        print(f"\ninference uses PRIMARY_ARM={PRIMARY_ARM}")
     ckpt_paths = {f: os.path.join(WORK, f"{cfg.version}_fold{f}_best.pt")
                   for f in cfg.folds}
 else:
@@ -1526,7 +1708,12 @@ else:
     ckpt_paths = {f: mounted_ckpts[f] for f in cfg.folds}
 
 print("\nfold results:", json.dumps(results, indent=1))
-all_done = len(results) == len(cfg.folds) and all(r["completed"] for r in results.values())
+# With ARMS, `results` is keyed "<arm>/<fold>" across every arm, so completion has to be
+# judged on the arm inference will actually use -- otherwise the count never matches
+# len(cfg.folds) and the infer path is silently skipped.
+done_keys = ([k for k in results if str(k).startswith(f"{PRIMARY_ARM}/")]
+             if (mode == "train" and ARMS) else list(results))
+all_done = len(done_keys) == len(cfg.folds) and all(results[k]["completed"] for k in done_keys)
 print(f"all folds complete: {all_done}  elapsed {elapsed_h():.2f} h")
 
 # %% [markdown]
@@ -1611,7 +1798,8 @@ else:
             print(f"  fold {fold}: no checkpoint, skipped")
             continue
         st = torch.load(ck, map_location=device, weights_only=False)
-        m = KneeNet(cfg.backbone_dir, dropout=cfg.dropout).to(device)
+        m = KneeNet(cfg.backbone_dir, dropout=cfg.dropout,
+                    head_type=cfg.head_type, slot_dropout=cfg.slot_dropout).to(device)
         m.load_state_dict(st["model"])
         t_f = time.time()
         frames.append(predict(m, test_manifest, TEST_IMG, cfg, test_studies, device))

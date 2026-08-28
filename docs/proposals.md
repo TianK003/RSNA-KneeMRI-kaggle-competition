@@ -53,15 +53,15 @@ result*, per unit of cost. "Depends on" lists hard blockers only.
 | id | title | status | expected value | cost | depends on |
 |---|---|---|---|---|---|
 | P-00 | Target scale: probability-space blend, not rank percentiles | 🔧 implemented, effect pending | high (rare-label targets were 0.28–0.39 for confident negatives) | done; OOF read pending | — |
-| P-01 | Preprocessing cache kernel (uint8, ordered, cropped, laterality-normalised) | ✅ built + 🔧 training-side loader shipped (v03); paired fold-0 run vs v6 pending | very high (unblocks P-02…P-15) | 1 session, ~300 lines | — |
-| P-02 | Seed-noise baseline, then site-grouped folds + grouped-vs-random OOF | 💡 untested | very high (validity of every comparison) | 0.5 session, ~40 lines | P-01 header manifest |
+| P-01 | Preprocessing cache kernel (uint8, ordered, cropped, laterality-normalised) | ✅ MEASURED — see experiments.md (5.4× end to end, OOF 0.821→0.843, **LB 0.841→0.871**) | very high — delivered speed *and* the largest scoring gain so far | done | — |
+| P-02 | Seed-noise baseline, then site-grouped folds + grouped-vs-random OOF | ⏳ step 1 RUNNING (kernel v11, `v04base` vs `v04a`) · step 2 💡 | very high (validity of every comparison) | step 1 in flight; step 2 ~40 lines | P-01 header manifest |
 | P-03 | Fine-tuning recipe: (a) LR 2e-5 + EMA shipped; (b) LLRD 0.75 vs uniform | (a) 🔧 shipped, effect pending · (b) 💡 | medium | (a) done · (b) 0.3 session | P-01 for (b) |
 | P-04 | Fixed-epoch schedule, 8 epochs, chosen from fold-mean OOF curve | 💡 untested (fixed-epoch *selection* already shipped in v02) | medium-high | 1 session | P-01, P-03 |
-| P-05 | Laterality normalisation from DICOM geometry | 🔧 implemented in cache kernel, effect pending | medium (5/12 labels side-specific) | 0.3 session, ~80 lines | P-01 |
+| P-05 | Laterality normalisation from DICOM geometry | ⏳ ablation RUNNING (kernel v11, `v04b` `lat_undo`) | medium-high — a share of the +0.030 LB gain is probably this | 0.3 session, ~80 lines | P-01 |
 | P-06 | Per-label failure analysis + gold_weight {1,3,8} arm + slot-fill census | 🔧 logging shipped · arms 💡 | high (finds the cheapest lever per weak label) | 0.1–0.5 session | — |
 | P-07 | Synovitis ← Effusion back-fill (measured, not adopted) | 🔁 measured on gold; OOF pending | low-medium | done (audit) | P-06 OOF |
-| P-08 | Slices per slot 6 → 12–16, per-plane bands, random offsets | 💡 untested | medium-high | 0.5 session | P-01 |
-| P-09 | Per-label masked attention head over slots | 💡 untested | medium | 0.3 session, ~80 lines | P-01 |
+| P-08 | Slices per slot 6 → 12–16, per-plane bands, random offsets | ⏳ jitter sub-arm RUNNING (`v04d`) · K sweep 💡 **downgraded** | low-medium for K (see card); jitter is the live part | 0.5 session | P-01 |
+| P-09 | Per-label masked attention head over slots | 🔧 implemented + ⏳ RUNNING (kernel v11, `v04c`) | medium-high (cuts head params 27,732→9,300 under a measured overfit) | 0.3 session, ~80 lines | P-01 |
 | P-10 | Second architecture family (timm ConvNeXt first; RadImageNet behind a flag) | 💡 untested | medium (diversity) | 1 session | P-01, P-04 |
 | P-11 | Resolution 224 vs 336 after the 130 mm crop | 💡 untested | low-medium | 1 session + sharded cache | P-01, P-08 |
 | P-12 | Slice-window TTA (label-safe only) [our hypothesis] | 💡 untested | low | 0.1 session | P-01 |
@@ -95,7 +95,14 @@ If it fails: (OOF or pred_std no better) blend was never the bottleneck; keep th
 Depends on: nothing.
 
 ### P-01 Preprocessing cache kernel (uint8, ordered, cropped, laterality-normalised)
-Status: ⏳ running — `src/cache_pipeline.py` shipped; shards A/B running on Kaggle. As built: **K=16 slices/slot, 224 px, 2 shards** (≈21 GB total, ~10.6 GB per shard); sagittal stacks sorted along +x (patient left) with a fixed sign and reversed for right knees; coronal/axial mirrored when (columns run to +x) == is_right; failed slices replaced by the nearest good neighbour (not zeros); presence mask written into `manifest_shard{k}.csv`; ordering drops unreadable files instead of falling back to filename order.
+Status: ✅ **MEASURED — card closed, see [experiments.md](experiments.md)** (cache build; v03 fold-0
+run kernel v8; submission #3). Headline: **5.4× end to end** (not the ~60× decode arithmetic
+suggested — the T4 is the bottleneck now), OOF-vs-teacher 0.821 → **0.843**, public LB 0.841 →
+**0.871**. ⚠️ The card's "OOF within ±0.01 = faithful speed-up" measure was **wrong on its own
+terms**: it assumed v03 replayed v02's inputs, and v02 had no crop and no laterality at all, so
+the run confounds cache + crop + per-series norm + laterality. P-05's `lat_undo` arm splits it.
+Historical card text below.
+Status (original): ⏳ running — `src/cache_pipeline.py` shipped; shards A/B running on Kaggle. As built: **K=16 slices/slot, 224 px, 2 shards** (≈21 GB total, ~10.6 GB per shard); sagittal stacks sorted along +x (patient left) with a fixed sign and reversed for right knees; coronal/axial mirrored when (columns run to +x) == is_right; failed slices replaced by the nearest good neighbour (not zeros); presence mask written into `manifest_shard{k}.csv`; ordering drops unreadable files instead of falling back to filename order.
 Hypothesis: A one-off uint8 cache of all 4,407 studies removes the per-epoch DICOM decode, cutting an epoch from hours to minutes without changing OOF-vs-teacher.
 Origin: public consensus / competition write-up.
 Evidence:
@@ -112,7 +119,9 @@ If it fails: (cap or time) fall back to K=6 @ 224 (7.4 GB, one shard); nothing d
 Depends on: nothing; blocks P-02 (manifest) through P-15.
 
 ### P-02 Seed-noise baseline, then site-grouped folds and grouped-vs-random OOF
-Status: 💡 untested.
+Status: **step 1 ⏳ RUNNING** (kernel v11: `v04base` seed 42 vs `v04a` seed 43, identical code and
+config). `|v04a − v04base|` becomes the measured OOF floor that replaces the asserted 0.01 in the
+decision-metric table. Step 2 (site-grouped folds) still 💡 untested.
 Hypothesis: (1) Two seeds of the same fold-0 config differ by an OOF macro that defines our real noise floor; (2) report-text-only grouping lets the model memorise scanner/site signatures, inflating OOF and favouring higher-capacity variants.
 Origin: competition write-up / peer-reviewed; the seed baseline is our hypothesis about magnitude.
 Evidence:
@@ -158,7 +167,14 @@ If it fails: (OOF peaks at 3–4) keep 4 epochs, spend budget on slices/members.
 Depends on: P-01, P-03(a).
 
 ### P-05 Laterality normalisation from DICOM geometry
-Status: 🔧 implemented in the cache kernel, effect pending. As built: sagittal stacks sorted along +x (patient left) with a fixed sign and reversed for right knees; coronal/axial mirrored when (columns run to +x) == is_right.
+Status: ⏳ **ablation RUNNING** (kernel v11, arm `v04b`, `lat_undo=True`). Rather than rebuilding a
+21 GB cache, the arm re-applies the cache's own transforms to right knees at load time — both are
+involutions, so it de-canonicalises from the existing cache for free (verified a clean involution,
+no NumPy aliasing; fired on **2,288/4,407 studies = 51.9%** on Kaggle). This is a *cleaner* test
+than v03-vs-v02 because the 130 mm crop is held constant instead of varying alongside. Indirect
+evidence it will bite: in v8 every per-label gain was a side-specific or focal finding (Lateral
+Meniscus +0.07, Medial Meniscus +0.05, MCL/Lateral OA/ACL +0.03) while Effusion, Synovitis,
+Baker's and Fracture were flat or slightly down. As built: sagittal stacks sorted along +x (patient left) with a fixed sign and reversed for right knees; coronal/axial mirrored when (columns run to +x) == is_right.
 Hypothesis: Canonicalising knee side (mirror W on COR/AX, reverse SAG slice order) removes a chirality the model must otherwise learn twice and lifts Medial/Lateral Meniscus, Medial/Lateral OA and MCL on OOF.
 Origin: public consensus / competition write-up.
 Evidence: Laterality tag missing on **12,367/24,371** series; centre-x sign rule **97.4%** (98.5% with 20 mm dead zone); IPP-corner rule 58.8% (verified [FINDINGS.md](https://github.com/homeshwarnelakurthi/RSNA-Knee-Abnormality-Detection)); plane-specific operation ([pilkwang] source, pulled; [JunhaoLiXD](https://github.com/JunhaoLiXD/RSNA_Knee_Abnormality_Detection)); laterality metadata errors are common ([PMC6646614](https://pmc.ncbi.nlm.nih.gov/articles/PMC6646614/)); lateral meniscus ~0.1 harder than medial even at 18k studies ([Fritz](https://pmc.ncbi.nlm.nih.gov/articles/PMC7299917/)).
@@ -206,7 +222,21 @@ If it fails: closed as ❌/🔁 in experiments.md; **do not** try Fracture ← C
 Depends on: P-06 OOF instrumentation (done), P-01 for the student arm.
 
 ### P-08 Slices per slot 6 → 12–16, per-plane bands, random offsets
-Status: 💡 untested as an A/B; the cache is built at **K=16 @ 224 in 2 shards** (≈21 GB total, ~10.6 GB per shard), so K ≤ 16 can be sampled from it without rebuilding.
+Status: **jitter sub-arm ⏳ RUNNING** (kernel v11, arm `v04d`, `cache_jitter=True`). The K sweep is
+still 💡 but **downgraded** — see the correction below.
+
+⚠️ **Correction to this card's premise (2026-08-29, from reading the loader, not a run).** "More
+slices" does not buy more pixels here. The cache stores K_cache=16 slices per slot, and
+`array_to_tensor` at K=6 picks centres `[1,4,6,9,11,14]` whose `[c-1,c,c+1]` triplets already
+tile **all 16** cached slices. Going to K=16 re-presents the same pixels as more, heavily
+overlapping tokens, at ~2.7× GPU. The real effect is *token granularity in depth* — a CLS token
+centred on a lesion is a stronger signal than one where the lesion is 1 of 3 — which is a genuine
+but smaller claim than the card's "raises recall at linear cost", and it now costs linearly in GPU
+time because the cache removed the decode bottleneck. Deeper coverage would need a **cache rebuild
+at higher K_cache**, not a loader change. The cheap, live part of this card is therefore the
+`random offsets` sub-arm, which is why `v04d` runs and the K sweep waits.
+
+Status (original): 💡 untested as an A/B; the cache is built at **K=16 @ 224 in 2 shards** (≈21 GB total, ~10.6 GB per shard), so K ≤ 16 can be sampled from it without rebuilding.
 Hypothesis: More slices per slot under attention pooling raise recall for focal findings (meniscus, Baker's, MCL) at linear cost.
 Origin: competition write-up / peer-reviewed.
 Evidence: winners used 24–32+ slices per volume ([Nischaydnk], [darraghdog/RSNA22](https://github.com/darraghdog/RSNA22), [brendanartley](https://github.com/brendanartley/RSNA-2024-Competition)); more views help on anisotropic volumes ([TomoGraphView](https://arxiv.org/html/2511.09605)); query attention benefits from more tokens ([AnyMC3D](https://arxiv.org/pdf/2512.12887)); per-plane bands sag 0.08–0.92 / ax 0.10–0.90 / cor 0.20–0.80 because menisci/MCL sit near sagittal stack ends (romanrozen, **notebook, not re-read**). No knee A/B of 6 vs 16 exists. Triplet gap in mm instead of index is **[our hypothesis]** and an *ablation*, not a default — `round(3 mm/spacing)` yields g=1 for 3–4 mm sagittal slices, a behaviour change (critic item 7).
@@ -219,7 +249,15 @@ If it fails: keep K=6; spend budget on resolution or a second member.
 Depends on: P-01.
 
 ### P-09 Per-label masked attention head over slots (optionally all slice tokens)
-Status: 💡 untested.
+Status: 🔧 **implemented and ⏳ RUNNING** (kernel v11, arm `v04c`, `head_type="attn"`). As built:
+12 learned label queries over the 6 slot vectors, a per-(label, slot) bias, absent slots masked to
+`finfo.min` *before* the softmax so the context vector keeps its scale at 4 slots or 6, per-label
+output projection. **9,300 parameters against the concat head's 27,732.** Unit-verified: absent
+slots provably cannot influence the logits, an all-masked row cannot produce NaN, fp16-safe; and
+the arm ran end to end through the *inference* path too. Slot dropout is wired but left at 0 so the
+arm is a clean head-only A/B. Extra argument the card did not have when written: v8 showed train
+loss falling monotonically while OOF turned over at epoch 2, so **removing** head parameters is
+pointed at a measured problem, not just a specialisation argument.
 Hypothesis: 12 learned queries attending over present slot/slice tokens beat concat → linear by letting each finding read its own sequences and handling missing slots by renormalisation.
 Origin: peer-reviewed / competition write-up.
 Evidence: per-finding plane dependence ([MRNet](https://journals.plos.org/plosmedicine/article?id=10.1371/journal.pmed.1002699), [CoPAS](https://pmc.ncbi.nlm.nih.gov/articles/PMC11368947/)); negative transfer with one shared vector ([Azcona](https://arxiv.org/abs/2010.01947)); query attention > Transformer > mean > LSTM on DINO features ([AnyMC3D]); public leaders use all-series cross-attention with slot-type embedding (mattiaangeli, **notebook, not re-read**). Risk (critic item 18): correlated pairs (gold φ Effusion~Synovitis 0.40, MOA~MMen 0.42, Contusion~Fracture 0.33; n=58, SE of φ ≈ 0.13) may lose the shared-vector benefit — report those pairs separately.
@@ -331,7 +369,7 @@ If it fails: BCE stays.
 Depends on: P-01, P-04, P-06.
 
 ### P-18 Efficiency-track variant, decode-once inference, submission robustness
-Status: 🔧 inference path shipped in v02/kernel v4 (MODE=infer from mounted checkpoints; **no placeholder — loud failure**; refuse-to-submit-constants; image-root probing via a shallow glob that never descends into train_series/test_series; infer mode reads slices_per_slot/triplet_gap/img_size from the checkpoint's saved config so FORCE_SMOKE cannot change the model's inputs; MODE=auto picks infer only if every configured fold has a mounted best.pt); efficiency variant 💡.
+Status: 🔧 inference path shipped in v02/kernel v4 (MODE=infer from mounted checkpoints; **no placeholder — loud failure**; refuse-to-submit-constants; image-root probing via a shallow glob that never descends into train_series/test_series; **(2026-08-29)** the infer path no longer downgrades preprocessing when no cache is mounted (traps 6d) and no longer decides `mode="train"` in real mode because only fold 0 has a checkpoint (traps 12c/12d) — the infer notebook is generated with `MODE="infer"` and `FORCE_SMOKE=False` sed'd in, the same pattern `cache-b` uses; infer mode reads slices_per_slot/triplet_gap/img_size from the checkpoint's saved config so FORCE_SMOKE cannot change the model's inputs; MODE=auto picks infer only if every configured fold has a mounted best.pt); efficiency variant 💡.
 Hypothesis: A single DINOv2-S at 224 with decode-once inference and no TTA is competitive on the Efficiency LB at no accuracy cost we can measure.
 Origin: competition write-up; our verified failure.
 Evidence:

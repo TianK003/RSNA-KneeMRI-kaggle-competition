@@ -30,7 +30,9 @@ entries.
 
 | Question | Why it matters | How to answer |
 |---|---|---|
-| What is the **real** per-study throughput with `num_workers=2`? | Decides whether 5 folds is even feasible, and how much #1 buys | Timed benchmark kernel |
+| ~~What is the **real** per-study throughput with `num_workers=2`?~~ | **ANSWERED** 2026-08-28: 0.18 s/study from the cache, 0.99 decoding; 0.9 h per fold-0 4-epoch arm | experiments.md, kernel v8 |
+| Is the fork-inherited RNG actually repeating augmentation on Kaggle? | Decides whether a flat `v04d` means "jitter does not help" or "jitter never happened"; Windows spawns workers so it cannot be reproduced locally (traps 6e) | Log the first jitter offsets of epoch 0 vs epoch 1 in one Kaggle run |
+| Where does the remaining 0.081 to the public top actually come from? | We are at 0.871 on one fold with the same public label tables the leaders use, so it is unlikely to be target quality; ensembling accounts for maybe 0.01–0.02 | Read the top notebooks' configs in a browser; run 5 folds and measure what the rank-mean is worth |
 | Is the ≤9 h runtime limit and internet-off rule accurate? | Community-sourced, never read from the rules page | Read the overview/rules pages in a browser |
 | How is the **Efficiency Prize** actually scored? | It is a separate prize we are eligible for; runtime may be worth optimising deliberately | The efficiency-prize evaluation page (JS-rendered, needs a browser) |
 | Does the winner-licence clause tolerate CC-BY-NC-SA weights? | Gates #3 for a *final* submission | Read the rules page |

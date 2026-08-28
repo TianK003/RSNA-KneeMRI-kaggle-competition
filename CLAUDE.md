@@ -10,10 +10,12 @@ by **macro ROC-AUC** (unweighted mean of 12 per-label AUCs).
 
 Competition: https://www.kaggle.com/competitions/rsna-knee-abnormality-detection
 
-**State as of 2026-08-28 (evening):** pipeline v02 runs green end to end (local + Kaggle
-smoke). **One submission made** — a smoke run that scored exactly 0.500 and thereby exposed a
-silent image-root failure at rerun (fixed). The first real fold-0 run and the preprocessing
-cache are the next actions; see [docs/handoff.md](docs/handoff.md).
+**State as of 2026-08-29:** **three submissions, best public LB 0.871** (v03: DINOv2-S/14 224,
+one fold, no ensemble, trained from the preprocessing cache). Progression 0.500 → 0.841 → 0.871;
+the 0.500 was a smoke run whose constant output exposed a silent image-root failure at rerun.
+An epoch now costs ~11 min, so fold-0 A/B arms are ~0.9 h each. A five-arm batch (noise floor,
+P-09 attention head, P-05 laterality ablation, P-08 jitter) is in flight — see
+[docs/handoff.md](docs/handoff.md).
 
 ## 📚 Documentation map — read the relevant one before acting
 
@@ -124,6 +126,20 @@ retrain there. `"auto"` picks `infer` when such checkpoints are mounted.
 kaggle competitions submit rsna-knee-abnormality-detection \n       -k tiankljucanin/rsna-knee-train -v <version> -f submission.csv -m "<what changed>"
 ```
 
+**The inference kernel** is generated from a sed'd copy, the same pattern the cache shards use —
+`MODE="infer"` because `"auto"` requires *every* configured fold to have a checkpoint and would
+otherwise decide `"train"` and re-train at rerun, and `FORCE_SMOKE=False` because smoke sets a
+0.4 h runtime guard:
+
+```bash
+sed -e 's/^FORCE_SMOKE = True/FORCE_SMOKE = False/' -e 's/^MODE = "auto"/MODE = "infer"/' src/kaggle_pipeline.py > /tmp/infer.py
+python src/nbgen.py /tmp/infer.py kaggle/rsna-knee-infer/rsna-knee-infer.ipynb
+kaggle kernels push -p kaggle/rsna-knee-infer
+```
+
+Read only a kernel's log, without pulling hundreds of MB of checkpoints, with a pattern that
+matches nothing: `kaggle kernels output <slug> -p <dir> --file-pattern "no_match"`.
+
 **Cache kernels** (CPU, run in parallel with training):
 
 ```bash
@@ -192,7 +208,8 @@ Macro ROC-AUC is invariant to any strictly increasing per-label transform, so:
 ## Where the field is
 
 Public LB on 2026-08-28: **top 0.952**, ranks 2–9 spanning 0.946–0.949 — the top ten inside
-a **0.006 band**, from 2,559 teams. The Efficiency Prize has its own leaderboard, published
+a **0.006 band**, from 2,559 teams. **We are at 0.871** on one fold of one backbone
+(2026-08-29). The Efficiency Prize has its own leaderboard, published
 as a notebook (`ryanholbrook/rsna-knee-abnormalities-efficiency-lb`, readable via
 `kaggle kernels output`); its leader is also top-5 on accuracy, so efficiency is not being
 bought with score.

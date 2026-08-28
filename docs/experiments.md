@@ -43,7 +43,8 @@ Judge label changes on **coverage** (does the rule fire at all, per language) an
 | 2026-08-28 | LLM report labels, rank blend of 3 sources (the *teacher*, v01) | 0.8934 | — | ❌ superseded (target-scale flaw, see P-00) |
 | 2026-08-28 | LLM report labels, **mean of probabilities** (the teacher, v02) | 0.8948 | — | ✅ KEEP — for the *target scale*, not the AUC: Δ 0.0014 vs the rank blend is inside the noise floor |
 | 2026-08-28 | v01 smoke model (1 fold, 1 epoch, 4 studies) — submission #1 | n/a | **0.500** | ❌ constant output at rerun (see Submissions) |
-| 2026-08-28 | **v02 fold 0, real run (kernel v6)**: DINOv2-S 224, 6 slices/slot, 4 epochs, prob targets, LR 2e-5+LLRD, EMA | 0.847 (n=11, CI 0.72–0.94) · OOF-vs-teacher **0.821** (882 studies) | submission #2 pending | ✅ first real model; per-label table below |
+| 2026-08-28 | **v02 fold 0, real run (kernel v6)**: DINOv2-S 224, 6 slices/slot, 4 epochs, prob targets, LR 2e-5+LLRD, EMA | 0.847 (n=11, CI 0.72–0.94) · OOF-vs-teacher **0.821** (882 studies) | **0.841** | ✅ first real model; per-label table below |
+| 2026-08-28 | **v03 fold 0 from the cache (kernel v8)**: v6 recipe + 130 mm crop + laterality + per-series norm | 0.906 (n=11, CI 0.81–0.97) · OOF-vs-teacher **0.843** (882 studies) | **0.871** | ✅ KEEP — LB +0.030 vs v02, 6× the 0.005 floor |
 
 **External reference points** (not ours — for calibrating ambition):
 
@@ -321,6 +322,95 @@ Readings (hypotheses to test, not conclusions):
 - The P-00 fix's effect on the student is **not** isolated here (no v01 real run exists); v6 is
   the baseline every later card is compared against.
 
+### 2026-08-28 — v03 fold 0 trained from the cache (kernel `rsna-knee-train` v8) ✅ KEEP
+
+Same recipe as v6, reading the mounted `c01_p224_s16_crop130_lat20` cache instead of decoding
+DICOMs. Cache mounted clean: 4,407 studies indexed, mean slots 4.78, side resolved 97.9%, no
+header scan needed.
+
+| | v6 (v02, decode) | v8 (v03, cache) |
+|---|---|---|
+| s/study, training | 0.99 | **0.18** |
+| per epoch | 58 min + 14.5 min val | **10.6 min + 2.9 min val** |
+| header scan | 321 s | not needed |
+| total, 4 epochs | 5.0 h | **0.92 h** |
+| OOF-vs-teacher, ep3 | 0.821 | **0.8426** |
+| gold, ep3 (n=11) | 0.847 [0.72, 0.94] | 0.9062 [0.81, 0.97] |
+| pred_std | 0.23 | 0.238 |
+
+**Speed-up is 5.4× end to end, not the ~60× the decode arithmetic suggested.** Decode was the
+bottleneck; now it is not. At 0.18 s/study for ~29 ViT forwards (4.78 slots × 6 slices), the
+T4 is the floor. Two consequences: further I/O work is worth nothing, and P-08's extra slices
+now cost linearly in GPU time instead of riding free on saved decode.
+
+**Learning curve (fold 0 val, 882 studies; gold n = 11):**
+
+| epoch | loss | OOF vs teacher | gold [95% CI] | pred_std |
+|---|---|---|---|---|
+| 0 | 0.570 | 0.7848 | 0.837 [0.72, 0.93] | 0.128 |
+| 1 | 0.487 | 0.8357 | 0.896 [0.80, 0.97] | 0.186 |
+| 2 | 0.438 | **0.8457** | 0.898 [0.80, 0.97] | 0.220 |
+| 3 | 0.398 | 0.8426 | 0.906 [0.81, 0.97] | 0.238 |
+
+**Train loss falls monotonically while OOF turns over at epoch 2.** That is the overfitting
+signature, and it is the argument against P-04's 8 epochs and for augmentation (the pipeline's
+only augmentation was Gaussian noise at σ=0.01) — see the five-arm batch below.
+
+**Per-label OOF vs teacher at epoch 3, against v6:**
+
+| label | v6 | v8 | Δ | | label | v6 | v8 | Δ |
+|---|---|---|---|---|---|---|---|---|
+| **Lateral Meniscus** | 0.72 | **0.792** | **+0.07** | | Contusion | 0.83 | 0.855 | +0.03 |
+| Medial Meniscus | 0.82 | 0.873 | +0.05 | | Medial OA | 0.84 | 0.859 | +0.02 |
+| ACL | 0.81 | 0.840 | +0.03 | | PF OA | 0.79 | 0.803 | +0.01 |
+| MCL | 0.75 | 0.781 | +0.03 | | Baker's | 0.88 | 0.890 | +0.01 |
+| Lateral OA | 0.78 | 0.810 | +0.03 | | Fracture | 0.90 | 0.900 | 0.00 |
+| | | | | | Synovitis | 0.88 | 0.873 | −0.01 |
+| | | | | | Effusion | 0.85 | 0.835 | −0.02 |
+
+**Every gain is a side-specific or small-focal finding; every global/fluid finding is flat or
+marginally down.** The four weakest labels in v6 all moved up. That sorting by label semantics
+is what makes the delta look mechanistic rather than like seed noise.
+
+⚠️ **P-01's "OOF within ±0.01 = a faithful speed-up" rule was never applicable.** It assumed
+v03 replayed v02's inputs. It did not: v6's config dump has no `crop_mm` and no
+`lat_dead_zone_mm` keys at all, so v03 changed the pixels three ways at once — 130 mm physical
+crop, laterality mirroring, per-series 1/99 normalisation. The +0.022 is real (confirmed on the
+LB below) but **jointly attributed** until the `lat_undo` arm reports. Verdict is ✅ KEEP for
+the combination, not for any one of the three.
+
+Caveat: n = 1. The four epochs share one run and one seed, so they are not four samples. The
+run-to-run floor was still unmeasured when this was written — that is what the batch below does.
+
+### 2026-08-29 — Five-arm fold-0 batch (kernel `rsna-knee-train` v11) ⏳ PENDING
+
+Five fold-0 arms back to back in one session, ~0.9 h each (~4.6 h against the 8.3 h guard),
+each writing `v04*_fold0_*`. An arm that raises is logged and skipped rather than killing the
+session.
+
+| arm | change vs `v04base` | card | what it answers |
+|---|---|---|---|
+| `v04base` | — (seed 42, current code) | — | the reference every other arm is compared against |
+| `v04a` | `seed = 43` | P-02 | `\|v04a − v04base\|` **is** the measured OOF noise floor |
+| `v04c` | `head_type = "attn"` | P-09 | per-label masked slot attention vs concat→linear |
+| `v04b` | `lat_undo = True` | P-05 | splits laterality out of the v03 preprocessing gain |
+| `v04d` | `cache_jitter = True` | P-08 | ±1-slice jitter as augmentation |
+
+`v04base` exists because arms b/c/d must differ from their baseline in exactly one thing, and
+kernel v8 stopped being that baseline the moment `seed_worker()` changed how augmentation is
+randomised. So **v8 vs v04base measures the code revision; v04a vs v04base measures the seed.**
+
+`lat_undo` de-canonicalises right knees at load time by re-applying the cache's own transforms
+(both are involutions), which needs no cache rebuild — verified as a clean involution with no
+NumPy aliasing corruption. It does not reconstruct the original bytes (the per-series
+`col_to_left` sign is not in the manifest); it reproduces *chirality that varies with knee
+side*, which is the thing P-05 removed. On Kaggle it fired on **2,288 of 4,407 studies
+(51.9%)**. This is a cleaner test than v8-vs-v6, where the crop varied at the same time.
+
+Read `v04c` on macro **plus** the three correlated pairs (Effusion~Synovitis, Medial OA~Medial
+Meniscus, Contusion~Fracture) — research.md's stated risk is that a per-label head loses the
+shared-vector benefit exactly there.
+
 ---
 
 ## Infrastructure
@@ -438,6 +528,37 @@ while silently skipping files — verify by file count, never exit status. Also,
 flattens nested paths into `-p`, so the `study/series/` tree must be rebuilt manually.
 Sample DICOMs stalled at **459/557** (3 series of study 3 missing); not blocking.
 
+### 2026-08-29 — Four silent bugs found while shipping the arms (all fixed) ✅ KEEP the fixes
+
+None of these would have raised. Each was found by reading the path a change would take,
+not by a failing test.
+
+1. **Inference silently used v02 preprocessing for a v03 model.** `rsna-knee-infer` mounts only
+   `rsna-knee-train`, so no cache manifest is present; the loader then flipped
+   `cfg.use_cache = False`, and `KneeStudyDataset.__getitem__` took the v02 decode branch — no
+   130 mm crop, no laterality. `use_cache` conflated *which preprocessing* with *whether to read
+   a .npy*, and only the second is unavailable at inference. Fixed: the flip now applies in
+   train mode only. **Verified**: after the fix the infer kernel's predictions are byte-identical
+   to what the v8 training kernel produced for the same 3 test studies. → traps.md 6d.
+2. **Infer fold-narrowing was gated on `cfg.smoke`.** With `FORCE_SMOKE=False` and `MODE="auto"`,
+   `cfg.folds` is `(0,1,2,3,4)` while only fold 0 has a checkpoint, so the auto rule decided
+   `mode="train"` — the submitted notebook would have **re-trained at rerun** (traps.md 12c).
+   Fixed: narrowing is unconditional, and the infer kernel is generated with `MODE="infer"`
+   sed'd in, the same pattern `cache-b` already uses.
+3. **A real-mode default that smoke can never reveal.** Each arm inherits `cfg.folds`, which is
+   `(0,1,2,3,4)` in real mode — five arms would have been 25 folds, ≈18 h. Invisible in smoke
+   because `__post_init__` forces `folds=(0,)`. Fixed with an explicit `ARM_FOLDS`. → traps.md 12d.
+4. **Augmentation that never augments.** `array_to_tensor`'s jitter uses `np.random` and the
+   noise augmentation uses `random`; PyTorch seeds only *torch* per worker. On Linux/fork every
+   epoch's workers inherit the same parent state, so the "random" jitter would repeat identically
+   in all four epochs. Fixed with a `worker_init_fn`. → traps.md 6e.
+   ⚠️ **Not empirically verified**: Windows spawns workers rather than forking, so the pathology
+   cannot be reproduced on the local machine. If `v04d` comes back flat, "the augmentation still
+   is not random" stays a live explanation alongside "jitter does not help."
+
+Also measured while fixing #1: `kaggle kernels output --file-pattern "<no match>"` downloads the
+log alone, avoiding ~700 MB of checkpoints per log read.
+
 ### 2026-08-28 — Bugs found by running the pipeline (all fixed) ✅ KEEP the fixes
 
 1. **A fold could finish with no `best.pt`.** When AUC is undefined (no positives in a
@@ -456,9 +577,39 @@ Sample DICOMs stalled at **459/557** (3 series of study 3 missing); not blocking
 
 ## Submissions
 
+### 2026-08-29 — OOF-vs-teacher predicts the LB, with a +0.02–0.03 offset ✅ KEEP (n=2)
+
+Two calibration points now exist, and both behave the same way:
+
+| version | OOF vs teacher | gold (n=11) | public LB | LB − OOF |
+|---|---|---|---|---|
+| v02 (kernel v6) | 0.821 | 0.847 | 0.841 | +0.020 |
+| v03 (kernel v8) | 0.843 | 0.906 | **0.871** | +0.028 |
+| Δ | **+0.022** | +0.059 | **+0.030** | |
+
+Three readings, in decreasing confidence:
+
+1. **The v03 preprocessing gain is real.** +0.030 on the LB is six times the 0.005 floor, and it
+   moved in the direction the OOF predicted. The +0.022 OOF was **not** a teacher-agreement
+   artefact. ✅ KEEP.
+2. **OOF-vs-teacher is a usable decision metric, and it under-reads.** The LB sits above the
+   teacher-agreement number both times, which is what you expect when the student is graded
+   against a teacher whose own gold macro-AUC is 0.8948 — the student averages out teacher noise.
+   Treat +0.02–0.03 as a rough offset, not a law: n=2 fits any monotone curve.
+3. **Gold overshot this time and undershot last time** (0.906 vs LB 0.871; 0.847 vs 0.841). Both
+   differences sit inside the ±0.09 Hanley–McNeil interval, i.e. exactly the documented noise of
+   58 studies. No change to gold's role: reported, never gated.
+
+Position: **0.871 from one fold, one backbone, no ensemble, no TTA**, against a public top of
+0.952 and ranks 2–9 spanning 0.946–0.949. The remaining gap is 0.081, and a 5-fold rank-mean of
+this recipe is the cheapest standing claim on part of it.
+
+
 Log every submission here with the exact kernel version, config diff, OOF score,
 and public LB score, so a public/private divergence can be traced to a specific change.
 
 | # | Date | Kernel ver | Config change | OOF | Public LB | Notes |
 |---|---|---|---|---|---|---|
 | 1 | 2026-08-28 | rsna-knee-train v2 | v01 smoke (1 fold, 1 epoch, 2 slices/slot, rank targets) | n/a | **0.500** | exactly 0.500 = constant output at rerun; image-root assumption failed silently. Mechanics of submitting verified. |
+| 2 | 2026-08-28 | rsna-knee-infer v1 (mounts rsna-knee-train v6) | v02 fold 0: DINOv2-S 224, 6 slices/slot, 4 ep, prob targets, LR 2e-5+LLRD, EMA | 0.821 | **0.841** | First non-0.500 score — the submission path works. Above the ~0.809 public DINOv2-S baseline on one fold. |
+| 3 | 2026-08-28 | rsna-knee-infer v3 (mounts rsna-knee-train v8) | v03: same recipe, trained from the cache — adds 130 mm crop + laterality + per-series norm | 0.843 | **0.871** | **+0.030 vs #2**, 6× the 0.005 LB floor. The OOF gain transferred and amplified. Also the first submission through the fixed infer path (traps 6d). |
