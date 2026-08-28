@@ -18,7 +18,10 @@ Every entry gets a **verdict**, and the verdict is the thing future-you reads fi
 | ❌ **DEAD END** | Measured worse or broke. Do not retry without a new reason. |
 | 🔁 **INCONCLUSIVE** | Difference smaller than the noise floor. Not evidence either way. |
 | ⏳ **PENDING** | Running or not yet measured. |
-| 💡 **IDEA** | Not tried. Ranked in the backlog below. |
+
+Untried ideas do **not** belong here — they go in [brainstorm.md](brainstorm.md), which
+holds the ranked backlog and the open questions. This file is only for things that were
+actually run and measured.
 
 **The noise floor is the most important number in this file.** With 58 gold studies the
 Hanley–McNeil SE of an AUC near 0.8 is ≈0.09 — a 95% interval of roughly ±0.17. Public-LB
@@ -107,11 +110,8 @@ better than hans_v4 alone.** Using it anyway on the theory that averaging indepe
 readers should reduce variance on the 4,349 non-gold studies where we cannot measure, but
 this is a prior, not a result. Do not cite 0.8934 > 0.8927 as evidence of anything.
 
-### 💡 IDEA — improve the weak labels ourselves
-Highest-value known lever, since the teacher caps the student. Options: prompt an
-open-weights multilingual model for the three weakest findings; check per-language
-coverage to find where vocabulary is thin. ⚠️ Do not send report text to a hosted LLM API
-(see CLAUDE.md, "Rules"). Mount or run locally instead.
+> Untried ideas for label improvement live in [brainstorm.md](brainstorm.md) (#4).
+> Weakest teacher labels: Synovitis 0.788, Lateral OA 0.804, Fracture 0.825.
 
 ---
 
@@ -134,13 +134,9 @@ Greedy largest-first assignment, gold balanced before size:
 Max folds touched by any single report group: **1** (verified assertion). Reproduced
 byte-identically on Kaggle, so folds are machine-independent.
 
-### 💡 IDEA — also group by scanner/site
-Community reports random K-fold inflates AUC ~0.05 via scanner memorisation, with one team
-measuring a **+0.136** grouped-vs-random gap. Report-text grouping does **not** address
-this — site identity leaks through the pixels. Derive a site proxy from DICOM headers
-(`Manufacturer`, `ManufacturerModelName`, `InstitutionName`, `MagneticFieldStrength`) and
-group on it too. **Not yet done, and it may be the single biggest correctness gap in our
-validation.**
+> ⚠️ **Site/scanner grouping is still missing** and is the largest correctness gap in our
+> validation — report-text grouping does not address it, because site identity leaks through
+> the pixels. Tracked as [brainstorm.md](brainstorm.md) #2.
 
 ---
 
@@ -210,25 +206,9 @@ Ran green end to end on a Kaggle T4 in smoke mode (kernel v2, 9.5 min). **Not tr
 real, not submitted — no score exists yet.** The smoke run's `auc_soft 0.3182` is
 meaningless (4 val studies, 1 epoch, near-random head). `pred_std 0.127` is healthy.
 
-### 💡 IDEA — ensemble DINOv2 with RadImageNet ResNet-50
-**Not implemented.** `models/radimagenet_r50/ResNet50.pt` is downloaded but nothing loads
-it; the current "rank mean" ensembles 5 folds of the *same* architecture, not two
-backbones. RadImageNet is supervised on ~1.35M radiologic images, so it has a different
-inductive bias and different failure modes — the standard reason a blend helps. Every
-strong public notebook rank-blends DINOv2/v3 with RadImageNet.
-⚠️ **RadImageNet is CC-BY-NC-SA-4.0** (non-commercial, share-alike) — check the winner
-licence clause before making it load-bearing in a final submission. DINOv2 is Apache-2.0.
-
-### 💡 IDEA — architecture backlog, roughly by expected value
-1. **Preprocessing cache** (see below) — unblocks everything else. Do first.
-2. **Site-grouped folds** — correctness, not score. Do second.
-3. Rank-blend RadImageNet ResNet-50 with DINOv2.
-4. DINOv3 ViT-S/16 as a third ensemble member.
-5. Laterality normalisation — mirror right knees. `Medial OA` and `Lateral OA` are
-   *different labels*, so this is not cosmetic. Currently **not implemented**; the DICOM
-   laterality tag is reportedly unreliable in this corpus.
-6. Higher resolution for the small focal findings (meniscal tears) — costly.
-7. Per-label specialist heads for the three weakest labels.
+> **Not implemented yet:** the RadImageNet ensemble, laterality normalisation, DINOv3, and
+> higher resolution. All ranked in [brainstorm.md](brainstorm.md). The current rank mean
+> ensembles 5 folds of the *same* DINOv2 architecture, not two backbones.
 
 ---
 
@@ -286,12 +266,8 @@ Sample DICOMs stalled at **459/557** (3 series of study 3 missing); not blocking
 3. **Empty header scans were cached**, so a resumed session would hit the empty cache and
    train on nothing. Now an empty scan is never written.
 
-### 💡 IDEA — infrastructure backlog
-- `FORCE_SMOKE = True` on every edited notebook before a long run. A crash in the inference
-  cell after six hours costs a whole session.
-- Never select the **P100**: Kaggle's PyTorch ships no Pascal CUDA kernels and the session
-  dies at the first convolution. `"machine_shape": "NvidiaTeslaT4"`.
-- Consider splitting train and inference into separate kernels once the cache exists.
+> Operational reminders (smoke first, never P100, PYTHONUTF8) are in
+> [traps.md](traps.md). Infrastructure ideas are in [brainstorm.md](brainstorm.md).
 
 ---
 
