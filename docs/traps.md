@@ -49,7 +49,8 @@ Our own bug. `build_targets` overwrites the weak targets with the 58 gold labels
 early version scored the result against gold — grading gold against itself and printing
 **"teacher gold macro-AUC 1.0000"**. Plausible-looking, completely meaningless.
 
-**Do:** compute teacher quality *before* the gold override. Correct value: **0.8934**.
+**Do:** compute teacher quality *before* the gold override. Correct value: **0.8948** (blend;
+0.8934 for the diagnostic rank blend).
 
 ### 4. Treating noise as a result
 
@@ -90,6 +91,29 @@ stay mutually comparable, then scale to [0,1]. Also handle `MONOCHROME1` (invert
 value means black) and `RescaleSlope`/`RescaleIntercept`. Our sample happened to be all
 `MONOCHROME2` with trivial rescale, but the hidden test spans 16–19 sites.
 
+### 6b. Building a BCE target in rank space
+
+Our own bug, found by the research critic and verified on the data. `rank(pct=True)` gives
+tied values their **average** rank, so on a label where most reports say exactly 0 every
+confident negative received a target of **0.28–0.39** while the 58 gold rows sat at a hard
+0/1 with 8× weight. **No study on any label (0%)** had a target below 0.1 before the gold
+override (under the probability blend it is 2–72% per label: Synovitis 2%, Baker's 26%,
+MCL 72%). AUC is rank-invariant, which is exactly why this looked principled — but BCE fits
+the *value*, so the network was being taught "definitely absent" = 0.31.
+
+**Do:** rank space for *scoring* and for *ensembling predictions*; probability space (mean
+of sources) for *targets*. `build_targets.py` prints the target quantiles so a regression is
+visible. Measured on 2026-08-28; student effect pending (P-00).
+
+### 6c. Two "independent" label sources that decide identically
+
+`hans_v4` and `sol56` make **identical decisions at the 0.5 cut** — agreement 99.45% over all
+4,407 studies, error φ = 1.000 on gold for every label. Raw values differ, so this is
+consistent with — not proof of — the v4 blend including the sol56 table. Either way the three
+sources are ~1.5 effective votes: averaging them double-counts one reader and inflates the
+`agreement` term of `confidence_weights`. Check pairwise error correlation before trusting a
+blend of public label sets; `src/label_audit.py` does it.
+
 ### 7. Base-rate collapse
 
 The known failure mode of this setup: the model outputs nearly the same score for every
@@ -111,7 +135,20 @@ best checkpoint was ever written — and at inference the fold was **silently sk
 quietly shrinking the ensemble.
 
 **Fixed:** fall back to negative loss when AUC is undefined, and always write a checkpoint
-if none exists yet.
+if none exists yet. (Since v02 the question is moot: `best.pt` is the EMA weights after the
+last completed epoch — fixed-epoch selection — and the per-epoch score is logged only.)
+
+### 8b. Resume that never resumed
+
+Our own bug, fixed in kernel v4. The resume logic looked for `{version}_fold{k}_last.pt` in
+`WORK` (`/kaggle/working`), but a mounted previous-run output lives **read-only under
+`/kaggle/input/...`**. The lookup missed, no error was raised, and every "resumed" run
+silently restarted at epoch 0 — burning the whole session it was meant to save, while the
+log looked like a normal training run.
+
+**Fixed:** resume now copies the mounted `_last.pt` / `_best.pt` into `WORK` before looking
+them up; EMA resume falls back to the raw weights if the checkpoint has no EMA state.
+`MODE=auto` picks infer only if **every** configured fold has a mounted `best.pt`.
 
 ### 9. Caching an empty scan
 
@@ -159,6 +196,31 @@ of training costs the entire session.
 
 **Do:** `FORCE_SMOKE = True` on every new or edited notebook, always. Only then flip it.
 
+### 12b. A submission that scores exactly 0.500
+
+Submission #1 (smoke, kernel v2) **completed** and scored 0.500 — to three decimals. A
+near-random model on ~1,000 hidden studies scores 0.47–0.53; an exact 0.500 is a **constant**
+submission. Our own fallbacks produced it: an empty test manifest → `fillna(0.5)`, or every
+slot directory missing → all-masked inputs → constant head output. Either way the hidden
+test tree did not match the assumed `test_series/<study>/<series>/*.dcm` layout, and the
+rerun log is invisible in a code competition, so nothing told us.
+
+**Do:** probe the test image root by globbing for a real series UID; accept non-`.dcm`
+filenames; write **no placeholder** (a crash → missing submission → visible scoring error, by
+design — a 0.5-filled placeholder is exactly what produced the 0.500); then **refuse to
+submit** (raise) when fewer than 90% of test studies are imaged *and* have ≥ 1 slot, or more
+than half the labels are constant. A scoring error is diagnosable; a 0.500 looks like a bad
+model. Also: submit smoke runs
+*before* real ones — this cost a submission slot, not a session.
+
+### 12c. Re-training inside the submitted notebook
+
+A code competition **re-runs the notebook** on the hidden test. If the notebook trains and
+infers in one pass, the rerun trains a *new* model (different data order, possibly killed by
+the time limit) and scores that, not the one you validated. `MODE="infer"` loads
+`{version}_fold*_best.pt` from a mounted kernel output and only predicts. Submit the
+inference-mode version, never the training one.
+
 ### 13. Horizontal-flip augmentation
 
 `Medial OA` and `Lateral OA` are **different labels**. A horizontal flip swaps medial and
@@ -194,6 +256,12 @@ no `-f` would pull all **~570 GB**.
 Team names and reports contain non-ASCII; Windows' default codec throws
 `'charmap' codec can't encode characters`. **Do:** `export PYTHONUTF8=1` before any Kaggle
 CLI call. It is in every command block in our docs for this reason.
+
+### 15b. `charmap` bites any Python that prints non-ASCII, not just the Kaggle CLI
+
+Hit it again today printing research findings containing `≈`. On Windows **every** Python
+process that prints or writes text without an explicit encoding needs `PYTHONUTF8=1`. Set it
+once in the shell profile rather than per command.
 
 ### 16. Line-splitting `train.csv`
 

@@ -10,8 +10,10 @@ by **macro ROC-AUC** (unweighted mean of 12 per-label AUCs).
 
 Competition: https://www.kaggle.com/competitions/rsna-knee-abnormality-detection
 
-**State as of 2026-08-28:** the pipeline exists and runs green end to end on a Kaggle T4 in
-smoke mode. **No real training run has happened and zero submissions have been made.**
+**State as of 2026-08-28 (evening):** pipeline v02 runs green end to end (local + Kaggle
+smoke). **One submission made** — a smoke run that scored exactly 0.500 and thereby exposed a
+silent image-root failure at rerun (fixed). The first real fold-0 run and the preprocessing
+cache are the next actions; see [docs/handoff.md](docs/handoff.md).
 
 ## 📚 Documentation map — read the relevant one before acting
 
@@ -20,15 +22,17 @@ smoke mode. **No real training run has happened and zero submissions have been m
 | [docs/handoff.md](docs/handoff.md) | Session state, what changed last, next action | **First, always** |
 | [docs/traps.md](docs/traps.md) | Bugs and **silent** failure modes, tiered by damage | Before writing pipeline code |
 | [docs/experiments.md](docs/experiments.md) | Every measurement, with a verdict | Before proposing an experiment |
-| [docs/brainstorm.md](docs/brainstorm.md) | Untried ideas, ranked backlog, open questions | When choosing what to do next |
+| [docs/proposals.md](docs/proposals.md) | **Ranked backlog as testable cards P-00…P-20** (hypothesis, evidence, measure, noise floor, cost) | When choosing what to do next |
+| [docs/research.md](docs/research.md) | Literature + prior-competition research behind the cards (18-agent workflow, critic-fixed) | Before changing a training parameter or model |
+| [docs/brainstorm.md](docs/brainstorm.md) | Open questions and strategy notes only | When a question needs a browser |
 | [docs/setup.md](docs/setup.md) | Bootstrapping a new machine | New clone / new laptop |
 
 Two conventions that keep these useful:
 
 - **`experiments.md` is append-only.** Every entry carries a verdict (✅ KEEP / ❌ DEAD END /
   🔁 INCONCLUSIVE / ⏳ PENDING). Check it before proposing anything so we never re-run a
-  settled question or resurrect a dead end. Untried ideas belong in `brainstorm.md`, not
-  there.
+  settled question or resurrect a dead end. Untried ideas are **cards in `proposals.md`**,
+  written *before* running: hypothesis → origin → measure → noise floor → if-works / if-fails.
 - **Update `handoff.md` at the end of every session.** It is the only file that answers
   "what was I doing?"
 
@@ -57,13 +61,16 @@ Full reasoning and 12 more failure modes in [docs/traps.md](docs/traps.md).
 
 ```
 CLAUDE.md               this file — index + verified facts
-docs/                   handoff, traps, experiments, brainstorm, setup
+docs/                   handoff, traps, experiments, proposals, research, brainstorm, setup
 src/kaggle_pipeline.py  THE PIPELINE, percent-format (runs as .py AND becomes the notebook)
+src/cache_pipeline.py   preprocessing-cache kernel (P-01): DICOM -> uint8 once, laterality, site proxy
 src/nbgen.py            percent-format .py -> .ipynb
 src/build_targets.py    targets + leak-safe folds -> artifacts/targets.csv
+src/label_audit.py      per-language / per-label audit of the LLM label sources
 src/dicom_probe.py      DICOM header / ordering / normalisation audit
 src/baseline_infer.py   standalone inference smoke test
-kaggle/rsna-knee-train/ generated notebook + kernel-metadata.json
+kaggle/rsna-knee-train/     generated training/inference notebook + kernel-metadata.json
+kaggle/rsna-knee-cache-a/   cache kernel, shard 0  (-b: shard 1, SHARD=1 sed'd in at build time)
 data/  models/  artifacts/   all gitignored (see docs/setup.md)
 ```
 
@@ -86,7 +93,8 @@ kaggle kernels output tiankljucanin/rsna-knee-train -p artifacts/kaggle_out
 Other local checks:
 
 ```bash
-python src/build_targets.py                     # must print teacher gold macro-AUC 0.8934
+python src/build_targets.py                     # must print teacher gold macro-AUC 0.8948 (blend), 0.8934 (rank, diagnostic)
+python src/label_audit.py                       # per-language / per-label label audit -> artifacts/label_audit.md
 python src/dicom_probe.py                       # header / ordering audit
 python src/baseline_infer.py --slices 3         # standalone inference smoke test
 ```
@@ -94,6 +102,26 @@ python src/baseline_infer.py --slices 3         # standalone inference smoke tes
 **`FORCE_SMOKE`** at the top of the config cell: `True` = minutes-long end-to-end check
 (1 fold, 1 epoch, 2 slices/slot, 24 studies scanned); `False` = real 5-fold run; `None` =
 auto (smoke locally, real on Kaggle).
+
+**`MODE`** next to it: `"train"` trains then infers; `"infer"` loads `{version}_fold*_best.pt`
+from a mounted kernel output and only predicts — **this is what gets submitted**, because a
+code competition re-runs the notebook on the hidden test and a training notebook would
+retrain there. `"auto"` picks `infer` when such checkpoints are mounted.
+
+**Submitting a notebook version** (works from the CLI, no browser needed):
+
+```bash
+kaggle competitions submit rsna-knee-abnormality-detection \n       -k tiankljucanin/rsna-knee-train -v <version> -f submission.csv -m "<what changed>"
+```
+
+**Cache kernels** (CPU, run in parallel with training):
+
+```bash
+python src/nbgen.py src/cache_pipeline.py kaggle/rsna-knee-cache-a/rsna-knee-cache-a.ipynb
+sed 's/^SHARD = 0 /SHARD = 1 /' src/cache_pipeline.py > /tmp/cache_b.py
+python src/nbgen.py /tmp/cache_b.py kaggle/rsna-knee-cache-b/rsna-knee-cache-b.ipynb
+kaggle kernels push -p kaggle/rsna-knee-cache-a; kaggle kernels push -p kaggle/rsna-knee-cache-b
+```
 
 **Resuming:** five folds do not fit in one 9 h session. When the runtime guard fires, each
 fold has written `{version}_fold{k}_last.pt` and inference is skipped. Attach that run's
@@ -199,8 +227,8 @@ output so nothing large crosses your machine:
 metadata/header scan (CPU)  →  cache build (CPU)  →  train (T4 GPU)  →  submit
 ```
 
-The cache-build step is **not yet implemented** and is the top backlog item — see
-[docs/brainstorm.md](docs/brainstorm.md).
+The cache-build step is `src/cache_pipeline.py` (P-01 in [docs/proposals.md](docs/proposals.md));
+the training-side loader that reads the cache is the follow-up.
 
 ## Rules: AI assistance and data handling
 
@@ -230,10 +258,11 @@ general framework plus observed community behaviour, not a quotation. Also: keep
 and `StudyInstanceUID`s out of any public location. `artifacts/` contains both and is
 gitignored for that reason.
 
-⚠️ **RadImageNet weights are CC-BY-NC-SA-4.0** (non-commercial, share-alike). Widely used in
-public notebooks, but an NC/SA licence can conflict with a prize competition's
-winner-licensing obligations. Check that clause before making RadImageNet load-bearing in a
-final submission; DINOv2 is Apache-2.0.
+⚠️ **RadImageNet weights carry no stated licence** (checked 2026-08-28: code MIT, paper CC BY
+4.0, data "by request"; an earlier version of this file said CC-BY-NC-SA-4.0, which could not
+be verified). Treat as restrictive until radimagenet.com's Terms & Conditions and the
+competition's winner-licence clause are read in a browser. DINOv2 is Apache-2.0; timm
+ConvNeXt weights are licence-clean and are the first choice for a CNN ensemble member.
 
 ## Timeline
 

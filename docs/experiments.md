@@ -40,8 +40,10 @@ Judge label changes on **coverage** (does the rule fire at all, per language) an
 
 | Date | What | Gold AUC | Public LB | Verdict |
 |---|---|---|---|---|
-| 2026-08-28 | LLM report labels, rank blend of 3 sources (the *teacher*) | 0.8934 | — | ✅ KEEP |
-| 2026-08-28 | DINOv2 ViT-S/14 2.5D pipeline, smoke only | n/a | not submitted | ⏳ PENDING |
+| 2026-08-28 | LLM report labels, rank blend of 3 sources (the *teacher*, v01) | 0.8934 | — | ❌ superseded (target-scale flaw, see P-00) |
+| 2026-08-28 | LLM report labels, **mean of probabilities** (the teacher, v02) | 0.8948 | — | ✅ KEEP — for the *target scale*, not the AUC: Δ 0.0014 vs the rank blend is inside the noise floor |
+| 2026-08-28 | v01 smoke model (1 fold, 1 epoch, 4 studies) — submission #1 | n/a | **0.500** | ❌ constant output at rerun (see Submissions) |
+| 2026-08-28 | v02 pipeline (prob targets, LR 2e-5 + LLRD, EMA, OOF logging), fold 0 real run — kernel v6, launched 16:13 | — | — | ⏳ PENDING |
 
 **External reference points** (not ours — for calibrating ambition):
 
@@ -112,6 +114,68 @@ this is a prior, not a result. Do not cite 0.8934 > 0.8927 as evidence of anythi
 
 > Untried ideas for label improvement live in [brainstorm.md](brainstorm.md) (#4).
 > Weakest teacher labels: Synovitis 0.788, Lateral OA 0.804, Fracture 0.825.
+
+### 2026-08-28 — Rank-percentile targets put confident negatives at ~0.3 ❌ DEAD END (fixed, P-00)
+
+Found by the research critic and verified on `artifacts/targets.csv`. `rank(pct=True)` gives
+tied values their *average* rank, so on a label where most sources say exactly 0 every
+confident negative landed at 0.28–0.39 while the 58 gold rows sit at a hard 0/1 (8× weight).
+BCE fits the *value*, not the order — the network was being taught "definitely absent" = 0.31.
+
+| | old rank blend | mean of probabilities (now) |
+|---|---|---|
+| studies with target < 0.1 | **0%** — no study on any label, before the gold override (corrected: the earlier "1%" was counted *after* gold 0/1 rows were copied in) | 2–72% per label (Synovitis 2%, Baker's 26%, MCL 72%) (corrected: earlier "30–70%") |
+| MCL p25 / p50 | 0.312 / 0.43 | 0.03 / 0.04 |
+| teacher gold macro-AUC | 0.8934 | **0.8948** (Δ 0.0014 — inside the noise floor; the KEEP is for target scale, not AUC) |
+
+Rank space stays correct for *scoring* and for *ensembling predictions*; it was wrong for
+*building a BCE target*. Student effect on OOF is ⏳ PENDING (v02 fold 0). Full before/after
+quantiles are printed by `build_targets.py` into `artifacts/label_report.txt`.
+
+### 2026-08-28 — Label audit (`src/label_audit.py`) — what the teacher is made of
+
+Aggregates in `artifacts/label_audit.md` (no UIDs). Headline numbers:
+
+- **Languages (langdetect):** en 39%, es 15%, tr 12%, hr 9%, el 7%, de 6%, bg 5%, nl 3%, fr 2%.
+  Gold: 28/58 English; French has no gold.
+- **hans_v4 and sol56 make identical decisions at the 0.5 cut** — agreement 99.45% over all
+  4,407 studies; error-φ = 1.000 on gold for every label. Raw values differ, so this is
+  consistent with — not proof of — the v4 blend including the sol56 table (corrected: an
+  earlier version stated "same source / already contains" as fact). Either way the three
+  sources are ~1.5 effective votes (mean pairwise error φ 0.88; literature panels ~0.39).
+  Other pairs: hans_v4~pilkwang 95.4%, pilkwang~sol56 95.2%. Consequence: the `agreement`
+  term in `confidence_weights` is inflated by a near-duplicate, and "blending more sources"
+  (already 🔁 INCONCLUSIVE above) is now explained.
+- **Silence** (pilkwang verdict `UNK`): Synovitis **84%**, Fracture 56%, Baker's 46%,
+  Lateral OA 33%. pilkwang is the only source that flags silence. On UNK rows hans_v4
+  averages ~0.25 (many distinct values), the blend averages ~0.18, and the confidence weight
+  averages **0.69 vs 0.80–0.89 on addressed rows** — so silence is barely down-weighted and
+  looks like a confident negative (the docstring claim that silent reports "pull far less"
+  does not hold). (corrected: earlier text claimed each source encodes silence as a fixed
+  value — hans 0.25 / pilkwang ~0.28 / sol56 hard 0 — which is not what the data show.)
+- **Prevalence gap gold vs blend≥0.5:** Synovitis 47% vs 13%, Lateral Meniscus 40% vs 16%,
+  Fracture 31% vs 7%, ACL 41% vs 21%. Either the 58 gold are enriched for positives or the
+  reports under-call; both mean silent positives sit in the negatives.
+- **Coverage by language:** Spanish is worst (Fracture UNK 80%, Lateral Meniscus 40%,
+  Effusion 29%); Turkish Lateral OA UNK 68%. Source agreement (Spearman hans_v4~pilkwang,
+  the near-duplicate pair excluded) is lowest for Bulgarian: bg 0.67 vs en 0.83
+  (corrected: earlier 0.68 / 0.80 included the hans_v4~sol56 pair).
+- **Co-occurrence φ (gold / weak; n=58, SE of gold φ ≈ 0.13):** Effusion~Synovitis
+  0.40 / 0.28, Medial OA~Medial Meniscus 0.42 / 0.36, Contusion~Fracture 0.33 / 0.28,
+  Medial OA~Lateral OA 0.32 / 0.49 — relevant to any per-label head (P-09). (corrected:
+  earlier text swapped gold/weak for Medial OA~Medial Meniscus, quoting 0.36 as gold.)
+
+### 2026-08-28 — Synovitis ← Effusion back-fill 🔁 INCONCLUSIVE (NOT adopted)
+
+The public `stevenleehans` card reports +0.11 gold AUC from back-filling unaddressed
+Synovitis with the Effusion label (0.678 → 0.790). On **our** probability blend the same
+operation gives **0.788 → 0.729**, paired-bootstrap Δ = −0.059, 95% CI [−0.164, +0.042].
+The card's gain came from a 0.678 baseline; ours is already at their post-fix level. 41 of
+the 58 gold have unaddressed Synovitis and 14 of those are gold-positive, so the silence
+problem is real; whether Effusion helps is not resolvable on 58 gold — the CI spans zero in
+both directions (corrected: an earlier version said "leaning negative" / "Effusion is not the
+answer", which over-reads the data). Weights on the back-filled rows would average 0.69
+without recomputation and 0.81 with. Kept as P-07 (card only).
 
 ---
 
@@ -231,6 +295,47 @@ not launch a 5-fold run before this.**
 
 Checkpoint sizes: `best.pt` 88 MB (weights), `last.pt` 266 MB (with optimizer state).
 
+### 2026-08-28 — Submission #1 scored exactly 0.500: constant output at rerun ❌ DEAD END (silent fallback)
+
+Kernel v2 (v01, smoke: 1 fold, 1 epoch, 2 slices/slot) was submitted to prove the
+code-competition rerun path. It completed and scored **0.500 public** — exactly. A near-random
+model on ~1,000 hidden studies scores 0.47–0.53, never 0.500 to three decimals; an exact 0.500
+is a *constant* submission. Two code paths produce that: an empty test manifest → the
+`fillna(0.5)` fallback, or every slot directory missing → all-masked inputs → constant head
+output. Both mean the hidden test tree did not match the assumed `COMP/test_series/<study>/
+<series>/*.dcm` layout at rerun. The rerun log is not visible, so the exact cause is
+unconfirmed. Fixes shipped in v02: probe the test image root by globbing for a real series
+UID, accept non-`.dcm` filenames, **no placeholder file** (a crash → missing submission →
+visible scoring error, by design; corrected: an earlier version wrote a 0.5 placeholder
+first), and **refuse to submit** (SystemExit) when < 90% of test studies are imaged *and* have
+≥ 1 slot, or > 6 labels are constant — a scoring error is diagnosable, a 0.500 is not. Verdict on the mechanics themselves: the submit
+command works (`kaggle competitions submit -k <kernel> -v <version> -f submission.csv`).
+
+### 2026-08-28 — First measured throughput (kernel v3, T4, smoke) ⏳ PENDING at production settings
+
+2 slices/slot, `num_workers=0`, batch 1: **2.08 s/study training**, 12 min for the whole
+smoke notebook. Inference: **153 s per 100 test studies per fold** at 2 slices/slot.
+Extrapolated to 6 slices/slot and ~1,300 hidden studies that is ~1.6 h **per fold model** if
+each fold decodes the DICOMs again — a 5-fold ensemble would spend ~8 h on inference alone.
+So decode-once inference (predict all folds per decoded study) is a *prerequisite* for any
+multi-fold submission, not an optimisation (P-18). Training throughput at 6 slices and
+`num_workers=2` is measured by the fold-0 real run.
+
+### 2026-08-28 — Pipeline v02 instrumentation ✅ KEEP
+
+Local smoke + Kaggle smoke (kernel v3, 12 min, green) of: per-label AUC/pred_std table each epoch,
+OOF written **every epoch** as `{version}_fold{k}_ep{e}_oof.csv` plus `_oof.csv` for the
+checkpointed epoch (corrected: earlier "at the selected epoch" — there is no selection),
+2,000-rep bootstrap CI on gold macro, s/study throughput lines, layer-wise LR groups
+(4.75e-7 … 2e-5 over 12 blocks), EMA 0.998 validated and saved, `MODE=infer` loading
+checkpoints from a mounted kernel output (verified locally to reproduce the training-run
+predictions exactly). Checkpoint selection is **fixed-epoch**: `{version}_fold{k}_best.pt`
+holds the EMA weights after the last completed epoch; the per-epoch score is logged only.
+Kernel v4 (post-review) also fixed resume (mounted `_last.pt`/`_best.pt` are now copied into
+WORK — previously resume silently restarted at epoch 0, traps 8b), reads slices_per_slot /
+triplet_gap / img_size from the checkpoint config in infer mode, and drops the placeholder
+submission in favour of loud failure.
+
 ### 2026-08-28 — Kaggle mount paths must be probed, not assumed ❌ DEAD END (hard-coding)
 
 Kernel v1 died instantly with
@@ -273,9 +378,9 @@ Sample DICOMs stalled at **459/557** (3 series of study 3 missing); not blocking
 
 ## Submissions
 
-None yet. Log every submission here with the exact kernel version, config diff, OOF score,
+Log every submission here with the exact kernel version, config diff, OOF score,
 and public LB score, so a public/private divergence can be traced to a specific change.
 
 | # | Date | Kernel ver | Config change | OOF | Public LB | Notes |
 |---|---|---|---|---|---|---|
-| — | — | — | — | — | — | no submissions yet |
+| 1 | 2026-08-28 | rsna-knee-train v2 | v01 smoke (1 fold, 1 epoch, 2 slices/slot, rank targets) | n/a | **0.500** | exactly 0.500 = constant output at rerun; image-root assumption failed silently. Mechanics of submitting verified. |

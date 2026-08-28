@@ -99,11 +99,14 @@ kaggle datasets download marwanmath/resnet-50-radimagenet-marwan \
 
 ```bash
 export PYTHONUTF8=1 PYTHONPATH=src
-python src/build_targets.py         # should print teacher gold macro-AUC 0.8934
+python src/build_targets.py         # should print teacher gold macro-AUC 0.8948 (blend)
+python src/label_audit.py           # label audit -> artifacts/label_audit.md (langdetect optional)
 python src/kaggle_pipeline.py       # local CPU smoke run
+python src/cache_pipeline.py        # local smoke of the cache kernel (serial on Windows)
 ```
 
-`build_targets.py` is the strongest check: it must report **teacher gold macro-AUC 0.8934**
+`build_targets.py` is the strongest check: it must report **teacher gold macro-AUC 0.8948**
+(and 0.8934 for the diagnostic rank blend)
 and fold sizes **882/882/881/881/881** with gold **11/12/12/12/11**. Those are
 deterministic and machine-independent — if they differ, a label source is missing or a
 different version got downloaded. `kaggle_pipeline.py` additionally needs the sample DICOMs
