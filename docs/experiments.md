@@ -311,6 +311,30 @@ first), and **refuse to submit** (SystemExit) when < 90% of test studies are ima
 ≥ 1 slot, or > 6 labels are constant — a scoring error is diagnosable, a 0.500 is not. Verdict on the mechanics themselves: the submit
 command works (`kaggle competitions submit -k <kernel> -v <version> -f submission.csv`).
 
+### 2026-08-28 — Preprocessing cache built (P-01) ✅ KEEP
+
+`rsna-knee-cache-a` v3 / `-b` v2 (CPU kernels, 4 workers), cache version
+`c01_p224_s16_crop130_lat20`: **4,407/4,407 studies cached, 0 decode failures, 25 min per
+shard**, 0.6 s/study wall-clock (2.45 s/study CPU). Shard A 2,115 studies / 10.19 GB, shard B
+2,292 / 11.04 GB — 21.2 GB total, under the ~20 GB per-kernel cap only because of sharding.
+Header pass over all 24,371 series: ~3 min.
+
+Full-corpus facts the manifest now records (P-02 / P-05 inputs):
+
+| | value |
+|---|---|
+| mean slots per study | 4.78 (24-study smoke said 4.96) |
+| `Laterality` tag present | 49.6% of studies |
+| side resolved from geometry (20 mm dead zone) | 96.9% |
+| tag-vs-geometry agreement where both exist | **0.988** (n = 2,116) |
+| conflicts (left unmirrored) | 26 studies (0.6%) |
+| unresolved (no tag, centre inside dead zone) | 2.1% |
+| FOV median | 160 mm; 0.0% of studies below the 130 mm crop |
+
+These reproduce the public FINDINGS.md numbers (tag missing ~50%, geometry ~97–98%) on our own
+run, so the laterality rule is no longer community-sourced. Training-side loader is the next
+step; until it exists the training notebook still decodes DICOMs per epoch.
+
 ### 2026-08-28 — First measured throughput (kernel v3, T4, smoke) ⏳ PENDING at production settings
 
 2 slices/slot, `num_workers=0`, batch 1: **2.08 s/study training**, 12 min for the whole

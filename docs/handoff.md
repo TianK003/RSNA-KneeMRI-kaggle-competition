@@ -15,7 +15,7 @@ to read first after a break.
 | Research | ✅ 18-agent workflow (8 researchers → 8 skeptics → synthesis → critic) → [research.md](research.md); cards → [proposals.md](proposals.md) |
 | Submission #1 | ✅ made (kernel v2, smoke) — **public 0.500 exactly** = constant output at rerun; root cause class found and fixed |
 | Pipeline v02 | ✅ local + Kaggle smoke (kernel v3; kernel v4 = post-review fixes): prob targets, LR 2e-5 + LLRD 0.75, EMA, fixed-epoch `best.pt` (last-epoch EMA), per-label/OOF logging every epoch, `MODE=infer` reading model inputs from the checkpoint config, no-placeholder loud-failure submission, **resume bug fixed** (mounted `_last.pt`/`_best.pt` now copied into WORK — previously resume silently restarted at epoch 0, traps 8b) |
-| Cache kernel | ✅ smoke on Kaggle; **real shards A/B launched** (`rsna-knee-cache-a` v2, `-b` v1), ~45 min each expected |
+| Cache kernel | ✅ **built**: `rsna-knee-cache-a` v3 (2,115 studies, 10.2 GB) + `-b` v2 (2,292, 11.0 GB), 25 min each, 0 decode failures; laterality resolved 96.9%, tag/geo agreement 0.988 |
 | Label audit | ✅ `src/label_audit.py` → `artifacts/label_audit.md`; findings in experiments.md |
 | Real fold-0 run | ⏳ **launched 16:13 as kernel `rsna-knee-train` v6** (v02, fold 0, 4 epochs, 6 slices/slot, `num_workers=2`) — expect 6–8 h; guard at 8.3 h |
 | Submission #2 | ❌ |
@@ -48,9 +48,9 @@ to read first after a break.
    `kaggle kernels output ... -p artifacts/kaggle_out`, read the per-label table, s/study and
    `v02_fold0_oof.csv`; write the experiments.md entry. If the guard fired, push v6's notebook
    again with its own output attached as `kernel_sources` (resume now works — traps 8b).
-2. **Pull cache shards A/B when complete** (`kaggle kernels output tiankljucanin/rsna-knee-cache-a`
-   → check `cache_log_shard0.csv`, size, decode failures, `manifest.csv` side/conflict counts).
-   Record measured s/study and shard size in experiments.md (P-01 ⏳ → verdict).
+2. ~~Pull cache shards~~ done — numbers in experiments.md (P-01 ✅). Do **not** download the
+   arrays locally (21 GB); mount `tiankljucanin/rsna-knee-cache-a` and `-b` as `kernel_sources`
+   of the training kernel and read `manifest_shard{0,1}.csv` + `<study>.npy` there.
 3. **Submission #2**: attach the fold-0 output as `kernel_sources`, push with `MODE="infer"`
    (or leave `auto`), then `kaggle competitions submit -k ... -v <ver> -f submission.csv`.
    Log OOF per-label table + LB in experiments.md.

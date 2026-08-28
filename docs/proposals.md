@@ -53,7 +53,7 @@ result*, per unit of cost. "Depends on" lists hard blockers only.
 | id | title | status | expected value | cost | depends on |
 |---|---|---|---|---|---|
 | P-00 | Target scale: probability-space blend, not rank percentiles | 🔧 implemented, effect pending | high (rare-label targets were 0.28–0.39 for confident negatives) | done; OOF read pending | — |
-| P-01 | Preprocessing cache kernel (uint8, ordered, cropped, laterality-normalised) | ⏳ running (shards A/B on Kaggle) | very high (unblocks P-02…P-15) | 1 session, ~300 lines | — |
+| P-01 | Preprocessing cache kernel (uint8, ordered, cropped, laterality-normalised) | ✅ built 2026-08-28 (see experiments.md) — loader pending | very high (unblocks P-02…P-15) | 1 session, ~300 lines | — |
 | P-02 | Seed-noise baseline, then site-grouped folds + grouped-vs-random OOF | 💡 untested | very high (validity of every comparison) | 0.5 session, ~40 lines | P-01 header manifest |
 | P-03 | Fine-tuning recipe: (a) LR 2e-5 + EMA shipped; (b) LLRD 0.75 vs uniform | (a) 🔧 shipped, effect pending · (b) 💡 | medium | (a) done · (b) 0.3 session | P-01 for (b) |
 | P-04 | Fixed-epoch schedule, 8 epochs, chosen from fold-mean OOF curve | 💡 untested (fixed-epoch *selection* already shipped in v02) | medium-high | 1 session | P-01, P-03 |
