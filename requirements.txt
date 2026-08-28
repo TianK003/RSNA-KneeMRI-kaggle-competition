@@ -1,0 +1,16 @@
+# Local (CPU) environment for CSV/report analysis, DICOM header work, and
+# inference smoke tests. Training happens on Kaggle, not here.
+#
+# Install torch from the CPU index, otherwise pip pulls a ~2.5 GB CUDA build:
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+#   pip install -r requirements.txt
+#
+# Versions are the ones this workspace was verified against on 2026-08-28.
+kaggle==2.2.4
+numpy==2.5.2
+pandas==3.0.5
+pydicom==3.0.2
+timm==1.0.28
+torch==2.13.0
+torchvision==0.28.0
+transformers==5.16.1

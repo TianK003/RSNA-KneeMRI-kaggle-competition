@@ -1,0 +1,15 @@
+# Competition data — never commit. Report text and StudyInstanceUIDs are
+# competition data and must not leave this machine.
+data/
+artifacts/
+models/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# Kaggle credentials
+kaggle.json
