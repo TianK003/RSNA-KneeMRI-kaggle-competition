@@ -36,6 +36,16 @@ Two conventions that keep these useful:
 - **Update `handoff.md` at the end of every session.** It is the only file that answers
   "what was I doing?"
 
+## 🛠 Project skills (`.claude/skills/`)
+
+Three slash commands encode the workflows above so they are followed the same way every time:
+
+| Command | What it does | Owns |
+|---|---|---|
+| `/try-out` | Turns an idea or a `P-nn` card into one edit to `src/` + a **smoke** kernel run, then stops. Never pushes a real run, never submits — both need your go-ahead. | `src/`, `kaggle/*/`, card status |
+| `/update` | Routes every new finding to exactly one doc, with a verdict gated by the noise floor. Commits and pushes. | `experiments.md`, `proposals.md`, `traps.md`, `brainstorm.md`, this file |
+| `/handoff` | Writes the new `docs/handoff.md` session entry (in-flight table, decisions, next actions). Runs `/update` first if findings are unlogged. Commits and pushes. | `docs/handoff.md` |
+
 **The noise floor governs whether any result counts as evidence.** With 58 gold studies the
 Hanley–McNeil SE of an AUC near 0.8 is ≈0.09 (a 95% interval of ±0.17), and the top ten
 public-LB teams span 0.006 in total. So a gold-AUC difference under ~0.05, or a public-LB
