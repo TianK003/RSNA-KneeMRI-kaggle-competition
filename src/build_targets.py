@@ -35,8 +35,8 @@ LABELS = [
 ]
 
 # Measured gold macro-AUC of each source (n=58, so differences under ~0.02 are noise).
-# Ordered best-first; the blend is a rank mean, because the competition metric reads
-# only rank order, so averaging ranks is the operation that matches the metric.
+# Ordered best-first. Targets are the MEAN OF PROBABILITIES (P-00); ranks are used only
+# to score and to ensemble predictions, never to build a BCE target.
 SOURCES = [
     ("hans_v4", "rsna-knee-llm-report-labels/llm_labels_v4_blend.csv"),      # 0.893
     ("pilkwang", "rsna-knee-llm-labels/report_labels_v2.csv"),               # 0.870
@@ -95,9 +95,14 @@ def load_sources(root: str, index: pd.Index) -> dict[str, pd.DataFrame]:
 def rank_blend(sources: dict[str, pd.DataFrame], index: pd.Index) -> pd.DataFrame:
     """Per label, average the percentile rank of each source that has a value.
 
-    Rank space rather than probability space: AUC is invariant to any increasing
-    transform, so probabilities from different LLMs are not on a comparable scale but
-    their ranks are.
+    KEPT ONLY AS A DIAGNOSTIC (see P-00 in docs/proposals.md). Rank space is the right
+    place to *score* and to *ensemble predictions*, but it is the wrong place to build
+    a *training target*: `rank(pct=True)` gives tied values their average rank, so on a
+    label where most sources say exactly 0 (MCL, Lateral OA, Baker's, ...) every
+    confidently-negative study lands at ~0.3-0.4 instead of ~0, while the 58 gold rows
+    sit at a hard 0/1. BCE fits the value, not the order, so the network was being
+    taught "definitely absent" = 0.31. Measured on 2026-08-28: only 1% of studies had a
+    target < 0.1 on any label.
     """
     out = pd.DataFrame(index=index)
     for lab in LABELS:
@@ -113,14 +118,50 @@ def rank_blend(sources: dict[str, pd.DataFrame], index: pd.Index) -> pd.DataFram
     return out
 
 
+def prob_blend(sources: dict[str, pd.DataFrame], index: pd.Index) -> pd.DataFrame:
+    """Per label, mean of the sources' probabilities (each already in [0, 1]).
+
+    This is the training target (P-00). It keeps the LLMs' own 0/1 semantics -- a
+    report that clearly says "no tear" becomes ~0, a clear positive ~1, and an
+    unaddressed finding stays near the source's uncertainty value -- so the soft
+    targets live on the same scale as the gold 0/1 labels that override them.
+    Sources disagreeing about scale is handled by `confidence_weights`, not by
+    ranking.
+    """
+    out = pd.DataFrame(index=index)
+    for lab in LABELS:
+        arr = np.vstack([d[lab].to_numpy(dtype=float) for d in sources.values()])
+        with np.errstate(invalid="ignore"):
+            out[lab] = np.nanmean(arr, axis=0)
+    return out
+
+
+def target_quantiles(soft: pd.DataFrame) -> list[str]:
+    """One line per label: where the soft-target mass sits. Used to show the P-00
+    before/after in label_report.txt."""
+    rows = []
+    for lab in LABELS:
+        s = soft[lab].dropna().to_numpy()
+        if len(s) == 0:
+            rows.append(f"  {lab:<18} (empty)")
+            continue
+        q = np.percentile(s, [5, 25, 50, 75, 95])
+        rows.append(f"  {lab:<18} p5 {q[0]:.2f} p25 {q[1]:.2f} p50 {q[2]:.2f} "
+                    f"p75 {q[3]:.2f} p95 {q[4]:.2f}  <0.1: {(s < 0.1).mean():4.0%}  "
+                    f">0.9: {(s > 0.9).mean():4.0%}")
+    return rows
+
+
 def confidence_weights(sources: dict[str, pd.DataFrame], index: pd.Index) -> pd.DataFrame:
     """Per (study, label) weight in [floor, 1].
 
     Two ingredients:
       - agreement: sources that disagree about a study mean the report is ambiguous
       - decisiveness: a soft label near 0.5 carries less information than one near 0/1
-    A study whose report never mentions synovitis should pull the synovitis head far
-    less than one that names it.
+    Caveat measured 2026-08-28 (label_audit.py): silence is NOT down-weighted much. A
+    report that never mentions synovitis blends to ~0.18 (a confident-looking negative), so
+    the `decisive` term rewards it: mean weight 0.69 on unaddressed rows vs 0.80 on
+    addressed ones. Gating on pilkwang's UNK verdict is an open card (P-07/P-16).
     """
     w = pd.DataFrame(index=index)
     for lab in LABELS:
@@ -205,7 +246,8 @@ def main() -> None:
     log("\nloading LLM report-label sources:")
     sources = load_sources(args.llm_root, idx)
 
-    soft = rank_blend(sources, idx)
+    soft = prob_blend(sources, idx)          # training target (P-00)
+    soft_rank = rank_blend(sources, idx)     # diagnostic only
     weights = confidence_weights(sources, idx)
 
     gold = tr.set_index("StudyInstanceUID")[LABELS]
@@ -218,7 +260,18 @@ def main() -> None:
         a = [auc(gy[l].to_numpy(), d.loc[gold_idx, l].to_numpy()) for l in LABELS]
         log(f"  {name:<9} {np.nanmean(a):.4f}")
     blend_aucs = [auc(gy[l].to_numpy(), soft.loc[gold_idx, l].to_numpy()) for l in LABELS]
-    log(f"  {'BLEND':<9} {np.nanmean(blend_aucs):.4f}")
+    rank_aucs = [auc(gy[l].to_numpy(), soft_rank.loc[gold_idx, l].to_numpy()) for l in LABELS]
+    log(f"  {'BLEND':<9} {np.nanmean(blend_aucs):.4f}  (mean of probabilities -- the target)")
+    log(f"  {'rank':<9} {np.nanmean(rank_aucs):.4f}  (old rank blend, diagnostic only)")
+
+    log("\nP-00 target scale -- where the soft-target mass sits (before gold override):")
+    log("  old rank blend:")
+    for r in target_quantiles(soft_rank):
+        log(r)
+    log("  probability blend (used):")
+    for r in target_quantiles(soft):
+        log(r)
+    log("  -> confidently-negative reports must land near 0, not ~0.3; BCE fits the value.")
 
     log("\nper-label blend AUC with Hanley-McNeil SE:")
     for lab, a in zip(LABELS, blend_aucs):
