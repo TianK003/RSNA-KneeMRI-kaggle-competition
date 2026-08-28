@@ -43,7 +43,7 @@ Judge label changes on **coverage** (does the rule fire at all, per language) an
 | 2026-08-28 | LLM report labels, rank blend of 3 sources (the *teacher*, v01) | 0.8934 | — | ❌ superseded (target-scale flaw, see P-00) |
 | 2026-08-28 | LLM report labels, **mean of probabilities** (the teacher, v02) | 0.8948 | — | ✅ KEEP — for the *target scale*, not the AUC: Δ 0.0014 vs the rank blend is inside the noise floor |
 | 2026-08-28 | v01 smoke model (1 fold, 1 epoch, 4 studies) — submission #1 | n/a | **0.500** | ❌ constant output at rerun (see Submissions) |
-| 2026-08-28 | v02 pipeline (prob targets, LR 2e-5 + LLRD, EMA, OOF logging), fold 0 real run — kernel v6, launched 16:13 | — | — | ⏳ PENDING |
+| 2026-08-28 | **v02 fold 0, real run (kernel v6)**: DINOv2-S 224, 6 slices/slot, 4 epochs, prob targets, LR 2e-5+LLRD, EMA | 0.847 (n=11, CI 0.72–0.94) · OOF-vs-teacher **0.821** (882 studies) | submission #2 pending | ✅ first real model; per-label table below |
 
 **External reference points** (not ours — for calibrating ambition):
 
@@ -274,6 +274,53 @@ meaningless (4 val studies, 1 epoch, near-random head). `pred_std 0.127` is heal
 > higher resolution. All ranked in [brainstorm.md](brainstorm.md). The current rank mean
 > ensembles 5 folds of the *same* DINOv2 architecture, not two backbones.
 
+### 2026-08-28 — v02 fold 0, first real training run (kernel `rsna-knee-train` v6) ✅ KEEP as baseline
+
+Config: DINOv2 ViT-S/14, 224 px, 6 slices/slot, gap 2, concat head, prob-mean targets,
+backbone LR 2e-5 with LLRD 0.75, wd 0.02, EMA 0.998, 4 epochs, batch 1 × accum 4,
+`num_workers=2`, fold 0 (3,525 train / 882 val, 11 gold). Checkpoint = epoch-3 EMA.
+
+**Runtime:** header scan of 24,371 series 321 s; **0.99 s/study training at 6 slices/slot →
+58 min/epoch + 14.5 min validation**; 5.0 h total for 4 epochs. So one fold ≈ one session
+*without* the cache; the 6–8 h/fold extrapolation was pessimistic but the conclusion stands.
+
+**Learning curve (val fold, 882 studies; gold n = 11):**
+
+| epoch | loss | OOF macro-AUC vs teacher | gold macro-AUC [95% CI] | pred_std |
+|---|---|---|---|---|
+| 0 | 0.575 | 0.772 | 0.820 [0.67, 0.93] | 0.12 |
+| 1 | 0.496 | 0.818 | 0.867 [0.76, 0.93] | 0.18 |
+| 2 | 0.444 | **0.826** | 0.861 [0.74, 0.95] | 0.21 |
+| 3 | 0.402 | 0.821 | 0.847 [0.72, 0.94] | 0.23 |
+
+OOF vs teacher plateaus at epoch 2–3; the gold curve moves inside its own CI and is not
+evidence of anything (as expected at n = 11). Recomputed on the 871 non-gold val rows:
+macro 0.820; on *confidently-labelled* rows only (|target − 0.5| > 0.3) 0.848.
+
+**Per-label OOF vs teacher at epoch 3** (weak rows; confident-only in brackets; gold n=11 for
+direction only):
+
+| label | OOF | conf-only | gold | | label | OOF | conf-only | gold |
+|---|---|---|---|---|---|---|---|---|
+| Fracture | 0.90 | 0.91 | 0.93 | | Medial OA | 0.84 | 0.86 | 0.93 |
+| Baker's | 0.88 | 0.88 | 1.00 | | Contusion | 0.83 | 0.89 | 1.00 |
+| **Synovitis** | 0.88 | **0.94** (54% confident) | **0.50** | | Medial Meniscus | 0.82 | 0.87 | 0.57 |
+| Effusion | 0.85 | 0.87 | 1.00 | | PF OA | 0.79 | 0.80 | 0.73 |
+| ACL | 0.81 | 0.85 | 0.93 | | Lateral OA | 0.78 | 0.80 | 0.92 |
+| | | | | | **MCL** | **0.75** | 0.78 | 1.00 |
+| | | | | | **Lateral Meniscus** | **0.72** | 0.74 | 0.67 |
+
+Readings (hypotheses to test, not conclusions):
+- **Weakest against the teacher: Lateral Meniscus 0.72, MCL 0.75, Lateral OA 0.78, PF OA
+  0.79** — three of the four are side-specific or small focal findings → P-05 (laterality),
+  P-08 (slices), P-11 (resolution) are the cards aimed at them.
+- **Synovitis is the teacher-ceiling case:** the student reproduces the teacher almost
+  perfectly where the teacher is confident (0.94), while gold sits at chance — the student has
+  learned that "not mentioned" means negative. Only better targets can move it (P-07/P-16).
+- No collapse: pred_std climbs 0.12 → 0.23 and every label is scored.
+- The P-00 fix's effect on the student is **not** isolated here (no v01 real run exists); v6 is
+  the baseline every later card is compared against.
+
 ---
 
 ## Infrastructure
@@ -332,8 +379,15 @@ Full-corpus facts the manifest now records (P-02 / P-05 inputs):
 | FOV median | 160 mm; 0.0% of studies below the 130 mm crop |
 
 These reproduce the public FINDINGS.md numbers (tag missing ~50%, geometry ~97–98%) on our own
-run, so the laterality rule is no longer community-sourced. Training-side loader is the next
-step; until it exists the training notebook still decodes DICOMs per epoch.
+run, so the laterality rule is no longer community-sourced.
+
+**Training-side loader (v03, same day):** the notebook now carries the cache builder's exact
+functions; cached studies are `np.load`ed, test studies are built on the fly by the same code.
+Verified on the local sample: the on-the-fly array equals the cached array **bit-for-bit** for
+both cached studies (one left, one right knee). Triplets are neighbouring cached slices
+`[c-1, c, c+1]` (≈2–3 real slices apart); K = 6 equidistant centres, no jitter, so the v03
+fold-0 run isolates *cache + crop + per-series normalisation + laterality* against v6. Expected:
+OOF-vs-teacher within ±0.01 of 0.821 (P-01's sanity measure) and a large drop in s/study.
 
 ### 2026-08-28 — First measured throughput (kernel v3, T4, smoke) ⏳ PENDING at production settings
 

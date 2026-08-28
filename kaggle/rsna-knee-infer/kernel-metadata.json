@@ -1,7 +1,7 @@
 {
-  "id": "tiankljucanin/rsna-knee-train",
-  "title": "RSNA Knee Train",
-  "code_file": "rsna-knee-train.ipynb",
+  "id": "tiankljucanin/rsna-knee-infer",
+  "title": "RSNA Knee Infer",
+  "code_file": "rsna-knee-infer.ipynb",
   "language": "python",
   "kernel_type": "notebook",
   "is_private": true,
@@ -14,15 +14,8 @@
     "stevenleehans/rsna-knee-llm-report-labels",
     "lixin73/rsna-knee-llm-report-labels-sol56"
   ],
-  "kernel_sources": [
-    "tiankljucanin/rsna-knee-cache-a",
-    "tiankljucanin/rsna-knee-cache-b"
-  ],
-  "competition_sources": [
-    "rsna-knee-abnormality-detection"
-  ],
-  "model_sources": [
-    "metaresearch/dinov2/PyTorch/small/1"
-  ],
+  "kernel_sources": ["tiankljucanin/rsna-knee-train"],
+  "competition_sources": ["rsna-knee-abnormality-detection"],
+  "model_sources": ["metaresearch/dinov2/PyTorch/small/1"],
   "machine_shape": "NvidiaTeslaT4"
 }

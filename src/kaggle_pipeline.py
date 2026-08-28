@@ -130,12 +130,22 @@ MODE = "auto"
 class Config:
     smoke: bool = field(default_factory=lambda:
                         (not ON_KAGGLE) if FORCE_SMOKE is None else bool(FORCE_SMOKE))
-    version: str = "v02"             # v01 = rank targets, lr 5e-5 uniform (smoke only)
+    version: str = "v03"             # v01 rank targets (smoke only) · v02 prob targets, decode per epoch · v03 from cache
 
     # data
     img_size: int = 224              # DINOv2 ViT-S/14 patches 14 -> 224 = 16x16 tokens
     slices_per_slot: int = 6         # uniformly sampled centres per slot
-    triplet_gap: int = 2             # channels are slices [i-gap, i, i+gap]
+    triplet_gap: int = 2             # channels are slices [i-gap, i, i+gap]  (decode path only)
+
+    # Cache path (P-01). When a cache built by src/cache_pipeline.py is mounted, training
+    # reads one uint8 array per study; TEST studies are built on the fly by the very same
+    # functions (crop, per-series normalisation, laterality), so train and test share one
+    # preprocessing code path. Triplets are neighbouring cached slices [c-1, c, c+1].
+    use_cache: bool = True
+    cache_n_slices: int = 16         # stored slices per slot (must match the mounted cache)
+    cache_px: int = 224
+    crop_mm: float = 130.0
+    lat_dead_zone_mm: float = 20.0
 
     # model
     backbone_dir: str = ""           # filled in below
@@ -185,6 +195,12 @@ class Config:
 
 
 cfg = Config()
+CACHE_VERSION = (f"c01_p{cfg.cache_px}_s{cfg.cache_n_slices}_crop{int(cfg.crop_mm)}"
+                 f"_lat{int(cfg.lat_dead_zone_mm)}")
+CACHE_BAND = {"Sagittal": (0.08, 0.92), "Axial": (0.10, 0.90), "Coronal": (0.20, 0.80)}
+PLANE_OF_SLOT = {"SAG_FLUID_FS": "Sagittal", "COR_FLUID_FS": "Coronal", "AX_FLUID_FS": "Axial",
+                 "SAG_FLUID_NOFS": "Sagittal", "COR_T1": "Coronal", "SAG_T1": "Sagittal"}
+CACHE_INDEX = {}      # StudyInstanceUID -> path of the cached .npy (filled in Section 8)
 
 # Weight locations differ between Kaggle (mounted Model, two possible layouts) and
 # local (models/). config.json is the marker that a real HF checkpoint dir is there.
@@ -485,6 +501,46 @@ def classify_weighting(tr, te, scanning_seq: str, desc: str) -> str:
     return "T2" if te >= TE_LONG_MIN else "PD"
 
 
+def _f(v):
+    try:
+        return float(v)
+    except Exception:
+        return None
+
+
+def centre_x_mm(h):
+    """Patient-space x (LPS: +x = patient's left) of the image centre, in mm. The
+    Laterality tag is missing on ~half the corpus; this is what decides the knee side."""
+    ipp = getattr(h, "ImagePositionPatient", None)
+    iop = getattr(h, "ImageOrientationPatient", None)
+    ps = getattr(h, "PixelSpacing", None)
+    rows, cols = getattr(h, "Rows", None), getattr(h, "Columns", None)
+    if None in (ipp, iop, ps, rows, cols) or len(iop) != 6:
+        return None
+    r = np.array(iop[:3], float)          # direction of increasing column
+    c = np.array(iop[3:], float)          # direction of increasing row
+    centre = (np.array(ipp, float) + r * (float(cols) / 2) * float(ps[1])
+              + c * (float(rows) / 2) * float(ps[0]))
+    return float(centre[0])
+
+
+def study_side(sdf, dead_zone_mm):
+    """('L'|'R'|'', tag, geometry, conflict) for one study -- same rule as the cache."""
+    tags = [t for t in sdf.get("laterality_tag", pd.Series(dtype=str)).tolist() if t in ("L", "R")]
+    tag = max(set(tags), key=tags.count) if tags else ""
+    xs = sdf["centre_x_mm"].dropna().to_numpy(dtype=float) if "centre_x_mm" in sdf else np.array([])
+    geo = ""
+    if len(xs):
+        med = float(np.median(xs))
+        if med > dead_zone_mm:
+            geo = "L"
+        elif med < -dead_zone_mm:
+            geo = "R"
+    conflict = int(bool(tag) and bool(geo) and tag != geo)
+    side = "" if conflict else (tag if tag else geo)
+    return side, tag, geo, conflict
+
+
 def scan_series(series_csv: str, image_root: str, cache: str,
                 max_studies: int = 0) -> pd.DataFrame:
     """One row per series with header-derived properties. Cached, because reading
@@ -540,6 +596,9 @@ def scan_series(series_csv: str, image_root: str, cache: str,
             "weighting": w,
             "fat_sat": int(has_token(desc, FATSAT_TOKENS)),
             "fluid": int(w in ("T2", "PD") or has_token(desc, FLUID_TOKENS)),
+            "laterality_tag": (str(getattr(h, "Laterality", "") or getattr(h, "ImageLaterality", "") or "").upper()
+                               if str(getattr(h, "Laterality", "") or getattr(h, "ImageLaterality", "") or "").upper() in ("L", "R") else ""),
+            "centre_x_mm": centre_x_mm(h),
         })
         if (i + 1) % 2000 == 0:
             print(f"    {i+1}/{len(meta)} series  {time.time()-t0:.0f}s")
@@ -591,12 +650,16 @@ def build_manifest(series_df: pd.DataFrame, cache: str) -> pd.DataFrame:
     rows = []
     for study, sdf in series_df.groupby("StudyInstanceUID"):
         slots = select_slots(sdf)
+        side, tag, geo, conflict = study_side(sdf, cfg.lat_dead_zone_mm)
         rows.append({"StudyInstanceUID": study,
                      **{s: slots.get(s, "") for s in SLOTS},
-                     "n_slots": len(slots)})
+                     "n_slots": len(slots), "side": side, "side_tag": tag,
+                     "side_geo": geo, "side_conflict": conflict})
     m = pd.DataFrame(rows)
     m.to_csv(cache, index=False)
-    print(f"  manifest -> {cache}; mean slots/study {m.n_slots.mean():.2f}")
+    print(f"  manifest -> {cache}; mean slots/study {m.n_slots.mean():.2f}; side resolved "
+          f"{(m.side != '').mean():.1%} (tag {(m.side_tag != '').mean():.1%}, conflicts "
+          f"{int(m.side_conflict.sum())})")
     print("  slot fill rate:",
           {s: round(float((m[s] != '').mean()), 3) for s in SLOTS})
     return m
@@ -632,8 +695,13 @@ IMAGENET_MEAN = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1)
 IMAGENET_STD = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1)
 
 
-def ordered_slice_paths(series_dir: str) -> list:
-    """Spatially ordered slice paths. NEVER trust filename order."""
+def ordered_slice_paths(series_dir: str, plane: str = None) -> list:
+    """Spatially ordered slice paths. NEVER trust filename order.
+
+    With `plane` given (cache path) the sort direction has a FIXED sign: sagittal
+    stacks run along +x (patient left), other planes along the positive dominant axis,
+    so "reverse for right knees" canonicalises rather than randomises between sites.
+    Without `plane` (legacy decode path) the cross-product normal is used as before."""
     files = [f for f in os.listdir(series_dir) if f.endswith(".dcm")]
     if not files:   # do not assume the hidden test tree keeps the .dcm extension
         files = [f for f in os.listdir(series_dir)
@@ -654,6 +722,10 @@ def ordered_slice_paths(series_dir: str) -> list:
     iop = next((getattr(h, "ImageOrientationPatient", None) for h in heads), None)
     if iop is not None and len(iop) == 6:
         n = np.cross(np.array(iop[:3], float), np.array(iop[3:], float))
+        if plane == "Sagittal":
+            n = np.array([1.0, 0.0, 0.0])
+        elif plane is not None and n[int(np.argmax(np.abs(n)))] < 0:
+            n = -n
         keys, ok = [], True
         for h in heads:
             ipp = getattr(h, "ImagePositionPatient", None)
@@ -710,6 +782,114 @@ def build_triplets(series_dir: str, n_samples: int, gap: int, size: int) -> torc
         out.append(t)
     return torch.stack(out)
 
+def centre_crop_mm(arr, pixel_spacing, crop_mm):
+    if not crop_mm or pixel_spacing is None or pixel_spacing <= 0:
+        return arr
+    side_px = int(round(crop_mm / pixel_spacing))
+    h, w = arr.shape
+    if side_px >= min(h, w):
+        return arr
+    y0 = (h - side_px) // 2
+    x0 = (w - side_px) // 2
+    return arr[y0:y0 + side_px, x0:x0 + side_px]
+
+
+def resize_u8(stack01, px):
+    t = torch.from_numpy(np.ascontiguousarray(stack01)).unsqueeze(1)
+    t = F.interpolate(t, size=(px, px), mode="bilinear", align_corners=False)
+    return (t.squeeze(1).clamp_(0, 1) * 255).round().to(torch.uint8).numpy()
+
+
+def cache_series(series_dir, plane, cfg, is_right):
+    """-> ((cache_n_slices, cache_px, cache_px) uint8, n_failed) or (None, n_failed).
+    IDENTICAL to src/cache_pipeline.py::cache_series -- keep them in sync. Used at test
+    time so a test study gets exactly the preprocessing the cached training studies got."""
+    ordered = ordered_slice_paths(series_dir, plane)
+    if not ordered:
+        return None, 0
+    head = pydicom.dcmread(ordered[0], stop_before_pixels=True)
+    n = len(ordered)
+    lo_f, hi_f = CACHE_BAND.get(plane, (0.0, 1.0))
+    lo_i, hi_i = int(round(lo_f * (n - 1))), int(round(hi_f * (n - 1)))
+    if hi_i <= lo_i:
+        lo_i, hi_i = 0, n - 1
+    idx = np.linspace(lo_i, hi_i, cfg.cache_n_slices).round().astype(int)
+    if plane == "Sagittal" and is_right:
+        idx = idx[::-1]
+    iop = getattr(head, "ImageOrientationPatient", None)
+    col_to_left = (iop is not None and len(iop) == 6 and float(iop[0]) > 0)
+    mirror = plane in ("Coronal", "Axial") and (col_to_left == is_right)
+    ps = getattr(head, "PixelSpacing", None)
+    ps = float(ps[0]) if ps is not None else None
+    planes, n_fail = [], 0
+    for i in idx:
+        try:
+            a = read_plane(ordered[int(i)])
+        except Exception:
+            a = None
+            n_fail += 1
+        planes.append(a)
+    good = [a for a in planes if a is not None]
+    if not good:
+        return None, n_fail
+    h = min(a.shape[0] for a in good)
+    w = min(a.shape[1] for a in good)
+    fixed = []
+    for k, a in enumerate(planes):
+        if a is None:
+            near = min((j for j, b in enumerate(planes) if b is not None), key=lambda j: abs(j - k))
+            a = planes[near]
+        fixed.append(a[:h, :w])
+    stack = np.stack(fixed).astype(np.float32)
+    stack = np.stack([centre_crop_mm(x, ps, cfg.crop_mm) for x in stack])
+    lo, hi = np.percentile(stack, [1, 99])
+    stack = (np.clip(stack, lo, hi) - lo) / max(hi - lo, 1e-6)
+    if mirror:
+        stack = stack[:, :, ::-1]
+    return resize_u8(stack, cfg.cache_px), n_fail
+
+
+def build_study_array(study, row, image_root, cfg):
+    """On-the-fly equivalent of one cached study: ([6, S, P, P] uint8, mask[6])."""
+    arr = np.zeros((len(SLOTS), cfg.cache_n_slices, cfg.cache_px, cfg.cache_px), np.uint8)
+    mask = np.zeros(len(SLOTS), np.float32)
+    is_right = str(row.get("side", "")) == "R"
+    for si, slot in enumerate(SLOTS):
+        sid = row[slot]
+        if not isinstance(sid, str) or not sid:
+            continue
+        d = os.path.join(image_root, study, sid)
+        if not os.path.isdir(d):
+            continue
+        a, _ = cache_series(d, PLANE_OF_SLOT[slot], cfg, is_right)
+        if a is None:
+            continue
+        arr[si] = a
+        mask[si] = 1.0
+    return arr, mask
+
+
+def array_to_tensor(arr, mask, cfg, train):
+    """[6, S, P, P] uint8 -> (6, K, 3, img, img) float normalised for the encoder.
+    Triplet channels are neighbouring cached slices [c-1, c, c+1]; the K centres are
+    equidistant over the interior of the stack (eval) -- the same for train in v03 so the
+    cache experiment isolates the cache, not a new augmentation."""
+    S = arr.shape[1]
+    K = cfg.slices_per_slot
+    centres = np.linspace(1, S - 2, K).round().astype(int)
+    if train and getattr(cfg, "cache_jitter", False):
+        centres = np.clip(centres + np.random.randint(-1, 2, size=K), 1, S - 2)
+    idx = np.stack([centres - 1, centres, centres + 1], axis=1)          # (K, 3)
+    x = torch.from_numpy(arr[:, idx].astype(np.float32) / 255.0)         # (6, K, 3, P, P)
+    if x.shape[-1] != cfg.img_size:
+        x = F.interpolate(x.reshape(-1, 3, x.shape[-2], x.shape[-1]),
+                          size=(cfg.img_size, cfg.img_size), mode="bilinear",
+                          align_corners=False).reshape(len(SLOTS), K, 3, cfg.img_size, cfg.img_size)
+    x = (x - IMAGENET_MEAN) / IMAGENET_STD
+    m = torch.as_tensor(np.asarray(mask, dtype=np.float32))
+    x = x * m.view(-1, 1, 1, 1, 1)                # absent slots stay exactly zero
+    return x, m
+
 # %% [markdown]
 # ## Section 5: dataset
 #
@@ -742,19 +922,31 @@ class KneeStudyDataset(Dataset):
     def __getitem__(self, i):
         study = self.studies[i]
         row = self.m.loc[study]
-        imgs = torch.zeros(len(SLOTS), self.cfg.slices_per_slot, 3,
-                           self.cfg.img_size, self.cfg.img_size)
-        mask = torch.zeros(len(SLOTS))
-        for si, slot in enumerate(SLOTS):
-            sid = row[slot]
-            if not isinstance(sid, str) or not sid:
-                continue
-            d = os.path.join(self.root, study, sid)
-            if not os.path.isdir(d):
-                continue
-            imgs[si] = build_triplets(d, self.cfg.slices_per_slot,
-                                      self.cfg.triplet_gap, self.cfg.img_size)
-            mask[si] = 1.0
+        if self.cfg.use_cache:
+            path = CACHE_INDEX.get(study)
+            if path is not None:
+                arr = np.load(path)
+                mk = str(row["mask"]) if "mask" in row and isinstance(row["mask"], str) else None
+                if mk is None or len(mk) != len(SLOTS):
+                    mk = "".join("1" if arr[si].any() else "0" for si in range(len(SLOTS)))
+                mask_np = np.array([float(c) for c in mk], np.float32)
+            else:                       # test study, or a study the cache missed
+                arr, mask_np = build_study_array(study, row, self.root, self.cfg)
+            imgs, mask = array_to_tensor(arr, mask_np, self.cfg, self.train)
+        else:
+            imgs = torch.zeros(len(SLOTS), self.cfg.slices_per_slot, 3,
+                               self.cfg.img_size, self.cfg.img_size)
+            mask = torch.zeros(len(SLOTS))
+            for si, slot in enumerate(SLOTS):
+                sid = row[slot]
+                if not isinstance(sid, str) or not sid:
+                    continue
+                d = os.path.join(self.root, study, sid)
+                if not os.path.isdir(d):
+                    continue
+                imgs[si] = build_triplets(d, self.cfg.slices_per_slot,
+                                          self.cfg.triplet_gap, self.cfg.img_size)
+                mask[si] = 1.0
 
         if self.train:
             # Light augmentation. No vertical flip: knee anatomy is not
@@ -1228,7 +1420,8 @@ if mode == "infer":
     # would otherwise feed 2 slices/slot to a model trained on 6 and pass every assert.
     st0 = torch.load(mounted_ckpts[min(mounted_ckpts)], map_location="cpu", weights_only=False)
     saved = st0.get("config", {})
-    for k in ("slices_per_slot", "triplet_gap", "img_size"):
+    for k in ("slices_per_slot", "triplet_gap", "img_size", "use_cache", "cache_n_slices",
+              "cache_px", "crop_mm", "lat_dead_zone_mm"):
         if k in saved and getattr(cfg, k) != saved[k]:
             print(f"  infer: {k} {getattr(cfg, k)} -> {saved[k]} (from checkpoint)")
             setattr(cfg, k, saved[k])
@@ -1248,18 +1441,52 @@ else:
                 shutil.copy(src, dst)
                 print(f"  resume: copied {os.path.basename(src)} into WORK")
 
+# ---- the cache (P-01): mounted shards written by src/cache_pipeline.py ----------------
+def load_cache_manifests():
+    roots = ["/kaggle/input"] if ON_KAGGLE else ["artifacts/cache_local"]
+    frames = []
+    for root in roots:
+        for mpath in shallow_glob(root, "manifest_shard*.csv", max_depth=2):
+            m = pd.read_csv(mpath, dtype={"mask": str})
+            if "cache_version" in m and (m.cache_version != CACHE_VERSION).any():
+                print(f"  ! {mpath}: cache version {m.cache_version.iloc[0]} != {CACHE_VERSION}, ignored")
+                continue
+            m = m[m.get("cached", 1) == 1].copy()
+            arr_dir = os.path.join(os.path.dirname(mpath), CACHE_VERSION)
+            m["npy"] = [os.path.join(arr_dir, f"{u}.npy") for u in m.StudyInstanceUID]
+            m = m[[os.path.exists(x) for x in m.npy]]
+            m["mask"] = m["mask"].map(lambda v: str(v).zfill(len(SLOTS)) if isinstance(v, str) or v == v else "")
+            frames.append(m)
+            print(f"  cache shard {mpath}: {len(m)} studies")
+    return pd.concat(frames, ignore_index=True) if frames else None
+
+
+cache_manifest = load_cache_manifests() if cfg.use_cache else None
+if cfg.use_cache and cache_manifest is None:
+    print("  ! use_cache=True but no cache is mounted -- falling back to per-epoch DICOM decode")
+    cfg.use_cache = False
+if cache_manifest is not None:
+    CACHE_INDEX.update(dict(zip(cache_manifest.StudyInstanceUID, cache_manifest.npy)))
+    print(f"  cache: {len(CACHE_INDEX)} studies indexed ({CACHE_VERSION})")
+
 results = {}
 if mode == "train":
-    train_series_csv = os.path.join(COMP, "train_series.csv")
-    series_df = scan_series(train_series_csv, TRAIN_IMG,
-                            os.path.join(WORK, "series_scan_train.csv"),
-                            max_studies=cfg.smoke_max_studies if cfg.smoke else 0)
-    if len(series_df) == 0:
-        # Local sample: train_series.csv describes studies we do not have. Fall back to
-        # scanning test_series.csv so the smoke test has something to chew on.
-        series_df = scan_series(os.path.join(COMP, "test_series.csv"), TRAIN_IMG,
-                                os.path.join(WORK, "series_scan_fallback.csv"))
-    manifest = build_manifest(series_df, os.path.join(WORK, "manifest_train.csv"))
+    if cache_manifest is not None:
+        # No train header scan needed: the cache manifest already holds slots, side, mask.
+        manifest = cache_manifest[["StudyInstanceUID", *SLOTS, "n_slots", "side", "mask"]].copy()
+        print(f"  manifest from cache: {len(manifest)} studies; mean slots "
+              f"{manifest.n_slots.mean():.2f}; side resolved {(manifest.side.fillna('') != '').mean():.1%}")
+    else:
+        train_series_csv = os.path.join(COMP, "train_series.csv")
+        series_df = scan_series(train_series_csv, TRAIN_IMG,
+                                os.path.join(WORK, "series_scan_train.csv"),
+                                max_studies=cfg.smoke_max_studies if cfg.smoke else 0)
+        if len(series_df) == 0:
+            # Local sample: train_series.csv describes studies we do not have. Fall back to
+            # scanning test_series.csv so the smoke test has something to chew on.
+            series_df = scan_series(os.path.join(COMP, "test_series.csv"), TRAIN_IMG,
+                                    os.path.join(WORK, "series_scan_fallback.csv"))
+        manifest = build_manifest(series_df, os.path.join(WORK, "manifest_train.csv"))
 
     # Studies present as images but absent from targets (local case) get placeholder
     # rows so the smoke test can build batches.
