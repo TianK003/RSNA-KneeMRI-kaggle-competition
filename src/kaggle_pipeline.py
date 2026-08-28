@@ -114,12 +114,23 @@ SLOTS = [
 # └──────────────────────────────────────────────────────────────────────────┘
 FORCE_SMOKE = True
 
+# ┌──────────────────────────────────────────────────────────────────────────┐
+# │ MODE: "train" = train the configured folds, then infer if all complete.  │
+# │       "infer" = load `{version}_fold*_best.pt` from a mounted kernel     │
+# │                 output and only predict the test set. This is what gets  │
+# │                 SUBMITTED: a code competition re-runs the notebook on    │
+# │                 the hidden test, and re-training there would both blow   │
+# │                 the runtime and change the model being scored.           │
+# │       "auto"  = "infer" if such checkpoints are mounted, else "train".   │
+# └──────────────────────────────────────────────────────────────────────────┘
+MODE = "auto"
+
 
 @dataclass
 class Config:
     smoke: bool = field(default_factory=lambda:
                         (not ON_KAGGLE) if FORCE_SMOKE is None else bool(FORCE_SMOKE))
-    version: str = "v01"
+    version: str = "v02"             # v01 = rank targets, lr 5e-5 uniform (smoke only)
 
     # data
     img_size: int = 224              # DINOv2 ViT-S/14 patches 14 -> 224 = 16x16 tokens
@@ -134,8 +145,17 @@ class Config:
     folds: tuple = (0, 1, 2, 3, 4)
     epochs: int = 4
     lr_head: float = 1e-3
-    lr_backbone: float = 5e-5        # much lower: pretrained features are the asset
-    weight_decay: float = 0.01
+    # Backbone LR and layer-wise decay (P-03). Every medical DINOv2 fine-tuning
+    # recipe we found lands at 1e-6..2e-5 for the top block; a uniform 5e-5 is the
+    # regime described as catastrophic forgetting of the self-supervised features.
+    # Block i gets lr_backbone * llrd_decay ** (n_blocks - 1 - i); the patch/pos
+    # embeddings get one more decay step. 0.75 is the BEiT/MAE convention.
+    lr_backbone: float = 2e-5
+    llrd_decay: float = 0.75
+    weight_decay: float = 0.02       # not applied to biases / LayerNorm
+    # EMA of the weights is what gets validated and saved (robust to label noise,
+    # and makes fixed-epoch selection safe). 0 disables.
+    ema_decay: float = 0.998
     batch_studies: int = 1           # one study = up to 6 slots x 6 slices of ViT work
     grad_accum: int = 4
     warmup_frac: float = 0.1
@@ -161,6 +181,7 @@ class Config:
             self.slices_per_slot = 2
             self.img_size = 224
             self.runtime_limit_hours = 0.4
+            self.ema_decay = 0.9      # 8 steps of smoke would leave a 0.998 EMA ~= init
 
 
 cfg = Config()
@@ -211,8 +232,10 @@ def out_of_time() -> bool:
 # mentions are negative because a report lists what was checked and found intact).
 #
 # Rather than rebuild a lexicon, this mounts the public LLM-read label tables and
-# rank-blends them. Measured gold macro-AUC (n=58): hans_v4 0.893, pilkwang 0.870,
-# sol56 0.835, blend 0.893.
+# averages their probabilities. Measured gold macro-AUC (n=58): hans_v4 0.893,
+# pilkwang 0.870, sol56 0.835, blend 0.895 (rank blend 0.893 -- same within noise,
+# but the rank blend put confident negatives at ~0.3 instead of ~0; see P-00 in
+# docs/proposals.md).
 #
 # Two details matter more than the blend:
 #
@@ -222,9 +245,10 @@ def out_of_time() -> bool:
 #    findings they judged significant and graded "on the fence" as negative. So
 #    `term present ⇒ positive` is wrong by construction. Soft targets cost nothing
 #    because only rank order is read.
-# 2. **Weight by how confidently the report could be read.** A study whose report
-#    never mentions synovitis should pull the synovitis head far less than one that
-#    names it. Source disagreement and indecisiveness both lower the weight.
+# 2. **Weight by how confidently the report could be read.** Source disagreement and
+#    indecisiveness both lower the weight. Measured caveat: a report that never mentions
+#    synovitis blends to ~0.18 and is *not* strongly down-weighted (0.69 vs 0.80 on
+#    addressed rows) — silence looks like a confident negative. Open card P-07/P-16.
 #
 # The 58 official labels overwrite the weak ones and carry `gold_weight`.
 
@@ -246,6 +270,19 @@ LLM_SOURCES = [
 ]
 
 
+def shallow_glob(root, name, max_depth=3, skip=("train_series", "test_series")):
+    """`glob` for `name` at depth 1..max_depth below `root` WITHOUT descending into the
+    image trees. A recursive `**` glob over /kaggle/input walks ~819k DICOM files on a
+    network mount -- minutes of dead time on every run, invisible on the rerun."""
+    import glob
+    hits = []
+    for d in range(0, max_depth + 1):          # depth 0 = directly under root
+        pat = os.path.join(root, *(["*"] * d), name)
+        hits += [h for h in glob.glob(pat)
+                 if not any(f"{os.sep}{sk}{os.sep}" in h or f"/{sk}/" in h for sk in skip)]
+    return sorted(hits)
+
+
 def first_existing(paths):
     """Exact candidates first, then search /kaggle/input for the filename.
 
@@ -256,9 +293,8 @@ def first_existing(paths):
         if os.path.exists(p):
             return p
     if ON_KAGGLE:
-        import glob
         want = os.path.basename(paths[0])
-        for hit in glob.glob(f"/kaggle/input/**/{want}", recursive=True):
+        for hit in shallow_glob("/kaggle/input", want, max_depth=4):
             return hit
     return None
 
@@ -297,11 +333,13 @@ def build_targets(train_csv: str):
     if loaded:
         for lab in LABELS:
             arr = np.vstack([d[lab].to_numpy(dtype=float) for d in loaded.values()])
-            # Rank space: probabilities from different LLMs are not on a comparable
-            # scale, but their ranks are, and ranks are what AUC reads.
-            ranks = np.vstack([pd.Series(r).rank(pct=True).to_numpy() for r in arr])
+            # Probability space, NOT rank space (P-00). Rank-percentiles give tied
+            # values their average rank, so on a label where most reports say exactly
+            # 0 every confident negative landed at ~0.3-0.4 while gold rows sit at a
+            # hard 0/1. BCE fits the value, not the order. Ranks are for scoring and
+            # for ensembling predictions, never for building a target.
             with np.errstate(invalid="ignore"):
-                soft[lab] = np.nanmean(ranks, axis=0)
+                soft[lab] = np.nanmean(arr, axis=0)
                 spread = np.nanstd(arr, axis=0)
                 mean = np.nanmean(arr, axis=0)
             agree = 1.0 - np.nan_to_num(spread, nan=0.5) * 2.0
@@ -451,6 +489,8 @@ def scan_series(series_csv: str, image_root: str, cache: str,
                 max_studies: int = 0) -> pd.DataFrame:
     """One row per series with header-derived properties. Cached, because reading
     ~24k headers is slow and a resumed session must not pay for it twice."""
+    if max_studies:                    # a smoke scan must never be mistaken for a full one
+        cache = cache.replace(".csv", f"_smoke{max_studies}.csv")
     if os.path.exists(cache):
         print(f"  series cache hit: {cache}")
         return pd.read_csv(cache)
@@ -468,10 +508,19 @@ def scan_series(series_csv: str, image_root: str, cache: str,
             continue
         files = sorted(f for f in os.listdir(d) if f.endswith(".dcm"))
         if not files:
+            # Do not assume the hidden test tree keeps the .dcm extension.
+            files = sorted(f for f in os.listdir(d)
+                           if os.path.isfile(os.path.join(d, f)))
+        if not files:
             continue
-        try:
-            h = pydicom.dcmread(os.path.join(d, files[0]), stop_before_pixels=True)
-        except Exception:
+        h = None
+        for f in files[:5]:            # first file that parses, not blindly files[0]
+            try:
+                h = pydicom.dcmread(os.path.join(d, f), stop_before_pixels=True)
+                break
+            except Exception:
+                continue
+        if h is None:
             continue
         desc = " ".join(str(getattr(h, k, "") or "") for k in
                         ("SeriesDescription", "SequenceName", "ScanOptions", "ProtocolName"))
@@ -586,31 +635,38 @@ IMAGENET_STD = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1)
 def ordered_slice_paths(series_dir: str) -> list:
     """Spatially ordered slice paths. NEVER trust filename order."""
     files = [f for f in os.listdir(series_dir) if f.endswith(".dcm")]
+    if not files:   # do not assume the hidden test tree keeps the .dcm extension
+        files = [f for f in os.listdir(series_dir)
+                 if os.path.isfile(os.path.join(series_dir, f))]
     if not files:
         return []
     paths = [os.path.join(series_dir, f) for f in sorted(files)]
-    heads = []
+    heads, kept = [], []
     for p in paths:
         try:
             heads.append(pydicom.dcmread(p, stop_before_pixels=True))
+            kept.append(p)
         except Exception:
-            heads.append(None)
-    iop = next((getattr(h, "ImageOrientationPatient", None)
-                for h in heads if h is not None), None)
+            continue                    # a stray non-DICOM file must not poison the order
+    paths = kept
+    if not heads:
+        return []
+    iop = next((getattr(h, "ImageOrientationPatient", None) for h in heads), None)
     if iop is not None and len(iop) == 6:
         n = np.cross(np.array(iop[:3], float), np.array(iop[3:], float))
         keys, ok = [], True
         for h in heads:
-            ipp = getattr(h, "ImagePositionPatient", None) if h is not None else None
+            ipp = getattr(h, "ImagePositionPatient", None)
             if ipp is None:
                 ok = False
                 break
             keys.append(float(np.dot(np.array(ipp, float), n)))
         if ok:
             return [p for _, p in sorted(zip(keys, paths), key=lambda t: t[0])]
-    inst = [getattr(h, "InstanceNumber", None) if h is not None else None for h in heads]
+    inst = [getattr(h, "InstanceNumber", None) for h in heads]
     if all(i is not None for i in inst):
         return [p for _, p in sorted(zip(inst, paths), key=lambda t: t[0])]
+    print(f"  ! {series_dir}: no usable position/instance headers -- filename order")
     return paths
 
 
@@ -730,10 +786,13 @@ class KneeStudyDataset(Dataset):
 #                  linear -> 12 logits
 # ```
 #
-# Two rates: the backbone gets `lr_backbone` (5e-5) and the head `lr_head` (1e-3).
-# The pretrained self-supervised features are the asset here — with 58 gold labels
+# Two rates: the head gets `lr_head` (1e-3); the backbone gets `lr_backbone`
+# (2e-5) at its top block, decaying by 0.75 per block downwards (layer-wise LR
+# decay), and an EMA of the weights is what gets validated and saved. The
+# pretrained self-supervised features are the asset here — with 58 gold labels
 # there is nowhere near enough signal to relearn them, so they are nudged, not
-# retrained.
+# retrained. Every medical DINOv2 recipe we found sits at 1e-6..2e-5; a uniform
+# 5e-5 (v01) is the "catastrophic forgetting" regime — see docs/research.md.
 
 # %%
 # ── Section 6: model ──────────────────────────────────────────────────────────
@@ -825,49 +884,156 @@ def make_loaders(manifest, targets, image_root, cfg, fold):
                        num_workers=nw))
 
 
+def bootstrap_macro_ci(Y_hard, P, n_boot=2000, seed=0):
+    """Percentile-bootstrap 95% CI of the macro-AUC over studies. With ~12 gold
+    studies per fold this interval is enormous -- which is the point of printing it."""
+    rng = np.random.default_rng(seed)
+    n = len(P)
+    if n < 4:
+        return (float("nan"), float("nan"))
+    vals = []
+    for _ in range(n_boot):
+        ix = rng.integers(0, n, n)
+        a = [auc_score(Y_hard[ix, i], P[ix, i]) for i in range(len(LABELS))]
+        a = [v for v in a if np.isfinite(v)]
+        if a:
+            vals.append(float(np.mean(a)))
+    if not vals:
+        return (float("nan"), float("nan"))
+    return (float(np.percentile(vals, 2.5)), float(np.percentile(vals, 97.5)))
+
+
 def evaluate(model, loader, device):
+    """Validation pass. Returns (metrics, table) where `table` is a DataFrame with the
+    per-study predictions, targets, weights and gold flag -- the OOF rows. Per-label
+    numbers are kept because the metric charges every label the same, so the label
+    stuck at 0.5 is the thing we most need to see."""
     model.eval()
-    P, Y, G = [], [], []
+    P, Y, W, G, S = [], [], [], [], []
     with torch.no_grad():
         for b in loader:
             logits = model(b["imgs"].to(device), b["mask"].to(device))
             P.append(torch.sigmoid(logits).float().cpu().numpy())
             Y.append(b["y"].numpy())
+            W.append(b["w"].numpy())
             G.append(b["is_gold"].numpy())
+            S.extend(b["study"])
     if not P:
         return {}, None
-    P = np.concatenate(P)
-    Y = np.concatenate(Y)
-    G = np.concatenate(G)
-    out = {"pred_std": round(float(P.std(0).mean()), 4)}
+    P, Y, W, G = (np.concatenate(x) for x in (P, Y, W, G))
     hard = (Y > 0.5).astype(int)
+    gm = G > 0.5
 
-    def macro(mask=None):
-        sel = slice(None) if mask is None else mask
-        vals = [auc_score(hard[sel, i], P[sel, i]) for i in range(len(LABELS))]
-        vals = [v for v in vals if np.isfinite(v)]
+    per_label = {}
+    for i, lab in enumerate(LABELS):
+        row = {"auc_soft": auc_score(hard[:, i], P[:, i]),
+               "pred_std": float(P[:, i].std())}
+        if gm.sum() >= 4:
+            row["auc_gold"] = auc_score(hard[gm, i], P[gm, i])
+        per_label[lab] = row
+
+    def macro(key):
+        vals = [r[key] for r in per_label.values() if np.isfinite(r.get(key, np.nan))]
         return round(float(np.mean(vals)), 4) if vals else float("nan")
 
-    out["auc_soft"] = macro()
-    out["n_labels_scored"] = int(sum(
-        np.isfinite(auc_score(hard[:, i], P[:, i])) for i in range(len(LABELS))))
-    gm = G > 0.5
+    out = {"pred_std": round(float(P.std(0).mean()), 4),
+           "auc_soft": macro("auc_soft"),
+           "n_labels_scored": int(sum(np.isfinite(r["auc_soft"]) for r in per_label.values()))}
     if gm.sum() >= 4:
-        out["auc_gold"] = macro(gm)
+        out["auc_gold"] = macro("auc_gold")
         out["n_gold"] = int(gm.sum())
-    return out, P
+        lo, hi = bootstrap_macro_ci(hard[gm], P[gm])
+        out["auc_gold_ci95"] = (round(lo, 3), round(hi, 3))
+    out["per_label"] = per_label
+
+    table = pd.DataFrame({"StudyInstanceUID": S, "is_gold": G.astype(int)})
+    for i, lab in enumerate(LABELS):
+        table[f"pred__{lab}"] = P[:, i]
+        table[f"y__{lab}"] = Y[:, i]
+        table[f"w__{lab}"] = W[:, i]
+    return out, table
+
+
+def print_per_label(per_label):
+    print(f"    {'label':<18} {'auc_soft':>8} {'auc_gold':>8} {'pred_std':>8}")
+    for lab, r in per_label.items():
+        g = r.get("auc_gold", float("nan"))
+        print(f"    {lab:<18} {r['auc_soft']:8.3f} {g:8.3f} {r['pred_std']:8.3f}"
+              + ("   <-- near chance" if np.isfinite(r["auc_soft"]) and r["auc_soft"] < 0.55 else "")
+              + ("   <-- collapsed" if r["pred_std"] < 0.01 else ""))
+
+
+def param_groups(model, cfg):
+    """Layer-wise LR decay for the DINOv2 encoder + no weight decay on 1-D params.
+
+    HF Dinov2Model parameter names look like `embeddings.*`, `encoder.layer.<i>.*`,
+    `layernorm.*`. The top block and the final LayerNorm get `lr_backbone`; each block
+    below gets one more factor of `llrd_decay`; embeddings one more still. The head
+    and the attention pool are freshly initialised, so they get `lr_head` undecayed.
+    """
+    n_blocks = model.enc.config.num_hidden_layers
+    groups = {}
+
+    def add(name, p, lr):
+        no_decay = (p.ndim == 1 or name.endswith(".bias") or "token" in name
+                    or "position_embeddings" in name)       # BEiT/MAE convention
+        key = (round(lr, 12), no_decay)
+        groups.setdefault(key, {"params": [], "lr": lr,
+                                "weight_decay": 0.0 if no_decay else cfg.weight_decay})
+        groups[key]["params"].append(p)
+
+    for name, p in model.enc.named_parameters():
+        if not p.requires_grad:
+            continue
+        if name.startswith("embeddings."):
+            depth = 0
+        elif name.startswith("encoder.layer."):
+            depth = int(name.split(".")[2]) + 1
+        else:                       # final layernorm
+            depth = n_blocks + 1
+        lr = cfg.lr_backbone * (cfg.llrd_decay ** (n_blocks + 1 - depth))
+        add(name, p, lr)
+    for mod in (model.pool, model.head):
+        for name, p in mod.named_parameters():
+            add(name, p, cfg.lr_head)
+    out = list(groups.values())
+    lrs = sorted({g["lr"] for g in out if g["lr"] < cfg.lr_head})
+    print(f"  backbone LR range {lrs[0]:.2e} .. {lrs[-1]:.2e} over {n_blocks} blocks "
+          f"(decay {cfg.llrd_decay}); head {cfg.lr_head:.0e}")
+    return out
+
+
+class EMA:
+    """Exponential moving average of the weights. Validated and saved instead of the
+    raw weights: it is markedly more robust to label noise and makes a fixed epoch
+    count a safe selection rule. Buffers are copied, not averaged."""
+
+    def __init__(self, model, decay):
+        import copy
+        self.decay = decay
+        self.module = copy.deepcopy(model).eval()
+        for p in self.module.parameters():
+            p.requires_grad_(False)
+
+    @torch.no_grad()
+    def update(self, model):
+        msd = model.state_dict()
+        for k, e in self.module.state_dict().items():
+            m = msd[k]
+            if e.dtype.is_floating_point:
+                e.mul_(self.decay).add_(m.detach(), alpha=1 - self.decay)
+            else:
+                e.copy_(m)
 
 
 def train_fold(fold, manifest, targets, image_root, cfg, device):
     ckpt_best = os.path.join(WORK, f"{cfg.version}_fold{fold}_best.pt")
     ckpt_last = os.path.join(WORK, f"{cfg.version}_fold{fold}_last.pt")
+    oof_path = os.path.join(WORK, f"{cfg.version}_fold{fold}_oof.csv")
 
     model = KneeNet(cfg.backbone_dir, dropout=cfg.dropout).to(device)
-    opt = torch.optim.AdamW([
-        {"params": model.enc.parameters(), "lr": cfg.lr_backbone},
-        {"params": list(model.pool.parameters()) + list(model.head.parameters()),
-         "lr": cfg.lr_head},
-    ], weight_decay=cfg.weight_decay)
+    opt = torch.optim.AdamW(param_groups(model, cfg))
+    ema = EMA(model, cfg.ema_decay) if cfg.ema_decay > 0 else None
 
     tr_loader, va_loader = make_loaders(manifest, targets, image_root, cfg, fold)
     steps_per_epoch = max(1, len(tr_loader) // cfg.grad_accum)
@@ -888,6 +1054,10 @@ def train_fold(fold, manifest, targets, image_root, cfg, device):
     if os.path.exists(ckpt_last):
         st = torch.load(ckpt_last, map_location=device, weights_only=False)
         model.load_state_dict(st["model"])
+        if ema is not None:
+            # a checkpoint without an EMA (or with EMA switched on later) must not
+            # leave the EMA copy at its random-head initialisation
+            ema.module.load_state_dict(st.get("ema", st["model"]))
         opt.load_state_dict(st["opt"])
         sched.load_state_dict(st["sched"])
         start_epoch = st["epoch"] + 1
@@ -897,6 +1067,8 @@ def train_fold(fold, manifest, targets, image_root, cfg, device):
     for epoch in range(start_epoch, cfg.epochs):
         model.train()
         running, nb = 0.0, 0
+        t_epoch = time.time()
+        n_studies = 0
         opt.zero_grad(set_to_none=True)
         for i, b in enumerate(tr_loader):
             with torch.amp.autocast("cuda", enabled=use_amp):
@@ -910,37 +1082,60 @@ def train_fold(fold, manifest, targets, image_root, cfg, device):
                 scaler.update()
                 opt.zero_grad(set_to_none=True)
                 sched.step()
+                if ema is not None:
+                    ema.update(model)
             running += float(loss.detach())
             nb += 1
+            n_studies += int(b["mask"].shape[0])
+            # Throughput is the open risk of this pipeline; print it early and often.
+            if n_studies in (10, 50) or (n_studies % 500 == 0):
+                dt = time.time() - t_epoch
+                print(f"    {n_studies} studies in {dt:.0f}s = {dt/n_studies:.2f} s/study "
+                      f"(slices/slot {cfg.slices_per_slot}, workers "
+                      f"{tr_loader.num_workers}) -> epoch ETA "
+                      f"{dt/n_studies*len(tr_loader.dataset)/60:.0f} min")
             if out_of_time():
                 print("  runtime guard hit mid-epoch")
                 break
+        train_secs = time.time() - t_epoch
 
-        metrics, _ = evaluate(model, va_loader, device)
+        eval_model = ema.module if ema is not None else model
+        t_eval = time.time()
+        metrics, oof = evaluate(eval_model, va_loader, device)
+        per_label = metrics.pop("per_label", {})
         print(f"  fold {fold} epoch {epoch}: loss {running/max(nb,1):.4f}  {metrics}")
+        print(f"    train {train_secs/60:.1f} min ({train_secs/max(n_studies,1):.2f} s/study), "
+              f"val {(time.time()-t_eval)/60:.1f} min")
+        if per_label:
+            print_per_label(per_label)
         if metrics.get("pred_std", 1.0) < 0.01:
             print("  !! prediction spread near zero -- base-rate collapse, not a "
                   "converged model")
 
         torch.save({"model": model.state_dict(), "opt": opt.state_dict(),
-                    "sched": sched.state_dict(), "epoch": epoch, "best": best},
+                    "sched": sched.state_dict(), "epoch": epoch, "best": best,
+                    **({"ema": ema.module.state_dict()} if ema is not None else {})},
                    ckpt_last)
-        # Selection metric: gold AUC when the fold has enough gold studies, else the
-        # soft-target AUC. Both can be NaN (a fold with no positives for any label),
-        # so fall back to negative loss -- otherwise `nan > best` is always False and
-        # the fold finishes with NO best checkpoint, which silently drops it from the
-        # ensemble at inference time.
+        # Which epoch is "the" model? Selecting the best epoch on ~12 gold studies per
+        # fold is a coin flip (Hanley-McNeil SE ~0.09), and selecting on the soft
+        # targets rewards memorising the teacher. So `{version}_fold{k}_best.pt` is
+        # simply the EMA weights after the LAST COMPLETED epoch (fixed-epoch selection,
+        # P-03/P-04). The per-epoch score is logged, not used. A NaN score therefore
+        # cannot drop a fold from the ensemble either.
         score = metrics.get("auc_gold")
         if score is None or not np.isfinite(score):
             score = metrics.get("auc_soft")
         if score is None or not np.isfinite(score):
             score = -running / max(nb, 1)
-            print("    (AUC undefined this epoch -- selecting on negative loss)")
-        if score > best or not os.path.exists(ckpt_best):
-            best = max(score, best)
-            torch.save({"model": model.state_dict(), "score": score, "epoch": epoch},
-                       ckpt_best)
-            print(f"    saved best ({score:.4f}) -> {os.path.basename(ckpt_best)}")
+        best = max(score, best) if np.isfinite(score) else best
+        torch.save({"model": eval_model.state_dict(), "score": score, "epoch": epoch,
+                    "ema": ema is not None, "config": asdict(cfg)}, ckpt_best)
+        if oof is not None:
+            oof.insert(1, "epoch", epoch)
+            oof.to_csv(oof_path.replace("_oof.csv", f"_ep{epoch}_oof.csv"), index=False)
+            oof.to_csv(oof_path, index=False)        # always the checkpointed epoch
+        print(f"    checkpoint = epoch {epoch} EMA (score {score:.4f}) -> "
+              f"{os.path.basename(ckpt_best)} + {os.path.basename(oof_path)}")
 
         if out_of_time():
             print("  stopping: runtime guard. Attach this output and re-run to resume.")
@@ -959,52 +1154,149 @@ def train_fold(fold, manifest, targets, image_root, cfg, device):
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"device: {device}")
 
+def resolve_image_root(series_csv: str, default_root: str) -> str:
+    """Find the directory that actually holds `<study>/<series>/` for this CSV.
+
+    Submission #1 (kernel v2, smoke) scored exactly 0.500 on the hidden test, which
+    is what a constant submission scores -- i.e. on the rerun no test study was
+    found under the assumed root and the 0.5 fallback fired, silently. Probing the
+    tree beats assuming it, and failing loudly beats a silent 0.5 (see below).
+    """
+    meta = pd.read_csv(series_csv)
+    if len(meta) == 0:
+        return default_root
+    first = meta.iloc[0]
+    if os.path.isdir(os.path.join(default_root, first.StudyInstanceUID,
+                                  first.SeriesInstanceUID)):
+        return default_root
+    # Shallow probe: <COMP>/<x>/<study>/<series> and one level deeper. Never `**` --
+    # that walks the whole ~819k-file mount.
+    hits = shallow_glob(COMP, first.SeriesInstanceUID, max_depth=3, skip=("train_series",))
+    if not hits and ON_KAGGLE:
+        hits = shallow_glob("/kaggle/input", first.SeriesInstanceUID, max_depth=4,
+                            skip=("train_series",))
+    if hits:
+        root = os.path.dirname(os.path.dirname(hits[0]))
+        print(f"  ! image root for {os.path.basename(series_csv)} is not {default_root}"
+              f" -- found {root}")
+        return root
+    print(f"  ! could not locate any series of {os.path.basename(series_csv)} "
+          f"under {default_root} or by glob")
+    return default_root
+
+
 TRAIN_IMG = os.path.join(COMP, "train_series")
 TEST_IMG = os.path.join(COMP, "test_series")
 if not os.path.isdir(TRAIN_IMG) and os.path.isdir(os.path.join(COMP, "sample_dicom",
                                                                "test_series")):
     # Local: only the public test tree exists, so use it for both.
     TRAIN_IMG = TEST_IMG = os.path.join(COMP, "sample_dicom", "test_series")
+else:
+    TEST_IMG = resolve_image_root(os.path.join(COMP, "test_series.csv"), TEST_IMG)
 print(f"train images: {TRAIN_IMG}\ntest images:  {TEST_IMG}")
 
-train_series_csv = os.path.join(COMP, "train_series.csv")
-series_df = scan_series(train_series_csv, TRAIN_IMG,
-                        os.path.join(WORK, "series_scan_train.csv"),
-                        max_studies=cfg.smoke_max_studies if cfg.smoke else 0)
-if len(series_df) == 0:
-    # Local sample: train_series.csv describes studies we do not have. Fall back to
-    # scanning test_series.csv so the smoke test has something to chew on.
-    series_df = scan_series(os.path.join(COMP, "test_series.csv"), TRAIN_IMG,
-                            os.path.join(WORK, "series_scan_fallback.csv"))
-manifest = build_manifest(series_df, os.path.join(WORK, "manifest_train.csv"))
+# ---- which mode are we in? ----------------------------------------------------
+def find_mounted_checkpoints(version, kind="best"):
+    """`{version}_fold<k>_{kind}.pt` files attached as a kernel/dataset input (Kaggle) or
+    left in artifacts/kaggle_out (local). Shallow search only. Returns {fold: path}."""
+    import re
+    roots = ["/kaggle/input"] if ON_KAGGLE else ["artifacts/kaggle_out"]
+    found = {}
+    for root in roots:
+        for p in shallow_glob(root, f"{version}_fold*_{kind}.pt", max_depth=3):
+            m = re.search(rf"{re.escape(version)}_fold(\d+)_{kind}\.pt$", p)
+            if m:
+                found.setdefault(int(m.group(1)), p)
+    return found
 
-# Studies present as images but absent from targets (local case) get placeholder rows
-# so the smoke test can build batches.
-missing = set(manifest.StudyInstanceUID) - set(targets.StudyInstanceUID)
-if missing:
-    print(f"  {len(missing)} imaged studies not in targets; adding placeholder targets "
-          f"(smoke only)")
-    add = pd.DataFrame({"StudyInstanceUID": sorted(missing)})
-    add["is_gold"] = 0
-    add["report_group"] = "local"
-    add["fold"] = 0
-    for l in LABELS:
-        add[l] = 0.5
-    for l in LABELS:
-        add[f"w__{l}"] = cfg.weak_weight_floor
-    targets = pd.concat([targets, add], ignore_index=True)
+
+mounted_ckpts = find_mounted_checkpoints(cfg.version, "best")
+mounted_last = find_mounted_checkpoints(cfg.version, "last")
+if MODE != "auto":
+    mode = MODE
+else:
+    # infer only when EVERY configured fold has a finished checkpoint; a partial run
+    # (guard fired) must resume training, not be submitted.
+    mode = "infer" if mounted_ckpts and set(cfg.folds) <= set(mounted_ckpts) else "train"
+print(f"MODE={mode}  mounted best: {sorted(mounted_ckpts)}  mounted last: {sorted(mounted_last)}")
+
+if mode == "infer" and not mounted_ckpts:
+    raise SystemExit(f"MODE=infer but no {cfg.version}_fold*_best.pt is mounted. Attach the "
+                     f"training run's output as a kernel input (kernel_sources).")
+if mode == "infer":
+    # The checkpoint decides the input geometry, not FORCE_SMOKE: a smoke-mode infer
+    # would otherwise feed 2 slices/slot to a model trained on 6 and pass every assert.
+    st0 = torch.load(mounted_ckpts[min(mounted_ckpts)], map_location="cpu", weights_only=False)
+    saved = st0.get("config", {})
+    for k in ("slices_per_slot", "triplet_gap", "img_size"):
+        if k in saved and getattr(cfg, k) != saved[k]:
+            print(f"  infer: {k} {getattr(cfg, k)} -> {saved[k]} (from checkpoint)")
+            setattr(cfg, k, saved[k])
+    if cfg.smoke and set(mounted_ckpts) != set(cfg.folds):
+        print(f"  infer: using all mounted folds {sorted(mounted_ckpts)} (smoke folds ignored)")
+        cfg.folds = tuple(sorted(mounted_ckpts))
+    del st0
+else:
+    # Resume: a previous session's output is mounted read-only; copy its checkpoints
+    # into WORK so train_fold finds them (otherwise every fold restarts at epoch 0).
+    import shutil
+    for fold in cfg.folds:
+        for kind, src_map in (("last", mounted_last), ("best", mounted_ckpts)):
+            src = src_map.get(fold)
+            dst = os.path.join(WORK, f"{cfg.version}_fold{fold}_{kind}.pt")
+            if src and not os.path.exists(dst):
+                shutil.copy(src, dst)
+                print(f"  resume: copied {os.path.basename(src)} into WORK")
 
 results = {}
-for fold in cfg.folds:
-    if out_of_time():
-        print(f"skipping fold {fold}: out of time")
-        continue
-    print(f"\n=== fold {fold} ===")
-    _, best, done = train_fold(fold, manifest, targets, TRAIN_IMG, cfg, device)
-    results[fold] = {"best": best, "completed": done}
-    gc.collect()
-    if device.type == "cuda":
-        torch.cuda.empty_cache()
+if mode == "train":
+    train_series_csv = os.path.join(COMP, "train_series.csv")
+    series_df = scan_series(train_series_csv, TRAIN_IMG,
+                            os.path.join(WORK, "series_scan_train.csv"),
+                            max_studies=cfg.smoke_max_studies if cfg.smoke else 0)
+    if len(series_df) == 0:
+        # Local sample: train_series.csv describes studies we do not have. Fall back to
+        # scanning test_series.csv so the smoke test has something to chew on.
+        series_df = scan_series(os.path.join(COMP, "test_series.csv"), TRAIN_IMG,
+                                os.path.join(WORK, "series_scan_fallback.csv"))
+    manifest = build_manifest(series_df, os.path.join(WORK, "manifest_train.csv"))
+
+    # Studies present as images but absent from targets (local case) get placeholder
+    # rows so the smoke test can build batches.
+    missing = set(manifest.StudyInstanceUID) - set(targets.StudyInstanceUID)
+    if missing:
+        print(f"  {len(missing)} imaged studies not in targets; adding placeholder "
+              f"targets (smoke only)")
+        add = pd.DataFrame({"StudyInstanceUID": sorted(missing)})
+        add["is_gold"] = 0
+        add["report_group"] = "local"
+        add["fold"] = 0
+        for l in LABELS:
+            add[l] = 0.5
+        for l in LABELS:
+            add[f"w__{l}"] = cfg.weak_weight_floor
+        targets = pd.concat([targets, add], ignore_index=True)
+
+    for fold in cfg.folds:
+        if out_of_time():
+            print(f"skipping fold {fold}: out of time")
+            continue
+        print(f"\n=== fold {fold} ===")
+        _, best, done = train_fold(fold, manifest, targets, TRAIN_IMG, cfg, device)
+        results[fold] = {"best": best, "completed": done}
+        gc.collect()
+        if device.type == "cuda":
+            torch.cuda.empty_cache()
+    ckpt_paths = {f: os.path.join(WORK, f"{cfg.version}_fold{f}_best.pt")
+                  for f in cfg.folds}
+else:
+    missing_folds = [f for f in cfg.folds if f not in mounted_ckpts]
+    if missing_folds:
+        raise SystemExit(f"MODE=infer but no checkpoint mounted for folds "
+                         f"{missing_folds} (version {cfg.version}). Attach the "
+                         f"training run's output as a kernel input.")
+    results = {f: {"best": float("nan"), "completed": True} for f in cfg.folds}
+    ckpt_paths = {f: mounted_ckpts[f] for f in cfg.folds}
 
 print("\nfold results:", json.dumps(results, indent=1))
 all_done = len(results) == len(cfg.folds) and all(r["completed"] for r in results.values())
@@ -1054,55 +1346,84 @@ def rank_mean(frames):
 
 sub_path = os.path.join(WORK, "submission.csv")
 sample_path = os.path.join(COMP, "sample_submission.csv")
+ref = pd.read_csv(sample_path)
 
 if not all_done:
     print("training incomplete -- skipping inference.")
     print("Attach this notebook's output as input to a new run to resume.")
 else:
+    # Deliberately NO placeholder file: if anything below raises, Kaggle reports a
+    # missing submission (visible), instead of scoring a silent 0.500 (invisible).
+    for stale in (sub_path, "/kaggle/working/submission.csv" if ON_KAGGLE else None):
+        if stale and os.path.exists(stale):
+            os.remove(stale)
+
+    t_inf = time.time()
     test_series_df = scan_series(os.path.join(COMP, "test_series.csv"), TEST_IMG,
                                  os.path.join(WORK, "series_scan_test.csv"))
     test_manifest = build_manifest(test_series_df,
                                    os.path.join(WORK, "manifest_test.csv"))
-    test_studies = pd.read_csv(os.path.join(COMP, "test.csv")).StudyInstanceUID.tolist()
-    test_studies = [s for s in test_studies if s in set(test_manifest.StudyInstanceUID)]
+    all_test = pd.read_csv(os.path.join(COMP, "test.csv")).StudyInstanceUID.tolist()
+    with_slots = set(test_manifest.loc[test_manifest.n_slots > 0, "StudyInstanceUID"])
+    test_studies = [s for s in all_test if s in with_slots]    # imaged AND has a slot
+    coverage = len(test_studies) / max(len(all_test), 1)
+    print(f"  test studies: {len(all_test)} listed, {len(test_studies)} imaged "
+          f"({coverage:.1%}); scan+manifest {time.time()-t_inf:.0f}s")
+    print("  slot fill on test:",
+          {s: round(float((test_manifest[s] != '').mean()), 3) for s in SLOTS})
+    # Loud failure beats a silent constant submission: a scoring error is visible on
+    # the submissions page, a 0.500 looks like a bad model.
+    if coverage < 0.9:
+        raise SystemExit(f"only {coverage:.1%} of test studies have images under "
+                         f"{TEST_IMG} -- refusing to submit constants")
 
     frames = []
     for fold in cfg.folds:
-        ck = os.path.join(WORK, f"{cfg.version}_fold{fold}_best.pt")
-        if not os.path.exists(ck):
+        ck = ckpt_paths.get(fold)
+        if not ck or not os.path.exists(ck):
             print(f"  fold {fold}: no checkpoint, skipped")
             continue
+        st = torch.load(ck, map_location=device, weights_only=False)
         m = KneeNet(cfg.backbone_dir, dropout=cfg.dropout).to(device)
-        m.load_state_dict(torch.load(ck, map_location=device,
-                                     weights_only=False)["model"])
+        m.load_state_dict(st["model"])
+        t_f = time.time()
         frames.append(predict(m, test_manifest, TEST_IMG, cfg, test_studies, device))
-        print(f"  fold {fold}: predicted {len(frames[-1])} studies")
+        dt = time.time() - t_f
+        print(f"  fold {fold}: predicted {len(frames[-1])} studies in {dt:.0f}s "
+              f"({dt/max(len(frames[-1]),1)*100:.0f} s per 100 studies) "
+              f"[epoch {st.get('epoch')}, score {st.get('score')}, ema {st.get('ema')}]")
         del m
         gc.collect()
 
-    if frames:
-        sub = rank_mean(frames)
-    else:
-        print("  ! no checkpoints -- emitting 0.5 placeholder")
-        sub = pd.DataFrame({"StudyInstanceUID": test_studies,
-                            **{l: 0.5 for l in LABELS}})
+    if not frames:
+        raise SystemExit("no checkpoints produced predictions -- refusing to submit "
+                         "constants")
+    sub = rank_mean(frames)
 
     # Any study we could not image must still appear, or the submission is rejected.
-    ref = pd.read_csv(sample_path)
     sub = ref[["StudyInstanceUID"]].merge(sub, on="StudyInstanceUID", how="left")
+    n_filled = int(sub[LABELS[0]].isna().sum())
     for l in LABELS:
         sub[l] = sub[l].fillna(0.5)
     sub = sub[["StudyInstanceUID"] + LABELS]
-    sub.to_csv(sub_path, index=False)
-    if ON_KAGGLE:
-        sub.to_csv("/kaggle/working/submission.csv", index=False)
 
     assert list(sub.columns) == list(ref.columns), "column mismatch vs sample_submission"
     assert len(sub) == len(ref), f"row count {len(sub)} != {len(ref)}"
+    assert (sub.StudyInstanceUID.to_numpy() == ref.StudyInstanceUID.to_numpy()).all(), \
+        "row order differs from sample_submission"
     assert np.isfinite(sub[LABELS].to_numpy()).all(), "non-finite predictions"
-    print(f"\nwrote {sub_path}  rows={len(sub)}  "
+    n_const = int((sub[LABELS].std(axis=0) < 1e-9).sum())
+    if n_const > len(LABELS) // 2 and len(sub) > 3:
+        raise SystemExit(f"{n_const}/12 labels are constant across {len(sub)} studies "
+                         f"-- model or inputs are broken, refusing to submit")
+
+    sub.to_csv(sub_path, index=False)
+    if ON_KAGGLE:
+        sub.to_csv("/kaggle/working/submission.csv", index=False)
+    print(f"\nwrote {sub_path}  rows={len(sub)}  filled 0.5 for {n_filled}  "
           f"range=[{sub[LABELS].to_numpy().min():.3f}, "
-          f"{sub[LABELS].to_numpy().max():.3f}]")
+          f"{sub[LABELS].to_numpy().max():.3f}]  constant labels {n_const}  "
+          f"inference total {(time.time()-t_inf)/60:.1f} min")
     print(sub.head(3).to_string(index=False))
 
 print(f"\ntotal elapsed {elapsed_h():.2f} h")
