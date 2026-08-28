@@ -14,6 +14,18 @@ Competition: https://www.kaggle.com/competitions/rsna-knee-abnormality-detection
 competition CSVs. No model code, no pipeline, no build or test commands exist yet. Do not
 reference commands or files that don't exist — check first.
 
+## Read `experiments.md` first
+
+`experiments.md` is the running log of everything tried, with an explicit verdict per entry
+(KEEP / DEAD END / INCONCLUSIVE / PENDING / IDEA) and a ranked backlog. **Check it before
+proposing any experiment** — it exists so we never re-run a settled question or resurrect a
+dead end. Append a new entry after every measurement; never rewrite history, mark
+corrections inline.
+
+It also carries the **noise floor**, which governs whether a result is evidence at all:
+a gold-AUC difference under ~0.05 (58 studies, Hanley–McNeil SE ≈0.09) or a public-LB
+difference under ~0.005 is **INCONCLUSIVE, not a win**.
+
 ## ⛔ Hard constraints — read before running anything on Kaggle
 
 1. **NEVER select the P100 accelerator.** Kaggle's current PyTorch ships no Pascal kernels,
