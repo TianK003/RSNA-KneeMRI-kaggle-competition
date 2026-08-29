@@ -10,10 +10,12 @@ by **macro ROC-AUC** (unweighted mean of 12 per-label AUCs).
 
 Competition: https://www.kaggle.com/competitions/rsna-knee-abnormality-detection
 
-**State as of 2026-08-29 (evening):** **five submissions, best public LB 0.896** — #5, the P-21
+**State as of 2026-08-29 (night):** **seven submissions, best public LB 0.896** — #5, the P-21
 rank-mean of an attention-head and a concat-head model on one DINOv2-S/14 224 backbone, fold 0,
 OOF 0.8670 (+0.019 LB over the best single model, 3.8× the LB floor). Progression 0.500 → 0.841 →
-0.871 → 0.877 → **0.896**. An epoch costs ~11 min, so a fold-0 arm is ~0.9 h. Measured today: the **OOF noise floor** (0.008 macro / ~0.03 per label), **slice
+0.871 → 0.877 → **0.896** → 0.886 (#6, five concat folds alone: folds are worth +0.009) → 0.896
+(#7, folds + both heads: **folds add nothing on top of head diversity**, so the next GPU spend is a
+third diverse member, not more folds — P-10). An epoch costs ~11 min, so a fold-0 arm is ~0.9 h. Measured today: the **OOF noise floor** (0.008 macro / ~0.03 per label), **slice
 jitter +0.011**, **laterality ≈ +0.015 of v03's +0.022**, and **two heads rank-blend to 0.8670** at
 ρ = 0.773 (P-21, now shipped as `INFER_MEMBERS` with decode-once inference). **P-22 switched the
 checkpoint policy** to best-OOF-epoch (`ckpt_policy="best_oof"`: +0.013 split-half for the concat

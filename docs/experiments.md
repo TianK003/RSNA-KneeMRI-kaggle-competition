@@ -47,8 +47,8 @@ Judge label changes on **coverage** (does the rule fire at all, per language) an
 | 2026-08-28 | **v03 fold 0 from the cache (kernel v8)**: v6 recipe + 130 mm crop + laterality + per-series norm | 0.906 (n=11, CI 0.81–0.97) · OOF-vs-teacher **0.843** (882 studies) | **0.871** | ✅ KEEP — LB +0.030 vs v02, 6× the 0.005 floor |
 | 2026-08-29 | **v04d fold 0 (kernel v11)**: v03 recipe + `cache_jitter` slice augmentation | 0.904 (n=11, CI 0.82–0.95) · OOF-vs-teacher **0.8528** (882 studies) | **0.877** | ✅ KEEP on OOF (+0.0113 vs a 0.008 floor, 11/12 labels up); LB +0.006 is only 1.2× the 0.005 floor and is *corroboration, not proof* |
 | 2026-08-29 | **P-21 blend, submission #5 (infer v5)**: rank-mean of `v05a` attn + `v05b` concat, fold 0, 8 ep | 0.927 / 0.876 (singles, n=11) · OOF-vs-teacher **0.8670** (blend, 882 studies) | **0.896** | ✅ KEEP — +0.019 LB vs #4 (3.8× floor); head diversity on one backbone is the cheapest gain found so far. Gap to the public top is now 0.056 |
-| 2026-08-29 | **`v05g` 5-fold concat alone, submission #6 (infer v6)** | gold 0.8476 (all 58) · pooled OOF **0.8467** | ⏳ | the fold-ensemble gain, read against 0.877 |
-| 2026-08-29 | **by-version blend attn + concat-8ep + 5-fold concat, submission #7 (infer v8)** | fold-0 proxy 0.8680 | ⏳ | read against #5's 0.896 |
+| 2026-08-29 | **`v05g` 5-fold concat alone, submission #6 (infer v6)** | gold 0.8476 (all 58) · pooled OOF **0.8467** | **0.886** | ✅ five folds = +0.009 LB over one fold (1.8× floor); less than half of what the second head bought (+0.019) |
+| 2026-08-29 | **by-version blend attn + concat-8ep + 5-fold concat, submission #7 (infer v8)** | fold-0 proxy 0.8680 | **0.896** | 🔁 equal to #5 — folds add nothing on top of head diversity. **Best remains 0.896** (two kernels, v5 and v8) |
 
 **External reference points** (not ours — for calibrating ambition):
 
@@ -785,6 +785,17 @@ throughout). **4.27 h** for five folds including inference; the 8.3 h guard was 
 over one fold is ⏳ until the 5-fold-only submission scores. The natural final shape is five folds ×
 two heads; the attention half costs ~9 h and stays a decision for the next session.
 
+> **RESOLVED 2026-08-29 23:28 (submissions #6 and #7).** Five folds alone: **0.886**, +0.009 over
+> one fold — real (1.8× floor) but half of the head blend's +0.019. Five folds *added to* the head
+> blend (one vote per version): **0.896, identical to the two-head blend**. Reading: fold-averaging
+> and head-blending both mostly remove the same thing — the variance of a single concat model — so
+> once a second head is in the blend, folds of the first head are redundant. **The 9 h attention
+> 5-fold run is therefore not launched**: its best case is the concat-side analogue (+0.009 on the
+> attn member alone, ~0 in the blend). The quota is better spent on a *third source of diverse
+> errors* (a different head, schedule or backbone family — P-10 with licence-clean ConvNeXt is the
+> obvious candidate, fold 0 first, ~1 h) than on more folds of an existing member. P-13's
+> "3 folds + a second family beats 5 folds of one" now has direct support.
+
 ---
 
 ## Infrastructure
@@ -1047,5 +1058,5 @@ and public LB score, so a public/private divergence can be traced to a specific 
 | 3 | 2026-08-28 | rsna-knee-infer v3 (mounts rsna-knee-train v8) | v03: same recipe, trained from the cache — adds 130 mm crop + laterality + per-series norm | 0.843 | **0.871** | **+0.030 vs #2**, 6× the 0.005 LB floor. The OOF gain transferred and amplified. Also the first submission through the fixed infer path (traps 6d). |
 | 4 | 2026-08-29 | rsna-knee-infer v4 (mounts rsna-knee-train v11) | v04d: v03 recipe + `cache_jitter` slice augmentation | 0.8528 | **0.877** | +0.0113 OOF over `v04base` against a **measured** 0.008 floor; 11/12 labels up, none down; removes the epoch-2 overfitting turn. Predicted ~0.875–0.88 from the +0.02–0.03 OOF→LB offset. |
 | 5 | 2026-08-29 | rsna-knee-infer v5 (mounts rsna-knee-train v13) | P-21: rank-mean of `v05a` (attn) + `v05b` (concat), fold 0, 8 ep, jitter, last-epoch checkpoints; decode-once inference | 0.8670 (blend; singles 0.8574 / 0.8471) | **0.896** | **+0.019 vs #4, 3.8× the 0.005 LB floor** — the largest single-step LB gain since the cache (P-01). First multi-model submission. The blend's OOF→LB offset is +0.029, inside the +0.02–0.03 band that was calibrated on single models, so the offset *did* transfer (n=4 now). Rule set before scoring was < 0.005 = 🔁; this clears it by a wide margin → ✅ P-21 KEEP. |
-| 6 | 2026-08-29 | rsna-knee-infer v6 (mounts rsna-knee-train v13 + rsna-knee-folds v4) | `v05g` alone: 5-fold rank-mean, concat + jitter, 4 ep, `best_oof` (= last epoch on every fold) | per-fold 0.843–0.851, pooled 0.8467 | ⏳ ref 55874877 | **Measures the fold-ensemble gain** against `v04d`'s one-fold 0.877 (same recipe). Rule: < 0.882 = folds buy less than the head blend did (+0.019) and the attn 5-fold run is judged on that; a sub-0.005 move is 🔁. |
-| 7 | 2026-08-29 | rsna-knee-infer v8 (same mounts) | P-21 **by-version** blend: `v05a` attn + `v05b` concat-8ep + `v05g` 5-fold concat, one vote per version (`INFER_BLEND="by_version"`) | fold-0 proxy 0.8680 (a+b+g flat-by-version; the flat 7-checkpoint mean would be 0.8611) | ⏳ ref 55874878 | Rule: vs #5's 0.896, < 0.005 either way is 🔁 — the fold-0 proxy predicts only +0.001 OOF; the interesting outcome is whether five concat folds add anything *on top of* head diversity. Infer v7 (flat 7-member) exists but was deliberately not submitted. |
+| 6 | 2026-08-29 | rsna-knee-infer v6 (mounts rsna-knee-train v13 + rsna-knee-folds v4) | `v05g` alone: 5-fold rank-mean, concat + jitter, 4 ep, `best_oof` (= last epoch on every fold) | per-fold 0.843–0.851, pooled 0.8467 | **0.886** | **Fold-ensemble gain = +0.009 over one fold (0.877), 1.8× the LB floor → ✅ folds pay on their own.** Note the OOF→LB offset is **+0.039** here, outside the +0.02–0.03 band: pooled OOF holds each study out once and cannot see the variance reduction of averaging five models, so **the offset rule does not apply to fold ensembles**. |
+| 7 | 2026-08-29 | rsna-knee-infer v8 (same mounts) | P-21 **by-version** blend: `v05a` attn + `v05b` concat-8ep + `v05g` 5-fold concat, one vote per version (`INFER_BLEND="by_version"`) | fold-0 proxy 0.8680 (a+b+g flat-by-version; the flat 7-checkpoint mean would be 0.8611) | **0.896** | **Identical to #5 → 🔁 folds add nothing on top of head diversity** (the fold-0 proxy predicted +0.001). Two things changed vs #5 at once — five concat folds were added *and* the attention head's vote fell from 1/2 to 1/3 — so "zero" may be a small gain cancelled by a small dilution; not worth a submission to disentangle (weight-tuning on the public LB is the documented trap). Infer v7 (flat 7-member) exists but was deliberately not submitted. |

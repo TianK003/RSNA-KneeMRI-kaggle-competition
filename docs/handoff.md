@@ -6,6 +6,66 @@ to read first after a break.
 
 ---
 
+## 2026-08-29 (23:35) — #6/#7 scored: folds +0.009 alone, +0.000 on top of heads; attn 5-fold NOT launched
+
+Supersedes the in-flight table of the 22:35 entry below; everything else there still holds.
+Findings logged in experiments.md (Submissions #6/#7, Scoreboard, RESOLVED note on the 5-fold entry),
+proposals.md (P-10 raised, P-13 supported), CLAUDE.md state line.
+
+### ⏳ Still in flight — nothing
+
+No kernel is running and no submission is pending. Background watchers from this session are dead.
+
+### Where things stand
+
+| | Status |
+|---|---|
+| Submissions | **seven**; best **0.896** twice (#5 infer v5 = two heads; #7 infer v8 = two heads + five concat folds). #6 (five folds alone) 0.886. 1 submission left today (resets 02:00) |
+| Decision taken | **The 9 h attention 5-fold is not launched** — its gate (#7 > #5 by ≥ 0.005) failed by exactly 0.000 |
+| GPU quota | ~13 h left this week (resets ~2026-09-05) |
+| Repo | pushed through this entry |
+
+### What we figured out (tonight's two numbers)
+
+1. **Five folds of one model: +0.009 LB** (0.877 → 0.886), 1.8× the floor. Real, but half the
+   second head's +0.019. The OOF→LB offset does **not** apply to fold ensembles (+0.039 here) —
+   pooled OOF cannot see variance reduction.
+2. **Five folds on top of the head blend: +0.000** (0.896 → 0.896). Fold-averaging and
+   head-blending remove the same variance; once both heads are in, folds of one head are redundant.
+   Caveat: the attention vote also fell 1/2 → 1/3 in #7, so a small gain may have cancelled a small
+   dilution — deliberately *not* chased with more submissions (public-LB weight tuning is the trap).
+
+### ⏭ Next action, in order
+
+1. **A third diverse member, fold 0 first (~1 h), not more folds.** P-10 with a licence-clean timm
+   ConvNeXt (Tiny or Small, 224, ImageNet weights) as an `ARMS` arm on `rsna-knee-train`, same
+   cache/slots/jitter/EMA, 4 epochs first. Decision rule from P-21's own template: report the
+   rank correlation of its fold-0 OOF against `v05a` and `v05b` (the two heads sit at 0.77) and the
+   fold-0 rank-mean gain over 0.8670 (a+b). Adopt only if the 3-way blend clears +0.008 OOF **and**
+   ρ < 0.77 against both — a member that is merely another concat-like error profile adds nothing,
+   as #7 just showed. Smoke first; `FORCE_SMOKE = True`; check the cache line.
+   Cheaper alternatives if ConvNeXt is more than an evening of code: an attention head at a
+   different schedule (4 epochs, ~0.9 h) or a different seed of `v05a` — each is a weaker diversity
+   bet (same backbone, ρ likely ≥ 0.84 like `v05b`–`v05g`).
+2. **Pin the submission weights to a Kaggle Dataset** before any further push to `rsna-knee-train`
+   or `rsna-knee-folds`: infer v5/v8 mount the *latest* outputs of both slugs.
+3. **Final-submission hygiene**: v5 and v8 both score 0.896; v8 contains more models and is the
+   safer private-LB bet (five folds average site variance even if the public LB cannot see it) —
+   prefer v8's blend as the default going forward, and add any new member via `INFER_MEMBERS`.
+
+### Open decisions for Tian
+
+- ConvNeXt (P-10) vs cheaper same-backbone diversity for the remaining ~13 h this week.
+- Kaggle Dataset pinning (browser or `kaggle datasets create`).
+- Delete `artifacts/kaggle_out/v9smoke/` (1.8 GB of smoke checkpoints with real names).
+
+### Things that will bite if forgotten
+
+- All of the 22:35 entry's list, plus: **infer v7 must never be submitted** (flat 7-member; fold 0
+  says 0.8611); the two 0.896 kernels are **v5** and **v8**.
+
+---
+
 ## 2026-08-29 (22:35) — LB 0.896 from the two-head blend; valid 5-fold done; two blends submitted and pending
 
 Findings logged through `cad29d7`. This entry is state only.

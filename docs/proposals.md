@@ -62,10 +62,10 @@ result*, per unit of cost. "Depends on" lists hard blockers only.
 | P-07 | Synovitis ← Effusion back-fill (measured, not adopted) | 🔁 measured on gold; OOF pending | low-medium | done (audit) | P-06 OOF |
 | P-08 | Slices per slot 6 → 12–16, per-plane bands, random offsets | ✅ jitter sub-arm KEEP (**+0.0113 OOF, LB 0.877**) · K sweep 💡 **downgraded** | delivered by jitter; low-medium for K | 0.5 session | P-01 |
 | P-09 | Per-label masked attention head over slots | ✅ KEEP — **+0.0103** at matched 8 ep; mechanism is overfit-resistance, **not** the predicted plane-specialisation | delivered | done | P-01 |
-| P-10 | Second architecture family (timm ConvNeXt first; RadImageNet behind a flag) | 💡 untested, **de-prioritised** — P-21 buys diversity free | medium, now behind P-21 | 1 session | P-01, P-04 |
+| P-10 | Second architecture family (timm ConvNeXt first; RadImageNet behind a flag) | 💡 untested — **re-prioritised 2026-08-29**: with P-21 done, a third *diverse* member is the next lever; folds are not (#6/#7) | **high — the obvious next GPU spend**; fold 0 first (~1 h), judge on ρ vs the two heads and the fold-0 blend gain | 1 session | P-01, P-04 |
 | P-11 | Resolution 224 vs 336 after the 130 mm crop | 💡 untested | low-medium | 1 session + sharded cache | P-01, P-08 |
 | P-12 | Slice-window TTA (label-safe only) [our hypothesis] | 💡 untested | low | 0.1 session | P-01 |
-| P-13 | 3 vs 5 folds under a fixed session budget [our hypothesis] | 💡 untested | low | 1–2 sessions | P-10 |
+| P-13 | 3 vs 5 folds under a fixed session budget [our hypothesis] | 💡 untested, but **directly supported 2026-08-29**: 5 folds alone +0.009 LB, 5 folds on top of a second head **+0.000** — diversity beats replicates (experiments.md, "First valid 5-fold run", RESOLVED note) | **raised — the next GPU spend is a diverse member, not folds** | 1–2 sessions | P-10 |
 | P-14 | DINOv2-S vs DINOv2-B (registers variant noted) | 💡 untested | low | 1 session | P-10 |
 | P-15 | DINOv3-S/16 as diversity member | 💡 untested | low | 1 session + model mirror | P-10 |
 | P-16 | Re-labelling with an open-weights LLM inside Kaggle (graded, native language) | 💡 untested | high but slow (raises the teacher ceiling) | 1–2 sessions | P-06 audit (done) |
