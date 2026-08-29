@@ -6,6 +6,120 @@ to read first after a break.
 
 ---
 
+## 2026-08-29 (22:35) — LB 0.896 from the two-head blend; valid 5-fold done; two blends submitted and pending
+
+Findings logged through `cad29d7`. This entry is state only.
+
+### ⏳ Still in flight as this was written (22:35)
+
+| In flight | What it is | Started | How to check | How to read it |
+|---|---|---|---|---|
+| **Submission #6** — ref `55874877` | `rsna-knee-infer` **v6**: `INFER_MEMBERS=["v05g"]` — the five concat folds alone, rank-meaned | 22:30 | `kaggle competitions submissions rsna-knee-abnormality-detection --csv \| head -4` (a background watcher was polling; it dies with the session) | **This is the fold-ensemble gain**, read against `v04d`'s one-fold **0.877** (same recipe). ≥ 0.882 = folds are worth having on their own; 0.877–0.882 = 🔁 (inside the LB floor); < 0.877 would mean the 4-epoch fold models do not average well and needs a look at the per-fold OOF csvs in `artifacts/kaggle_out/folds_v4/`. Expect the +0.02–0.03 OOF→LB offset on pooled 0.8467 → roughly 0.87–0.88 *if* five folds add nothing, higher if they do |
+| **Submission #7** — ref `55874878` | `rsna-knee-infer` **v8**: `INFER_MEMBERS=["v05a","v05b","v05g"]`, `INFER_BLEND="by_version"` — attn + concat-8ep + 5-fold concat, one vote per version | 22:30 | same command | Read against **#5 = 0.896**. The fold-0 proxy predicts only +0.001 OOF, so a move under 0.005 either way is 🔁 and the two-head blend stays the reference. A clear gain says folds add on top of heads → the attn 5-fold run is the next spend. A clear loss says the 4-epoch concat folds dilute → drop `v05g` from the blend or weight it down. **Infer v7 (flat 7-member) exists and must not be submitted** — fold 0 says it would score below #5 |
+
+Both submissions run the same notebook, so a scoring error on one is a scoring error on both; a
+missing score with status `ERROR` means the rerun crashed — pull `kaggle kernels output
+tiankljucanin/rsna-knee-infer -p artifacts/kaggle_out/x --file-pattern no_match` and read the tail.
+
+### Where things stand
+
+| | Status |
+|---|---|
+| Submissions | ✅ **seven**: 0.500 → 0.841 → 0.871 → 0.877 → **0.896** (#5, P-21 two-head blend) → #6 ⏳ → #7 ⏳. 1 submission left today (resets 02:00 local) |
+| Best single model | ✅ `v05a` attn + jitter, 8 ep: OOF 0.8574 |
+| Best OOF blend (fold 0) | ✅ a+b 0.8670 → LB 0.896; a+b+g by-version 0.8680 (submitted as #7) |
+| 5-fold ensemble | ✅ **`v05g` valid** (`rsna-knee-folds` v4, 4.27 h): per-fold 0.843–0.851, pooled 0.8467, gold 0.8476 on all 58. `v05f` (v2) = invalid, never mount |
+| Checkpoint policy | ✅ switched to `ckpt_policy="best_oof"` (P-22); inert at 4 epochs, matters for concat past epoch 4 |
+| Infer path | ✅ `INFER_MEMBERS` × `INFER_BLEND="by_version"`, decode-once with in-kernel equality check; infer kernel mounts `rsna-knee-train` **and** `rsna-knee-folds` |
+| Kaggle layout | ✅ observed and printed at startup: kernel outputs at `/kaggle/input/notebooks/<owner>/<slug>/` (platform-wide since today) |
+| GPU quota | ~19 h at 17:30 → **~13 h left** for the week after `v05g` (4.3 h) + three infer runs + smokes |
+| Local env | ✅ `.venv` (torch 2.13.0+cpu, scikit-learn), `requirements.txt` pinned |
+| Repo | ✅ clean, pushed through `cad29d7` |
+
+### What we talked about and decided
+
+- **Verified the traps-6f diagnosis before spending anything**: the folds smoke log (local copy +
+  Tian's paste) and then v2's own log (`no cache is mounted`, 1.17 s/study, fold-0 OOF 0.8198 =
+  the v02 number). Tian stopped v2 at ~10 h wall-clock to save quota; the log's own clock read 8.0 h
+  — it had queued ~2 h, so "hours since push" overestimates execution.
+- **Reordered the handoff's plan**: P-22 (local) before P-21 before the folds re-run, because P-22
+  could change the checkpoint policy of the run about to launch (it did) and the slug was busy.
+- **Decode-once was included in the P-21 change** (Tian's call), verified by array equality in the
+  kernel, and the arm was renamed `v05g` so the invalid `v05f` files can never be confused.
+- **GPU strategy with 19 h/week**: spend ~4.5 h on the concat 5-fold now, hold the ~9 h attn 5-fold
+  until the fold-ensemble number is in. Still the plan; #6/#7 decide it.
+- **Did not submit the flat 7-member blend (v7)** after the fold-0 weighting check showed it below
+  the two-head blend; built the by-version rule instead and submitted that (v8) plus the 5-fold-alone
+  kernel (v6), both approved by Tian.
+- **Rejected tuning blend weights on fold 0** (attn 2:1:1 = 0.8688 vs 0.8680 by-version — inside
+  the floor); by-version is the principled, unfitted rule.
+
+### What we figured out
+
+1. **P-21 transferred: LB 0.896 (+0.019, 3.8× the floor)** from two heads on one backbone, one
+   fold, and the OOF→LB offset (+0.029) held for a blend — n=4 now. → experiments.md Submissions.
+2. **P-22: best-OOF checkpointing is +0.0128 split-half for the concat head, ~0 for attn, no
+   teacher-chasing; P-09 becomes a tie (−0.0024 at best epochs)** — the +0.0103 was concat's late
+   decay. Policy switched. → experiments.md "P-22", `src/oof_epoch_analysis.py`.
+3. **The valid 5-fold run**: fold spread 0.843–0.851 (one floor), fold 0 is representative, `v04d`
+   reproduced within 0.005, pooled 0.8467. → experiments.md "First valid 5-fold run".
+4. **Vote weighting beats member count**: a third same-head member adds +0.001 on fold 0; giving
+   the concat side 6/7 of the vote *loses* 0.007 vs the two-head blend. Hence `INFER_BLEND`.
+5. **Kaggle changed `/kaggle/input` for everyone today** (`notebooks/<owner>/<slug>/`), not just new
+   slugs; traps 6f corrected, layout printed in every log. → traps 6f.
+6. **Per-version kernel output is not retrievable** (`<slug>/11` returned v13's files) and
+   `kernels logs` is blank mid-run; the v11 OOF csvs are gone. → traps 12e.
+7. **A local smoke can "resume" from a stale `_last.pt` and train nothing**; smoke mode no longer
+   resumes. → traps 19.
+8. **The Kaggle OAuth token expires after ~12 h** with a misleading "wrong slug" error. → traps 20.
+9. From v2's wreckage: a second seed-pair of the v02 recipe differs by 0.002–0.009 per epoch
+   (corroborates the 0.008 floor), and fold 1 ≈ fold 0 at epoch 0. → experiments.md (invalid-run
+   entry is unchanged; noted here only).
+
+### ⏭ Next action, in order
+
+1. **Read #6 and #7** (command in the in-flight table) and log both in experiments.md's
+   Submissions table + Scoreboard via `/update`, using the rules written in those rows. Then decide:
+   - #7 > #5 by ≥ 0.005 **and** #6 ≥ 0.882 → **launch the attn 5-fold** (`ARMS` arm
+     `("v05h", {"head_type": "attn", "cache_jitter": True, "folds": (0,1,2,3,4), "epochs": 8})`
+     via the `FIVE_FOLD` block — 5 × 8 × ~12.8 min ≈ 8.5 h, so raise `runtime_limit_hours` to 8.8
+     for that run or plan a resume; ~9 h of the ~13 h quota). Smoke first (`FORCE_SMOKE = True`,
+     gate on `cache: 4407 studies indexed`), then real.
+   - #7 ≈ #5 (within 0.005) → folds add nothing on top of heads; spend the quota on a second
+     *head* or *schedule* member instead (attn 4-ep fold 0 is cheap: ~0.9 h), not on more folds.
+   - #7 < #5 → drop `v05g` from `INFER_MEMBERS` (or weight it down) before any further submission;
+     #5's kernel (infer v5) remains the best submitted.
+2. **Pin the submission's weights to a Kaggle Dataset** (open since two sessions): `rsna-knee-infer`
+   mounts the *latest* `rsna-knee-train` and `rsna-knee-folds` outputs; any new push to either slug
+   changes what a re-run of the infer kernel loads. Do this before the next training push to
+   `rsna-knee-train`.
+3. Only then P-10 / P-14 / P-15 / P-16.
+
+### Open decisions for Tian
+
+- The attn 5-fold (~9 h of the remaining ~13 h this week) — gated on #6/#7 as above.
+- Kaggle Dataset pinning (item 2) — a browser or `kaggle datasets create` job.
+- `artifacts/kaggle_out/v9smoke/` (1.8 GB of smoke checkpoints with real-run filenames) is still
+  safe to delete; also `artifacts/kaggle_out/v11oof/` was removed this session (it held v13 copies).
+- Browser-only questions still block P-10/P-16/P-18: rules text, Efficiency Prize formula,
+  radimagenet.com T&C, hidden test size.
+
+### Things that will bite if forgotten
+
+- **`kaggle auth login` every ~12 h** (traps 20); the failure looks like a wrong slug.
+- **Kernel outputs live under `/kaggle/input/notebooks/<owner>/<slug>/`** now; every resolver
+  searches depth 4 and the layout is printed at the top of each log — read it.
+- **Infer kernel versions**: v5 = a+b (0.896), v6 = 5-fold alone, v7 = flat 7 (**do not submit**),
+  v8 = by-version 7. The committed `.ipynb` is v8's; `INFER_MEMBERS` in `src/` still defaults to
+  `["v05a","v05b"]` and is sed'd per push like `MODE`.
+- `kaggle kernels output <slug>/<version>` returns the **latest** version; download small results
+  with the log at run time (traps 12e).
+- `src/kaggle_pipeline.py` is committed with `FORCE_SMOKE = True`; the real kernels had `False`.
+- Everything from the entries below still applies (`PYTHONUTF8=1`, never sort DICOMs by filename,
+  never edit the `.ipynb`, `experiments.md` is append-only).
+
+---
+
 ## 2026-08-29 (17:11) — The 5-fold run was invalid, not slow: the cache never mounted
 
 Findings logged as of `f50e6a4`. This entry is state only. **Read traps 6f first** — it is the
