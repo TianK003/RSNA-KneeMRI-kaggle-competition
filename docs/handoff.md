@@ -6,6 +6,85 @@ to read first after a break.
 
 ---
 
+## 2026-08-30 (00:05) — P-10 ConvNeXt-Tiny member implemented and smoke-green; real fold-0 run awaits go-ahead
+
+Code through the "P-10: ConvNeXt-Tiny as a second backbone family" commit. Nothing new is
+measured; this entry is state. The 23:35 and 22:35 entries below still hold.
+
+### ⏳ Still in flight — nothing running
+
+`rsna-knee-train` v14 (smoke, `COMPLETE`), no submission pending. **The real `v06c` run has NOT
+been launched** — the try-out rule requires Tian's explicit go-ahead in a fresh message.
+
+### Where things stand
+
+| | Status |
+|---|---|
+| Best LB | **0.896** (infer v5 = two heads; infer v8 = two heads + five concat folds — prefer v8 as the default blend) |
+| P-10 code | ✅ `Config.backbone` ∈ {`dinov2`, `convnext_tiny`}; `BACKBONES` resolves weights per family; `KneeNet` loads either; LLRD per ConvNeXt stage; infer members carry their family |
+| P-10 weights | ✅ private Kaggle Dataset `tiankljucanin/convnext-tiny-224-hf` (HF `facebook/convnext-tiny-224`, Apache-2.0, 111 MB); mounted at `/kaggle/input/convnext-tiny-224-hf` in v14. **Must become public (or be replaced by an official Model) before a final submission relies on it** |
+| P-10 smoke | ✅ local CPU + Kaggle v14 green: cache indexed, arm banner `v06c … backbone convnext_tiny`, `backbone LR range 2.37e-05 .. 1.00e-04 over 4 blocks`, inference `v06c/fold0 (convnext_tiny, concat)` 8 s/100 studies |
+| GPU quota | ~13 h left this week (v14 smoke ≈ 0.1 h) |
+| Repo | pushed; **`crazy_good_rsna.ipynb` in the root is Tian's, untracked, deliberately not committed** |
+
+### What we talked about and decided
+
+- After #6/#7 (folds +0.009 alone, +0.000 on top of heads) Tian chose the "third source of diverse
+  errors" — P-10 — over the 9 h attention 5-fold.
+- **HF ConvNeXt-Tiny over timm**: no official HF/timm ConvNeXt exists on Kaggle Models; publishing
+  the Apache-2.0 HF checkpoint as our own Dataset keeps the code path identical to DINOv2
+  (`from_pretrained(dir)`), needs no new dependency, and avoids the BatchNorm-at-batch-1 problem
+  the card warned about (ConvNeXt is LayerNorm-only).
+- **Tiny, not Small**: 4.5 GFLOPs ≈ ViT-S/14's 4.6, so the arm costs the same ~0.17–0.2 s/study;
+  Small would double it for an unmeasured gain.
+- **8 epochs under `best_oof`**, concat head, jitter, `lr_backbone = 1e-4` (card value; an
+  ImageNet-supervised CNN tolerates ~5× the LR DINOv2's SSL features need). One change per arm:
+  the head stays concat so the comparison to `v05b`/`v05g` isolates the family.
+- Kaggle CLI dataset upload has two Windows traps (title ≤ 50 chars; run `kaggle datasets create
+  -p .` from *inside* the directory or it builds a bad temp path) — noted below, not yet in traps.md.
+
+### ⏭ Next action, in order
+
+1. **On Tian's go-ahead, launch the real `v06c` run** (~1.8–2.0 h; the smoke's 3.51 s/study on 4
+   studies is CUDA/cuDNN warm-up, not throughput — inference ran at the ViT members' speed):
+   ```bash
+   sed 's/^FORCE_SMOKE = True/FORCE_SMOKE = False/' src/kaggle_pipeline.py > /tmp/train_real.py
+   python src/nbgen.py /tmp/train_real.py kaggle/rsna-knee-train/rsna-knee-train.ipynb
+   kaggle kernels push -p kaggle/rsna-knee-train        # -> v15
+   # 10-min gate (browser, the CLI is blind mid-run): s/study ~0.17-0.25; ~1.0+ = something is wrong
+   ```
+   ⚠️ **Pushing `rsna-knee-train` changes what infer v5/v8 mount** (`kernel_sources` = latest
+   output). v15's output will hold only `v06c_fold0_*`, so **infer v5/v8 would fail loudly**
+   (`no v05a_fold*_best.pt is mounted`) if re-run — the 0.896 scores already on the board are
+   unaffected, but a *new* submission of the two-head blend needs the weights pinned first
+   (Dataset) or `rsna-knee-train` re-pushed with the old arms. Do the Dataset pin **before** or
+   right after this launch.
+2. **Read `v06c`** when it finishes: pull `--file-pattern "(oof|no_match)"` into
+   `artifacts/kaggle_out/v15/`, then on fold 0 compute (the same Python as tonight's blend check):
+   own OOF at the checkpointed epoch; ρ against `v05a` and `v05b`; rank-mean a+b+c (by-version,
+   equal votes) vs a+b 0.8670. **Adopt** only if ρ < 0.77 against both **and** the 3-way blend
+   clears +0.008; own OOF should be ≥ ~0.83. Log via `/update`; if adopted, add `v06c` to
+   `INFER_MEMBERS`, push infer (with the train mount holding v06c and the folds mount holding
+   v05g — the v05a/v05b checkpoints then need the Dataset pin), submit once.
+3. If it fails on ρ (≈0.84 like the concat variants): the family is not diverse enough at this
+   size; the next diversity bets are a different input geometry (P-11 336 px, P-08 more slices)
+   or DINOv3, not more of the same.
+
+### Open decisions for Tian
+
+- Go / no-go on the ~2 h `v06c` run (item 1) and, with it, the Dataset pin for the DINOv2 weights.
+- Make `convnext-tiny-224-hf` public (needed for any final submission that uses it).
+- What to do with `crazy_good_rsna.ipynb` — read it for the 0.056 gap, ignore it, or delete.
+
+### Things that will bite if forgotten
+
+- **The 10-minute throughput gate is browser-only** (CLI `output`/`logs` are blank mid-run).
+- **Pushing `rsna-knee-train` repoints infer v5/v8** — see item 1.
+- `kaggle datasets create`: title ≤ 50 chars; run from inside the directory with `-p .`.
+- All of the 23:35 / 22:35 lists (infer v7 never; token expires ~12 h; `v05f` never mount).
+
+---
+
 ## 2026-08-29 (23:35) — #6/#7 scored: folds +0.009 alone, +0.000 on top of heads; attn 5-fold NOT launched
 
 Supersedes the in-flight table of the 22:35 entry below; everything else there still holds.
