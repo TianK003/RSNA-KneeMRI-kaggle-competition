@@ -1,0 +1,28 @@
+{
+  "id": "tiankljucanin/rsna-knee-folds",
+  "title": "RSNA Knee Folds",
+  "code_file": "rsna-knee-folds.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_tpu": false,
+  "enable_internet": false,
+  "keywords": [],
+  "dataset_sources": [
+    "pilkwang/rsna-knee-llm-labels",
+    "stevenleehans/rsna-knee-llm-report-labels",
+    "lixin73/rsna-knee-llm-report-labels-sol56"
+  ],
+  "kernel_sources": [
+    "tiankljucanin/rsna-knee-cache-a",
+    "tiankljucanin/rsna-knee-cache-b"
+  ],
+  "competition_sources": [
+    "rsna-knee-abnormality-detection"
+  ],
+  "model_sources": [
+    "metaresearch/dinov2/PyTorch/small/1"
+  ],
+  "machine_shape": "NvidiaTeslaT4"
+}

@@ -384,6 +384,10 @@ run-to-run floor was still unmeasured when this was written — that is what the
 
 ### 2026-08-29 — Five-arm fold-0 batch (kernel `rsna-knee-train` v11) ⏳ PENDING
 
+> **RESOLVED 2026-08-29** — all five arms completed in 4.35 h, none failed. Results and
+> verdicts in the five entries below (noise floor, jitter, laterality, attention head,
+> and the traps-6e correction).
+
 Five fold-0 arms back to back in one session, ~0.9 h each (~4.6 h against the 8.3 h guard),
 each writing `v04*_fold0_*`. An arm that raises is logged and skipped rather than killing the
 session.
@@ -410,6 +414,153 @@ side*, which is the thing P-05 removed. On Kaggle it fired on **2,288 of 4,407 s
 Read `v04c` on macro **plus** the three correlated pairs (Effusion~Synovitis, Medial OA~Medial
 Meniscus, Contusion~Fracture) — research.md's stated risk is that a per-label head loses the
 shared-vector benefit exactly there.
+
+### 2026-08-29 — Run-to-run noise floor MEASURED (P-02 step 1) ✅ KEEP
+
+Kernel v11, `v04base` (seed 42) vs `v04a` (seed 43), identical code and config, fold 0, 4 epochs
+from the cache. This is the number every A/B in this file has been judged against on faith.
+
+| epoch | `v04base` | `v04a` | \|Δ\| |
+|---|---|---|---|
+| 0 | 0.7851 | 0.7904 | 0.0053 |
+| 1 | 0.8353 | 0.8311 | 0.0042 |
+| 2 | 0.8449 | 0.8389 | 0.0060 |
+| 3 | 0.8415 | 0.8339 | **0.0076** |
+
+**Macro OOF floor = 0.008** (max over four epochs; ~0.006 typical). The asserted 0.01 was close
+and slightly conservative — every verdict recorded against it stands.
+
+**The per-label floor is much worse than assumed.** Same two runs, epoch 3, |Δ| per label:
+Fracture **0.028**, Contusion 0.025, ACL 0.016, Synovitis 0.013, MCL 0.011, LatOA/PFOA 0.008,
+Effusion 0.007, Baker's 0.007, MedOA/MedMen 0.005, LatMen 0.002. Mean 0.011, **max 0.028**.
+proposals.md assumed 0.015–0.02 per label; **use ~0.03**. Any single-label story below that —
+including several told in this file before today — is not evidence on its own. What *is* evidence
+is a consistent sign across many labels, which no seed change produces.
+
+Bonus check: `v04base` scored 0.8415 against kernel v8's 0.8426 on the same config. The
+`seed_worker` code revision between them moved nothing (0.001), so v8's numbers stay comparable.
+
+### 2026-08-29 — Slice jitter as augmentation (P-08 sub-arm, `v04d`) ✅ KEEP
+
+`cache_jitter=True`: the K=6 slice centres move ±1 cached slice per epoch. Everything else is
+`v04base`. **OOF 0.8528 vs 0.8415 = +0.0113 against a 0.008 floor** (1.4×).
+
+The macro alone would be thin. Two things make it convincing:
+
+**1. The overfitting turn disappears.**
+
+| epoch | `v04base` | `v04d` |
+|---|---|---|
+| 0 | 0.7851 | 0.7847 |
+| 1 | 0.8353 | 0.8338 |
+| 2 | **0.8449** ← peak | 0.8492 |
+| 3 | 0.8415 ← declining | **0.8528** ← still rising |
+
+Train loss at epoch 3 is *higher* with jitter (0.4265 vs 0.3980) while OOF is better — less
+memorisation, the textbook regularisation signature. The epoch-2 turnover that argued against
+P-04's longer schedule is gone.
+
+**2. Eleven of twelve labels improve and none regress.** MCL +0.032, ACL +0.020, Baker's +0.015,
+Baker's/MedMen/LatMen/MedOA +0.010, Contusion +0.009, PFOA/Effusion +0.008, Fracture +0.007,
+LatOA +0.006, Synovitis 0.000. Individually all but MCL sit inside the 0.028 per-label floor;
+collectively, a seed change scatters signs and this does not.
+
+**It had not peaked**, so 4 epochs now under-trains this config — the reason the 8-epoch arms
+were launched.
+
+### 2026-08-29 — Laterality normalisation confirmed (P-05, `v04b`) ✅ KEEP
+
+`lat_undo=True` re-applies the cache's own transforms to the 2,288/4,407 right knees (51.9%),
+restoring chirality that varies with knee side — the pre-P-05 condition — with the 130 mm crop
+held constant. **OOF 0.8268 vs 0.8415 = −0.0147, ~1.9× the 0.008 floor.**
+
+Where it costs is the mechanism:
+
+| large drops (side-specific / focal) | | unaffected (global / fluid) |
+|---|---|---|
+| Baker's −0.044 (posteromedial) | | Lateral OA −0.001 |
+| MCL −0.033 (medial only) | | Synovitis +0.005 |
+| Medial Meniscus −0.032 | | Effusion +0.006 |
+| ACL −0.018, Fracture −0.018, Lateral Meniscus −0.015 | | Contusion −0.006 |
+
+Three of those clear even the 0.028 per-label floor on their own. Gold falls 0.8992 → 0.8259,
+reported not gated (n=11).
+
+**This resolves the v03 confound.** The v03 preprocessing change was worth +0.022 OOF and +0.030
+LB; laterality accounts for **≈ +0.015** of the OOF, leaving ≈ +0.007 for the 130 mm crop and
+per-series normalisation together — inside the floor, therefore **unproven**. The per-label
+pattern in the v8 entry above (side-specific labels gained, fluid labels flat) predicted exactly
+this.
+
+### 2026-08-29 — Per-label attention head at 4 epochs (P-09, `v04c`) 🔁 INCONCLUSIVE — unconverged
+
+**OOF 0.8367 vs 0.8415 = −0.0048**, inside the 0.008 floor, so formally inconclusive. But the
+experiment could not have answered the question, and that is the finding:
+
+| epoch | `v04base` (concat) | `v04c` (attn) |
+|---|---|---|
+| 0 | 0.7851 | 0.7528 |
+| 1 | 0.8353 | 0.8114 |
+| 2 | 0.8449 | 0.8323 |
+| 3 | 0.8415 ← declining | 0.8367 ← **still rising** |
+| train loss @ ep3 | 0.3980 | **0.4471** |
+
+It starts further back, climbs the whole way, and has a far higher train loss at the end: a model
+that has not converged. Expected after cutting the head from 27,732 to 9,300 parameters and
+changing its initialisation — the 4-epoch budget was tuned for the concat head.
+
+**The stated risk did not materialise.** On the three correlated pairs
+(research.md): Effusion +0.012 / Synovitis −0.009, Medial OA +0.003 / Medial Meniscus −0.020,
+Contusion +0.015 / Fracture −0.008 — mixed signs, no systematic collapse, and all inside the
+0.028 per-label floor.
+
+**Do not record this as a dead end.** The retest is 8 epochs with jitter and a matched
+concat control (kernel v13, arms `v05a` / `v05b`) — it separates the head from the schedule.
+
+### 2026-08-29 — traps 6e was WRONG: PyTorch already seeds numpy/random per worker ❌ DEAD END (the trap, not the code)
+
+Yesterday I asserted that `numpy` and `random` are fork-inherited by DataLoader workers, so
+"random" slice jitter would repeat identically every epoch, and added a `worker_init_fn` to fix
+it. **That claim could not be tested locally** (Windows spawns workers) and was recorded as
+unverified. It is now tested on Kaggle by `check_worker_rng()`, which runs both arms at startup:
+
+```
+worker RNG check (traps 6e):
+  without worker_init_fn   identical across 3 epochs = False
+  with seed_worker         identical across 3 epochs = False
+```
+
+**Without the fix the draws already vary**, because PyTorch's `_worker_loop` seeds `random` and
+`numpy` per worker itself. The pathology does not exist on this platform. Consequences:
+
+1. **The `v04d` jitter result is unconfounded** — jitter was genuinely random in v11, so the
+   +0.0113 stands on its own.
+2. It explains why `v04base` (0.8415) matched kernel v8 (0.8426): `seed_worker` changed nothing
+   because there was nothing to change.
+3. `seed_worker` is **kept** as belt-and-braces (it is free, explicit, and version-proof), but it
+   is documented as a guarantee, not a fix. traps 6e is corrected in place.
+
+The general lesson is worth more than the specific one: a plausible mechanism plus a green run is
+not evidence. The cheap direct check — two DataLoader arms, seconds of runtime — is what settled
+it, and it should have been written before the fix, not after.
+
+### 2026-08-29 — 8-epoch head A/B and first 5-fold ensemble ⏳ PENDING
+
+Two kernels launched concurrently (Kaggle allows two GPU sessions; verified by both smokes
+running at once):
+
+| kernel | arms | config | cost |
+|---|---|---|---|
+| `rsna-knee-train` v13 | `v05a` attn + jitter · `v05b` concat + jitter | fold 0, **8 epochs** | ~3.6 h |
+| `rsna-knee-folds` v2 (new slug) | `v05f` | **5 folds** × 4 epochs, concat + jitter (the confirmed `v04d` recipe) | ~4.5 h |
+
+`v05a` vs `v05b` is the honest P-09 retest: same schedule, same augmentation, **only the head
+differs**. `v05b` alone answers P-04 (does 8 epochs beat 4 once augmentation exists?) against
+`v04d`'s 0.8528.
+
+The 5-fold run is deliberately the *current* winner rather than the eventual one — it is worth a
+real ensemble and the first trustworthy LB number regardless of how the head A/B lands. 5 × 8
+epochs would be ~9 h and needs the resume path instead.
 
 ---
 
@@ -613,3 +764,4 @@ and public LB score, so a public/private divergence can be traced to a specific 
 | 1 | 2026-08-28 | rsna-knee-train v2 | v01 smoke (1 fold, 1 epoch, 2 slices/slot, rank targets) | n/a | **0.500** | exactly 0.500 = constant output at rerun; image-root assumption failed silently. Mechanics of submitting verified. |
 | 2 | 2026-08-28 | rsna-knee-infer v1 (mounts rsna-knee-train v6) | v02 fold 0: DINOv2-S 224, 6 slices/slot, 4 ep, prob targets, LR 2e-5+LLRD, EMA | 0.821 | **0.841** | First non-0.500 score — the submission path works. Above the ~0.809 public DINOv2-S baseline on one fold. |
 | 3 | 2026-08-28 | rsna-knee-infer v3 (mounts rsna-knee-train v8) | v03: same recipe, trained from the cache — adds 130 mm crop + laterality + per-series norm | 0.843 | **0.871** | **+0.030 vs #2**, 6× the 0.005 LB floor. The OOF gain transferred and amplified. Also the first submission through the fixed infer path (traps 6d). |
+| 4 | 2026-08-29 | rsna-knee-infer v4 (mounts rsna-knee-train v11) | v04d: v03 recipe + `cache_jitter` slice augmentation | 0.8528 | ⏳ pending | +0.0113 OOF over `v04base` against a **measured** 0.008 floor; 11/12 labels up, none down; removes the epoch-2 overfitting turn. Predicted ~0.875–0.88 from the +0.02–0.03 OOF→LB offset. |

@@ -20,12 +20,12 @@ test, written as a falsifiable card **before** it is run. Companion to
 
 | Metric | Set | Floor (a smaller delta is noise) | Used for |
 |---|---|---|---|
-| **OOF macro-AUC vs teacher** | all 4,407 studies (fold-out) | **~0.01 — asserted, not yet measured** (critic item 16). First cache-era run is a 2-seed repeat of fold 0 to measure it (P-02 step 1). | breakage, epoch choice, every A/B |
+| **OOF macro-AUC vs teacher** | all 4,407 studies (fold-out) | **macro 0.008 — MEASURED** 2026-08-29 (kernel v11, `v04base` seed 42 vs `v04a` seed 43, identical config; abs delta 0.004–0.008 over four epochs). **Per label use ~0.03**, not the 0.015–0.02 this file assumed: the same two runs move Fracture 0.028 and Contusion 0.025 on seed alone. | breakage, epoch choice, every A/B |
 | Gold macro-AUC | 58 labelled studies | **0.05** macro (CLAUDE.md rule); per-label Hanley–McNeil SE ≈ 0.09 ([Andre et al.](https://arxiv.org/html/2601.17103)). A 3,000-rep study-level bootstrap of the teacher's gold macro-AUC gives SD 0.017. | direction only, never a gate |
 | Public LB | hidden test (size unknown) | **0.005** (top ten span 0.006) | direction only; never tuned on |
 
 Judge label changes on **coverage per language + OOF**, not gold alone (experiments.md
-convention). Per-label OOF floors are wider (~0.015–0.02, asserted) than the macro floor.
+convention). Per-label OOF floors are wider than the macro floor: **~0.03, measured** 2026-08-29.
 
 ## Card template
 
@@ -54,14 +54,14 @@ result*, per unit of cost. "Depends on" lists hard blockers only.
 |---|---|---|---|---|---|
 | P-00 | Target scale: probability-space blend, not rank percentiles | 🔧 implemented, effect pending | high (rare-label targets were 0.28–0.39 for confident negatives) | done; OOF read pending | — |
 | P-01 | Preprocessing cache kernel (uint8, ordered, cropped, laterality-normalised) | ✅ MEASURED — see experiments.md (5.4× end to end, OOF 0.821→0.843, **LB 0.841→0.871**) | very high — delivered speed *and* the largest scoring gain so far | done | — |
-| P-02 | Seed-noise baseline, then site-grouped folds + grouped-vs-random OOF | ⏳ step 1 RUNNING (kernel v11, `v04base` vs `v04a`) · step 2 💡 | very high (validity of every comparison) | step 1 in flight; step 2 ~40 lines | P-01 header manifest |
+| P-02 | Seed-noise baseline, then site-grouped folds + grouped-vs-random OOF | ✅ step 1 DONE — **floor = 0.008 macro / ~0.03 per label** · step 2 💡 | delivered: every A/B in the repo now has a real floor | step 2 ~40 lines | P-01 header manifest |
 | P-03 | Fine-tuning recipe: (a) LR 2e-5 + EMA shipped; (b) LLRD 0.75 vs uniform | (a) 🔧 shipped, effect pending · (b) 💡 | medium | (a) done · (b) 0.3 session | P-01 for (b) |
-| P-04 | Fixed-epoch schedule, 8 epochs, chosen from fold-mean OOF curve | 💡 untested (fixed-epoch *selection* already shipped in v02) | medium-high | 1 session | P-01, P-03 |
-| P-05 | Laterality normalisation from DICOM geometry | ⏳ ablation RUNNING (kernel v11, `v04b` `lat_undo`) | medium-high — a share of the +0.030 LB gain is probably this | 0.3 session, ~80 lines | P-01 |
+| P-04 | Fixed-epoch schedule, 8 epochs, chosen from fold-mean OOF curve | ⏳ RUNNING (v13 `v05b`) — reopened: with jitter the curve had **not peaked** at epoch 3 | medium-high | done in v13 | P-01, P-03 |
+| P-05 | Laterality normalisation from DICOM geometry | ✅ CONFIRMED — **−0.0147 OOF when removed**, ~1.9× the floor | high — it is ≈ +0.015 of v03's +0.022, i.e. most of the LB gain | done | P-01 |
 | P-06 | Per-label failure analysis + gold_weight {1,3,8} arm + slot-fill census | 🔧 logging shipped · arms 💡 | high (finds the cheapest lever per weak label) | 0.1–0.5 session | — |
 | P-07 | Synovitis ← Effusion back-fill (measured, not adopted) | 🔁 measured on gold; OOF pending | low-medium | done (audit) | P-06 OOF |
-| P-08 | Slices per slot 6 → 12–16, per-plane bands, random offsets | ⏳ jitter sub-arm RUNNING (`v04d`) · K sweep 💡 **downgraded** | low-medium for K (see card); jitter is the live part | 0.5 session | P-01 |
-| P-09 | Per-label masked attention head over slots | 🔧 implemented + ⏳ RUNNING (kernel v11, `v04c`) | medium-high (cuts head params 27,732→9,300 under a measured overfit) | 0.3 session, ~80 lines | P-01 |
+| P-08 | Slices per slot 6 → 12–16, per-plane bands, random offsets | ✅ jitter sub-arm KEEP (**+0.0113**, 11/12 labels up) · K sweep 💡 **downgraded** | delivered by jitter; low-medium for K | 0.5 session | P-01 |
+| P-09 | Per-label masked attention head over slots | 🔁 INCONCLUSIVE at 4 ep (unconverged) · ⏳ 8-epoch retest RUNNING (v13 `v05a`/`v05b`) | still medium-high — the arm never converged, so untested rather than refuted | 0.3 session | P-01 |
 | P-10 | Second architecture family (timm ConvNeXt first; RadImageNet behind a flag) | 💡 untested | medium (diversity) | 1 session | P-01, P-04 |
 | P-11 | Resolution 224 vs 336 after the 130 mm crop | 💡 untested | low-medium | 1 session + sharded cache | P-01, P-08 |
 | P-12 | Slice-window TTA (label-safe only) [our hypothesis] | 💡 untested | low | 0.1 session | P-01 |
@@ -88,7 +88,7 @@ Evidence:
 - `confidence_weights()` already used raw probabilities, so it needed no change ([research.md §2.7](research.md)).
 - Community warning that rank blending destroys 0.5 semantics: [stevenleehans label card](https://www.kaggle.com/datasets/stevenleehans/rsna-knee-llm-report-labels).
 Measure: per-label OOF AUC vs teacher and per-label `pred_std` over the fold-0 OOF csv (v02) — compared against a v01-target fold when one exists; until then, sanity = pred_std healthy and no label at chance.
-Noise floor: 0.01 OOF macro; 0.015–0.02 per label. There is no v01 baseline fold, so the first read is a *sanity* read, not an A/B.
+Noise floor: **0.008 OOF macro, ~0.03 per label** (measured 2026-08-29; was assumed 0.01 / 0.015–0.02). There is no v01 baseline fold, so the first read is a *sanity* read, not an A/B.
 Cost: done. A/B would cost one extra fold-0 run from the cache (~0.3 session).
 If it works: rare-label OOF up and negatives near 0; card closes in experiments.md as ✅.
 If it fails: (OOF or pred_std no better) blend was never the bottleneck; keep the probability blend anyway as the semantically correct target and move on.
@@ -119,7 +119,11 @@ If it fails: (cap or time) fall back to K=6 @ 224 (7.4 GB, one shard); nothing d
 Depends on: nothing; blocks P-02 (manifest) through P-15.
 
 ### P-02 Seed-noise baseline, then site-grouped folds and grouped-vs-random OOF
-Status: **step 1 ⏳ RUNNING** (kernel v11: `v04base` seed 42 vs `v04a` seed 43, identical code and
+Status: **step 1 ✅ DONE — see [experiments.md](experiments.md)**: the floor is **0.008 macro,
+~0.03 per label** (`v04base` vs `v04a`, identical config). The asserted 0.01 was close, so no
+earlier verdict is overturned; the per-label assumption was too optimistic and every card has
+been updated. Step 2 (site-grouped folds) still 💡 untested and is now the card's whole content.
+Status (original): step 1 ⏳ RUNNING (kernel v11: `v04base` seed 42 vs `v04a` seed 43, identical code and
 config). `|v04a − v04base|` becomes the measured OOF floor that replaces the asserted 0.01 in the
 decision-metric table. Step 2 (site-grouped folds) still 💡 untested.
 Hypothesis: (1) Two seeds of the same fold-0 config differ by an OOF macro that defines our real noise floor; (2) report-text-only grouping lets the model memorise scanner/site signatures, inflating OOF and favouring higher-capacity variants.
@@ -155,7 +159,11 @@ If it fails: (a) OOF < what v01-config would have given is unknowable without a 
 Depends on: (b) P-01.
 
 ### P-04 Fixed-epoch schedule (8 epochs) chosen from the fold-mean OOF curve
-Status: 💡 untested for the epoch *count*. Fixed-epoch *selection* is already what v02 does (`best.pt` = EMA weights after the last completed epoch, no best-epoch pick on gold); the per-epoch OOF csvs it writes are the input to this card.
+Status: ⏳ **RUNNING** (kernel v13, `v05b`). Reopened by v11: without augmentation the OOF curve
+peaked at epoch 2 and declined, which argued *against* more epochs; **with jitter it rises
+monotonically and had not peaked at epoch 3** (0.8492 → 0.8528). So the question is no longer
+"more epochs?" but "more epochs now that a regulariser exists?" — judged against `v04d`'s 0.8528.
+Status (original): 💡 untested for the epoch *count*. Fixed-epoch *selection* is already what v02 does (`best.pt` = EMA weights after the last completed epoch, no best-epoch pick on gold); the per-epoch OOF csvs it writes are the input to this card.
 Hypothesis: 8 epochs with cosine + EMA and one fixed epoch count for all folds beats 4 epochs on OOF without memorising teacher errors.
 Origin: competition write-up / peer-reviewed.
 Evidence: winners 10–40 epochs ([TheoViel](https://github.com/TheoViel/kaggle_rsna_abdominal_trauma): maxvit 40 ep @ 4e-5, coatnet 20 ep @ 2e-5); public knee recipes 10–12 epochs ([pilkwang], [hida1211](https://www.kaggle.com/code/hida1211/rsna-knee-public-4-fold-dinov2-v4)); label-noise training has a memorisation phase to stop before ([Label Wave](https://arxiv.org/html/2502.07551v1)); checkpoint averaging from one init matches the best checkpoint ([Model soups](https://arxiv.org/html/2203.05482)). Best-epoch on ~12 gold per fold is a coin flip (experiments.md).
@@ -167,7 +175,12 @@ If it fails: (OOF peaks at 3–4) keep 4 epochs, spend budget on slices/members.
 Depends on: P-01, P-03(a).
 
 ### P-05 Laterality normalisation from DICOM geometry
-Status: ⏳ **ablation RUNNING** (kernel v11, arm `v04b`, `lat_undo=True`). Rather than rebuilding a
+Status: ✅ **CONFIRMED — card closed, see [experiments.md](experiments.md)**. `lat_undo` costs
+**−0.0147 OOF, ~1.9× the 0.008 floor**, and the cost lands on exactly the side-specific/focal
+labels (Baker's −0.044, MCL −0.033, Medial Meniscus −0.032) while fluid labels are unmoved. This
+also **resolves the v03 confound**: of v03's +0.022, laterality is ≈ +0.015 and the 130 mm crop
+plus per-series normalisation ≈ +0.007 *together* — inside the floor, so still unproven.
+Status (original): ⏳ ablation RUNNING (kernel v11, arm `v04b`, `lat_undo=True`). Rather than rebuilding a
 21 GB cache, the arm re-applies the cache's own transforms to right knees at load time — both are
 involutions, so it de-canonicalises from the existing cache for free (verified a clean involution,
 no NumPy aliasing; fired on **2,288/4,407 studies = 51.9%** on Kaggle). This is a *cleaner* test
@@ -180,7 +193,7 @@ Origin: public consensus / competition write-up.
 Evidence: Laterality tag missing on **12,367/24,371** series; centre-x sign rule **97.4%** (98.5% with 20 mm dead zone); IPP-corner rule 58.8% (verified [FINDINGS.md](https://github.com/homeshwarnelakurthi/RSNA-Knee-Abnormality-Detection)); plane-specific operation ([pilkwang] source, pulled; [JunhaoLiXD](https://github.com/JunhaoLiXD/RSNA_Knee_Abnormality_Detection)); laterality metadata errors are common ([PMC6646614](https://pmc.ncbi.nlm.nih.gov/articles/PMC6646614/)); lateral meniscus ~0.1 harder than medial even at 18k studies ([Fritz](https://pmc.ncbi.nlm.nih.gov/articles/PMC7299917/)).
 Rule (critic item 8): side = tag, else sign(median image-centre x) with 20 mm dead zone; **tag-vs-geometry conflict → no-op and counted**; unresolved → no-op and counted; `ImageOrientationPatient` row/column cosines canonicalised for all planes (sagittal reversal fixes stack direction only).
 Measure: OOF AUC over 4,407 for the five side-specific labels before/after; tag-vs-geometry agreement on tagged series (assert ≥ 0.95); fraction unresolved and fraction conflicting; visual spot-check of ~20 knees.
-Noise floor: 0.01–0.02 per label OOF; gold cannot resolve it.
+Noise floor: **~0.03 per label OOF** (measured 2026-08-29); gold cannot resolve it. Judge on the macro plus the *sign pattern* across the side-specific labels, not one label.
 Cost: 0.3 session, ~80 lines in the cache builder (the cache version string encodes the rule).
 If it works: baked into the cache. **H-flip does not become legal** — see Rejected (critic item 23).
 If it fails: (no OOF change) keep as anatomically correct; investigate the GE sub-sample where the rule is reported unreliable.
@@ -197,7 +210,7 @@ Evidence:
 - **gold_weight (critic item 5):** gold is 1.3% of studies but ~10% of loss mass at 8×; with 8-epoch runs the gold curve risks becoming a training-set curve for the *other* folds' gold. Community uses 3–8× (hida1211, JunhaoLiXD); LP-FT literature says gold should be selection-only ([BoxWRENCH](https://arxiv.org/html/2501.07727), [Kumar et al.](https://arxiv.org/abs/2202.10054)). **Resolved role of gold: validation + this weight arm; no gold fine-tuning stage** (critic item 25).
 - **Slot-fill census (critic item 14):** train fill SAG_FLUID_FS 100% / AX_FLUID_FS 100% / COR_FLUID_FS 95.8% / SAG_FLUID_NOFS 87.5% / COR_T1 62.5% / SAG_T1 50% on 24 studies (experiments.md); only 3,991/4,407 have fat-sat fluid in all three planes ([JunhaoLiXD]) — reconcile slot definitions (critic item 34).
 Measure: per-epoch per-label OOF AUC and pred_std over 4,407; gold FN-vs-FP counts for Synovitis/Contusion/Fracture/Lateral OA; macro over the 6 weakest labels next to the 12; `gold_weight ∈ {1, 3, 8}` on fold 0 from cache → OOF macro and gold macro with CI; at inference, per-slot fill rate on test logged and compared to train, relaxed tier as fallback.
-Noise floor: per-label OOF 0.015–0.02; gold per-label 0.09 (diagnostic only); the gold_weight arm is likely 🔁 on OOF.
+Noise floor: **per-label OOF ~0.03** (measured 2026-08-29); gold per-label 0.09 (diagnostic only); the gold_weight arm is likely 🔁 on OOF.
 Cost: logging done; gold_weight arm 0.5 session (two extra fold-0 runs); census ~20 lines.
 If it works: directs effort per label (synonym fix vs cut-point vs slot/resolution); a gold_weight that does not distort the OOF curve.
 If it fails: n/a — diagnostics.
@@ -222,8 +235,11 @@ If it fails: closed as ❌/🔁 in experiments.md; **do not** try Fracture ← C
 Depends on: P-06 OOF instrumentation (done), P-01 for the student arm.
 
 ### P-08 Slices per slot 6 → 12–16, per-plane bands, random offsets
-Status: **jitter sub-arm ⏳ RUNNING** (kernel v11, arm `v04d`, `cache_jitter=True`). The K sweep is
-still 💡 but **downgraded** — see the correction below.
+Status: **jitter sub-arm ✅ KEEP — see [experiments.md](experiments.md)**: `cache_jitter` gives
+**+0.0113 OOF against a 0.008 floor**, removes the epoch-2 overfitting turn (train loss *rises*
+to 0.4265 while OOF improves), and lifts **11 of 12 labels with none regressing** — a pattern no
+seed change produces. It is now part of the default recipe and of every arm launched since. The
+K sweep is still 💡 and **downgraded** — see the correction below.
 
 ⚠️ **Correction to this card's premise (2026-08-29, from reading the loader, not a run).** "More
 slices" does not buy more pixels here. The cache stores K_cache=16 slices per slot, and
@@ -249,7 +265,12 @@ If it fails: keep K=6; spend budget on resolution or a second member.
 Depends on: P-01.
 
 ### P-09 Per-label masked attention head over slots (optionally all slice tokens)
-Status: 🔧 **implemented and ⏳ RUNNING** (kernel v11, arm `v04c`, `head_type="attn"`). As built:
+Status: 🔁 **INCONCLUSIVE at 4 epochs — retest ⏳ RUNNING** (kernel v13, `v05a` attn+jitter vs
+`v05b` concat+jitter, 8 epochs, only the head differs). v11 gave −0.0048, inside the 0.008 floor,
+but the arm was **unconverged**: still rising at epoch 3 with train loss 0.4471 vs the concat
+head's 0.3980, which is what a 27,732 → 9,300 parameter cut and a new initialisation do to a
+budget tuned for the old head. The correlated-pair risk did **not** materialise. Not a dead end.
+Status (original): 🔧 implemented and ⏳ RUNNING (kernel v11, arm `v04c`, `head_type="attn"`). As built:
 12 learned label queries over the 6 slot vectors, a per-(label, slot) bias, absent slots masked to
 `finfo.min` *before* the softmax so the context vector keeps its scale at 4 slots or 6, per-label
 output projection. **9,300 parameters against the concat head's 27,732.** Unit-verified: absent
@@ -287,7 +308,7 @@ Hypothesis: Higher effective mm/px helps the small focal labels (Lateral Meniscu
 Origin: peer-reviewed / competition write-up.
 Evidence: 224 → 512 median +1.05 pp AUROC on CXR, concentrated in focal findings, but DINOv2-ViT nearly flat (VinDr 89.2 → 89.1) ([2510.07191]); 224 → 336 +0.017 LB at 2.25× FLOPs, preds correlate 0.90 (sadamtorres, **notebook, not re-read**); yu4u's crop+384 gain is confounded with cropping ([yu4u deck](https://speakerdeck.com/yu4u/rsna-2023-abdominal-trauma-detection-fan-sheng-hui)). HF `Dinov2Model` needs `interpolate_pos_encoding` for non-224 input (critic item 20).
 Measure: per-label OOF over 4,407 for the four focal labels at 224 vs 336, K fixed; adopt only if their mean moves > 0.02.
-Noise floor: 0.015–0.02 per label OOF.
+Noise floor: **~0.03 per label OOF** (measured 2026-08-29).
 Cost: 1 session (2.25× tokens) **plus** a separate sharded cache at 336 (K=12 @ 336 ≈ 36 GB → ≥ 2 kernels); do not build it before P-08 fixes K.
 If it works: 336 member (initialised from the 224 checkpoint) added to the blend.
 If it fails: stay at 224; spend budget on slices/folds.
@@ -402,7 +423,7 @@ Hypothesis: SAG_T1 (50% fill) and COR_T1 (62.5%) can be retired if no label drop
 Origin: peer-reviewed / our hypothesis.
 Evidence: contusion 0.82 → 0.70 without T1W/T2W ([CoPAS]); fat-sat fluid carries oedema ([Maarek 2025](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC12362699/)); 2024 2nd dropped a view moving CV < 0.02 ([brendanartley]); plane preference is model-specific ([MRNet], [Azcona], [ELNet]). Works with the **current concat head** too — zero the slot vector and set mask = 0 (critic item 9); no dependency on P-09.
 Measure: per-label OOF over 4,407 with each slot's presence forced absent at inference, no retraining.
-Noise floor: 0.015–0.02 per label OOF.
+Noise floor: **~0.03 per label OOF** (measured 2026-08-29).
 Cost: 0.1 session (inference-time flag).
 If it works: slot budget reallocated to K in fat-sat slots.
 If it fails: keep all 6 slots.

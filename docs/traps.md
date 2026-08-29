@@ -127,17 +127,30 @@ that turns it off. Here the fallback is correct for training and wrong for infer
 now gated on `mode == "train"`. **Verify by equality, not by absence of errors**: after the fix
 the infer kernel reproduced the training kernel's predictions byte-for-byte on the same studies.
 
-### 6e. Augmentation that never augments
+### 6e. ~~Augmentation that never augments~~ — **WRONG, corrected 2026-08-29**
 
-PyTorch's DataLoader seeds only **torch's** RNG per worker. `numpy` and `random` are inherited
-from the parent by fork, and workers are recreated every epoch from a parent whose state has not
-moved — so `np.random`-driven slice jitter and `random`-driven noise produce **byte-identical
-augmentation in every epoch**. An ablation of such an augmentation measures nothing and reports
-"no effect."
+**The original claim (kept so the reasoning error stays visible):** PyTorch's DataLoader seeds
+only *torch's* RNG per worker, so `numpy` and `random` are fork-inherited from a parent whose
+state has not moved between epochs — meaning `np.random`-driven slice jitter produces identical
+augmentation every epoch, and any ablation of it measures nothing.
 
-**Do:** pass a `worker_init_fn` that reseeds `numpy` and `random` from `torch.initial_seed()`.
-Note this cannot be reproduced on Windows, which spawns workers instead of forking — a local
-green run is not evidence the bug is absent on Kaggle.
+**What the direct check found.** `check_worker_rng()` now runs both arms at Kaggle startup:
+
+```
+without worker_init_fn   identical across 3 epochs = False
+with seed_worker         identical across 3 epochs = False
+```
+
+Without the fix the draws **already vary**. PyTorch's `_worker_loop` seeds `random` and `numpy`
+per worker itself, so the pathology does not occur on this platform. `seed_worker` is kept as an
+explicit, version-proof guarantee, but it fixed nothing.
+
+**The trap that is actually real, and the reason this entry stays:** *a plausible mechanism plus
+a green run is not evidence.* This was written up as a fixed bug on reasoning alone, and it was
+flagged unverified only because Windows spawns workers and could not reproduce it. The check that
+settled it costs seconds and could have been written **before** the fix. When a platform
+difference blocks local verification, write the check into the kernel instead of shipping the fix
+with a caveat.
 
 ### 7. Base-rate collapse
 

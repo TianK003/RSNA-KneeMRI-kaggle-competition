@@ -133,23 +133,24 @@ MODE = "auto"
 # │ skipped -- the session, not the code, is the scarce resource.            │
 # │ Set ARMS = None for a single run of the plain config.                    │
 # └──────────────────────────────────────────────────────────────────────────┘
-# Ordered by what we most need if the runtime guard ever fires: the reference and the
-# noise floor first, then the impact card, then the two ablations.
+# v11 measured the floor: |v04a - v04base| = 0.008 macro (up to 0.03 per label). Verdicts:
+# jitter +0.011 KEEP; lat_undo -0.015 confirms P-05; attn -0.005 INCONCLUSIVE *because it had
+# not converged* (still rising at ep3, train loss 0.447 vs 0.398). So the retest gives the head
+# a schedule it can converge in, with a matched control that changes only the head.
 ARMS = [
-    ("v04base", {}),                         # reference: v03 config, seed 42, THIS code
-    ("v04a", {"seed": 43}),                  # P-02 step 1: |v04a - v04base| IS the floor
-    ("v04c", {"head_type": "attn"}),         # P-09: per-label masked slot attention
-    ("v04b", {"lat_undo": True}),            # P-05: is laterality the driver of +0.022?
-    ("v04d", {"cache_jitter": True}),        # P-08 sub-arm: slice jitter as augmentation
+    ("v05a", {"head_type": "attn", "cache_jitter": True}),   # P-09 retest, 8 epochs
+    ("v05b", {"cache_jitter": True}),                        # P-04 control: same schedule, concat head
 ]
-# v04base exists because arms b/c/d must differ from their baseline in ONE thing. Kernel
-# v8 is not that baseline any more: seed_worker() changed how augmentation is randomised,
-# so v8 vs v04base measures the code revision and v04a vs v04base measures the seed.
-PRIMARY_ARM = "v04c"
-# Every arm is a fold-0 run. Without this, a real-mode run inherits folds (0,1,2,3,4) and
-# four arms become 20 folds ~= 18 h -- the runtime guard would kill it mid-session and the
-# smoke run would never show it (smoke forces folds=(0,) in __post_init__).
+PRIMARY_ARM = "v05a"
 ARM_FOLDS = (0,)
+
+# Flipped by sed for kaggle/rsna-knee-folds: five folds of the confirmed v04d recipe
+# (concat + jitter, 4 epochs) for the first real ensemble. 5 x 4 epochs ~= 4.5 h; 5 x 8 would
+# be ~9 h and needs the resume path instead.
+FIVE_FOLD = False
+if FIVE_FOLD:
+    ARMS = [("v05f", {"cache_jitter": True, "folds": (0, 1, 2, 3, 4), "epochs": 4})]
+    PRIMARY_ARM = "v05f"
 
 
 @dataclass
@@ -190,7 +191,7 @@ class Config:
 
     # optimisation
     folds: tuple = (0, 1, 2, 3, 4)
-    epochs: int = 4
+    epochs: int = 8         # v11: with jitter the OOF curve had not peaked by epoch 3
     lr_head: float = 1e-3
     # Backbone LR and layer-wise decay (P-03). Every medical DINOv2 fine-tuning
     # recipe we found lands at 1e-6..2e-5 for the top block; a uniform 5e-5 is the
@@ -1185,6 +1186,34 @@ def seed_worker(worker_id):
     random.seed(s)
 
 
+def check_worker_rng():
+    """Direct test of traps 6e on THIS platform, in seconds.
+
+    Linux forks DataLoader workers from a parent whose numpy/`random` state has not moved
+    between epochs, so without a `worker_init_fn` every epoch draws the same "random"
+    numbers and slice jitter never jitters. Windows spawns instead, so this cannot be
+    reproduced locally -- which is exactly why the check runs on Kaggle and prints both
+    arms. Expect: without = True (identical, the bug), with = False (varying, fixed).
+    """
+    class _Probe(Dataset):
+        def __len__(self):
+            return 4
+
+        def __getitem__(self, i):
+            return torch.tensor([np.random.randint(0, 10 ** 6), random.randint(0, 10 ** 6)])
+
+    print("  worker RNG check (traps 6e):")
+    for label, init in (("without worker_init_fn", None), ("with seed_worker", seed_worker)):
+        try:
+            dl = DataLoader(_Probe(), batch_size=4, num_workers=2, worker_init_fn=init)
+            eps = [torch.cat([b for b in dl]).flatten().tolist() for _ in range(3)]
+            same = eps[0] == eps[1] == eps[2]
+            print(f"    {label:<24} identical across 3 epochs = {same}"
+                  f"   {'<-- augmentation would never vary' if same else ''}")
+        except Exception as e:
+            print(f"    {label:<24} check failed: {type(e).__name__}: {e}")
+
+
 def make_loaders(manifest, targets, image_root, cfg, fold):
     tr_studies = targets.loc[targets.fold != fold, "StudyInstanceUID"].tolist()
     va_studies = targets.loc[targets.fold == fold, "StudyInstanceUID"].tolist()
@@ -1654,12 +1683,18 @@ if mode == "train":
             add[f"w__{l}"] = cfg.weak_weight_floor
         targets = pd.concat([targets, add], ignore_index=True)
 
+    # Kaggle only: this script has no `if __name__ == "__main__"` guard, and Windows spawns
+    # workers (re-importing __main__) instead of forking. The bug it tests is fork-specific.
+    if ON_KAGGLE:
+        check_worker_rng()
     base_cfg = replace(cfg)
     for arm_version, overrides in (ARMS or [(cfg.version, {})]):
         # Rebind the module-level `cfg`: out_of_time(), the dataset and the loaders all
         # read the global, so a local copy would silently leave them on the previous arm.
-        cfg = replace(base_cfg, version=arm_version,
-                      **({"folds": ARM_FOLDS} if ARMS else {}), **overrides)
+        # Merge, do not double-unpack: an override that sets `folds` (a 5-fold arm) would
+        # otherwise be a duplicate keyword argument and raise TypeError. Overrides win.
+        _ov = {**({"folds": ARM_FOLDS} if ARMS else {}), **overrides}
+        cfg = replace(base_cfg, version=arm_version, **_ov)
         globals()["cfg"] = cfg
         if ARMS:
             print(f"\n########## arm {arm_version}: {overrides or 'baseline'} "
@@ -1692,8 +1727,8 @@ if mode == "train":
     # The inference below runs for ONE arm. It is a free smoke of the infer path, not a
     # submission -- what gets submitted is kaggle/rsna-knee-infer (traps.md 12c).
     if ARMS:
-        cfg = replace(base_cfg, version=PRIMARY_ARM, folds=ARM_FOLDS,
-                      **dict(ARMS)[PRIMARY_ARM])
+        cfg = replace(base_cfg, version=PRIMARY_ARM,
+                      **{"folds": ARM_FOLDS, **dict(ARMS)[PRIMARY_ARM]})
         globals()["cfg"] = cfg
         print(f"\ninference uses PRIMARY_ARM={PRIMARY_ARM}")
     ckpt_paths = {f: os.path.join(WORK, f"{cfg.version}_fold{f}_best.pt")

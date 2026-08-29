@@ -10,12 +10,12 @@ by **macro ROC-AUC** (unweighted mean of 12 per-label AUCs).
 
 Competition: https://www.kaggle.com/competitions/rsna-knee-abnormality-detection
 
-**State as of 2026-08-29:** **three submissions, best public LB 0.871** (v03: DINOv2-S/14 224,
-one fold, no ensemble, trained from the preprocessing cache). Progression 0.500 → 0.841 → 0.871;
-the 0.500 was a smoke run whose constant output exposed a silent image-root failure at rerun.
-An epoch now costs ~11 min, so fold-0 A/B arms are ~0.9 h each. A five-arm batch (noise floor,
-P-09 attention head, P-05 laterality ablation, P-08 jitter) is in flight — see
-[docs/handoff.md](docs/handoff.md).
+**State as of 2026-08-29:** **four submissions, best public LB 0.871** (v03: DINOv2-S/14 224,
+one fold, no ensemble). Progression 0.500 → 0.841 → 0.871 → #4 pending. An epoch costs ~11 min,
+so a fold-0 arm is ~0.9 h. The five-arm batch landed: the **OOF noise floor is now measured**
+(0.008 macro / ~0.03 per label), **slice jitter is worth +0.011** and removes the overfitting
+turn, and **laterality is ≈ +0.015 of v03's +0.022** — most of the LB gain. Two runs are in
+flight (8-epoch head A/B; first 5-fold ensemble) — see [docs/handoff.md](docs/handoff.md).
 
 ## 📚 Documentation map — read the relevant one before acting
 
@@ -53,6 +53,11 @@ Hanley–McNeil SE of an AUC near 0.8 is ≈0.09 (a 95% interval of ±0.17), and
 public-LB teams span 0.006 in total. So a gold-AUC difference under ~0.05, or a public-LB
 difference under ~0.005, is **inconclusive, not a win**.
 
+**The OOF floor is measured, not assumed** (2026-08-29, kernel v11: two seeds of the same fold-0
+config): **0.008 macro, and ~0.03 per label** — the same two runs move Fracture by 0.028 on seed
+alone. A single per-label story below 0.03 is not evidence; a *consistent sign across many
+labels* is, because seed changes scatter signs.
+
 ## ⛔ Hard constraints
 
 1. **NEVER select the P100 accelerator.** Kaggle's PyTorch ships no Pascal CUDA kernels, so
@@ -82,6 +87,7 @@ src/label_audit.py      per-language / per-label audit of the LLM label sources
 src/dicom_probe.py      DICOM header / ordering / normalisation audit
 src/baseline_infer.py   standalone inference smoke test
 kaggle/rsna-knee-train/     generated training/inference notebook + kernel-metadata.json
+kaggle/rsna-knee-folds/     5-fold ensemble run (FIVE_FOLD=True sed'd in at build time)
 kaggle/rsna-knee-cache-a/   cache kernel, shard 0  (-b: shard 1, SHARD=1 sed'd in at build time)
 data/  models/  artifacts/   all gitignored (see docs/setup.md)
 ```
@@ -139,6 +145,21 @@ kaggle kernels push -p kaggle/rsna-knee-infer
 
 Read only a kernel's log, without pulling hundreds of MB of checkpoints, with a pattern that
 matches nothing: `kaggle kernels output <slug> -p <dir> --file-pattern "no_match"`.
+
+**Fold-0 A/B arms** run back to back in one kernel via the `ARMS` list at the top of the config
+cell — each arm gets its own `version`, so `{version}_fold0_*` never collide, and an arm that
+raises is logged and skipped rather than killing the session. `ARM_FOLDS` pins them to fold 0;
+without it a real-mode run inherits `folds=(0,1,2,3,4)` and smoke mode cannot reveal that
+(traps 12d). The **5-fold** run is a sed'd copy into a second kernel:
+
+```bash
+sed 's/^FIVE_FOLD = False/FIVE_FOLD = True/' src/kaggle_pipeline.py > /tmp/folds.py
+python src/nbgen.py /tmp/folds.py kaggle/rsna-knee-folds/rsna-knee-folds.ipynb
+kaggle kernels push -p kaggle/rsna-knee-folds
+```
+
+**Kaggle runs two GPU sessions at once** (verified 2026-08-29: `rsna-knee-train` and
+`rsna-knee-folds` ran concurrently), so an A/B batch and an ensemble run can share a sitting.
 
 **Cache kernels** (CPU, run in parallel with training):
 
