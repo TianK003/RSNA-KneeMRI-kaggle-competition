@@ -735,6 +735,46 @@ epoch with the highest `auc_soft` so far; `_last.pt` still every epoch for resum
 the split-half says the bias is ≤ 0.001 here, but the per-fold OOFs of a `best_oof` run are
 *selected* numbers and should be read as such.
 
+### 2026-08-29 — First valid 5-fold run (`v05g`, kernel `rsna-knee-folds` v4) ✅ KEEP as the ensemble base · fold-ensemble LB gain ⏳
+
+Concat head + `cache_jitter`, 4 epochs, seed 42, folds 0–4 — the `v04d` recipe on every fold, from
+the cache (`cache: 4407 studies indexed` at the new `/kaggle/input/notebooks/…` path, 0.17 s/study
+throughout). **4.27 h** for five folds including inference; the 8.3 h guard was never near.
+
+| fold | epoch 0 | 1 | 2 | 3 (checkpointed) | gold (n) |
+|---|---|---|---|---|---|
+| 0 | 0.7778 | 0.8285 | 0.8466 | **0.8508** | 0.887 (11) |
+| 1 | 0.7767 | 0.8258 | 0.8393 | **0.8429** | 0.845 (12) |
+| 2 | 0.7709 | 0.8290 | 0.8435 | **0.8456** | 0.824 (12) |
+| 3 | 0.7805 | 0.8277 | 0.8414 | **0.8449** | 0.856 (12) |
+| 4 | 0.7866 | 0.8322 | 0.8470 | **0.8503** | 0.866 (11) |
+
+- **Mean of folds 0.8469; pooled over all 4,407 studies 0.8467** (fold-rank-normalised, same);
+  gold over all 58: **0.8476**. Per-label pooled: Baker's 0.894, Synovitis 0.890, Fracture 0.877,
+  Medial OA 0.874, Medial Meniscus 0.871, Effusion 0.851, Contusion 0.847, ACL 0.836, Lateral OA
+  0.826, PF OA 0.812, **MCL 0.792, Lateral Meniscus 0.789** — the two side/plane-specific labels
+  remain the floor of the model, as they were on fold 0 alone.
+- **Fold spread 0.8429–0.8508 (range 0.008 = one noise floor).** Fold 0 is the easiest fold, not
+  an outlier; every fold-0 A/B so far read a representative fold.
+- **`v04d` reproduced**: fold 0 tracks `v04d`'s curve (0.8338/0.8492/0.8528) within 0.002–0.005,
+  and epoch 0 equals `v05b`'s epoch 0 to 4 dp (same head, jitter and seed). The recipe is
+  reproducible run to run at the floor.
+- **`ckpt_policy="best_oof"` was inert here**: every fold improved monotonically, so epoch 3 was
+  chosen everywhere. Consistent with P-22 — the policy only bites when a head decays, i.e. concat
+  past epoch 4.
+- **Folds vs heads, on fold 0's 882 studies** (the only place both heads exist): `v05a` attn 0.8574,
+  `v05b` concat-8ep 0.8471, `v05g` concat-4ep 0.8508. Rank-mean a+b **0.8670**, b+g 0.8592,
+  a+g 0.8650, **a+b+g 0.8680 (+0.001 over a+b — inside the floor)**. Rank correlations: a–b 0.773,
+  a–g 0.835, b–g 0.842. A third member of the *same head* on the same fold adds nothing measurable;
+  head diversity (ρ 0.77) beats schedule diversity (ρ 0.84). The fold-ensemble gain itself cannot be
+  read from OOF (each study is held out once) — it is measured only on the LB, which is what the
+  `INFER_MEMBERS=["v05g"]` infer kernel (v6) is for.
+
+**Verdict:** ✅ the five checkpoints are the valid ensemble base (`v05g_fold{0..4}_best.pt` in
+`rsna-knee-folds` v4 output; **never mount v2's `v05f`**). Whether five folds buy more than +0.005 LB
+over one fold is ⏳ until the 5-fold-only submission scores. The natural final shape is five folds ×
+two heads; the attention half costs ~9 h and stays a decision for the next session.
+
 ---
 
 ## Infrastructure

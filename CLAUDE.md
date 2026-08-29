@@ -20,8 +20,9 @@ checkpoint policy** to best-OOF-epoch (`ckpt_policy="best_oof"`: +0.013 split-ha
 head, ~0 for attn, gold flat) and re-read **P-09 as a tie** — the attention head's +0.0103 was the
 concat head's late decay. The first 5-fold run was **wasted** (`v05f`: the cache never mounted,
 traps 6f — Kaggle moved kernel outputs to `/kaggle/input/notebooks/<owner>/<slug>/` platform-wide
-that day; the loader now searches depth 4, fails loudly, and prints the mount layout); the valid
-re-run is `v05g`. See [docs/handoff.md](docs/handoff.md).
+that day; the loader now searches depth 4, fails loudly, and prints the mount layout). **The valid
+5-fold run `v05g` is done** (4.27 h, per-fold OOF 0.843–0.851, pooled 0.8467, gold 0.8476 on all
+58); its LB value is being measured. See [docs/handoff.md](docs/handoff.md).
 
 ## 📚 Documentation map — read the relevant one before acting
 

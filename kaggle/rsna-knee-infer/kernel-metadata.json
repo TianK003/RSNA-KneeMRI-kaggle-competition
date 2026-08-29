@@ -14,8 +14,15 @@
     "stevenleehans/rsna-knee-llm-report-labels",
     "lixin73/rsna-knee-llm-report-labels-sol56"
   ],
-  "kernel_sources": ["tiankljucanin/rsna-knee-train"],
-  "competition_sources": ["rsna-knee-abnormality-detection"],
-  "model_sources": ["metaresearch/dinov2/PyTorch/small/1"],
+  "kernel_sources": [
+    "tiankljucanin/rsna-knee-train",
+    "tiankljucanin/rsna-knee-folds"
+  ],
+  "competition_sources": [
+    "rsna-knee-abnormality-detection"
+  ],
+  "model_sources": [
+    "metaresearch/dinov2/PyTorch/small/1"
+  ],
   "machine_shape": "NvidiaTeslaT4"
 }

@@ -449,3 +449,18 @@ run to exercise never executed. Caught only because the expected log line was mi
 **Do:** `train_fold` no longer resumes when `cfg.smoke` is set (2026-08-29). If you need the old
 behaviour, delete `artifacts/local_run/*.pt` first. And when a smoke is meant to exercise a
 specific line, grep the log for *that line*, not for "exit 0".
+
+### 20. The Kaggle OAuth token expires after ~12 h, and the error blames your slug
+
+`~/.kaggle/credentials.json` (written by `kaggle auth login`) stopped working 12 h after it was
+issued (09:26 → 21:31 on 2026-08-29). Every command then fails, but not with an auth message:
+`kaggle kernels status <slug>` prints **"Cannot access kernel … (Permission 'kernels.get' was
+denied). The most likely cause is a wrong kernel slug"** — for a slug that had worked all day.
+Only `kernels list` says "Authentication required". A status-polling loop reads this as a query
+failure and keeps polling nothing.
+
+**Do:** when a Kaggle call fails with a permission/slug message on a slug you have used before,
+check `ls -la ~/.kaggle/credentials.json` first; if it is ~12 h old, re-run `kaggle auth login`
+(interactive, browser). There is no CLI-only refresh. Related: `kaggle kernels logs <slug>` returns
+**2 bytes while the run is in flight** — the same blackout as `kernels output` (12e), so the
+mid-run throughput gate is browser-only.
