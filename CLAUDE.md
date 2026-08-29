@@ -18,7 +18,9 @@ turn, and **laterality is ≈ +0.015 of v03's +0.022** — most of the LB gain. 
 A/B then closed P-09 (attention head **+0.0103**, by resisting overfitting rather than the
 predicted plane-specialisation) and showed that **rank-meaning the two heads reaches OOF
 0.8670** at ρ = 0.773 — free error diversity, no second backbone (P-21). The first 5-fold
-run is still in flight — see [docs/handoff.md](docs/handoff.md).
+run was **wasted**: a new kernel slug mounts inputs deeper than the loader searched, so it
+silently trained the v02 decode path for ~9 h (traps 6f, now fixed and fatal) — see
+[docs/handoff.md](docs/handoff.md).
 
 ## 📚 Documentation map — read the relevant one before acting
 

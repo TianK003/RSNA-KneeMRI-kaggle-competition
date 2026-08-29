@@ -167,6 +167,40 @@ settled it costs seconds and could have been written **before** the fix. When a 
 difference blocks local verification, write the check into the kernel instead of shipping the fix
 with a caveat.
 
+### 6f. A NEW kernel slug does not mount inputs at the same depth as an old one
+
+`kaggle/rsna-knee-folds` declared exactly the same `kernel_sources` as `rsna-knee-train`
+(cache-a + cache-b), and Kaggle mounted them. The **loader could not see them**:
+
+| kernel | cache mount path | depth | found by `max_depth=2`? |
+|---|---|---|---|
+| `rsna-knee-train` (older slug) | `/kaggle/input/rsna-knee-cache-a/manifest_shard0.csv` | 2 | ✅ |
+| `rsna-knee-folds` (created 2026-08-29) | type-prefixed, like datasets at `/kaggle/input/datasets/<owner>/<name>/` | 4 | ❌ |
+
+`load_cache_manifests` was the **only** glob in the file capped at `max_depth=2`; every other
+resolver uses 3 or 4 with a fallback (`first_existing`, `resolve_image_root`,
+`find_mounted_checkpoints`). Exactly the failure CLAUDE.md hard constraint 4 warns about, and
+the shallow one was the one that mattered.
+
+**What it cost:** `cfg.use_cache` flipped to `False`, so the dataset took the **v02 decode
+branch** — no 130 mm crop, no laterality, no per-series normalisation — at 0.99 s/study instead
+of 0.18. Five folds × 4 epochs at that rate is ~19.6 h, so the run could never finish; ~9 h of
+GPU was spent training a recipe we had already superseded. Nothing raised.
+
+**Do:**
+1. Search for mounted inputs at **depth ≥ 4**, never 2. A slug created today does not lay out
+   `/kaggle/input` the way one created last week does.
+2. **Read the cache line in every smoke log before promoting a run to real.** The smoke printed
+   `! use_cache=True but no cache is mounted` in plain text and it was read past — the log was
+   scanned for the *new* thing being tested and not for the *known* failure mode.
+3. The fallback is now **fatal** in train mode unless `ALLOW_DECODE_FALLBACK = True`. A silent
+   downgrade to a superseded preprocessing path is worth a crash (same reasoning as 12b).
+
+**The general lesson**, and the reason this sits next to 6d: `use_cache` conflating *which
+preprocessing* with *whether a file is present* has now caused two separate incidents in one
+day — once at inference (6d), once in training (here). A flag that selects a science decision
+should not also be a file-availability check.
+
 ### 7. Base-rate collapse
 
 The known failure mode of this setup: the model outputs nearly the same score for every

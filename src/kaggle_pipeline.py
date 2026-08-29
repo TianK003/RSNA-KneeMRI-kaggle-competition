@@ -144,6 +144,9 @@ ARMS = [
 PRIMARY_ARM = "v05a"
 ARM_FOLDS = (0,)
 
+# Refuse to silently train the v02 decode path when the cache is expected (traps 6f).
+ALLOW_DECODE_FALLBACK = False
+
 # Flipped by sed for kaggle/rsna-knee-folds: five folds of the confirmed v04d recipe
 # (concat + jitter, 4 epochs) for the first real ensemble. 5 x 4 epochs ~= 4.5 h; 5 x 8 would
 # be ~9 h and needs the resume path instead.
@@ -1616,7 +1619,11 @@ def load_cache_manifests():
     roots = ["/kaggle/input"] if ON_KAGGLE else ["artifacts/cache_local"]
     frames = []
     for root in roots:
-        for mpath in shallow_glob(root, "manifest_shard*.csv", max_depth=2):
+        # depth 4, not 2: a NEWLY created kernel mounts kernel outputs type-prefixed
+        # (/kaggle/input/<type>/<owner>/<name>/...) while older kernels mount them at
+        # /kaggle/input/<name>/. max_depth=2 found the cache in rsna-knee-train and
+        # silently missed it in rsna-knee-folds -- nine hours of the wrong recipe.
+        for mpath in shallow_glob(root, "manifest_shard*.csv", max_depth=4):
             m = pd.read_csv(mpath, dtype={"mask": str})
             if "cache_version" in m and (m.cache_version != CACHE_VERSION).any():
                 print(f"  ! {mpath}: cache version {m.cache_version.iloc[0]} != {CACHE_VERSION}, ignored")
@@ -1641,9 +1648,19 @@ if cfg.use_cache and cache_manifest is None:
         # model on v02 pixels, and nothing would say so (traps.md 12d).
         print("  infer: no cache mounted (expected) -- test studies built on the fly by the "
               "cache-era preprocessing")
-    else:
-        print("  ! use_cache=True but no cache is mounted -- falling back to per-epoch DICOM decode")
+    elif ALLOW_DECODE_FALLBACK:
+        print("  ! use_cache=True but no cache is mounted -- falling back to per-epoch DICOM "
+              "decode (ALLOW_DECODE_FALLBACK=True)")
         cfg.use_cache = False
+    else:
+        # Loud failure beats nine hours of the wrong experiment. Every recipe since v03
+        # depends on cache-era preprocessing (130 mm crop, laterality, per-series norm);
+        # the decode branch silently trains v02 pixels at 5.5x the cost. If a decode-path
+        # run is genuinely wanted, set ALLOW_DECODE_FALLBACK = True.
+        raise SystemExit(
+            "use_cache=True but no cache is mounted. Attach rsna-knee-cache-a and "
+            "rsna-knee-cache-b as kernel_sources, or set ALLOW_DECODE_FALLBACK=True to "
+            "train on the v02 decode path deliberately.")
 if cache_manifest is not None:
     CACHE_INDEX.update(dict(zip(cache_manifest.StudyInstanceUID, cache_manifest.npy)))
     print(f"  cache: {len(CACHE_INDEX)} studies indexed ({CACHE_VERSION})")

@@ -648,6 +648,41 @@ Caveats: fold 0 only (n=1 fold); the blend gain is 1.2× the floor, so it is rea
 and the +0.02–0.03 OOF→LB offset was calibrated on single models, so extrapolating this blend to
 ~0.891 LB is **not** supported — an ensemble need not sit on the same curve.
 
+### 2026-08-29 — The first 5-fold run was invalid, not slow ❌ DEAD END (the run, not the idea)
+
+`rsna-knee-folds` v2 ran ~9 h and produced nothing usable. It was **not** a slow ensemble run;
+it was the **wrong recipe**. The new kernel slug mounts kernel outputs at depth 4 while
+`load_cache_manifests` globbed at `max_depth=2`, so the cache was never found, `cfg.use_cache`
+flipped to `False`, and the dataset took the v02 decode branch — no 130 mm crop, no laterality,
+no per-series normalisation — at 0.99 s/study instead of 0.18. Full mechanism in traps 6f.
+
+Two numbers that make the diagnosis unambiguous, and that should have been the tell hours
+earlier:
+
+| | expected (cache) | observed |
+|---|---|---|
+| s/study | 0.18 | ~0.99 (the v02 decode rate, measured in kernel v6) |
+| 5 folds × 4 epochs | ~4.5 h | **~19.6 h** — could never fit the 8.3 h guard |
+
+**The elapsed time was the evidence and it was misread.** At 14:38 this was recorded as "~6.6 h
+in against a ~4.5 h estimate — the estimate was wrong, the run is not." That was backwards: a
+1.7× overrun against a throughput figure measured three times that day was a *symptom*, and it
+was explained away as estimator error instead of being investigated. The run had already been
+wrong for six hours at that point.
+
+**How it was actually caught:** the smoke log, surfaced in the browser, says
+`! use_cache=True but no cache is mounted -- falling back to per-epoch DICOM decode` in plain
+text at line 61. That log had already been read once — for the arm banners and the worker-RNG
+check — and the cache line was skipped. The lesson is in traps 6f: read the log for the *known*
+failure modes, not only for the new thing being tested.
+
+**Unaffected:** kernel v13 (`v05a`/`v05b`) mounted the cache correctly
+(`cache: 4407 studies indexed`), so P-09, P-04, the two-head blend and the noise floor all
+stand. Only the 5-fold ensemble is outstanding.
+
+Fixed in `src/kaggle_pipeline.py`: glob depth 2 → 4, and a missing cache in train mode is now a
+`SystemExit` unless `ALLOW_DECODE_FALLBACK = True`.
+
 ---
 
 ## Infrastructure
