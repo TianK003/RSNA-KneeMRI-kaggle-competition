@@ -464,3 +464,18 @@ check `ls -la ~/.kaggle/credentials.json` first; if it is ~12 h old, re-run `kag
 (interactive, browser). There is no CLI-only refresh. Related: `kaggle kernels logs <slug>` returns
 **2 bytes while the run is in flight** — the same blackout as `kernels output` (12e), so the
 mid-run throughput gate is browser-only.
+
+### 21. `kaggle datasets create` on Windows: two silent-looking failures
+
+Publishing the ConvNeXt weights (2026-08-29) failed twice before it worked:
+
+1. **Title must be 6–50 characters** — the error is printed once, then the command keeps going and
+   prints a `403 ... GetDatasetStatus`, which reads like an auth problem. It is not.
+2. **Run it from inside the directory with `-p .`.** With `-p models/convnext_tiny` the CLI builds
+   its upload temp path from the relative path and gets
+   `...\Temp\.kaggle/uploads\models/convnext_tiny_config.json.json` — `No such file or directory`,
+   again followed by 403s.
+
+A private dataset then mounts at **`/kaggle/input/<slug>/`** (depth 1, no `datasets/<owner>/`
+prefix — unlike the third-party label datasets), so weight resolvers must list both layouts.
+Anything a final submission relies on must be **public** (competition rule) — flip it before then.

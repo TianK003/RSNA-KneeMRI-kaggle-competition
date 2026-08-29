@@ -6,6 +6,68 @@ to read first after a break.
 
 ---
 
+## 2026-08-30 (00:00) — `v06c` (ConvNeXt-Tiny, P-10) real fold-0 run IN FLIGHT as `rsna-knee-train` v15
+
+Tian approved the launch at 23:55. This supersedes the "awaits go-ahead" entry below (same
+session, minutes apart); everything else there still holds. **Read this entry, then the 23:35 one
+for the blend results.**
+
+### ⏳ Still in flight as this was written (00:00)
+
+| In flight | What it is | Started | How to check | How to read it |
+|---|---|---|---|---|
+| **`rsna-knee-train` v15** — arm `v06c` | **P-10**: ConvNeXt-Tiny backbone (HF `facebook/convnext-tiny-224`), concat head, `cache_jitter`, **8 epochs**, `ckpt_policy=best_oof`, `lr_backbone=1e-4` (LLRD 0.75 per stage), fold 0 only, from the cache. The first non-DINOv2 member | 2026-08-29 **23:57** | `kaggle kernels status tiankljucanin/rsna-knee-train` — expect `COMPLETE` around **02:00–02:15** (if the token has expired: `kaggle auth login`, traps 20). Then `kaggle kernels output tiankljucanin/rsna-knee-train -p artifacts/kaggle_out/v15 --file-pattern "(oof|no_match)"` | **First**: `cache: 4407 studies indexed` and the arm banner `v06c … backbone convnext_tiny … folds (0,) epochs 8`. **Throughput**: `N studies in Ns = X s/study` should read ~0.17–0.25 (the smoke's 3.51 on 4 studies was cuDNN warm-up); ~1.0+ means the cache path was not taken — stop and investigate. Eight `fold 0 epoch k:` lines; `EMA score … -> checkpoint = epoch k` / `not taken` lines show `best_oof` at work — the checkpointed epoch is whichever peaked. **Own OOF** (`auc_soft` at the checkpointed epoch) must be ≥ ~0.83 to be usable; DINOv2 concat sits at 0.847–0.851. If the run is `ERROR`, pull the log with `--file-pattern no_match` and read the tail |
+
+### Where things stand
+
+| | Status |
+|---|---|
+| Best LB | **0.896** (infer v5 = two heads; infer v8 = two heads + five concat folds; prefer v8). 1 submission was left for 2026-08-29; quota resets 02:00 local |
+| P-10 | 🔧 code shipped (`c6ed3cd`), smoke green (train v14), **real run = v15 in flight** |
+| ⚠️ Infer mounts | **v15 repoints infer v5/v8**: `rsna-knee-infer` mounts the *latest* `rsna-knee-train` output, which will now hold only `v06c_fold0_*`. Scores on the board are unaffected, but a **re-run/re-submit of the two-head blend would fail loudly** until the DINOv2 checkpoints (`v05a`/`v05b` from train v13, `v05g` from folds v4) are pinned to a Kaggle Dataset. Local copies of `v05a_fold0_best.pt` / `v05b_fold0_best.pt` are in `artifacts/kaggle_out/v13/` (88 MB each) — a Dataset can be built from them |
+| GPU quota | ~13 h at 23:30 minus v15 (~2 h) → **~11 h** for the week (resets ~2026-09-05) |
+| Repo | pushed; `crazy_good_rsna.ipynb` in the root is Tian's, untracked, not committed |
+
+### What we talked about and decided
+
+- Tian chose P-10 (a second architecture family) over the 9 h attention 5-fold after #6/#7 showed
+  folds add nothing on top of head diversity. Go-ahead for the real run given at 23:55.
+- HF ConvNeXt-**Tiny** via our own private Dataset (no official Kaggle Model exists; Tiny costs
+  the same as ViT-S; LayerNorm-only so batch-of-1 is safe); one change per arm (head stays concat).
+- Publishing hit two Windows CLI traps → traps 21.
+
+### ⏭ Next action, in order
+
+1. **Read v15** (table above). Then, on fold 0, the three-way check — same Python as the 23:35
+   blend check, now with `c = artifacts/kaggle_out/v15/v06c_fold0_oof.csv`:
+   own OOF; **ρ(c, v05a) and ρ(c, v05b)**; rank-mean a+b+c (equal votes) vs a+b **0.8670**.
+   **Adopt** only if ρ < 0.77 against both **and** the 3-way blend clears **+0.008**, with own OOF
+   ≥ ~0.83. Log with `/update` (P-10 card → pointer; experiments.md entry with the ρ table).
+2. **If adopted**: pin the DINOv2 checkpoints to a Dataset (see the ⚠️ row), add
+   `tiankljucanin/rsna-knee-train` (now holding v06c) + that Dataset + `rsna-knee-folds` to the
+   infer kernel's sources, set `INFER_MEMBERS = ["v05a","v05b","v05g","v06c"]` via the sed, push,
+   read the log (4 versions, `by_version` blend), submit once. Rule vs 0.896: < 0.005 is 🔁.
+3. **If ρ ≈ 0.84** (another concat-like profile): the family bet fails at this size; next
+   diversity bets are input geometry (P-11 336 px, P-08 more slices) or DINOv3, not more of this.
+4. Regardless: make `convnext-tiny-224-hf` public before any final submission uses it.
+
+### Open decisions for Tian
+
+- Dataset pin for the DINOv2 weights (needed for any new two-head submission).
+- `crazy_good_rsna.ipynb`: read for the 0.056 gap, ignore, or delete.
+- Delete `artifacts/kaggle_out/v9smoke/` (1.8 GB).
+
+### Things that will bite if forgotten
+
+- **Token expires ~12 h after `kaggle auth login`** (last login 22:01 on 08-29 → expect failure
+  ~10:00 on 08-30; the error text blames the slug — traps 20).
+- **Mid-run logs are browser-only**; `kernels output`/`logs` are blank until the run ends.
+- **Infer v5/v8 now point at v06c's output** (⚠️ row). **Infer v7 never** (flat 7-member).
+- `src/kaggle_pipeline.py` is committed with `FORCE_SMOKE = True`; v15 ran the sed'd `False`.
+- Everything in the 23:35 / 22:35 lists still applies.
+
+---
+
 ## 2026-08-30 (00:05) — P-10 ConvNeXt-Tiny member implemented and smoke-green; real fold-0 run awaits go-ahead
 
 Code through the "P-10: ConvNeXt-Tiny as a second backbone family" commit. Nothing new is
