@@ -10,10 +10,10 @@ by **macro ROC-AUC** (unweighted mean of 12 per-label AUCs).
 
 Competition: https://www.kaggle.com/competitions/rsna-knee-abnormality-detection
 
-**State as of 2026-08-29 (evening):** **five submissions, best public LB 0.877** (v04d: DINOv2-S/14
-224, one fold, no ensemble, + slice jitter); **#5 — the P-21 two-head rank blend, OOF 0.8670 — is
-pending.** Progression 0.500 → 0.841 → 0.871 → **0.877** → ⏳. An epoch costs ~11 min, so a fold-0
-arm is ~0.9 h. Measured today: the **OOF noise floor** (0.008 macro / ~0.03 per label), **slice
+**State as of 2026-08-29 (evening):** **five submissions, best public LB 0.896** — #5, the P-21
+rank-mean of an attention-head and a concat-head model on one DINOv2-S/14 224 backbone, fold 0,
+OOF 0.8670 (+0.019 LB over the best single model, 3.8× the LB floor). Progression 0.500 → 0.841 →
+0.871 → 0.877 → **0.896**. An epoch costs ~11 min, so a fold-0 arm is ~0.9 h. Measured today: the **OOF noise floor** (0.008 macro / ~0.03 per label), **slice
 jitter +0.011**, **laterality ≈ +0.015 of v03's +0.022**, and **two heads rank-blend to 0.8670** at
 ρ = 0.773 (P-21, now shipped as `INFER_MEMBERS` with decode-once inference). **P-22 switched the
 checkpoint policy** to best-OOF-epoch (`ckpt_policy="best_oof"`: +0.013 split-half for the concat
@@ -244,8 +244,8 @@ Macro ROC-AUC is invariant to any strictly increasing per-label transform, so:
 ## Where the field is
 
 Public LB on 2026-08-28: **top 0.952**, ranks 2–9 spanning 0.946–0.949 — the top ten inside
-a **0.006 band**, from 2,559 teams. **We are at 0.871** on one fold of one backbone
-(2026-08-29). The Efficiency Prize has its own leaderboard, published
+a **0.006 band**, from 2,559 teams. **We are at 0.896** with two heads on one backbone, one fold
+(2026-08-29 evening; 0.877 for the best single model). The Efficiency Prize has its own leaderboard, published
 as a notebook (`ryanholbrook/rsna-knee-abnormalities-efficiency-lb`, readable via
 `kaggle kernels output`); its leader is also top-5 on accuracy, so efficiency is not being
 bought with score.

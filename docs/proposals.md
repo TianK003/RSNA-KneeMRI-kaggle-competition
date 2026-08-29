@@ -73,7 +73,7 @@ result*, per unit of cost. "Depends on" lists hard blockers only.
 | P-18 | Efficiency-track variant + decode-once inference + slot census | 🔧 infer mode + loud-failure submission shipped · **decode-once shipped 2026-08-29 (infer v5, equality-checked)** · variant 💡 | medium (separate prize) | 0.2 session + browser | P-01 |
 | P-19 | Decoder wheels + TransferSyntax census | 💡 untested | insurance | 0.1 session | P-01 header pass |
 | P-20 | Leave-one-slot-out ablation, T1 slot retirement | 💡 untested | low-medium | 0.1 session | first real model |
-| **P-21** | **Blend two heads on one backbone as the default ensemble axis** | 🔧 **shipped** (`INFER_MEMBERS`, infer kernel v5) · ⏳ **submission #5 pending** · OOF ✅ **0.8670, +0.0096** | **high — free error diversity (ρ 0.773) with no second family** | done | P-09 (done) |
+| P-21 | Blend two heads on one backbone as the default ensemble axis | ✅ **KEEP — LB 0.896 (+0.019, 3.8× floor), submission #5**; OOF 0.8670. Head diversity is now the default ensemble axis; see experiments.md | delivered (`INFER_MEMBERS`) | done | P-09 (done) |
 | P-22 | Checkpoint selection on OOF-vs-teacher instead of fixed last epoch | ✅ **MEASURED, policy switched** — +0.0128 split-half for concat, ~0 for attn, gold flat; P-09 becomes a tie. See experiments.md | delivered (`ckpt_policy="best_oof"`) | done | — |
 
 ---
@@ -450,11 +450,15 @@ If it fails: keep all 6 slots.
 Depends on: the first real model (v02 fold 0); P-01 for speed.
 
 ### P-21 Blend two heads on one backbone as the default ensemble axis
-Status: 🔧 **shipped 2026-08-29** — `INFER_MEMBERS` in the config cell lists the versions to
-rank-mean; every mounted fold checkpoint of each is a member, a missing version is fatal, heads are
-per member, geometry must agree; decode-once test preprocessing shipped alongside (P-18). Kernel
-`rsna-knee-infer` v5 green on Kaggle; **submission #5 pending** (ref 55870514). The OOF half is ✅
-measured (experiments.md: 0.8670 at last-epoch checkpoints, 0.8695 at best-epoch ones).
+Status: ✅ **MEASURED 2026-08-29 — card closed, see [experiments.md](experiments.md)**
+(Submissions #5). LB **0.896** vs 0.877 for the best single head: **+0.019, 3.8× the 0.005 floor**;
+OOF 0.8670 → LB 0.896 keeps the +0.02–0.03 offset. Shipped as `INFER_MEMBERS` (every mounted fold
+checkpoint of each listed version is a member; a missing version is fatal; heads per member;
+geometry must agree) with decode-once test preprocessing (P-18). "If it works" clause applies:
+head diversity is the default ensemble axis and P-10/P-14/P-15 drop in priority. Open follow-ups:
+the blend gain on more than one fold (the 5-fold `v05g` run gives concat on folds 1–4; an attn
+5-fold run would complete the 10-member blend), and per-version weights (untested; flat mean
+shipped).
 Hypothesis: Rank-meaning an attention-head and a concat-head model trained on the same backbone,
 fold and seed beats either alone by more than the noise floor, and is a cheaper source of error
 diversity than a second architecture family.

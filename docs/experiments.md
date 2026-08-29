@@ -46,7 +46,7 @@ Judge label changes on **coverage** (does the rule fire at all, per language) an
 | 2026-08-28 | **v02 fold 0, real run (kernel v6)**: DINOv2-S 224, 6 slices/slot, 4 epochs, prob targets, LR 2e-5+LLRD, EMA | 0.847 (n=11, CI 0.72–0.94) · OOF-vs-teacher **0.821** (882 studies) | **0.841** | ✅ first real model; per-label table below |
 | 2026-08-28 | **v03 fold 0 from the cache (kernel v8)**: v6 recipe + 130 mm crop + laterality + per-series norm | 0.906 (n=11, CI 0.81–0.97) · OOF-vs-teacher **0.843** (882 studies) | **0.871** | ✅ KEEP — LB +0.030 vs v02, 6× the 0.005 floor |
 | 2026-08-29 | **v04d fold 0 (kernel v11)**: v03 recipe + `cache_jitter` slice augmentation | 0.904 (n=11, CI 0.82–0.95) · OOF-vs-teacher **0.8528** (882 studies) | **0.877** | ✅ KEEP on OOF (+0.0113 vs a 0.008 floor, 11/12 labels up); LB +0.006 is only 1.2× the 0.005 floor and is *corroboration, not proof* |
-| 2026-08-29 | **P-21 blend, submission #5 (infer v5)**: rank-mean of `v05a` attn + `v05b` concat, fold 0, 8 ep | 0.927 / 0.876 (singles, n=11) · OOF-vs-teacher **0.8670** (blend, 882 studies) | ⏳ | pending; verdict rule in the Submissions table |
+| 2026-08-29 | **P-21 blend, submission #5 (infer v5)**: rank-mean of `v05a` attn + `v05b` concat, fold 0, 8 ep | 0.927 / 0.876 (singles, n=11) · OOF-vs-teacher **0.8670** (blend, 882 studies) | **0.896** | ✅ KEEP — +0.019 LB vs #4 (3.8× floor); head diversity on one backbone is the cheapest gain found so far. Gap to the public top is now 0.056 |
 
 **External reference points** (not ours — for calibrating ambition):
 
@@ -977,6 +977,15 @@ this recipe is the cheapest standing claim on part of it.
 > alone** — what makes jitter a ✅ KEEP is the 11-of-12 per-label sign pattern, which no
 > single-number comparison would have shown.
 
+> **EXTENDED 2026-08-29 (evening) — fourth point, submission #5, and the first blend.** The P-21
+> two-head rank-mean: OOF **0.8670** → LB **0.896**, offset **+0.029**. Four for four inside
+> +0.02–0.03 (+0.020, +0.028, +0.024, +0.029). The earlier caveat — "an ensemble need not sit on
+> the same curve" — did not bite: the blend sits on it. So the offset can now be used for blends
+> too, with the standing warning that n=4 and every point is fold 0 of one backbone. The LB delta
+> (+0.019) is 3.8× its floor and the OOF delta (+0.0096) 1.2× its floor — this time the LB moved
+> *more* than the OOF predicted, the opposite asymmetry from jitter. Best is now **0.896**; the gap
+> to the public top (0.952) is 0.056.
+
 
 Log every submission here with the exact kernel version, config diff, OOF score,
 and public LB score, so a public/private divergence can be traced to a specific change.
@@ -987,4 +996,4 @@ and public LB score, so a public/private divergence can be traced to a specific 
 | 2 | 2026-08-28 | rsna-knee-infer v1 (mounts rsna-knee-train v6) | v02 fold 0: DINOv2-S 224, 6 slices/slot, 4 ep, prob targets, LR 2e-5+LLRD, EMA | 0.821 | **0.841** | First non-0.500 score — the submission path works. Above the ~0.809 public DINOv2-S baseline on one fold. |
 | 3 | 2026-08-28 | rsna-knee-infer v3 (mounts rsna-knee-train v8) | v03: same recipe, trained from the cache — adds 130 mm crop + laterality + per-series norm | 0.843 | **0.871** | **+0.030 vs #2**, 6× the 0.005 LB floor. The OOF gain transferred and amplified. Also the first submission through the fixed infer path (traps 6d). |
 | 4 | 2026-08-29 | rsna-knee-infer v4 (mounts rsna-knee-train v11) | v04d: v03 recipe + `cache_jitter` slice augmentation | 0.8528 | **0.877** | +0.0113 OOF over `v04base` against a **measured** 0.008 floor; 11/12 labels up, none down; removes the epoch-2 overfitting turn. Predicted ~0.875–0.88 from the +0.02–0.03 OOF→LB offset. |
-| 5 | 2026-08-29 | rsna-knee-infer v5 (mounts rsna-knee-train v13) | P-21: rank-mean of `v05a` (attn) + `v05b` (concat), fold 0, 8 ep, jitter, last-epoch checkpoints; decode-once inference | 0.8670 (blend; singles 0.8574 / 0.8471) | ⏳ ref 55870514 | First multi-model submission. Rule set before scoring: < 0.005 over 0.877 is 🔁; the single-model OOF→LB offset does not transfer to a blend, so no point prediction. |
+| 5 | 2026-08-29 | rsna-knee-infer v5 (mounts rsna-knee-train v13) | P-21: rank-mean of `v05a` (attn) + `v05b` (concat), fold 0, 8 ep, jitter, last-epoch checkpoints; decode-once inference | 0.8670 (blend; singles 0.8574 / 0.8471) | **0.896** | **+0.019 vs #4, 3.8× the 0.005 LB floor** — the largest single-step LB gain since the cache (P-01). First multi-model submission. The blend's OOF→LB offset is +0.029, inside the +0.02–0.03 band that was calibrated on single models, so the offset *did* transfer (n=4 now). Rule set before scoring was < 0.005 = 🔁; this clears it by a wide margin → ✅ P-21 KEEP. |
