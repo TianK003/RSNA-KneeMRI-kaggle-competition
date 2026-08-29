@@ -62,12 +62,12 @@ result*, per unit of cost. "Depends on" lists hard blockers only.
 | P-07 | Synovitis ← Effusion back-fill (measured, not adopted) | 🔁 measured on gold; OOF pending | low-medium | done (audit) | P-06 OOF |
 | P-08 | Slices per slot 6 → 12–16, per-plane bands, random offsets | ✅ jitter sub-arm KEEP (**+0.0113 OOF, LB 0.877**) · K sweep 💡 **downgraded** | delivered by jitter; low-medium for K | 0.5 session | P-01 |
 | P-09 | Per-label masked attention head over slots | ✅ KEEP — **+0.0103** at matched 8 ep; mechanism is overfit-resistance, **not** the predicted plane-specialisation | delivered | done | P-01 |
-| P-10 | Second architecture family (HF ConvNeXt-Tiny first; RadImageNet behind a flag) | 🔧 **implemented, effect pending** — arm `v06c` (ConvNeXt-T, concat, jitter, 8 ep, fold 0); smoke pushed 2026-08-29 late | **high — the next GPU spend**; judge on ρ < 0.77 vs both heads **and** 3-way fold-0 blend > 0.8670 + 0.008 | ~1.8 h fold-0 arm | P-01, P-04 |
-| P-11 | Resolution 224 vs 336 after the 130 mm crop | 💡 untested | low-medium | 1 session + sharded cache | P-01, P-08 |
-| P-12 | Slice-window TTA (label-safe only) [our hypothesis] | 💡 untested | low | 0.1 session | P-01 |
+| P-10 | Second architecture family (HF ConvNeXt-Tiny first; RadImageNet behind a flag) | 🔧 **implemented, effect pending** — arm `v06c` (ConvNeXt-T, concat, jitter, 8 ep, fold 0); smoke pushed 2026-08-29 late; **real run `v06c` = train v15 in flight 2026-08-30** · the 0.936 notebook's own 45-gold panel ranks ConvNeXt-B/L among its *weakest* families (0.875 vs CoAtNet-384 0.9025): `v06c` is a diversity bet — judge it on ρ, not own OOF (research.md §2.7.1) | **high — first P-23 candidate**; judge on ρ < 0.77 vs both heads **and** 3-way fold-0 blend > 0.8670 + 0.008 | ~1.8 h fold-0 arm | P-01, P-04 |
+| P-11 | Resolution 224 vs 336 after the 130 mm crop | 💡 untested · **raised 2026-08-30**: every branch of the 0.936 notebook runs at 336–384 px and its 0.924 single model is 384 px × 64 slices (research.md §2.7.1) | **medium** (was low-medium) — a 336/384 many-slice hybrid is P-23 candidate #2 | 1 session + sharded cache | P-01, P-08 |
+| P-12 | Slice-window TTA (label-safe only) [our hypothesis] | 💡 untested · **raised 2026-08-30**: the 0.936 notebook's DINOv2 branch runs every window position ×2 jittered views with per-label pooling (max for focal labels, mean for diffuse); est. +0.003–0.008 on that branch (research.md §2.7.1) | low-medium (was low) — cheapest item on the list | 0.1 session | P-01 |
 | P-13 | 3 vs 5 folds under a fixed session budget [our hypothesis] | 💡 untested, but **directly supported 2026-08-29**: 5 folds alone +0.009 LB, 5 folds on top of a second head **+0.000** — diversity beats replicates (experiments.md, "First valid 5-fold run", RESOLVED note) | **raised — the next GPU spend is a diverse member, not folds** | 1–2 sessions | P-10 |
 | P-14 | DINOv2-S vs DINOv2-B (registers variant noted) | 💡 untested | low | 1 session | P-10 |
-| P-15 | DINOv3-S/16 as diversity member | 💡 untested | low | 1 session + model mirror | P-10 |
+| P-15 | DINOv3-S/16 as diversity member | 💡 untested · **raised 2026-08-30**: a 16-slices-as-channels ViT with a slot token is one of the 0.936 notebook's four families (w 0.45 in its transformer stack); the *input representation*, not the DINOv3 weights, is the diversity (research.md §2.7.1) | medium as P-23 candidate #3 (was low) | 1 session + model mirror | P-10 |
 | P-16 | Re-labelling with an open-weights LLM inside Kaggle (graded, native language) | 💡 untested | high but slow (raises the teacher ceiling) | 1–2 sessions | P-06 audit (done) |
 | P-17 | Noise-robust loss / self-distillation | 💡 untested | low | 0.3 session each | P-01, P-04, P-06 |
 | P-18 | Efficiency-track variant + decode-once inference + slot census | 🔧 infer mode + loud-failure submission shipped · **decode-once shipped 2026-08-29 (infer v5, equality-checked)** · variant 💡 | medium (separate prize) | 0.2 session + browser | P-01 |
@@ -75,6 +75,7 @@ result*, per unit of cost. "Depends on" lists hard blockers only.
 | P-20 | Leave-one-slot-out ablation, T1 slot retirement | 💡 untested | low-medium | 0.1 session | first real model |
 | P-21 | Blend two heads on one backbone as the default ensemble axis | ✅ **KEEP — LB 0.896 (+0.019, 3.8× floor), submission #5**; OOF 0.8670. Head diversity is now the default ensemble axis; see experiments.md | delivered (`INFER_MEMBERS`) | done | P-09 (done) |
 | P-22 | Checkpoint selection on OOF-vs-teacher instead of fixed last epoch | ✅ **MEASURED, policy switched** — +0.0128 split-half for concat, ~0 for attn, gold flat; P-09 becomes a tie. See experiments.md | delivered (`ckpt_policy="best_oof"`) | done | — |
+| P-23 | **Multi-family rank fusion — the ensemble is the product, not a member** | 💡 **raised to #1 on 2026-08-30** (Tian's decision after reading the 0.936 notebook in full: its DINOv2 branch alone is ≈ 0.899 ≈ our 0.896; the other +0.036 is three more families rank-fused on top — research.md §2.7.1) | **very high — the only axis with evidence of +0.03**; per-member acceptance rule: own OOF ≥ best − 0.02, ρ < 0.80 vs the blend, blend gain > 0.008 | 1–2 h fold-0 arm per candidate; 5 folds only for accepted members | P-10 (running), P-11, P-15 |
 
 ---
 
@@ -318,6 +319,10 @@ verdict rule (from P-21's template, stricter than the card's original): adopt as
 only if fold-0 rank correlation against **both** `v05a` and `v05b` is **< 0.77** *and* the
 three-way rank-mean beats the two-head 0.8670 by **> 0.008**; its own OOF must be within ~0.02 of
 DINOv2-S (`v05b` 0.8471 / `v05g` 0.8508) or the diversity is bought with too much bias.
+**2026-08-30:** real run in flight (train v15). The 0.936 notebook's 45-gold panel ranks ConvNeXt-B/L
+among its weakest single families (0.8754 / 0.8752 vs CoAtNet-384 0.9025), so expect a member that
+is weaker than DINOv2-S on its own; the ρ criterion, not own OOF, decides (research.md §2.7.1). This
+card is now candidate #1 of P-23.
 Previous status (kept for the record): 💡 untested, **de-prioritised 2026-08-29**: kernel v13 showed a
 *different head on the same backbone* already gives ρ = 0.773 and a +0.0096 blend gain at zero
 extra training cost (P-21). Buy the free diversity first; this card only earns a session if P-21's
@@ -335,7 +340,7 @@ If it fails: single-family 5-fold; RadImageNet dropped at final if the licence s
 Depends on: P-01, P-04.
 
 ### P-11 Resolution 224 vs 336 after the 130 mm crop
-Status: 💡 untested.
+Status: 💡 untested. **Raised 2026-08-30**: every branch of the 0.936 notebook runs at 336–384 px; its 0.924 single model is CoAtNet-2 at 384 px over 64 slices (research.md §2.7.1). P-23 candidate #2 combines this with the P-08 K sweep in one arm: a hybrid backbone at 336–384 with K = 12–16, first probed by upsampling the 224 cache, then with a 336 cache shard if the probe clears the floor.
 Hypothesis: Higher effective mm/px helps the small focal labels (Lateral Meniscus, PF OA, Fracture, Contusion).
 Origin: peer-reviewed / competition write-up.
 Evidence: 224 → 512 median +1.05 pp AUROC on CXR, concentrated in focal findings, but DINOv2-ViT nearly flat (VinDr 89.2 → 89.1) ([2510.07191]); 224 → 336 +0.017 LB at 2.25× FLOPs, preds correlate 0.90 (sadamtorres, **notebook, not re-read**); yu4u's crop+384 gain is confounded with cropping ([yu4u deck](https://speakerdeck.com/yu4u/rsna-2023-abdominal-trauma-detection-fan-sheng-hui)). HF `Dinov2Model` needs `interpolate_pos_encoding` for non-224 input (critic item 20).
@@ -347,7 +352,7 @@ If it fails: stay at 224; spend budget on slices/folds.
 Depends on: P-01, P-08.
 
 ### P-12 Slice-window TTA (label-safe only) [our hypothesis]
-Status: 💡 untested.
+Status: 💡 untested. **Raised 2026-08-30**: no longer only our hypothesis — the 0.936 notebook's DINOv2 branch averages every window position over the cached slices, ×2 with an affine-jittered view, and pools **per label**: max for Fracture/Contusion/Menisci/Baker's, top-2 for ACL/MCL, mean for OA/Effusion/Synovitis (focal findings live on few slices). Est. +0.003–0.008 on that branch (research.md §2.7.1). Implement the focal/diffuse pooling split with the window offsets; measure on fold-0 OOF.
 Hypothesis: Averaging logits over 2–3 slice-index offsets per slot reduces variance at small inference cost; geometric TTA is not attempted.
 Origin: our hypothesis (no source shows slice-window TTA helping; critic item 30). The *exclusion* of geometric TTA is peer-reviewed.
 Evidence: winners used some TTA ([brendanartley], [SeuTao](https://github.com/SeuTao/RSNA2019_Intracranial-Hemorrhage-Detection)); geometric TTA degraded 11/12 MedMNIST pairs ([2604.09697](https://arxiv.org/html/2604.09697v1)); flips hurt knee OA even after mirroring ([2311.06118](https://arxiv.org/html/2311.06118)).
@@ -383,7 +388,7 @@ If it fails: confirmed dead end; frees budget.
 Depends on: P-01, P-04; after P-10.
 
 ### P-15 DINOv3-S/16 as a diversity member (not a replacement)
-Status: 💡 untested; low priority.
+Status: 💡 untested. **Raised 2026-08-30** as P-23 candidate #3, re-scoped: the 0.936 notebook's DINOv3-class member feeds **16 slices as input channels** (`in_chans=16` patch embed, or a gated 16→3 `DepthCompress` stem) with the slot identity as an extra ViT token — the diversity comes from the input representation, not the weights (research.md §2.7.1). Test that representation on DINOv2-S first (no model mirror needed, no new cache); swap in DINOv3 weights only if the member is accepted.
 Hypothesis: DINOv3 at 224 is not better than DINOv2 but is decorrelated enough to help a rank blend.
 Origin: peer-reviewed / competition write-up.
 Evidence: DINOv2 vs DINOv3 differences 0.002–0.008 in both directions ([AnyMC3D Table 8]); DINOv3 wins only at 512 px ([2510.07191]); public leaders blend 5 DINOv3-S folds (mattiaangeli, **notebook, not re-read**); custom licence, gated download, must mirror LICENSE.md ([dinov3 LICENSE](https://github.com/facebookresearch/dinov3/blob/main/LICENSE.md)).
@@ -532,6 +537,54 @@ If it fails: (best-epoch tracks the teacher while gold diverges) keep fixed-epoc
 with the evidence this time rather than the argument.
 Depends on: nothing — the per-epoch OOF csvs from v11 and v13 are enough.
 
+### P-23 Multi-family rank fusion: the ensemble is the product, not a member
+Status: 💡 untested as a whole — **raised to the top of the backlog 2026-08-30** on Tian's decision
+after reading `crazy_good_rsna.ipynb` in full (research.md §2.7.1). Member arms already have cards
+(P-10 ConvNeXt-T in flight as `v06c`; P-11 336–384 px; P-15 16-channel member); this card is the
+*programme* that sequences them and fixes the acceptance rule for each member.
+Hypothesis: A rank-fusion of three or more architecture families — each within ~0.02 OOF of
+DINOv2-S, each at ρ < 0.80 to the blend it joins — beats any further work on one family; every
++0.005 of the remaining 0.040 to the public top is cheaper to buy with a new family than with
+folds, epochs or heads.
+Origin: verified in a public artefact (the 0.936 notebook's own stage files) + our own #6/#7.
+Evidence:
+- 0.936 = DINOv2 branch 0.899 → + 16-ch ViT + RadImageNet heads + calibrator 0.920 → + CoAtNet-2@384
+  0.935 → + LB tuning 0.936 (stated in-notebook; research.md §2.7.1). Our two-head DINOv2 blend is
+  0.896 — parity with their DINOv2 branch; the entire gap is other families.
+- Our own measurements point the same way: five folds of one head +0.009 alone, **+0.000** on top
+  of a second head (#6/#7); two heads on one backbone +0.019 (P-21).
+- Their in-notebook counter-example: CoAtNet + Swin-B + EffV2-L on the *same* 64-slice input blended
+  to +0.001 over CoAtNet alone. Families that differ only in backbone name but share input geometry
+  and pretraining regime add little. Diversity must be in the **input representation and
+  pretraining** — SSL ViT on triplets vs supervised hybrid at 384/64 slices vs a 16-channel stack vs
+  frozen RadImageNet features — which is also why two heads on one backbone (ρ 0.77) gave more than
+  five folds (ρ ≈ 0.84).
+Measure: fold-0 n-way rank-mean OOF over the 882 held-out studies vs the current best blend; ρ of
+each new member against every existing member; then one LB submission per accepted member. A member
+is **accepted** iff (a) own fold-0 OOF ≥ current best single − 0.02, (b) ρ < 0.80 against the
+existing blend, (c) blend OOF gain > 0.008. A member that fails (b) is not run to five folds.
+Noise floor: 0.008 OOF macro for blend gains; 0.005 LB.
+Cost: one fold-0 arm (~1–2 h GPU) per candidate; 5 folds only for accepted members. Candidate
+order by expected diversity ÷ cost:
+1. `v06c` ConvNeXt-T (P-10, running) — cheapest; weakest family on their panel, so ρ decides.
+2. **High-resolution, many-slice hybrid** (P-11 + P-08): timm `coatnet_rmlp_2_rw_384` or a
+   MaxViT/CoAtNet-class backbone at 336–384 with K = 12–16 from the 16-slice cache, label attention
+   over all windows. Probe first by upsampling the 224 cache (cheap, measures the K/attention part);
+   build a 336 cache shard only if the probe clears the floor. Their single-model 0.924 lives here.
+3. **16-slices-as-channels member** (P-15 re-scoped): `in_chans=16` patch embed on DINOv2-S with a
+   slot token — a new input representation with no new cache and no model mirror.
+4. RadImageNet R50 frozen features + attention heads (~0.3 session) — behind the licence gate.
+Zero-training alternative: mount the public checkpoints themselves (dreaddevelopment
+`raptor-knee-*`, tonylica `rsna-knee-bend-dinov3-0917-repro-assets`) as members. Legal (public
+datasets), fastest to ~0.93, but it makes us a fork of the shared ensemble whose author expects a
+private shakeup, and their dataset licence fields are unread — Tian's call (brainstorm.md).
+If it works: the final submission is an n-family `INFER_MEMBERS` blend with one vote per family
+(`INFER_BLEND="by_version"` already does this); per-label weights only if a grouped-OOF measurement
+clears 0.008 — never fitted on gold-58 or the LB.
+If it fails: (every candidate ρ ≥ 0.80 or blend gain < 0.008) the residual gap is single-model
+strength, and the budget goes to P-11/P-08 on DINOv2 alone.
+Depends on: P-10 (running), P-11, P-15; `INFER_MEMBERS` (done, P-21).
+
 ---
 
 ## Rejected without testing
@@ -547,7 +600,7 @@ Merged from brainstorm.md and research.md §5; one line each. Do not resurrect w
 | Calibration, Platt scaling, thresholds, `pos_weight`, label smoothing on soft targets | AUC reads rank order only | metric arithmetic, brainstorm.md |
 | Averaging probabilities across folds/models | most confident model dominates; rank-mean instead | brainstorm.md |
 | Full fine-tuning or best-epoch selection on 58 gold (~12/fold); a gold fine-tuning stage | SE 0.09, coin flip, our NaN-fold bug; gold role resolved as validation + weight arm | experiments.md, [Andre et al.], critic 25 |
-| Forking the public 0.95 ensemble; tuning on public LB | author-labelled overfit; 0.001–0.003 movements | mattiaangeli (not re-read), CLAUDE.md |
+| Forking the public 0.95 ensemble; tuning on public LB | author-labelled overfit; 0.001–0.003 movements; the 0.936 notebook's gold-58-tuned per-label weights + "clinical residual" are worth **+0.001** over its untuned 0.935 (read in full 2026-08-30) | mattiaangeli (not re-read), `crazy_good_rsna.ipynb` (research.md §2.7.1), CLAUDE.md |
 | Random or report-only K-fold as the comparison metric | grouped vs random gap up to +0.136 | [EXPERIMENTS.md] |
 | Native 3D CNN / nnU-Net / segmentation-first | 0.69 vs 0.85 (p=0.001); multi-A100 budgets | [MST], [CoPAS], [MIC-DKFZ 2025] |
 | Frozen DINOv2 + head as the final model | 0.79 vs 0.85 knee; 0.776 vs 0.866 LB | [MST], sadamtorres (not re-read) |

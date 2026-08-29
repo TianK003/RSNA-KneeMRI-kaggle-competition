@@ -24,7 +24,12 @@ concat head's late decay. The first 5-fold run was **wasted** (`v05f`: the cache
 traps 6f — Kaggle moved kernel outputs to `/kaggle/input/notebooks/<owner>/<slug>/` platform-wide
 that day; the loader now searches depth 4, fails loudly, and prints the mount layout). **The valid
 5-fold run `v05g` is done** (4.27 h, per-fold OOF 0.843–0.851, pooled 0.8467, gold 0.8476 on all
-58); its LB value is being measured. See [docs/handoff.md](docs/handoff.md).
+58); its LB value is being measured. **2026-08-30:** `crazy_good_rsna.ipynb` (public **0.936**) was read
+cell by cell — it trains nothing; its DINOv2 branch alone is ≈ 0.899, **at parity with our 0.896**, and
+the remaining ≈ 0.036 is three more model families rank-fused on top (16-channel ViT, RadImageNet
+heads, CoAtNet-2@384 at 0.924 alone). **P-23 multi-family fusion is now the top of the backlog**;
+decomposition in [docs/research.md](docs/research.md) §2.7.1. `v06c` (ConvNeXt-T, P-23 candidate #1)
+is in flight as train v15. See [docs/handoff.md](docs/handoff.md).
 
 ## 📚 Documentation map — read the relevant one before acting
 
@@ -33,7 +38,7 @@ that day; the loader now searches depth 4, fails loudly, and prints the mount la
 | [docs/handoff.md](docs/handoff.md) | Session state, what changed last, next action | **First, always** |
 | [docs/traps.md](docs/traps.md) | Bugs and **silent** failure modes, tiered by damage | Before writing pipeline code |
 | [docs/experiments.md](docs/experiments.md) | Every measurement, with a verdict | Before proposing an experiment |
-| [docs/proposals.md](docs/proposals.md) | **Ranked backlog as testable cards P-00…P-20** (hypothesis, evidence, measure, noise floor, cost) | When choosing what to do next |
+| [docs/proposals.md](docs/proposals.md) | **Ranked backlog as testable cards P-00…P-23** (hypothesis, evidence, measure, noise floor, cost) | When choosing what to do next |
 | [docs/research.md](docs/research.md) | Literature + prior-competition research behind the cards (18-agent workflow, critic-fixed) | Before changing a training parameter or model |
 | [docs/brainstorm.md](docs/brainstorm.md) | Open questions and strategy notes only | When a question needs a browser |
 | [docs/setup.md](docs/setup.md) | Bootstrapping a new machine | New clone / new laptop |
@@ -257,6 +262,14 @@ bought with score.
 author warns it is "likely overfit to the public leaderboard"** after a fork-and-republish
 race chasing 0.001–0.003 movements. Expect a private shakeup. Prefer a pipeline you can
 validate over a blend you can only submit.
+
+**Decomposition of one 0.936 notebook, read cell by cell on 2026-08-30** (`crazy_good_rsna.ipynb`, a
+port of "DINOsaur V10"; [docs/research.md](docs/research.md) §2.7.1): DINOv2-S branch ≈ 0.899 → +
+16-slices-as-channels ViT + RadImageNet R50 frozen-feature heads + stacking calibrator ≈ 0.920 → +
+CoAtNet-2 @384 over 64 slices (0.924 alone) 0.935 → + gold-58-tuned weights 0.936. It trains nothing:
+every member is a mounted public checkpoint. **Our DINOv2 recipe is at parity with theirs; the gap is
+the number of families, which is P-23.** Its own counter-example: three backbones on the same input
+blended to +0.001 — diversity has to come from the input representation and pretraining regime.
 
 Consensus architecture there: DINOv2 ViT-S/14 as the workhorse (with DINOv3 and RadImageNet
 ResNet-50 rank-blended alongside), 2.5D one-series-per-slot with a presence mask, laterality

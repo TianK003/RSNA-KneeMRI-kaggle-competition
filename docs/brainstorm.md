@@ -32,7 +32,9 @@ entries.
 |---|---|---|
 | ~~What is the **real** per-study throughput with `num_workers=2`?~~ | **ANSWERED** 2026-08-28: 0.18 s/study from the cache, 0.99 decoding; 0.9 h per fold-0 4-epoch arm | experiments.md, kernel v8 |
 | ~~Is the fork-inherited RNG actually repeating augmentation on Kaggle?~~ | **ANSWERED** 2026-08-29: no. `check_worker_rng()` on Kaggle shows draws already vary without the fix — PyTorch seeds numpy/random per worker itself. traps 6e corrected; the `v04d` result is unconfounded | Answered in-kernel; the check now runs at every startup |
-| Where does the remaining 0.081 to the public top actually come from? | We are at 0.871 on one fold with the same public label tables the leaders use, so it is unlikely to be target quality; ensembling accounts for maybe 0.01–0.02 | Read the top notebooks' configs in a browser; run 5 folds and measure what the rank-mean is worth |
+| ~~Where does the remaining 0.081 to the public top actually come from?~~ | **ANSWERED 2026-08-30** — read a 0.936 notebook cell by cell (research.md §2.7.1): its DINOv2 branch alone is ≈ 0.899, at parity with our 0.896; the other ≈ 0.036 is three more model families rank-fused on top (16-channel ViT, RadImageNet heads, CoAtNet-2@384 at 0.924 alone), and only +0.001 is LB tuning. Within one family we measured heads +0.019, folds +0.000 on top | Answered; the programme is P-23 |
+| **Mount the public checkpoints as blend members, or build our own families?** | Every member of the 0.936 notebook is a public Kaggle dataset (dreaddevelopment `raptor-knee-*`, tonylica repro assets), so mounting them into `INFER_MEMBERS` is legal and probably ~0.93 in one submission; but it makes us a fork of the shared ensemble expected to shake up on private, the members cannot be validated on our folds (their training studies overlap our held-out set), and the datasets' licence fields are unread | Tian's decision; read the dataset pages' licence fields in a browser; P-23 |
+| Licence of `dreaddevelopment/raptor-knee-*` and `tonylica/rsna-knee-bend-dinov3-0917-repro-assets` | Gates mounting them; the notebook that uses them is Apache-2.0 but the checkpoints' terms are set on the dataset pages | Kaggle dataset pages (browser) |
 | Is the ≤9 h runtime limit and internet-off rule accurate? | Community-sourced, never read from the rules page | Read the overview/rules pages in a browser |
 | How is the **Efficiency Prize** actually scored? | It is a separate prize we are eligible for; runtime may be worth optimising deliberately | The efficiency-prize evaluation page (JS-rendered, needs a browser) |
 | Does the winner-licence clause tolerate CC-BY-NC-SA weights? | Gates #3 for a *final* submission | Read the rules page |
@@ -52,6 +54,13 @@ accepted only when they clear the noise floor.
 ceiling for distillation from these labels. Two ways past it: better labels (#4), or the
 images carrying information the reports omit — which is plausible, since gold is
 image-derived and reports agree with gold only ~82%.
+
+**The remaining gap is families, not recipe (2026-08-30).** A 0.936 notebook read in full is our
+DINOv2 branch (≈ 0.899 vs our 0.896) plus three more families rank-fused on top. Its own
+counter-example matters as much: three backbones on the *same* input blended to +0.001, so
+diversity must come from the input representation and pretraining regime (triplets vs 16-channel
+stack vs 384 px / 64 slices vs frozen radiology features), not from swapping the backbone name.
+P-23 is that programme; each candidate is one fold-0 arm judged on ρ and blend gain, never on LB.
 
 **Compute is the binding constraint, not ideas.** We have ~55 days and Kaggle session
 limits. That is why #1 and #2 outrank every modelling idea: one makes experiments cheap, the

@@ -176,6 +176,57 @@
 
 **Open questions**: Efficiency formula; Rules text; discussion threads (inaccessible); grouped-vs-random gap for a fine-tuned DINOv2; compressed syntaxes in test; hidden test size/site mix; stability of the +0.04 offset on private.
 
+#### 2.7.1 Anatomy of a 0.936 public notebook, read in full (2026-08-30)
+
+`crazy_good_rsna.ipynb` (prvsiyan's Apache-2.0 port of Roman Tamrazov's "DINOsaur V10"; public
+**0.936**, score verified by Tian) is the first top-lineage notebook we have read cell by cell
+rather than from its card. It **trains nothing**: ten cells that mount four families of public
+checkpoints (tonylica `rsna-knee-bend-dinov3-0917-repro-assets`, dreaddevelopment
+`raptor-knee-maxspan` / `-widedense` / `-finespacing`, metaresearch DINOv2-S), run each on the
+hidden test, and rank-fuse them. Its own intermediate filenames give the decomposition:
+
+| Cumulative stage | Public LB (stated in the notebook) |
+|---|---|
+| DINOv2-S/14 branch alone — 5 folds × several members, 336 px, sliding-window + affine-jitter TTA | **≈ 0.899** (`submission_public_0899.csv`) |
+| + 16-slices-as-channels ViT (w 0.45) + RadImageNet R50 frozen-feature heads (w 0.5 on 10 labels) + 88-feature stacking calibrator (w 0.4) | **≈ 0.920** (`submission_transformer_0920.csv`) |
+| + CoAtNet-2 rMLP @384 "Raptor" (w ≈ 0.5; **0.924 alone**) | **0.935** (`_base_0935`) |
+| + per-label weights tuned on gold-58 + "clinical residual" (`clinical_moderate` profile) | **0.936** |
+
+**Our 0.896 two-head blend is at parity with its entire DINOv2 branch.** The 0.040 gap is
+families, not recipe. *Identical* to our pipeline, so not the gap: the six recovered slots by
+name, 130 mm crop, geometry laterality with a 20 mm dead zone, IPP·normal slice ordering,
+per-series 1–99 percentile normalisation, LLM probabilistic targets over 4,349 studies, rank-mean
+fusion, 5 folds — and our per-label slot-query attention head (`SlotHead`, there with a
+hand-written label→slot prior table). Same lineage as pilkwang's.
+
+The techniques it has that we do not, with an estimate of each one's share of the gap
+(**[stated]** = a number written in the notebook; **[est]** = our judgement from those numbers plus
+experiments.md):
+
+| Technique | What it is | Ours | Contribution |
+|---|---|---|---|
+| **Cross-family rank fusion** | DINOv2-S + 16-ch ViT + RadImageNet R50 + CoAtNet, rank-fused with per-label weights and correlation guards | one family, two heads | **≈ +0.036 of the +0.040 [stated: 0.899 → 0.935]**. Same lesson as our #6/#7 (folds +0.000 on top of heads): diversity is the whole game |
+| **CoAtNet-2 rMLP @384, 64 slices/study, per-label attention over 62 triplet windows, SWA** (`coatnet_rmlp_2_rw_384.sw_in12k_ft_in1k`; 140 mm crop; 5 slots SAG-FS 18 / SAG 14 / COR-FS 12 / COR 8 / AX 12; band 2–98 %; trained on 4,349 LLM-labelled studies, 58 gold held out) | strongest single model: **0.924 LB, no TTA, no ensemble [stated]**; gold-58 0.905–0.917 | best single 0.877 | **+0.015 in the fusion [stated: 0.920 → 0.935]**; +0.047 as a single model. Sub-attribution [est]: backbone (75 M, IN-12k supervised) +0.01–0.02 — their 45-gold panel: coatnet-384 0.9025, swin-B-384 0.8825, convnext-B-384 0.8754, convnext-L-384 0.8752, effv2-L-480 0.8716, maxvit-384 0.8438; 384 px +0.005–0.01; 64 slices at 2–98 % vs our 36 triplets at 8–92 % +0.005–0.01 ("cutting the outer slices was measurably costing accuracy on the collaterals and the lateral meniscus"); attention over all windows instead of slot-then-label ≈ +0.005; SWA ≈ +0.005 |
+| **16-slices-as-channels ViT** (`in_chans=16` patch embed or a gated `DepthCompress` stem → 3 ch; slot identity injected as an extra ViT token; RoPE → DINOv3-class weights), 336 px, 5 folds, readouts `xattn`/`xres`/`clsadd` | the whole slice stack in one forward pass — a different input representation | — | **+0.005–0.01 [est]**, part of the +0.021 transformer-stack step; low ρ with triplet models by construction |
+| **RadImageNet ResNet-50 frozen GAP features + trained attention heads** (2048-d tokens, 3 FS slots × 8 slices @224, 5 folds × 2 slot configs) | encoder frozen, only heads train; excluded from Baker's/Fracture | P-10 flag, unbuilt | **+0.005–0.01 [est]**; ~0.3 session. Licence unresolved (CLAUDE.md) |
+| **Sliding-window + affine-jitter TTA with per-label window pooling** — max for Fracture/Contusion/Menisci/Baker's, top-2 for ACL/MCL, mean for OA/Effusion/Synovitis | every window position over the cached slices, ×2 with a jittered view (rot 8°, scale 0.08, shift 0.05, gain 0.1) | none (`predict()` is one pass) | **+0.003–0.008 on the DINO branch, ≈ +0.002–0.004 after fusion [est]**. This is P-12 plus a focal/diffuse split |
+| **Stacking calibrator** — 88-feature linear model over the branch rank blocks + protocol metadata (n_series, per-plane counts, FS/fluid counts), gated per label, w 0.4 | fitted offline; coefficients embedded base64 | — | **+0.002–0.005 [est]**; fragile to a protocol-mix shift on private |
+| Same-arch complement checkpoints (legacy v4 w 0.10–0.16 on 7 labels; v9 "FineSpacing" specialist) with correlation guards | | — | **+0.001–0.002 [est]**; their own note: CoAtNet + Swin-B + EffV2-L on the same input blended to **+0.001** over CoAtNet alone |
+| **Gold-58-tuned per-label weights + "clinical residual"** (e.g. ACL −0.10 × mean rank of Contusion and Lateral Meniscus) | the cell calls itself "an aggressive leaderboard experiment, not an unbiased estimate of private-test performance" | — | **+0.001 [stated: 0.935 → 0.936]**. Do not copy |
+| Corpus 3,155 → 4,349 LLM-labelled studies | | already done | 0 for us [stated: +0.013 gold, +0.010 LB for them] |
+
+Sum of the estimates ≈ 0.036 + 0.003 + 0.001 ≈ 0.040, consistent with the observed gap.
+
+Three things it changes for us: (1) **P-10's direction is confirmed** by the strongest evidence
+available, but their own panel puts ConvNeXt among the *weakest* single families and a
+high-resolution, many-slice hybrid at the top — a ConvNeXt-T member is a diversity bet, not a
+strength bet, and must be judged on ρ; (2) their strongest single model is 384 px with 64
+slices, i.e. P-11 + P-08's K sweep, which this repo had downgraded; (3) every checkpoint they use
+is a public Kaggle dataset, so mounting them as `INFER_MEMBERS`-style members is legal and the
+fastest route to ~0.93 — at the cost of becoming one more fork of the ensemble whose author
+expects a private shakeup. → **P-23** in proposals.md (raised to the top of the backlog by Tian,
+2026-08-30).
+
 ### 2.8 Data-pipeline engineering
 
 **What we learned**
