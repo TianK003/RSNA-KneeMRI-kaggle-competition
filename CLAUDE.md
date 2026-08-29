@@ -10,8 +10,9 @@ by **macro ROC-AUC** (unweighted mean of 12 per-label AUCs).
 
 Competition: https://www.kaggle.com/competitions/rsna-knee-abnormality-detection
 
-**State as of 2026-08-29:** **four submissions, best public LB 0.871** (v03: DINOv2-S/14 224,
-one fold, no ensemble). Progression 0.500 → 0.841 → 0.871 → #4 pending. An epoch costs ~11 min,
+**State as of 2026-08-29:** **four submissions, best public LB 0.877** (v04d: DINOv2-S/14 224,
+one fold, no ensemble, + slice jitter). Progression 0.500 → 0.841 → 0.871 → **0.877**.
+An epoch costs ~11 min,
 so a fold-0 arm is ~0.9 h. The five-arm batch landed: the **OOF noise floor is now measured**
 (0.008 macro / ~0.03 per label), **slice jitter is worth +0.011** and removes the overfitting
 turn, and **laterality is ≈ +0.015 of v03's +0.022** — most of the LB gain. Two runs are in

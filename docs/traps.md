@@ -271,6 +271,29 @@ inferring it from a smoke log — and print the resolved value in the run banner
 says it out loud in its first seconds. Related: 12 (always smoke first) tells you the code runs;
 it does not tell you what the code will do at production settings.
 
+### 12e. Kernel output is only ever the LATEST version's, and vanishes while a run is live
+
+`kaggle kernels output <slug>` returns the most recent version's files. Push a new version and
+the previous one's artifacts stop being retrievable; while a version is **running**, the endpoint
+returns nothing at all. The `<owner>/<kernel>/<version>` form in `--help` did not recover them
+either (returned empty, 2026-08-29).
+
+Hit for real: kernel v11's five arms wrote `v04*_fold0_oof.csv` (the per-study predictions, a few
+MB). Only the **log** was pulled, using `--file-pattern "no_match"` to avoid ~1 GB of checkpoints
+— and once v12 and v13 were pushed, the OOF csvs were gone. They were the input to an inter-arm
+prediction-correlation analysis that then could not be run.
+
+**Do:** when a run finishes, pull the log **and** the small result files in one go, before pushing
+anything else to that slug:
+
+```bash
+kaggle kernels output <slug> -p artifacts/kaggle_out/<ver> --file-pattern "(oof|log|manifest)"
+```
+
+`--file-pattern` is a **regex, not a glob** — `"*_oof.csv"` errors with "nothing to repeat".
+The log always comes down regardless of the pattern, which is why `"no_match"` fetches the log
+alone; that is a log-only trick, not a general-purpose download.
+
 ### 13. Horizontal-flip augmentation
 
 `Medial OA` and `Lateral OA` are **different labels**. A horizontal flip swaps medial and

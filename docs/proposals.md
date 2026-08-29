@@ -60,7 +60,7 @@ result*, per unit of cost. "Depends on" lists hard blockers only.
 | P-05 | Laterality normalisation from DICOM geometry | ✅ CONFIRMED — **−0.0147 OOF when removed**, ~1.9× the floor | high — it is ≈ +0.015 of v03's +0.022, i.e. most of the LB gain | done | P-01 |
 | P-06 | Per-label failure analysis + gold_weight {1,3,8} arm + slot-fill census | 🔧 logging shipped · arms 💡 | high (finds the cheapest lever per weak label) | 0.1–0.5 session | — |
 | P-07 | Synovitis ← Effusion back-fill (measured, not adopted) | 🔁 measured on gold; OOF pending | low-medium | done (audit) | P-06 OOF |
-| P-08 | Slices per slot 6 → 12–16, per-plane bands, random offsets | ✅ jitter sub-arm KEEP (**+0.0113**, 11/12 labels up) · K sweep 💡 **downgraded** | delivered by jitter; low-medium for K | 0.5 session | P-01 |
+| P-08 | Slices per slot 6 → 12–16, per-plane bands, random offsets | ✅ jitter sub-arm KEEP (**+0.0113 OOF, LB 0.877**) · K sweep 💡 **downgraded** | delivered by jitter; low-medium for K | 0.5 session | P-01 |
 | P-09 | Per-label masked attention head over slots | 🔁 INCONCLUSIVE at 4 ep (unconverged) · ⏳ 8-epoch retest RUNNING (v13 `v05a`/`v05b`) | still medium-high — the arm never converged, so untested rather than refuted | 0.3 session | P-01 |
 | P-10 | Second architecture family (timm ConvNeXt first; RadImageNet behind a flag) | 💡 untested | medium (diversity) | 1 session | P-01, P-04 |
 | P-11 | Resolution 224 vs 336 after the 130 mm crop | 💡 untested | low-medium | 1 session + sharded cache | P-01, P-08 |
@@ -235,7 +235,8 @@ If it fails: closed as ❌/🔁 in experiments.md; **do not** try Fracture ← C
 Depends on: P-06 OOF instrumentation (done), P-01 for the student arm.
 
 ### P-08 Slices per slot 6 → 12–16, per-plane bands, random offsets
-Status: **jitter sub-arm ✅ KEEP — see [experiments.md](experiments.md)**: `cache_jitter` gives
+Status: **jitter sub-arm ✅ KEEP — see [experiments.md](experiments.md)**, now **LB-confirmed**
+(submission #4: **0.877**, a new best, from OOF 0.8528). `cache_jitter` gives
 **+0.0113 OOF against a 0.008 floor**, removes the epoch-2 overfitting turn (train loss *rises*
 to 0.4265 while OOF improves), and lifts **11 of 12 labels with none regressing** — a pattern no
 seed change produces. It is now part of the default recipe and of every arm launched since. The

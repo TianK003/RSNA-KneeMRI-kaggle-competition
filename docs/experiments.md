@@ -45,6 +45,7 @@ Judge label changes on **coverage** (does the rule fire at all, per language) an
 | 2026-08-28 | v01 smoke model (1 fold, 1 epoch, 4 studies) — submission #1 | n/a | **0.500** | ❌ constant output at rerun (see Submissions) |
 | 2026-08-28 | **v02 fold 0, real run (kernel v6)**: DINOv2-S 224, 6 slices/slot, 4 epochs, prob targets, LR 2e-5+LLRD, EMA | 0.847 (n=11, CI 0.72–0.94) · OOF-vs-teacher **0.821** (882 studies) | **0.841** | ✅ first real model; per-label table below |
 | 2026-08-28 | **v03 fold 0 from the cache (kernel v8)**: v6 recipe + 130 mm crop + laterality + per-series norm | 0.906 (n=11, CI 0.81–0.97) · OOF-vs-teacher **0.843** (882 studies) | **0.871** | ✅ KEEP — LB +0.030 vs v02, 6× the 0.005 floor |
+| 2026-08-29 | **v04d fold 0 (kernel v11)**: v03 recipe + `cache_jitter` slice augmentation | 0.904 (n=11, CI 0.82–0.95) · OOF-vs-teacher **0.8528** (882 studies) | **0.877** | ✅ KEEP on OOF (+0.0113 vs a 0.008 floor, 11/12 labels up); LB +0.006 is only 1.2× the 0.005 floor and is *corroboration, not proof* |
 
 **External reference points** (not ours — for calibrating ambition):
 
@@ -755,6 +756,18 @@ Position: **0.871 from one fold, one backbone, no ensemble, no TTA**, against a 
 0.952 and ranks 2–9 spanning 0.946–0.949. The remaining gap is 0.081, and a 5-fold rank-mean of
 this recipe is the cheapest standing claim on part of it.
 
+> **EXTENDED 2026-08-29 — third point, submission #4.** `v04d` (slice jitter): OOF **0.8528** →
+> LB **0.877**, offset **+0.024**. Three for three inside the +0.02–0.03 band (+0.020, +0.028,
+> +0.024), and the prediction made *before* submitting (0.875–0.88) contained the result. The
+> offset is now good enough to plan with, though still n=3 and all from one fold of one backbone
+> — an ensemble may not sit on the same curve. Best is now **0.877**; the gap to the public top
+> is 0.075.
+>
+> Note the asymmetry that makes the OOF metric worth having: the OOF delta (+0.0102) cleared its
+> floor by 1.3×, while the LB delta (+0.006) cleared its floor by only 1.2×. **Neither is decisive
+> alone** — what makes jitter a ✅ KEEP is the 11-of-12 per-label sign pattern, which no
+> single-number comparison would have shown.
+
 
 Log every submission here with the exact kernel version, config diff, OOF score,
 and public LB score, so a public/private divergence can be traced to a specific change.
@@ -764,4 +777,4 @@ and public LB score, so a public/private divergence can be traced to a specific 
 | 1 | 2026-08-28 | rsna-knee-train v2 | v01 smoke (1 fold, 1 epoch, 2 slices/slot, rank targets) | n/a | **0.500** | exactly 0.500 = constant output at rerun; image-root assumption failed silently. Mechanics of submitting verified. |
 | 2 | 2026-08-28 | rsna-knee-infer v1 (mounts rsna-knee-train v6) | v02 fold 0: DINOv2-S 224, 6 slices/slot, 4 ep, prob targets, LR 2e-5+LLRD, EMA | 0.821 | **0.841** | First non-0.500 score — the submission path works. Above the ~0.809 public DINOv2-S baseline on one fold. |
 | 3 | 2026-08-28 | rsna-knee-infer v3 (mounts rsna-knee-train v8) | v03: same recipe, trained from the cache — adds 130 mm crop + laterality + per-series norm | 0.843 | **0.871** | **+0.030 vs #2**, 6× the 0.005 LB floor. The OOF gain transferred and amplified. Also the first submission through the fixed infer path (traps 6d). |
-| 4 | 2026-08-29 | rsna-knee-infer v4 (mounts rsna-knee-train v11) | v04d: v03 recipe + `cache_jitter` slice augmentation | 0.8528 | ⏳ pending | +0.0113 OOF over `v04base` against a **measured** 0.008 floor; 11/12 labels up, none down; removes the epoch-2 overfitting turn. Predicted ~0.875–0.88 from the +0.02–0.03 OOF→LB offset. |
+| 4 | 2026-08-29 | rsna-knee-infer v4 (mounts rsna-knee-train v11) | v04d: v03 recipe + `cache_jitter` slice augmentation | 0.8528 | **0.877** | +0.0113 OOF over `v04base` against a **measured** 0.008 floor; 11/12 labels up, none down; removes the epoch-2 overfitting turn. Predicted ~0.875–0.88 from the +0.02–0.03 OOF→LB offset. |
