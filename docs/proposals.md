@@ -62,7 +62,7 @@ result*, per unit of cost. "Depends on" lists hard blockers only.
 | P-07 | Synovitis ← Effusion back-fill (measured, not adopted) | 🔁 measured on gold; OOF pending | low-medium | done (audit) | P-06 OOF |
 | P-08 | Slices per slot 6 → 12–16, per-plane bands, random offsets | ✅ jitter sub-arm KEEP (**+0.0113 OOF, LB 0.877**) · K sweep 💡 **downgraded** | delivered by jitter; low-medium for K | 0.5 session | P-01 |
 | P-09 | Per-label masked attention head over slots | ✅ KEEP — **+0.0103** at matched 8 ep; mechanism is overfit-resistance, **not** the predicted plane-specialisation | delivered | done | P-01 |
-| P-10 | Second architecture family (timm ConvNeXt first; RadImageNet behind a flag) | 💡 untested — **re-prioritised 2026-08-29**: with P-21 done, a third *diverse* member is the next lever; folds are not (#6/#7) | **high — the obvious next GPU spend**; fold 0 first (~1 h), judge on ρ vs the two heads and the fold-0 blend gain | 1 session | P-01, P-04 |
+| P-10 | Second architecture family (HF ConvNeXt-Tiny first; RadImageNet behind a flag) | 🔧 **implemented, effect pending** — arm `v06c` (ConvNeXt-T, concat, jitter, 8 ep, fold 0); smoke pushed 2026-08-29 late | **high — the next GPU spend**; judge on ρ < 0.77 vs both heads **and** 3-way fold-0 blend > 0.8670 + 0.008 | ~1.8 h fold-0 arm | P-01, P-04 |
 | P-11 | Resolution 224 vs 336 after the 130 mm crop | 💡 untested | low-medium | 1 session + sharded cache | P-01, P-08 |
 | P-12 | Slice-window TTA (label-safe only) [our hypothesis] | 💡 untested | low | 0.1 session | P-01 |
 | P-13 | 3 vs 5 folds under a fixed session budget [our hypothesis] | 💡 untested, but **directly supported 2026-08-29**: 5 folds alone +0.009 LB, 5 folds on top of a second head **+0.000** — diversity beats replicates (experiments.md, "First valid 5-fold run", RESOLVED note) | **raised — the next GPU spend is a diverse member, not folds** | 1–2 sessions | P-10 |
@@ -307,10 +307,22 @@ If it fails: keep concat; record in experiments.md.
 Depends on: P-01.
 
 ### P-10 Second architecture family (timm ConvNeXt first; RadImageNet R50 behind a flag)
-Status: 💡 untested, and **de-prioritised 2026-08-29**: kernel v13 showed a *different head on the
-same backbone* already gives ρ = 0.773 and a +0.0096 blend gain at zero extra training cost
-(P-21). Buy the free diversity first; this card only earns a session if P-21's LB gain lands and
-more is still wanted.
+Status: 🔧 **implemented 2026-08-29 (late), effect pending** — `Config.backbone` ∈ {`dinov2`,
+`convnext_tiny`}; HF `facebook/convnext-tiny-224` (Apache-2.0, ImageNet-1k, 27.8 M params,
+LayerNorm-only so batch-of-1 is safe) mounted from the private Kaggle Dataset
+`tiankljucanin/convnext-tiny-224-hf` (must be made public or replaced before a final submission
+relies on it). Pooled 768-d output feeds the same slice attention pool + concat head; LLRD decays
+per stage (4 stages) from `lr_backbone = 1e-4`. Arm `v06c`: concat head, jitter, 8 epochs,
+`best_oof`, fold 0. Local CPU smoke green; Kaggle smoke pending as this was written. The arm's
+verdict rule (from P-21's template, stricter than the card's original): adopt as a blend member
+only if fold-0 rank correlation against **both** `v05a` and `v05b` is **< 0.77** *and* the
+three-way rank-mean beats the two-head 0.8670 by **> 0.008**; its own OOF must be within ~0.02 of
+DINOv2-S (`v05b` 0.8471 / `v05g` 0.8508) or the diversity is bought with too much bias.
+Previous status (kept for the record): 💡 untested, **de-prioritised 2026-08-29**: kernel v13 showed a
+*different head on the same backbone* already gives ρ = 0.773 and a +0.0096 blend gain at zero
+extra training cost (P-21). Buy the free diversity first; this card only earns a session if P-21's
+LB gain lands and more is still wanted. → P-21 landed (+0.019 LB) and folds added nothing (#6/#7),
+so the card was re-prioritised the same evening.
 Hypothesis: A CNN member adds error diversity an all-DINOv2 blend lacks; the rank-mean of two families is at least as good as five DINOv2 folds on OOF.
 Origin: competition write-up / peer-reviewed.
 Evidence: every RSNA winner blended families ([TheoViel], [Nischaydnk], [darraghdog/RSNA22]); ConvNeXt-B > ViT-B/16 on CXR ([2510.07191](https://arxiv.org/abs/2510.07191)); DINOv2 lost to ImageNet CNNs on clinical brain MRI ([2402.07595](https://arxiv.org/abs/2402.07595)); RadImageNet R50 > ImageNet R50 on knee tasks (ACL 0.97 vs 0.91, [RadImageNet](https://pmc.ncbi.nlm.nih.gov/articles/PMC9530758/)); public +0.003 from a RadImageNet head blend is inside noise (prvsiyan, **notebook, not re-read**). BatchNorm diverges at tiny effective batch ([ELNet](https://arxiv.org/abs/2005.02706)).

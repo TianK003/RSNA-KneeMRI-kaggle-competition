@@ -192,11 +192,15 @@ INFER_BLEND = "by_version"
 # jitter +0.011 KEEP; lat_undo -0.015 confirms P-05; attn -0.005 INCONCLUSIVE *because it had
 # not converged* (still rising at ep3, train loss 0.447 vs 0.398). So the retest gives the head
 # a schedule it can converge in, with a matched control that changes only the head.
+# v13 (v05a attn / v05b concat, 8 ep) closed P-09 and gave the 0.896 two-head blend; the 5-fold
+# v05g run showed folds add nothing on top of head diversity (#6/#7). P-10: the next member must
+# make *different* errors -- a second architecture family. ConvNeXt-Tiny, concat head, jitter,
+# 8 epochs under ckpt_policy=best_oof (unknown peak epoch for a CNN), backbone LR 1e-4 per the
+# card (ImageNet-supervised CNN tolerates 5x the LR that DINOv2's SSL features need).
 ARMS = [
-    ("v05a", {"head_type": "attn", "cache_jitter": True}),   # P-09 retest, 8 epochs
-    ("v05b", {"cache_jitter": True}),                        # P-04 control: same schedule, concat head
+    ("v06c", {"backbone": "convnext_tiny", "cache_jitter": True, "epochs": 8, "lr_backbone": 1e-4}),
 ]
-PRIMARY_ARM = "v05a"
+PRIMARY_ARM = "v06c"
 ARM_FOLDS = (0,)
 
 # Refuse to silently train the v02 decode path when the cache is expected (traps 6f).
@@ -242,7 +246,12 @@ class Config:
     cache_jitter: bool = False
 
     # model
-    backbone_dir: str = ""           # filled in below
+    # P-10: a second architecture family as a blend member. "dinov2" = DINOv2 ViT-S/14 (CLS
+    # token); "convnext_tiny" = HF facebook/convnext-tiny-224 (ImageNet-1k, Apache-2.0,
+    # LayerNorm throughout so batch-of-1 is safe; pooled 768-d output). Same 224x3 ImageNet-
+    # normalised triplets feed both, so a study array is shared across families at inference.
+    backbone: str = "dinov2"
+    backbone_dir: str = ""           # resolved from `backbone` below (and per arm / per member)
     dropout: float = 0.1
     # P-09. "concat" = v03 baseline (6 slot vectors + mask -> one Linear); "attn" = 12
     # learned label queries doing masked attention over the present slot vectors.
@@ -306,16 +315,34 @@ CACHE_INDEX = {}      # StudyInstanceUID -> path of the cached .npy (filled in S
 
 # Weight locations differ between Kaggle (mounted Model, two possible layouts) and
 # local (models/). config.json is the marker that a real HF checkpoint dir is there.
-cfg.backbone_dir = resolve_dir([
-    "/kaggle/input/dinov2/pytorch/small/1",
-    "/kaggle/input/models/metaresearch/dinov2/pytorch/small/1",
-    "/kaggle/input/dinov2-small/pytorch/small/1",
-    "models/dinov2_small",
-], must_contain="config.json")
-if cfg.backbone_dir is None:
-    raise SystemExit("DINOv2 weights not found -- attach metaresearch/dinov2 "
-                     "PyTorch/small/1 as a Model input")
-print(f"backbone: {cfg.backbone_dir}")
+BACKBONES = {
+    "dinov2": ([
+        "/kaggle/input/dinov2/pytorch/small/1",
+        "/kaggle/input/models/metaresearch/dinov2/pytorch/small/1",
+        "/kaggle/input/dinov2-small/pytorch/small/1",
+        "models/dinov2_small",
+    ], "metaresearch/dinov2 PyTorch/small/1 as a Model input"),
+    "convnext_tiny": ([
+        "/kaggle/input/datasets/tiankljucanin/convnext-tiny-224-hf",
+        "/kaggle/input/convnext-tiny-224-hf",
+        "models/convnext_tiny",
+    ], "tiankljucanin/convnext-tiny-224-hf as a Dataset input"),
+}
+
+
+def resolve_backbone_dir(backbone: str) -> str:
+    """HF checkpoint dir for a backbone family; both mount layouts probed (traps 6f/10)."""
+    if backbone not in BACKBONES:
+        raise SystemExit(f"unknown backbone {backbone!r}; known: {sorted(BACKBONES)}")
+    candidates, attach = BACKBONES[backbone]
+    d = resolve_dir(candidates, must_contain="config.json")
+    if d is None:
+        raise SystemExit(f"{backbone} weights not found -- attach {attach}")
+    return d
+
+
+cfg.backbone_dir = resolve_backbone_dir(cfg.backbone)
+print(f"backbone: {cfg.backbone} @ {cfg.backbone_dir}")
 print(json.dumps({k: str(v) for k, v in asdict(cfg).items()}, indent=1))
 
 
@@ -1171,11 +1198,17 @@ class SlotAttnHead(nn.Module):
 
 class KneeNet(nn.Module):
     def __init__(self, backbone_dir: str, n_labels=len(LABELS), dropout=0.1,
-                 head_type="concat", slot_dropout=0.0):
+                 head_type="concat", slot_dropout=0.0, backbone="dinov2"):
         super().__init__()
-        from transformers import Dinov2Model
-        self.enc = Dinov2Model.from_pretrained(backbone_dir)
-        self.dim = self.enc.config.hidden_size
+        self.backbone = backbone
+        if backbone == "convnext_tiny":
+            from transformers import ConvNextModel
+            self.enc = ConvNextModel.from_pretrained(backbone_dir)
+            self.dim = self.enc.config.hidden_sizes[-1]          # 768 for Tiny
+        else:
+            from transformers import Dinov2Model
+            self.enc = Dinov2Model.from_pretrained(backbone_dir)
+            self.dim = self.enc.config.hidden_size
         self.pool = AttnPool(self.dim)
         self.drop = nn.Dropout(dropout)
         self.head_type = head_type
@@ -1189,7 +1222,11 @@ class KneeNet(nn.Module):
         # imgs: (B, SLOT, S, 3, H, W)   mask: (B, SLOT)
         B, NS, S = imgs.shape[0], imgs.shape[1], imgs.shape[2]
         flat = imgs.reshape(B * NS * S, *imgs.shape[3:])
-        feats = self.enc(pixel_values=flat).last_hidden_state[:, 0]   # CLS token
+        out = self.enc(pixel_values=flat)
+        if self.backbone == "convnext_tiny":
+            feats = out.pooler_output                    # LayerNorm(global-avg-pool), (N, 768)
+        else:
+            feats = out.last_hidden_state[:, 0]          # CLS token, (N, 384)
         feats = feats.reshape(B, NS, S, self.dim)
         pooled = torch.stack([
             torch.stack([self.pool(feats[b, s]) for s in range(NS)])
@@ -1384,7 +1421,11 @@ def param_groups(model, cfg):
     below gets one more factor of `llrd_decay`; embeddings one more still. The head
     and the attention pool are freshly initialised, so they get `lr_head` undecayed.
     """
-    n_blocks = model.enc.config.num_hidden_layers
+    # DINOv2: `encoder.layer.<i>` x 12 blocks. ConvNeXt (HF): `encoder.stages.<s>` x 4 stages
+    # (depths 3/3/9/3) -- decay per stage, since a stage is the CNN's unit of feature level.
+    is_cnn = getattr(model, "backbone", "dinov2") == "convnext_tiny"
+    n_blocks = (len(model.enc.config.hidden_sizes) if is_cnn
+                else model.enc.config.num_hidden_layers)
     groups = {}
 
     def add(name, p, lr):
@@ -1400,7 +1441,7 @@ def param_groups(model, cfg):
             continue
         if name.startswith("embeddings."):
             depth = 0
-        elif name.startswith("encoder.layer."):
+        elif name.startswith("encoder.layer.") or name.startswith("encoder.stages."):
             depth = int(name.split(".")[2]) + 1
         else:                       # final layernorm
             depth = n_blocks + 1
@@ -1452,8 +1493,8 @@ def train_fold(fold, manifest, targets, image_root, cfg, device):
     ckpt_last = os.path.join(WORK, f"{cfg.version}_fold{fold}_last.pt")
     oof_path = os.path.join(WORK, f"{cfg.version}_fold{fold}_oof.csv")
 
-    model = KneeNet(cfg.backbone_dir, dropout=cfg.dropout,
-                    head_type=cfg.head_type, slot_dropout=cfg.slot_dropout).to(device)
+    model = KneeNet(cfg.backbone_dir, dropout=cfg.dropout, head_type=cfg.head_type,
+                    slot_dropout=cfg.slot_dropout, backbone=cfg.backbone).to(device)
     opt = torch.optim.AdamW(param_groups(model, cfg))
     ema = EMA(model, cfg.ema_decay) if cfg.ema_decay > 0 else None
 
@@ -1810,6 +1851,7 @@ if mode == "train":
         # otherwise be a duplicate keyword argument and raise TypeError. Overrides win.
         _ov = {**({"folds": ARM_FOLDS} if ARMS else {}), **overrides}
         cfg = replace(base_cfg, version=arm_version, **_ov)
+        cfg.backbone_dir = resolve_backbone_dir(cfg.backbone)   # an arm may switch family (P-10)
         globals()["cfg"] = cfg
         if ARMS:
             print(f"\n########## arm {arm_version}: {overrides or 'baseline'} "
@@ -1844,6 +1886,7 @@ if mode == "train":
     if ARMS:
         cfg = replace(base_cfg, version=PRIMARY_ARM,
                       **{"folds": ARM_FOLDS, **dict(ARMS)[PRIMARY_ARM]})
+        cfg.backbone_dir = resolve_backbone_dir(cfg.backbone)
         globals()["cfg"] = cfg
         print(f"\ninference uses PRIMARY_ARM={PRIMARY_ARM}")
     # members are (version, fold, path), the same shape the infer branch builds
@@ -2000,15 +2043,17 @@ else:
             print(f"  {v}/fold{fold}: no checkpoint, skipped")
             continue
         st = torch.load(ck, map_location=device, weights_only=False)
-        head = st.get("config", {}).get("head_type", cfg.head_type)
-        m = KneeNet(cfg.backbone_dir, dropout=cfg.dropout,
-                    head_type=head, slot_dropout=cfg.slot_dropout).to(device)
+        saved_cfg = st.get("config", {})
+        head = saved_cfg.get("head_type", cfg.head_type)
+        bb = saved_cfg.get("backbone", "dinov2")          # family is per member (P-10)
+        m = KneeNet(resolve_backbone_dir(bb), dropout=cfg.dropout, head_type=head,
+                    slot_dropout=cfg.slot_dropout, backbone=bb).to(device)
         m.load_state_dict(st["model"])
         t_f = time.time()
         frames.append(predict(m, test_manifest, TEST_IMG, cfg, test_studies, device))
         member_tags.append(f"{v}/fold{fold}")
         dt = time.time() - t_f
-        print(f"  {v}/fold{fold} ({head}): predicted {len(frames[-1])} studies in {dt:.0f}s "
+        print(f"  {v}/fold{fold} ({bb}, {head}): predicted {len(frames[-1])} studies in {dt:.0f}s "
               f"({dt/max(len(frames[-1]),1)*100:.0f} s per 100 studies) "
               f"[epoch {st.get('epoch')}, score {st.get('score')}, ema {st.get('ema')}]")
         del m
