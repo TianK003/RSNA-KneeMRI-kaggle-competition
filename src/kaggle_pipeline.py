@@ -173,6 +173,13 @@ MODE = "auto"
 # │ Members must share preprocessing geometry; head_type may differ.        │
 # └──────────────────────────────────────────────────────────────────────────┘
 INFER_MEMBERS = ["v05a", "v05b"]        # attn + concat heads, fold 0: OOF 0.8670 rank-mean
+# How members combine. "by_version": rank-mean the folds of each version, then rank-mean the
+# versions -- every version gets one vote, however many folds it has. "flat": one vote per
+# checkpoint. Measured on fold 0 (2026-08-29): attn + concat-8ep + concat-4ep flat = 0.8680,
+# but with the concat-4ep version carrying 5 fold votes the flat mean drops to 0.8611 -- below
+# the two-head blend alone (0.8670) -- because the attention head, the source of the
+# diversity, becomes 1/7 of the vote. Versions are the unit of diversity; folds are replicates.
+INFER_BLEND = "by_version"
 
 # ┌──────────────────────────────────────────────────────────────────────────┐
 # │ ARMS: run several fold-0 configurations back to back in ONE session.     │
@@ -2018,7 +2025,16 @@ else:
                 rho = float(np.mean([frames[i][l].corr(frames[j][l], method="spearman")
                                      for l in LABELS]))
                 print(f"  rank correlation {member_tags[i]} vs {member_tags[j]}: {rho:.3f}")
-    sub = rank_mean(frames)
+    if INFER_BLEND == "by_version":
+        by_version = {}
+        for tag, f in zip(member_tags, frames):
+            by_version.setdefault(tag.split("/")[0], []).append(f)
+        sub = rank_mean([rank_mean(fs) for fs in by_version.values()])
+        print("  blend: by_version -> " + ", ".join(f"{v} ({len(fs)} fold{'s' if len(fs) != 1 else ''})"
+                                                  for v, fs in by_version.items()))
+    else:
+        sub = rank_mean(frames)
+        print(f"  blend: flat over {len(frames)} members")
 
     # Any study we could not image must still appear, or the submission is rejected.
     sub = ref[["StudyInstanceUID"]].merge(sub, on="StudyInstanceUID", how="left")

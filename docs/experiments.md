@@ -769,6 +769,14 @@ throughout). **4.27 h** for five folds including inference; the 8.3 h guard was 
   head diversity (ρ 0.77) beats schedule diversity (ρ 0.84). The fold-ensemble gain itself cannot be
   read from OOF (each study is held out once) — it is measured only on the LB, which is what the
   `INFER_MEMBERS=["v05g"]` infer kernel (v6) is for.
+- **Vote weighting matters more than member count.** Same three fold-0 models, rank-mean with
+  different weights (attn : concat-8ep : concat-4ep): flat 1:1:1 **0.8680**; **1:1:5 — what a flat
+  mean over 7 checkpoints gives, since `v05g` has five folds — 0.8611**, below the two-head blend
+  alone (0.8670); attn 2:1:1 0.8688 (inside the floor of 1:1:1, not adopted — no tuning on fold 0).
+  The attention head is the source of the diversity and a flat mean dilutes it to 1/7. So the infer
+  path now defaults to **`INFER_BLEND="by_version"`**: rank-mean the folds of each version, then
+  rank-mean the versions — one vote per version, no fitted weights. The flat 7-member kernel
+  (infer v7) was built and verified but is **not** to be submitted; v8 is the by-version one.
 
 **Verdict:** ✅ the five checkpoints are the valid ensemble base (`v05g_fold{0..4}_best.pt` in
 `rsna-knee-folds` v4 output; **never mount v2's `v05f`**). Whether five folds buy more than +0.005 LB
