@@ -32,6 +32,7 @@ import json
 import math
 import os
 import random
+import tempfile
 import time
 import traceback
 from dataclasses import dataclass, field, asdict, replace
@@ -77,6 +78,43 @@ if ON_KAGGLE:
 else:
     COMP = "data"
     WORK = "artifacts/local_run"
+
+
+def print_input_layout(root="/kaggle/input", max_depth=3,
+                       skip=("train_series", "test_series"), max_dirs=12):
+    """Where did Kaggle mount things? A slug created today lays out /kaggle/input
+    differently from one created last week (type-prefixed, one or two levels deeper), and
+    a glob that is too shallow fails silently (traps 6f). Print the tree, minus the image
+    trees, so the layout is read off the log instead of inferred after the fact."""
+    if not os.path.isdir(root):
+        return
+    print(f"input layout under {root} (depth <= {max_depth}; image trees not descended):")
+
+    def walk(d, depth):
+        try:
+            names = sorted(os.listdir(d))
+        except OSError as e:
+            print(f"  {d}: {e}")
+            return
+        dirs = [n for n in names if os.path.isdir(os.path.join(d, n))]
+        files = [n for n in names if n not in dirs]
+        print(f"  {d}: {len(dirs)} dirs, {len(files)} files"
+              + (f"  e.g. {files[:4]}" if files else ""))
+        if depth >= max_depth:
+            return
+        for n in dirs[:max_dirs]:
+            if n in skip:
+                print(f"  {os.path.join(d, n)}: (image tree, skipped)")
+            else:
+                walk(os.path.join(d, n), depth + 1)
+        if len(dirs) > max_dirs:
+            print(f"  {d}: ... {len(dirs) - max_dirs} more dirs not shown")
+
+    walk(root, 0)
+
+
+if ON_KAGGLE:
+    print_input_layout()
 
 os.makedirs(WORK, exist_ok=True)
 print(f"ON_KAGGLE={ON_KAGGLE}  COMP={COMP}  WORK={WORK}")
@@ -127,6 +165,16 @@ FORCE_SMOKE = True
 MODE = "auto"
 
 # ┌──────────────────────────────────────────────────────────────────────────┐
+# │ INFER_MEMBERS: versions rank-meaned in "infer" mode (P-21). Every        │
+# │ mounted `{version}_fold*_best.pt` of every listed version is one member  │
+# │ of a flat rank-mean. A listed version with NO mounted checkpoint is      │
+# │ fatal, so the blend can never silently shrink to a model that was not   │
+# │ the one validated (traps 6d). Empty -> [cfg.version]. Ignored in "train".│
+# │ Members must share preprocessing geometry; head_type may differ.        │
+# └──────────────────────────────────────────────────────────────────────────┘
+INFER_MEMBERS = ["v05a", "v05b"]        # attn + concat heads, fold 0: OOF 0.8670 rank-mean
+
+# ┌──────────────────────────────────────────────────────────────────────────┐
 # │ ARMS: run several fold-0 configurations back to back in ONE session.     │
 # │ Each arm gets its own version string, so its checkpoints and OOF csvs    │
 # │ (`{version}_fold0_*`) never collide. An arm that raises is logged and    │
@@ -150,10 +198,12 @@ ALLOW_DECODE_FALLBACK = False
 # Flipped by sed for kaggle/rsna-knee-folds: five folds of the confirmed v04d recipe
 # (concat + jitter, 4 epochs) for the first real ensemble. 5 x 4 epochs ~= 4.5 h; 5 x 8 would
 # be ~9 h and needs the resume path instead.
+# `v05f` is RETIRED: rsna-knee-folds v2 wrote v05f_fold*.pt trained on the v02 decode path
+# (the cache never mounted, traps 6f). Never mount that output; the valid re-run is `v05g`.
 FIVE_FOLD = False
 if FIVE_FOLD:
-    ARMS = [("v05f", {"cache_jitter": True, "folds": (0, 1, 2, 3, 4), "epochs": 4})]
-    PRIMARY_ARM = "v05f"
+    ARMS = [("v05g", {"cache_jitter": True, "folds": (0, 1, 2, 3, 4), "epochs": 4})]
+    PRIMARY_ARM = "v05g"
 
 
 @dataclass
@@ -221,6 +271,10 @@ class Config:
     runtime_limit_hours: float = 8.3   # leave headroom under Kaggle's 9 h ceiling
     seed: int = 42
     num_workers: int = 2
+    # Which epoch `_best.pt` holds. "best_oof": the epoch with the highest OOF-vs-teacher
+    # macro-AUC so far (P-22: +0.013 split-half for the concat head, ~0 for attn, gold flat).
+    # "last": EMA weights after the last completed epoch (fixed-epoch, used through v05).
+    ckpt_policy: str = "best_oof"
     # Smoke only: cap the header scan so a verification run does not spend minutes
     # reading all ~24k series headers before it reaches the training loop.
     smoke_max_studies: int = 24
@@ -1411,7 +1465,7 @@ def train_fold(fold, manifest, targets, image_root, cfg, device):
     use_amp = cfg.amp and device.type == "cuda"
     scaler = torch.amp.GradScaler("cuda", enabled=use_amp)
 
-    start_epoch, best = 0, -1.0
+    start_epoch, best, best_epoch = 0, -1.0, -1
     if os.path.exists(ckpt_last):
         st = torch.load(ckpt_last, map_location=device, weights_only=False)
         model.load_state_dict(st["model"])
@@ -1423,7 +1477,8 @@ def train_fold(fold, manifest, targets, image_root, cfg, device):
         sched.load_state_dict(st["sched"])
         start_epoch = st["epoch"] + 1
         best = st.get("best", -1.0)
-        print(f"  resumed fold {fold} at epoch {start_epoch} (best {best:.4f})")
+        best_epoch = st.get("best_epoch", st["epoch"])
+        print(f"  resumed fold {fold} at epoch {start_epoch} (best {best:.4f} at epoch {best_epoch})")
 
     for epoch in range(start_epoch, cfg.epochs):
         model.train()
@@ -1473,30 +1528,40 @@ def train_fold(fold, manifest, targets, image_root, cfg, device):
             print("  !! prediction spread near zero -- base-rate collapse, not a "
                   "converged model")
 
-        torch.save({"model": model.state_dict(), "opt": opt.state_dict(),
-                    "sched": sched.state_dict(), "epoch": epoch, "best": best,
-                    **({"ema": ema.module.state_dict()} if ema is not None else {})},
-                   ckpt_last)
-        # Which epoch is "the" model? Selecting the best epoch on ~12 gold studies per
-        # fold is a coin flip (Hanley-McNeil SE ~0.09), and selecting on the soft
-        # targets rewards memorising the teacher. So `{version}_fold{k}_best.pt` is
-        # simply the EMA weights after the LAST COMPLETED epoch (fixed-epoch selection,
-        # P-03/P-04). The per-epoch score is logged, not used. A NaN score therefore
-        # cannot drop a fold from the ensemble either.
-        score = metrics.get("auc_gold")
-        if score is None or not np.isfinite(score):
-            score = metrics.get("auc_soft")
+        # Which epoch is "the" model? Selecting on the ~11 gold studies per fold is a coin
+        # flip (Hanley-McNeil SE ~0.09) and stays banned. Through v05 `_best.pt` was simply
+        # the EMA weights after the LAST completed epoch (fixed-epoch, P-03/P-04). P-22
+        # (src/oof_epoch_analysis.py, 2026-08-29) then measured selection on OOF-vs-teacher
+        # over the 882 held-out studies: +0.013 split-half for the concat head, which peaks
+        # mid-schedule and decays, ~0 for the attention head, gold flat at the chosen epoch --
+        # so `ckpt_policy="best_oof"` keeps the epoch with the highest auc_soft so far.
+        # The score is never gold. A NaN score cannot drop a fold: the first epoch is always
+        # written, and an undefined AUC falls back to the loss.
+        score = metrics.get("auc_soft")
         if score is None or not np.isfinite(score):
             score = -running / max(nb, 1)
-        best = max(score, best) if np.isfinite(score) else best
-        torch.save({"model": eval_model.state_dict(), "score": score, "epoch": epoch,
-                    "ema": ema is not None, "config": asdict(cfg)}, ckpt_best)
+        take = (cfg.ckpt_policy == "last" or score > best
+                or not os.path.exists(ckpt_best))
+        if take:
+            best, best_epoch = score, epoch
+        torch.save({"model": model.state_dict(), "opt": opt.state_dict(),
+                    "sched": sched.state_dict(), "epoch": epoch, "best": best,
+                    "best_epoch": best_epoch,
+                    **({"ema": ema.module.state_dict()} if ema is not None else {})},
+                   ckpt_last)
         if oof is not None:
             oof.insert(1, "epoch", epoch)
             oof.to_csv(oof_path.replace("_oof.csv", f"_ep{epoch}_oof.csv"), index=False)
-            oof.to_csv(oof_path, index=False)        # always the checkpointed epoch
-        print(f"    checkpoint = epoch {epoch} EMA (score {score:.4f}) -> "
-              f"{os.path.basename(ckpt_best)} + {os.path.basename(oof_path)}")
+        if take:
+            torch.save({"model": eval_model.state_dict(), "score": score, "epoch": epoch,
+                        "ema": ema is not None, "config": asdict(cfg)}, ckpt_best)
+            if oof is not None:
+                oof.to_csv(oof_path, index=False)        # always the checkpointed epoch
+        print(f"    epoch {epoch} EMA score {score:.4f} -> "
+              + (f"checkpoint = epoch {epoch} ({os.path.basename(ckpt_best)} + "
+                 f"{os.path.basename(oof_path)})" if take else
+                 f"not taken; best.pt stays epoch {best_epoch} ({best:.4f})")
+              + f" [ckpt_policy={cfg.ckpt_policy}]")
 
         if out_of_time():
             print("  stopping: runtime guard. Attach this output and re-run to resume.")
@@ -1564,7 +1629,9 @@ def find_mounted_checkpoints(version, kind="best"):
     roots = ["/kaggle/input"] if ON_KAGGLE else ["artifacts/kaggle_out"]
     found = {}
     for root in roots:
-        for p in shallow_glob(root, f"{version}_fold*_{kind}.pt", max_depth=3):
+        # depth 4 like load_cache_manifests: a new slug mounts kernel outputs type-prefixed
+        # (/kaggle/input/<type>/<owner>/<name>/...), an old one at /kaggle/input/<name>/ (traps 6f)
+        for p in shallow_glob(root, f"{version}_fold*_{kind}.pt", max_depth=4):
             m = re.search(rf"{re.escape(version)}_fold(\d+)_{kind}\.pt$", p)
             if m:
                 found.setdefault(int(m.group(1)), p)
@@ -1581,27 +1648,48 @@ else:
     mode = "infer" if mounted_ckpts and set(cfg.folds) <= set(mounted_ckpts) else "train"
 print(f"MODE={mode}  mounted best: {sorted(mounted_ckpts)}  mounted last: {sorted(mounted_last)}")
 
-if mode == "infer" and not mounted_ckpts:
-    raise SystemExit(f"MODE=infer but no {cfg.version}_fold*_best.pt is mounted. Attach the "
-                     f"training run's output as a kernel input (kernel_sources).")
+INFER_GEOM_KEYS = ("slices_per_slot", "triplet_gap", "img_size", "use_cache", "cache_n_slices",
+                   "cache_px", "crop_mm", "lat_dead_zone_mm", "lat_undo")
+infer_members = []          # [(version, fold, path)] -- the blend, in infer mode
+infer_heads = {}            # (version, fold) -> head_type, read from each checkpoint
 if mode == "infer":
-    # The checkpoint decides the input geometry, not FORCE_SMOKE: a smoke-mode infer
-    # would otherwise feed 2 slices/slot to a model trained on 6 and pass every assert.
-    st0 = torch.load(mounted_ckpts[min(mounted_ckpts)], map_location="cpu", weights_only=False)
-    saved = st0.get("config", {})
-    for k in ("slices_per_slot", "triplet_gap", "img_size", "use_cache", "cache_n_slices",
-              "cache_px", "crop_mm", "lat_dead_zone_mm", "head_type", "lat_undo"):
-        if k in saved and getattr(cfg, k) != saved[k]:
-            print(f"  infer: {k} {getattr(cfg, k)} -> {saved[k]} (from checkpoint)")
-            setattr(cfg, k, saved[k])
-    # Predict with exactly the checkpoints that are mounted. Previously this was gated on
-    # cfg.smoke, so a real-mode infer kernel kept folds (0,1,2,3,4), looked for four
-    # checkpoints that do not exist and rank-meaned a single fold anyway.
-    if set(mounted_ckpts) != set(cfg.folds):
-        print(f"  infer: using the mounted folds {sorted(mounted_ckpts)} "
-              f"(configured folds {sorted(cfg.folds)} ignored)")
-        cfg.folds = tuple(sorted(mounted_ckpts))
-    del st0
+    # P-21: the submission is a flat rank-mean over every mounted fold checkpoint of every
+    # version in INFER_MEMBERS. Each version must be present -- a blend that silently lost a
+    # member is not the model that was validated (the traps 6d failure class again).
+    for v in (list(INFER_MEMBERS) or [cfg.version]):
+        found = find_mounted_checkpoints(v, "best")
+        if not found:
+            raise SystemExit(f"MODE=infer but no {v}_fold*_best.pt is mounted (INFER_MEMBERS="
+                             f"{INFER_MEMBERS}). Attach the training run's output as a kernel "
+                             f"input (kernel_sources), or drop {v} from INFER_MEMBERS on purpose.")
+        infer_members += [(v, f, found[f]) for f in sorted(found)]
+    print(f"  infer members ({len(infer_members)}): "
+          + ", ".join(f"{v}/fold{f}" for v, f, _ in infer_members))
+    # The checkpoints decide the input geometry, not FORCE_SMOKE: a smoke-mode infer would
+    # otherwise feed 2 slices/slot to a model trained on 6 and pass every assert. One test
+    # array feeds every member (decode-once), so all members must agree on preprocessing;
+    # the head is per member.
+    geom_ref, geom_src = None, None
+    for v, f, p in infer_members:
+        st0 = torch.load(p, map_location="cpu", weights_only=False)
+        saved = st0.get("config", {})
+        infer_heads[(v, f)] = saved.get("head_type", cfg.head_type)
+        geom = {k: saved[k] for k in INFER_GEOM_KEYS if k in saved}
+        if geom_ref is None:
+            geom_ref, geom_src = geom, f"{v}/fold{f}"
+            for k, val in geom.items():
+                if getattr(cfg, k) != val:
+                    print(f"  infer: {k} {getattr(cfg, k)} -> {val} (from {geom_src} checkpoint)")
+                    setattr(cfg, k, val)
+        elif geom != geom_ref:
+            diff = {k: (geom_ref.get(k), geom.get(k)) for k in set(geom) | set(geom_ref)
+                    if geom_ref.get(k) != geom.get(k)}
+            raise SystemExit(f"infer members disagree on preprocessing: {v}/fold{f} vs "
+                             f"{geom_src}: {diff}. Members of one blend must share geometry.")
+        del st0
+    cfg.head_type = infer_heads[infer_members[0][:2]]
+    cfg.folds = tuple(sorted({f for _, f, _ in infer_members}))
+    print("  infer heads: " + ", ".join(f"{v}/fold{f}={h}" for (v, f), h in infer_heads.items()))
 else:
     # Resume: a previous session's output is mounted read-only; copy its checkpoints
     # into WORK so train_fold finds them (otherwise every fold restarts at epoch 0).
@@ -1748,24 +1836,23 @@ if mode == "train":
                       **{"folds": ARM_FOLDS, **dict(ARMS)[PRIMARY_ARM]})
         globals()["cfg"] = cfg
         print(f"\ninference uses PRIMARY_ARM={PRIMARY_ARM}")
-    ckpt_paths = {f: os.path.join(WORK, f"{cfg.version}_fold{f}_best.pt")
-                  for f in cfg.folds}
+    # members are (version, fold, path), the same shape the infer branch builds
+    ckpt_members = [(cfg.version, f, os.path.join(WORK, f"{cfg.version}_fold{f}_best.pt"))
+                    for f in cfg.folds]
 else:
-    missing_folds = [f for f in cfg.folds if f not in mounted_ckpts]
-    if missing_folds:
-        raise SystemExit(f"MODE=infer but no checkpoint mounted for folds "
-                         f"{missing_folds} (version {cfg.version}). Attach the "
-                         f"training run's output as a kernel input.")
-    results = {f: {"best": float("nan"), "completed": True} for f in cfg.folds}
-    ckpt_paths = {f: mounted_ckpts[f] for f in cfg.folds}
+    results = {f"{v}/{f}": {"best": float("nan"), "completed": True} for v, f, _ in infer_members}
+    ckpt_members = list(infer_members)
 
 print("\nfold results:", json.dumps(results, indent=1))
-# With ARMS, `results` is keyed "<arm>/<fold>" across every arm, so completion has to be
-# judged on the arm inference will actually use -- otherwise the count never matches
-# len(cfg.folds) and the infer path is silently skipped.
-done_keys = ([k for k in results if str(k).startswith(f"{PRIMARY_ARM}/")]
-             if (mode == "train" and ARMS) else list(results))
-all_done = len(done_keys) == len(cfg.folds) and all(results[k]["completed"] for k in done_keys)
+if mode == "infer":
+    all_done = True                       # every member was verified mounted above
+else:
+    # With ARMS, `results` is keyed "<arm>/<fold>" across every arm, so completion has to be
+    # judged on the arm inference will actually use -- otherwise the count never matches
+    # len(cfg.folds) and the infer path is silently skipped.
+    done_keys = ([k for k in results if str(k).startswith(f"{PRIMARY_ARM}/")]
+                 if ARMS else list(results))
+    all_done = len(done_keys) == len(cfg.folds) and all(results[k]["completed"] for k in done_keys)
 print(f"all folds complete: {all_done}  elapsed {elapsed_h():.2f} h")
 
 # %% [markdown]
@@ -1843,20 +1930,75 @@ else:
         raise SystemExit(f"only {coverage:.1%} of test studies have images under "
                          f"{TEST_IMG} -- refusing to submit constants")
 
-    frames = []
-    for fold in cfg.folds:
-        ck = ckpt_paths.get(fold)
+    # ---- decode once, predict with every member (P-18 / P-21) --------------------------
+    # A test study is never in the mounted cache, so each member used to re-decode the whole
+    # test set (~1.5-2 s/study). Build every test array ONCE with build_study_array -- the
+    # cache builder's own function, so a test study is preprocessed exactly like a cached
+    # training study -- store it under the system temp dir (NOT WORK: ~4.8 MB/study must not
+    # become kernel output), and register it in CACHE_INDEX so KneeStudyDataset takes the
+    # same np.load branch it takes for training data.
+    if cfg.use_cache and test_studies:
+        test_cache_dir = os.path.join(tempfile.gettempdir(), "rsna_test_cache", CACHE_VERSION)
+        os.makedirs(test_cache_dir, exist_ok=True)
+
+        class _BuildOnce(Dataset):
+            def __init__(self, manifest, studies):
+                self.m = manifest.set_index("StudyInstanceUID")
+                self.s = list(studies)
+
+            def __len__(self):
+                return len(self.s)
+
+            def __getitem__(self, i):
+                study = self.s[i]
+                arr, mask = build_study_array(study, self.m.loc[study], TEST_IMG, cfg)
+                path = os.path.join(test_cache_dir, f"{study}.npy")
+                np.save(path, arr)
+                return study, path, "".join("1" if v > 0 else "0" for v in mask)
+
+        t_dec = time.time()
+        test_masks = {}
+        dec_loader = DataLoader(_BuildOnce(test_manifest, test_studies), batch_size=1,
+                                shuffle=False, num_workers=0 if cfg.smoke else cfg.num_workers,
+                                collate_fn=lambda b: b[0])
+        for k, (study, path, mk) in enumerate(dec_loader):
+            CACHE_INDEX[study] = path
+            test_masks[study] = mk
+            if (k + 1) in (10, 100) or (k + 1) % 500 == 0:
+                dt = time.time() - t_dec
+                print(f"    decoded {k+1}/{len(test_studies)} test studies in {dt:.0f}s "
+                      f"({dt/(k+1):.2f} s/study) -> ETA {dt/(k+1)*len(test_studies)/60:.0f} min")
+        test_manifest["mask"] = test_manifest.StudyInstanceUID.map(test_masks).fillna("")
+        n_bytes = sum(os.path.getsize(p) for p in
+                      (CACHE_INDEX[s] for s in test_studies[:50])) * len(test_studies) / max(min(50, len(test_studies)), 1)
+        print(f"  decode-once: {len(test_masks)} test studies -> {test_cache_dir} in "
+              f"{(time.time()-t_dec)/60:.1f} min (~{n_bytes/1e9:.1f} GB)")
+        # Verify by equality, not by absence of errors (traps 6d/6e): rebuild a few studies on
+        # the fly and compare with what every member is about to read.
+        _chk = test_manifest.set_index("StudyInstanceUID")
+        for study in test_studies[:3]:
+            arr, mask = build_study_array(study, _chk.loc[study], TEST_IMG, cfg)
+            mk = "".join("1" if v > 0 else "0" for v in mask)
+            if not (np.array_equal(arr, np.load(CACHE_INDEX[study])) and mk == test_masks[study]):
+                raise SystemExit(f"decode-once mismatch on {study}: the stored array or mask "
+                                 f"differs from a fresh build -- refusing to predict")
+        print(f"  decode-once verified: {min(3, len(test_studies))} studies rebuilt, identical")
+
+    frames, member_tags = [], []
+    for v, fold, ck in ckpt_members:
         if not ck or not os.path.exists(ck):
-            print(f"  fold {fold}: no checkpoint, skipped")
+            print(f"  {v}/fold{fold}: no checkpoint, skipped")
             continue
         st = torch.load(ck, map_location=device, weights_only=False)
+        head = st.get("config", {}).get("head_type", cfg.head_type)
         m = KneeNet(cfg.backbone_dir, dropout=cfg.dropout,
-                    head_type=cfg.head_type, slot_dropout=cfg.slot_dropout).to(device)
+                    head_type=head, slot_dropout=cfg.slot_dropout).to(device)
         m.load_state_dict(st["model"])
         t_f = time.time()
         frames.append(predict(m, test_manifest, TEST_IMG, cfg, test_studies, device))
+        member_tags.append(f"{v}/fold{fold}")
         dt = time.time() - t_f
-        print(f"  fold {fold}: predicted {len(frames[-1])} studies in {dt:.0f}s "
+        print(f"  {v}/fold{fold} ({head}): predicted {len(frames[-1])} studies in {dt:.0f}s "
               f"({dt/max(len(frames[-1]),1)*100:.0f} s per 100 studies) "
               f"[epoch {st.get('epoch')}, score {st.get('score')}, ema {st.get('ema')}]")
         del m
@@ -1865,6 +2007,14 @@ else:
     if not frames:
         raise SystemExit("no checkpoints produced predictions -- refusing to submit "
                          "constants")
+    if len(frames) > 1 and len(frames[0]) > 3:
+        # Two members that agree perfectly are one model counted twice; print the rank
+        # correlation so the blend's diversity is on the record (P-21 measured 0.773 on OOF).
+        for i in range(len(frames)):
+            for j in range(i + 1, len(frames)):
+                rho = float(np.mean([frames[i][l].corr(frames[j][l], method="spearman")
+                                     for l in LABELS]))
+                print(f"  rank correlation {member_tags[i]} vs {member_tags[j]}: {rho:.3f}")
     sub = rank_mean(frames)
 
     # Any study we could not image must still appear, or the submission is rejected.

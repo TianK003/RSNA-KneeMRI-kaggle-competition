@@ -15,3 +15,4 @@ torch==2.13.0
 torchvision==0.28.0
 transformers==5.16.1
 langdetect==1.0.9      # src/label_audit.py language detection (optional; stopword fallback exists)
+scikit-learn>=1.5
