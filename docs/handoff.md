@@ -6,6 +6,135 @@ to read first after a break.
 
 ---
 
+## 2026-08-29 (17:11) — The 5-fold run was invalid, not slow: the cache never mounted
+
+Findings logged as of `f50e6a4`. This entry is state only. **Read traps 6f first** — it is the
+most transferable thing this session produced.
+
+### ⏳ Still in flight as this was written (17:11)
+
+| In flight | What it is | Started | How to check | How to read it |
+|---|---|---|---|---|
+| **`rsna-knee-folds` v2 — ABANDON IT** | Was meant to be 5 folds × 4 epochs of the `v04d` recipe. It is **training the wrong recipe** (v02 decode path — no crop, no laterality, no per-series norm) because the cache never mounted | 2026-08-29 ~08:00 | `kaggle kernels status tiankljucanin/rsna-knee-folds` | **Do not use its output for anything.** ~9.2 h in; the 8.3 h guard has been reached, and the tail is a post-guard validation pass at ~1 s/study over 882 studies (~15 min) plus checkpoint writes. When it stops, `all folds complete: False`, inference skipped by design. `v05f_fold*` checkpoints are v02-recipe models — **delete them mentally; do not mount them.** Nothing needs to be salvaged |
+
+### Where things stand
+
+| | Status |
+|---|---|
+| Submissions | ✅ **four**: 0.500 → 0.841 → 0.871 → **0.877** (`v04d`) |
+| Best single model | ✅ `v05a` attn + jitter, 8 ep: OOF **0.8574** — not yet submitted |
+| Best OOF of any kind | ✅ **0.8670** — rank-mean of `v05a` + `v05b` on fold 0 (P-21), not yet submitted |
+| Noise floor | ✅ measured: 0.008 macro, ~0.03 per label |
+| P-09 / P-04 / P-05 / P-08-jitter | ✅ all closed — see experiments.md |
+| **5-fold ensemble** | ❌ **wasted run, must be redone** (traps 6f) |
+| Cache loader | ✅ fixed in `src/` (depth 4, fallback now fatal) — **not yet exercised on Kaggle** |
+| Repo | ✅ clean, pushed through `f50e6a4` |
+
+### What we talked about and decided
+
+- **Ran all five prior suggestions** (submit `v04d`; 8-epoch P-09 retest; 5 folds; the direct
+  worker-RNG check; P-04 as the retest's control), two kernels concurrently.
+- **The 8-epoch retest shipped a matched control** (`v05b`) rather than comparing back to
+  `v04d`, so head and schedule could not confound each other again.
+- **P-10 de-prioritised** behind the new P-21: head diversity is free, a CNN member costs a
+  session, RadImageNet's licence is unresolved.
+- **Decided to ask rather than auto-launch the re-run.** ~9 h of GPU was just burned; the
+  re-run is another ~4.5 h and the quota is shared.
+
+### What we figured out
+
+1. **THE BIG ONE — a new kernel slug does not mount inputs at the same depth as an old one.**
+   `load_cache_manifests` globbed at `max_depth=2`; `rsna-knee-train` mounts the cache at
+   `/kaggle/input/rsna-knee-cache-a/…` (depth 2) but the newly created `rsna-knee-folds` mounts
+   it type-prefixed at depth 4, like the datasets. It was **the only glob in the file capped at
+   2** — every other resolver uses 3 or 4. → **traps 6f**.
+   - **Cost:** `cfg.use_cache` flipped to `False`, the dataset silently took the **v02 decode
+     branch**, and ~9 h of GPU trained a superseded recipe at 0.99 s/study. Five folds at that
+     rate is ~19.6 h — it could never have finished.
+   - **How it was found:** Tian opened the kernel page and pasted the **smoke log**, which says
+     `! use_cache=True but no cache is mounted` in plain text at line 61. That log had already
+     been read once, for the arm banners and the RNG check, and the cache line was skipped.
+   - **Why it went unnoticed for six hours:** the overrun *was* the evidence and it was
+     explained away. At 14:38 the previous handoff recorded "~6.6 h in against a ~4.5 h estimate
+     — the estimate was wrong, the run is not." A 1.7× miss against a throughput figure measured
+     three separate times that day should have been treated as a symptom, not as estimator
+     error. → experiments.md, "The first 5-fold run was invalid, not slow".
+   - **Fixed:** glob depth 2 → 4, and a missing cache in train mode is now a `SystemExit` unless
+     `ALLOW_DECODE_FALLBACK = True`.
+   - **Second incident in one day from the same root cause:** `use_cache` means both *which
+     preprocessing* and *is the file present*. traps 6d was the inference-side twin.
+2. **Submission #4 = 0.877, a new best**, and a third OOF→LB point at +0.024 (three for three in
+   the +0.02–0.03 band). The LB delta is only 1.2× its floor; jitter is carried by its
+   11-of-12 per-label sign pattern. → experiments.md.
+3. **P-09 ✅ KEEP (+0.0103 at matched 8 epochs) but the card's reasoning was wrong** — it loses
+   on the plane-specific labels it was predicted to help (MCL −0.040, Lateral Meniscus −0.032);
+   what it buys is overfit resistance. → experiments.md.
+4. **The two heads rank-blend to OOF 0.8670** at ρ = 0.773 — free error diversity, no second
+   backbone. → new card **P-21**, now the highest-value untested item.
+5. **P-04: 8 epochs does not beat 4** for the concat head; the epoch count is **head-specific**.
+6. **traps 6e was wrong and is corrected** — PyTorch already seeds numpy/`random` per worker, so
+   the fork pathology does not exist here and `v04d`'s jitter was never confounded.
+7. **traps 12e was wrong and is corrected** — per-version kernel output *is* retrievable via
+   `<slug>/<version>`; a **run in flight on that slug** is what blocks it.
+8. **New trap 4b** — the cosine schedule spans `cfg.epochs`, so epoch N of a 4-epoch run and
+   epoch N of an 8-epoch run are at different LRs and are not comparable.
+
+### ⏭ Next action, in order
+
+1. **Do P-21 first — it needs no GPU.** In the inference block, `ckpt_paths` maps
+   `fold -> path` for one `cfg.version`; make it accept (version, fold) pairs so `rank_mean`
+   blends across *versions*. Then submit the `v05a` + `v05b` blend from `rsna-knee-infer`.
+   Decision rule: expect a **small** LB move; a sub-0.005 change is **not** confirmation, and
+   the +0.02–0.03 OOF→LB offset was calibrated on single models so ~0.891 is **not** a
+   prediction. Push the infer kernel **before** any new `rsna-knee-train` push.
+2. **Re-run the 5 folds with the fixed loader.** `sed 's/^FIVE_FOLD = False/FIVE_FOLD = True/'`,
+   `FORCE_SMOKE = True` first, push, and **before promoting to real, grep the smoke log for the
+   cache line**:
+   ```bash
+   kaggle kernels output tiankljucanin/rsna-knee-folds -p artifacts/kaggle_out/x --file-pattern "no_match"
+   # REQUIRED in the log:  cache: 4407 studies indexed (c01_p224_s16_crop130_lat20)
+   # If instead you see "no cache is mounted", it now raises - but check anyway.
+   ```
+   Then `FORCE_SMOKE = False` and push. **Sanity gate at ~10 min in: `s/study` must read
+   ~0.17–0.18.** If it reads ~1.0, kill it immediately — that is the decode path again.
+3. **Run P-22** (~0.1 session, analysis only, no training): best-epoch vs last-epoch OOF from
+   the `_ep{e}_oof.csv` files already in `artifacts/kaggle_out/v13/`, with the gold curve
+   alongside to detect teacher-chasing. `v05b` ships 0.013 below its own peak, and this choice
+   silently decides P-09's verdict.
+4. Only then: P-10 / P-14 / P-15 / P-16.
+
+### Open decisions for Tian
+
+- **Re-run 5 folds now, or do P-21 first, or both?** Asked and not yet answered. P-21 costs no
+  GPU and ships something; the folds re-run is another ~4.5 h after ~9 h already burned today.
+- **Pin the final submission's weights to a Kaggle Dataset instead of `kernel_sources`.**
+  `rsna-knee-infer` mounts *the latest version* of `rsna-knee-train`, which forced
+  submit-before-push ordering twice today. A dataset is immutable and kills the whole failure
+  class before the deadline. **Traps 6f raises the priority of this** — mount layout is
+  evidently not stable across slugs either.
+- **`artifacts/kaggle_out/v9smoke/` is 1.8 GB of smoke checkpoints** whose filenames are
+  identical to the real ones (`v9smoke/v04d_fold0_best.pt` is a 4-study toy, not the 0.877
+  model). Safe to delete.
+- Browser-only questions still block P-10/P-16/P-18: rules text, Efficiency Prize formula,
+  radimagenet.com T&C, hidden test size.
+
+### Things that will bite if forgotten
+
+- **Read the cache line in every smoke log before promoting a run to real.** Scan the log for
+  the *known* failure modes, not only for the new thing being tested (traps 6f).
+- **Treat a large runtime overrun as a symptom, not as a bad estimate** — especially when the
+  throughput figure it contradicts was measured the same day.
+- A run in flight on a slug makes `kernels output` return nothing for that whole slug, for every
+  version form (traps 12e). Past versions are retrievable as `<slug>/<version>` once idle.
+- `--file-pattern` is a **regex, not a glob**; `"(oof|manifest)"` pulls results + log,
+  `"no_match"` pulls the log alone.
+- `src/kaggle_pipeline.py` is committed with `FORCE_SMOKE = True` on purpose; the kernels that
+  ran had `False`.
+- Everything from the entries below still applies (`PYTHONUTF8=1`, never sort DICOMs by
+  filename, never edit the `.ipynb`, `experiments.md` is append-only).
+
+---
+
 ## 2026-08-29 (14:50) — LB 0.877, P-09 and P-04 closed, head-blend found; 5-fold still running
 
 Findings are all logged as of `0a131ea`. This entry is state only. Continues the 00:13 entry
