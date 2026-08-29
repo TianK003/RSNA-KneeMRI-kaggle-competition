@@ -798,6 +798,28 @@ two heads; the attention half costs ~9 h and stays a decision for the next sessi
 
 ---
 
+### 2026-08-30 — 16-slices-as-channels DINOv2-S member `v07s` (P-23 candidate #3, kernel `rsna-knee-stack` v2) ⏳ PENDING
+
+**Config:** `stack_mode="channels"` — each slot's 16 cached slices are the 16 input channels of ONE
+image, so the encoder sees the whole stack in one pass (6 forwards per study instead of 36). DINOv2-S/14
+at 224, patch-embedding conv widened 3 → 16 (init = RGB-mean kernel × 3/16, trained at `lr_stem`
+2e-4; the rest of the backbone under the usual 2e-5 / LLRD 0.75), concat head, `cache_jitter` (whole
+stack shifts ±1 slice), 8 epochs, `ckpt_policy=best_oof`, EMA 0.998, **five folds** in one session.
+Launched 2026-08-30 00:46 after a green Kaggle smoke (v1: cache 4407 indexed on the new slug, widened
+embedding, channels member through decode-once inference). Own kernel slug so the run never repoints
+the `rsna-knee-train` / `rsna-knee-folds` mounts the infer kernel reads.
+
+**Why this member:** the 0.936 notebook's second family is exactly this representation
+(research.md §2.7.1); it is the most *different* input we can build from the existing cache and mounted
+weights, and ~6× cheaper per epoch than a triplet member.
+
+**Decision rule (P-23, fixed before the run):** on fold 0, own OOF ≥ 0.8574 − 0.02; mean Spearman ρ vs
+the `v05a`+`v05b` rank-mean < 0.80; blend gain over 0.8670 > 0.008. `src/blend_check.py` applies it.
+Accepted → `INFER_MEMBERS` gains `v07s` (all five folds, one vote by version) and one submission is
+placed; rejected → logged here, no submission.
+
+**Result:** _pending_.
+
 ## Infrastructure
 
 ### 2026-08-28 — ⚠️ Throughput is the open risk, and it blocks the real run

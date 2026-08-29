@@ -75,7 +75,7 @@ result*, per unit of cost. "Depends on" lists hard blockers only.
 | P-20 | Leave-one-slot-out ablation, T1 slot retirement | 💡 untested | low-medium | 0.1 session | first real model |
 | P-21 | Blend two heads on one backbone as the default ensemble axis | ✅ **KEEP — LB 0.896 (+0.019, 3.8× floor), submission #5**; OOF 0.8670. Head diversity is now the default ensemble axis; see experiments.md | delivered (`INFER_MEMBERS`) | done | P-09 (done) |
 | P-22 | Checkpoint selection on OOF-vs-teacher instead of fixed last epoch | ✅ **MEASURED, policy switched** — +0.0128 split-half for concat, ~0 for attn, gold flat; P-09 becomes a tie. See experiments.md | delivered (`ckpt_policy="best_oof"`) | done | — |
-| P-23 | **Multi-family rank fusion — the ensemble is the product, not a member** | 💡 **raised to #1 on 2026-08-30** (Tian's decision after reading the 0.936 notebook in full: its DINOv2 branch alone is ≈ 0.899 ≈ our 0.896; the other +0.036 is three more families rank-fused on top — research.md §2.7.1) | **very high — the only axis with evidence of +0.03**; per-member acceptance rule: own OOF ≥ best − 0.02, ρ < 0.80 vs the blend, blend gain > 0.008 | 1–2 h fold-0 arm per candidate; 5 folds only for accepted members | P-10 (running), P-11, P-15 |
+| P-23 | **Multi-family rank fusion — the ensemble is the product, not a member** | ⏳ **running**: `v06c` (train v15) + `v07s` 16-channel member (`rsna-knee-stack` v2, 5 folds, 00:46); **raised to #1 on 2026-08-30** (Tian's decision after reading the 0.936 notebook in full: its DINOv2 branch alone is ≈ 0.899 ≈ our 0.896; the other +0.036 is three more families rank-fused on top — research.md §2.7.1) | **very high — the only axis with evidence of +0.03**; per-member acceptance rule: own OOF ≥ best − 0.02, ρ < 0.80 vs the blend, blend gain > 0.008 | 1–2 h fold-0 arm per candidate; 5 folds only for accepted members | P-10 (running), P-11, P-15 |
 
 ---
 
@@ -538,7 +538,9 @@ with the evidence this time rather than the argument.
 Depends on: nothing — the per-epoch OOF csvs from v11 and v13 are enough.
 
 ### P-23 Multi-family rank fusion: the ensemble is the product, not a member
-Status: 💡 untested as a whole — **raised to the top of the backlog 2026-08-30** on Tian's decision
+Status: ⏳ **running 2026-08-30** — candidate #1 `v06c` (train v15, due ~02:15) and candidate #3 `v07s`
+(16-channel member, `rsna-knee-stack` v2, five folds, launched 00:46) are both in flight; acceptance
+by `src/blend_check.py` on fold 0. **Raised to the top of the backlog 2026-08-30** on Tian's decision
 after reading `crazy_good_rsna.ipynb` in full (research.md §2.7.1). Member arms already have cards
 (P-10 ConvNeXt-T in flight as `v06c`; P-11 336–384 px; P-15 16-channel member); this card is the
 *programme* that sequences them and fixes the acceptance rule for each member.

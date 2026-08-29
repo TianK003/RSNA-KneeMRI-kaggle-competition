@@ -6,6 +6,43 @@ to read first after a break.
 
 ---
 
+## 2026-08-30 (00:50) — Overnight P-23 chain: `v07s` 16-channel member (5 folds) IN FLIGHT as `rsna-knee-stack` v2, `v06c` still running
+
+Tian's go-ahead at ~00:35: "5 fold + auto-blend + auto-submit". The session was told to leave the
+laptop on; if it went down, **training still completes on Kaggle** and only the local steps below
+remain. Supersedes the in-flight table of the 00:00 entry; the rest of that entry still holds.
+
+### ⏳ In flight
+
+| In flight | What it is | Started | How to check | How to read it |
+|---|---|---|---|---|
+| **`rsna-knee-stack` v2** — arm `v07s` | **P-23 candidate #3**: DINOv2-S with the 16 cached slices as input channels (`stack_mode="channels"`, patch embed widened 3→16, `lr_stem` 2e-4), concat head, jitter, 8 ep, `best_oof`, **folds 0–4** | 00:46 | `kaggle kernels status tiankljucanin/rsna-knee-stack`; expect `COMPLETE` ~03:00–04:30 (unknown throughput; guard 8.3 h). Then `kaggle kernels output tiankljucanin/rsna-knee-stack -p artifacts/kaggle_out/stack_v2 --file-pattern "(oof|no_match)"` | `cache: 4407 studies indexed`; `patch embedding widened 3 -> 16`; per-fold `EMA score … -> checkpoint` lines; `s/study` should be well under the triplet members' 0.18 |
+| **`rsna-knee-train` v15** — arm `v06c` | P-10 / P-23 candidate #1 (see 00:00 entry) | 23:57 | as in the 00:00 entry | as in the 00:00 entry |
+
+### What is already done tonight
+
+- `tiankljucanin/rsna-knee-ckpt-v05` (private Dataset) holds `v05a_fold0_best.pt` + `v05b_fold0_best.pt`
+  — the two-head blend is re-submittable; `kaggle/rsna-knee-infer/kernel-metadata.json` already lists it
+  and `rsna-knee-stack` as sources (not pushed yet).
+- `src/blend_check.py --base v05a=… v05b=… --cand v06c=… v07s=…` applies the P-23 rule and prints the
+  per-label table; verified to reproduce 0.8574 / 0.8471 / blend 0.8670 / ρ 0.773.
+- Local + Kaggle smoke of the channels member green; code committed (`e67cc36`).
+
+### ⏭ Remaining chain (the session runs it; if the machine went down, do it by hand)
+
+1. v15 done → `kaggle kernels output tiankljucanin/rsna-knee-train -p artifacts/kaggle_out/v15 --file-pattern "(oof|no_match)"`,
+   then `blend_check.py --cand v06c=artifacts/kaggle_out/v15/v06c_fold0_oof.csv`.
+2. stack v2 done → pull `--file-pattern "(oof|no_match)"` into `artifacts/kaggle_out/stack_v2`, then
+   `blend_check.py` with `--cand v07s=…/v07s_fold0_oof.csv` (and `v06c` if it passed).
+3. Accepted set → sed `INFER_MEMBERS = […]` (always includes `v05a`,`v05b`,`v05g`), `MODE="infer"`,
+   `FORCE_SMOKE=False` into the infer notebook, push `kaggle/rsna-knee-infer`, wait for `COMPLETE`, read
+   the log (`infer members`, `rank correlation`, `blend: by_version`, `wrote …submission.csv`), then
+   `kaggle competitions submit rsna-knee-abnormality-detection -k tiankljucanin/rsna-knee-infer -v <ver> -f submission.csv -m "…"`.
+   **Rule vs 0.896: < 0.005 is 🔁.** Nothing rejected gets submitted.
+4. `/update` (experiments.md ⏳ entries → verdicts; P-23 statuses) and `/handoff`.
+
+---
+
 ## 2026-08-30 (00:00) — `v06c` (ConvNeXt-Tiny, P-10) real fold-0 run IN FLIGHT as `rsna-knee-train` v15
 
 Tian approved the launch at 23:55. This supersedes the "awaits go-ahead" entry below (same
