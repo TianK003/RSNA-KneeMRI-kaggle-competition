@@ -216,6 +216,15 @@ if FIVE_FOLD:
     ARMS = [("v05g", {"cache_jitter": True, "folds": (0, 1, 2, 3, 4), "epochs": 4})]
     PRIMARY_ARM = "v05g"
 
+# Flipped by sed for kaggle/rsna-knee-stack (P-23 candidate #3): five folds of the 16-channel
+# member, 8 epochs under best_oof. It has its OWN kernel slug so pushing it never repoints the
+# rsna-knee-train / rsna-knee-folds mounts that rsna-knee-infer reads (handoff 2026-08-30).
+STACK_RUN = False
+if STACK_RUN:
+    ARMS = [("v07s", {"stack_mode": "channels", "cache_jitter": True,
+                      "folds": (0, 1, 2, 3, 4), "epochs": 8})]
+    PRIMARY_ARM = "v07s"
+
 
 @dataclass
 class Config:
@@ -244,6 +253,15 @@ class Config:
     # P-08 sub-arm: jitter the K sampled slice centres by +-1 cached slice each epoch. The
     # only real augmentation this pipeline has (the other is Gaussian noise at sigma 0.01).
     cache_jitter: bool = False
+    # P-23 candidate #3: how the 16 cached slices of a slot reach the encoder. "triplet" = K
+    # centres, each a 3-channel [c-1, c, c+1] image (v03..v06). "channels" = ONE image per slot
+    # with all 16 cached slices as its input channels -- the whole stack in one forward pass, a
+    # different input representation from every triplet member (the 0.936 notebook's second
+    # family works this way). The patch-embedding conv is widened 3 -> 16 (RGB-mean weights
+    # x 3/16, response scale preserved) and trained at `lr_stem`. 6 encoder passes per study
+    # instead of 36, so an epoch is ~6x cheaper. With `cache_jitter` the whole stack shifts +-1.
+    stack_mode: str = "triplet"
+    lr_stem: float = 2e-4            # channels mode only: the widened patch-embedding conv
 
     # model
     # P-10: a second architecture family as a blend member. "dinov2" = DINOv2 ViT-S/14 (CLS
@@ -822,6 +840,7 @@ from torch.utils.data import Dataset, DataLoader
 
 IMAGENET_MEAN = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1)
 IMAGENET_STD = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1)
+GRAY_MEAN, GRAY_STD = 0.449, 0.226     # ImageNet mean/std averaged over RGB, for N-channel stacks
 
 
 def ordered_slice_paths(series_dir: str, plane: str = None) -> list:
@@ -1004,6 +1023,18 @@ def array_to_tensor(arr, mask, cfg, train):
     equidistant over the interior of the stack (eval) -- the same for train in v03 so the
     cache experiment isolates the cache, not a new augmentation."""
     S = arr.shape[1]
+    if getattr(cfg, "stack_mode", "triplet") == "channels":
+        idx = np.arange(S)
+        if train and getattr(cfg, "cache_jitter", False):
+            idx = np.clip(idx + np.random.randint(-1, 2), 0, S - 1)   # shift the stack +-1 slice
+        x = torch.from_numpy(arr[:, idx].astype(np.float32) / 255.0).unsqueeze(1)   # (6, 1, S, P, P)
+        if x.shape[-1] != cfg.img_size:
+            x = F.interpolate(x.reshape(-1, S, x.shape[-2], x.shape[-1]),
+                              size=(cfg.img_size, cfg.img_size), mode="bilinear",
+                              align_corners=False).reshape(len(SLOTS), 1, S, cfg.img_size, cfg.img_size)
+        x = (x - GRAY_MEAN) / GRAY_STD
+        m = torch.as_tensor(np.asarray(mask, dtype=np.float32))
+        return x * m.view(-1, 1, 1, 1, 1), m
     K = cfg.slices_per_slot
     centres = np.linspace(1, S - 2, K).round().astype(int)
     if train and getattr(cfg, "cache_jitter", False):
@@ -1196,11 +1227,39 @@ class SlotAttnHead(nn.Module):
         return (ctx * self.w.unsqueeze(0)).sum(-1) + self.b
 
 
+def widen_patch_embedding(enc, in_chans):
+    """3 -> `in_chans` input channels on a HF vision encoder (P-23 #3, stack_mode="channels").
+
+    The pretrained RGB kernel is averaged over its three channels, replicated `in_chans` times and
+    scaled by 3/in_chans, so a stack of identical slices produces exactly the response the grey
+    image would have -- the model starts as "mean over the stack" and learns which slice offsets
+    matter. Every `num_channels` bookkeeping attribute is updated because HF embeddings assert on
+    it at forward time (Dinov2PatchEmbeddings, ConvNextEmbeddings)."""
+    emb = enc.embeddings
+    name, conv = next((n, m) for n, m in emb.named_modules() if isinstance(m, nn.Conv2d))
+    new = nn.Conv2d(in_chans, conv.out_channels, conv.kernel_size, conv.stride,
+                    conv.padding, bias=conv.bias is not None)
+    with torch.no_grad():
+        new.weight.copy_(conv.weight.mean(1, keepdim=True).repeat(1, in_chans, 1, 1)
+                         * (3.0 / in_chans))
+        if conv.bias is not None:
+            new.bias.copy_(conv.bias)
+    parent, parts = emb, name.split(".")
+    for part in parts[:-1]:
+        parent = getattr(parent, part)
+    setattr(parent, parts[-1], new)
+    for mod in (emb, getattr(emb, "patch_embeddings", None), enc.config):
+        if mod is not None and hasattr(mod, "num_channels"):
+            mod.num_channels = in_chans
+    print(f"  patch embedding widened 3 -> {in_chans} channels (embeddings.{name})")
+
+
 class KneeNet(nn.Module):
     def __init__(self, backbone_dir: str, n_labels=len(LABELS), dropout=0.1,
-                 head_type="concat", slot_dropout=0.0, backbone="dinov2"):
+                 head_type="concat", slot_dropout=0.0, backbone="dinov2", in_chans=3):
         super().__init__()
         self.backbone = backbone
+        self.in_chans = in_chans
         if backbone == "convnext_tiny":
             from transformers import ConvNextModel
             self.enc = ConvNextModel.from_pretrained(backbone_dir)
@@ -1209,6 +1268,8 @@ class KneeNet(nn.Module):
             from transformers import Dinov2Model
             self.enc = Dinov2Model.from_pretrained(backbone_dir)
             self.dim = self.enc.config.hidden_size
+        if in_chans != 3:
+            widen_patch_embedding(self.enc, in_chans)
         self.pool = AttnPool(self.dim)
         self.drop = nn.Dropout(dropout)
         self.head_type = head_type
@@ -1219,7 +1280,7 @@ class KneeNet(nn.Module):
             self.head = nn.Linear(self.dim * len(SLOTS) + len(SLOTS), n_labels)
 
     def forward(self, imgs, mask):
-        # imgs: (B, SLOT, S, 3, H, W)   mask: (B, SLOT)
+        # imgs: (B, SLOT, S, C, H, W)   mask: (B, SLOT)   C = 3 (triplet) or 16 (channels, S = 1)
         B, NS, S = imgs.shape[0], imgs.shape[1], imgs.shape[2]
         flat = imgs.reshape(B * NS * S, *imgs.shape[3:])
         out = self.enc(pixel_values=flat)
@@ -1439,6 +1500,9 @@ def param_groups(model, cfg):
     for name, p in model.enc.named_parameters():
         if not p.requires_grad:
             continue
+        if getattr(model, "in_chans", 3) != 3 and "patch_embeddings" in name:
+            add(name, p, cfg.lr_stem)     # widened conv = new capacity; under LLRD it would never move
+            continue
         if name.startswith("embeddings."):
             depth = 0
         elif name.startswith("encoder.layer.") or name.startswith("encoder.stages."):
@@ -1494,7 +1558,8 @@ def train_fold(fold, manifest, targets, image_root, cfg, device):
     oof_path = os.path.join(WORK, f"{cfg.version}_fold{fold}_oof.csv")
 
     model = KneeNet(cfg.backbone_dir, dropout=cfg.dropout, head_type=cfg.head_type,
-                    slot_dropout=cfg.slot_dropout, backbone=cfg.backbone).to(device)
+                    slot_dropout=cfg.slot_dropout, backbone=cfg.backbone,
+                    in_chans=cfg.cache_n_slices if cfg.stack_mode == "channels" else 3).to(device)
     opt = torch.optim.AdamW(param_groups(model, cfg))
     ema = EMA(model, cfg.ema_decay) if cfg.ema_decay > 0 else None
 
@@ -1701,6 +1766,8 @@ print(f"MODE={mode}  mounted best: {sorted(mounted_ckpts)}  mounted last: {sorte
 
 INFER_GEOM_KEYS = ("slices_per_slot", "triplet_gap", "img_size", "use_cache", "cache_n_slices",
                    "cache_px", "crop_mm", "lat_dead_zone_mm", "lat_undo")
+# `stack_mode` and `head_type` are deliberately NOT geometry: they read the same decoded array
+# differently and are applied per member in the inference loop (P-21 heads, P-23 stack).
 infer_members = []          # [(version, fold, path)] -- the blend, in infer mode
 infer_heads = {}            # (version, fold) -> head_type, read from each checkpoint
 if mode == "infer":
@@ -2046,14 +2113,20 @@ else:
         saved_cfg = st.get("config", {})
         head = saved_cfg.get("head_type", cfg.head_type)
         bb = saved_cfg.get("backbone", "dinov2")          # family is per member (P-10)
+        # Input representation is per member too (P-23 #3): the shared decode-once array is
+        # [6, 16, P, P] for everyone; `stack_mode` only decides how array_to_tensor reads it.
+        sm = saved_cfg.get("stack_mode", "triplet")
+        in_ch = int(saved_cfg.get("cache_n_slices", cfg.cache_n_slices)) if sm == "channels" else 3
         m = KneeNet(resolve_backbone_dir(bb), dropout=cfg.dropout, head_type=head,
-                    slot_dropout=cfg.slot_dropout, backbone=bb).to(device)
+                    slot_dropout=cfg.slot_dropout, backbone=bb, in_chans=in_ch).to(device)
         m.load_state_dict(st["model"])
         t_f = time.time()
+        prev_sm, cfg.stack_mode = cfg.stack_mode, sm
         frames.append(predict(m, test_manifest, TEST_IMG, cfg, test_studies, device))
+        cfg.stack_mode = prev_sm
         member_tags.append(f"{v}/fold{fold}")
         dt = time.time() - t_f
-        print(f"  {v}/fold{fold} ({bb}, {head}): predicted {len(frames[-1])} studies in {dt:.0f}s "
+        print(f"  {v}/fold{fold} ({bb}, {head}, {sm}): predicted {len(frames[-1])} studies in {dt:.0f}s "
               f"({dt/max(len(frames[-1]),1)*100:.0f} s per 100 studies) "
               f"[epoch {st.get('epoch')}, score {st.get('score')}, ema {st.get('ema')}]")
         del m

@@ -1,7 +1,7 @@
 {
-  "id": "tiankljucanin/rsna-knee-infer",
-  "title": "RSNA Knee Infer",
-  "code_file": "rsna-knee-infer.ipynb",
+  "id": "tiankljucanin/rsna-knee-stack",
+  "title": "RSNA Knee Stack",
+  "code_file": "rsna-knee-stack.ipynb",
   "language": "python",
   "kernel_type": "notebook",
   "is_private": true,
@@ -13,12 +13,11 @@
     "pilkwang/rsna-knee-llm-labels",
     "stevenleehans/rsna-knee-llm-report-labels",
     "lixin73/rsna-knee-llm-report-labels-sol56",
-    "tiankljucanin/rsna-knee-ckpt-v05"
+    "tiankljucanin/convnext-tiny-224-hf"
   ],
   "kernel_sources": [
-    "tiankljucanin/rsna-knee-train",
-    "tiankljucanin/rsna-knee-folds",
-    "tiankljucanin/rsna-knee-stack"
+    "tiankljucanin/rsna-knee-cache-a",
+    "tiankljucanin/rsna-knee-cache-b"
   ],
   "competition_sources": [
     "rsna-knee-abnormality-detection"
