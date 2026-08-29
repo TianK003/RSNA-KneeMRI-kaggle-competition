@@ -70,11 +70,11 @@ result*, per unit of cost. "Depends on" lists hard blockers only.
 | P-15 | DINOv3-S/16 as diversity member | 💡 untested | low | 1 session + model mirror | P-10 |
 | P-16 | Re-labelling with an open-weights LLM inside Kaggle (graded, native language) | 💡 untested | high but slow (raises the teacher ceiling) | 1–2 sessions | P-06 audit (done) |
 | P-17 | Noise-robust loss / self-distillation | 💡 untested | low | 0.3 session each | P-01, P-04, P-06 |
-| P-18 | Efficiency-track variant + decode-once inference + slot census | 🔧 infer mode + loud-failure submission shipped · variant 💡 | medium (separate prize) | 0.2 session + browser | P-01 |
+| P-18 | Efficiency-track variant + decode-once inference + slot census | 🔧 infer mode + loud-failure submission shipped · **decode-once shipped 2026-08-29 (infer v5, equality-checked)** · variant 💡 | medium (separate prize) | 0.2 session + browser | P-01 |
 | P-19 | Decoder wheels + TransferSyntax census | 💡 untested | insurance | 0.1 session | P-01 header pass |
 | P-20 | Leave-one-slot-out ablation, T1 slot retirement | 💡 untested | low-medium | 0.1 session | first real model |
-| **P-21** | **Blend two heads on one backbone as the default ensemble axis** | 💡 submission untested · OOF ✅ **0.8670, +0.0096** | **high — free error diversity (ρ 0.773) with no second family** | 0.2 session, no extra training | P-09 (done) |
-| **P-22** | **Checkpoint selection on OOF-vs-teacher instead of fixed last epoch** | 💡 untested | medium-high — `v05b` ships 0.013 below its own peak, and it decides P-09's verdict | 0.1 session, analysis only | — |
+| **P-21** | **Blend two heads on one backbone as the default ensemble axis** | 🔧 **shipped** (`INFER_MEMBERS`, infer kernel v5) · ⏳ **submission #5 pending** · OOF ✅ **0.8670, +0.0096** | **high — free error diversity (ρ 0.773) with no second family** | done | P-09 (done) |
+| P-22 | Checkpoint selection on OOF-vs-teacher instead of fixed last epoch | ✅ **MEASURED, policy switched** — +0.0128 split-half for concat, ~0 for attn, gold flat; P-09 becomes a tie. See experiments.md | delivered (`ckpt_policy="best_oof"`) | done | — |
 
 ---
 
@@ -450,7 +450,11 @@ If it fails: keep all 6 slots.
 Depends on: the first real model (v02 fold 0); P-01 for speed.
 
 ### P-21 Blend two heads on one backbone as the default ensemble axis
-Status: 💡 untested as a *submission*; the OOF half is already ✅ measured (see experiments.md).
+Status: 🔧 **shipped 2026-08-29** — `INFER_MEMBERS` in the config cell lists the versions to
+rank-mean; every mounted fold checkpoint of each is a member, a missing version is fatal, heads are
+per member, geometry must agree; decode-once test preprocessing shipped alongside (P-18). Kernel
+`rsna-knee-infer` v5 green on Kaggle; **submission #5 pending** (ref 55870514). The OOF half is ✅
+measured (experiments.md: 0.8670 at last-epoch checkpoints, 0.8695 at best-epoch ones).
 Hypothesis: Rank-meaning an attention-head and a concat-head model trained on the same backbone,
 fold and seed beats either alone by more than the noise floor, and is a cheaper source of error
 diversity than a second architecture family.
@@ -480,7 +484,11 @@ family diversity.
 Depends on: P-09 (done).
 
 ### P-22 Checkpoint selection on OOF-vs-teacher instead of fixed last epoch
-Status: 💡 untested.
+Status: ✅ **MEASURED 2026-08-29 — card closed, see [experiments.md](experiments.md)** ("P-22:
+checkpoint on OOF-vs-teacher"). `src/oof_epoch_analysis.py`: split-half gain **+0.0128** for the
+concat head (200/200 splits), **−0.0002** for attn, gold flat at the chosen epoch, no
+teacher-chasing signature. Policy switched: `Config.ckpt_policy = "best_oof"`; P-09 re-read as a
+tie (−0.0024 at best epochs). The card below is kept as written for the record.
 Hypothesis: Selecting the epoch by OOF-vs-teacher over 882 held-out studies is enough less noisy
 than the 11-gold selection we rejected that it beats fixed-last-epoch, and it removes the
 policy-dependence that currently decides P-09.

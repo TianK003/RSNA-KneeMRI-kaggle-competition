@@ -1466,7 +1466,10 @@ def train_fold(fold, manifest, targets, image_root, cfg, device):
     scaler = torch.amp.GradScaler("cuda", enabled=use_amp)
 
     start_epoch, best, best_epoch = 0, -1.0, -1
-    if os.path.exists(ckpt_last):
+    # A smoke run never resumes: a stale `_last.pt` from an earlier local smoke made a
+    # 1-epoch smoke "resume at epoch 1 of 1", skip training entirely and still finish
+    # green -- the checkpoint code it was meant to exercise never ran (traps 19).
+    if os.path.exists(ckpt_last) and not cfg.smoke:
         st = torch.load(ckpt_last, map_location=device, weights_only=False)
         model.load_state_dict(st["model"])
         if ema is not None:

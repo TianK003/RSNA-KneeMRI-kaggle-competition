@@ -201,6 +201,23 @@ preprocessing* with *whether a file is present* has now caused two separate inci
 day — once at inference (6d), once in training (here). A flag that selects a science decision
 should not also be a file-availability check.
 
+**OBSERVED 2026-08-29 17:45 — the layout, and a correction to the heading.** The startup print
+added after this incident (`print_input_layout()`, in every kernel log from now on) shows, on the
+**old** `rsna-knee-infer` slug:
+
+```
+/kaggle/input/competitions/rsna-knee-abnormality-detection/   train.csv, test.csv, ...
+/kaggle/input/datasets/<owner>/<dataset>/                      the three label tables
+/kaggle/input/models/metaresearch/dinov2/pytorch/small/1
+/kaggle/input/notebooks/tiankljucanin/rsna-knee-train/         the mounted kernel output
+```
+
+Kernel outputs are type-prefixed under **`notebooks/<owner>/<slug>/`** (files at depth 3 below
+`/kaggle/input`), while kernel v13 at ~10:00 the same day still found the cache at
+`/kaggle/input/rsna-knee-cache-a/`. So it is **not** "new slug vs old slug" — Kaggle changed the
+layout for everything during 2026-08-29. The fix stands (depth ≥ 4 everywhere, fatal fallback);
+the mechanism was misattributed. Read the layout block at the top of every log; it costs nothing.
+
 ### 7. Base-rate collapse
 
 The known failure mode of this setup: the model outputs nearly the same score for every
@@ -341,6 +358,15 @@ The real rules:
   Use `"(oof|manifest)"`. The log always downloads regardless, which is why `"no_match"` fetches
   the log alone.
 
+**CORRECTED AGAIN 2026-08-29 (17:30):** the `<slug>/<version>` form is **not reliable** either.
+With `rsna-knee-train` idle (v13 latest), `kaggle kernels output tiankljucanin/rsna-knee-train/11`
+downloaded **v13's** files — the log's arm banners read `v05a`/`v05b`, and the csvs were
+byte-identical to v13's. The `rsna-knee-infer/3` "retest" above proved less than it seemed: infer
+versions 1–4 produce near-identical outputs, so "returned version 3's files" was not actually
+distinguishable from "returned the latest". Treat per-version retrieval as **unavailable**; the v11
+per-epoch OOF csvs are gone for practical purposes. This makes the next paragraph the rule, not a
+nicety.
+
 **Still worth doing anyway:** pull the small result files with the log in one command, rather than
 relying on being able to come back for them.
 
@@ -412,3 +438,14 @@ raise `csv.field_size_limit` if using the stdlib module.
 They use repo-root-relative default paths and import each other. Run from the repo root with
 `PYTHONPATH=src`. (Cost us one confusing `OSError: models/dinov2_small is not a local
 folder`.)
+
+### 19. A local smoke that "resumes" and trains nothing
+
+`artifacts/local_run/` keeps `{version}_fold0_last.pt` from every earlier local smoke. A later
+1-epoch smoke of the same version found it, printed `resumed fold 0 at epoch 1`, ran **zero**
+epochs, inferred from the stale checkpoint and finished green — the checkpoint-policy code it was
+run to exercise never executed. Caught only because the expected log line was missing.
+
+**Do:** `train_fold` no longer resumes when `cfg.smoke` is set (2026-08-29). If you need the old
+behaviour, delete `artifacts/local_run/*.pt` first. And when a smoke is meant to exercise a
+specific line, grep the log for *that line*, not for "exit 0".

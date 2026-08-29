@@ -10,17 +10,18 @@ by **macro ROC-AUC** (unweighted mean of 12 per-label AUCs).
 
 Competition: https://www.kaggle.com/competitions/rsna-knee-abnormality-detection
 
-**State as of 2026-08-29:** **four submissions, best public LB 0.877** (v04d: DINOv2-S/14 224,
-one fold, no ensemble, + slice jitter). Progression 0.500 → 0.841 → 0.871 → **0.877**. An epoch costs ~11 min,
-so a fold-0 arm is ~0.9 h. The five-arm batch landed: the **OOF noise floor is now measured**
-(0.008 macro / ~0.03 per label), **slice jitter is worth +0.011** and removes the overfitting
-turn, and **laterality is ≈ +0.015 of v03's +0.022** — most of the LB gain. The 8-epoch head
-A/B then closed P-09 (attention head **+0.0103**, by resisting overfitting rather than the
-predicted plane-specialisation) and showed that **rank-meaning the two heads reaches OOF
-0.8670** at ρ = 0.773 — free error diversity, no second backbone (P-21). The first 5-fold
-run was **wasted**: a new kernel slug mounts inputs deeper than the loader searched, so it
-silently trained the v02 decode path for ~9 h (traps 6f, now fixed and fatal) — see
-[docs/handoff.md](docs/handoff.md).
+**State as of 2026-08-29 (evening):** **five submissions, best public LB 0.877** (v04d: DINOv2-S/14
+224, one fold, no ensemble, + slice jitter); **#5 — the P-21 two-head rank blend, OOF 0.8670 — is
+pending.** Progression 0.500 → 0.841 → 0.871 → **0.877** → ⏳. An epoch costs ~11 min, so a fold-0
+arm is ~0.9 h. Measured today: the **OOF noise floor** (0.008 macro / ~0.03 per label), **slice
+jitter +0.011**, **laterality ≈ +0.015 of v03's +0.022**, and **two heads rank-blend to 0.8670** at
+ρ = 0.773 (P-21, now shipped as `INFER_MEMBERS` with decode-once inference). **P-22 switched the
+checkpoint policy** to best-OOF-epoch (`ckpt_policy="best_oof"`: +0.013 split-half for the concat
+head, ~0 for attn, gold flat) and re-read **P-09 as a tie** — the attention head's +0.0103 was the
+concat head's late decay. The first 5-fold run was **wasted** (`v05f`: the cache never mounted,
+traps 6f — Kaggle moved kernel outputs to `/kaggle/input/notebooks/<owner>/<slug>/` platform-wide
+that day; the loader now searches depth 4, fails loudly, and prints the mount layout); the valid
+re-run is `v05g`. See [docs/handoff.md](docs/handoff.md).
 
 ## 📚 Documentation map — read the relevant one before acting
 
@@ -89,6 +90,7 @@ src/cache_pipeline.py   preprocessing-cache kernel (P-01): DICOM -> uint8 once, 
 src/nbgen.py            percent-format .py -> .ipynb
 src/build_targets.py    targets + leak-safe folds -> artifacts/targets.csv
 src/label_audit.py      per-language / per-label audit of the LLM label sources
+src/oof_epoch_analysis.py  P-22: checkpoint-policy analysis on the per-epoch OOF csvs (no GPU)
 src/dicom_probe.py      DICOM header / ordering / normalisation audit
 src/baseline_infer.py   standalone inference smoke test
 kaggle/rsna-knee-train/     generated training/inference notebook + kernel-metadata.json
@@ -120,7 +122,12 @@ python src/build_targets.py                     # must print teacher gold macro-
 python src/label_audit.py                       # per-language / per-label label audit -> artifacts/label_audit.md
 python src/dicom_probe.py                       # header / ordering audit
 python src/baseline_infer.py --slices 3         # standalone inference smoke test
+python src/oof_epoch_analysis.py                # P-22: best-epoch vs last-epoch from the per-epoch OOF csvs -> artifacts/oof_epoch_analysis.md
 ```
+
+Use the repo's `.venv` (`docs/setup.md`): `.venv/Scripts/python.exe` on Windows — CPU torch,
+scikit-learn, pandas; `requirements.txt` is the pin list, so the environment moves between
+machines.
 
 **`FORCE_SMOKE`** at the top of the config cell: `True` = minutes-long end-to-end check
 (1 fold, 1 epoch, 2 slices/slot, 24 studies scanned); `False` = real 5-fold run; `None` =
@@ -140,7 +147,10 @@ kaggle competitions submit rsna-knee-abnormality-detection \n       -k tiankljuc
 **The inference kernel** is generated from a sed'd copy, the same pattern the cache shards use —
 `MODE="infer"` because `"auto"` requires *every* configured fold to have a checkpoint and would
 otherwise decide `"train"` and re-train at rerun, and `FORCE_SMOKE=False` because smoke sets a
-0.4 h runtime guard:
+0.4 h runtime guard. **What it blends is `INFER_MEMBERS`** in the config cell (P-21): every mounted
+`{version}_fold*_best.pt` of every listed version is one member of a flat rank-mean, a listed
+version with no checkpoint is fatal, heads are per member, and the test set is decoded once and
+shared by all members (equality-checked in the log). Submit with `-k tiankljucanin/rsna-knee-infer`:
 
 ```bash
 sed -e 's/^FORCE_SMOKE = True/FORCE_SMOKE = False/' -e 's/^MODE = "auto"/MODE = "infer"/' src/kaggle_pipeline.py > /tmp/infer.py

@@ -46,6 +46,7 @@ Judge label changes on **coverage** (does the rule fire at all, per language) an
 | 2026-08-28 | **v02 fold 0, real run (kernel v6)**: DINOv2-S 224, 6 slices/slot, 4 epochs, prob targets, LR 2e-5+LLRD, EMA | 0.847 (n=11, CI 0.72–0.94) · OOF-vs-teacher **0.821** (882 studies) | **0.841** | ✅ first real model; per-label table below |
 | 2026-08-28 | **v03 fold 0 from the cache (kernel v8)**: v6 recipe + 130 mm crop + laterality + per-series norm | 0.906 (n=11, CI 0.81–0.97) · OOF-vs-teacher **0.843** (882 studies) | **0.871** | ✅ KEEP — LB +0.030 vs v02, 6× the 0.005 floor |
 | 2026-08-29 | **v04d fold 0 (kernel v11)**: v03 recipe + `cache_jitter` slice augmentation | 0.904 (n=11, CI 0.82–0.95) · OOF-vs-teacher **0.8528** (882 studies) | **0.877** | ✅ KEEP on OOF (+0.0113 vs a 0.008 floor, 11/12 labels up); LB +0.006 is only 1.2× the 0.005 floor and is *corroboration, not proof* |
+| 2026-08-29 | **P-21 blend, submission #5 (infer v5)**: rank-mean of `v05a` attn + `v05b` concat, fold 0, 8 ep | 0.927 / 0.876 (singles, n=11) · OOF-vs-teacher **0.8670** (blend, 882 studies) | ⏳ | pending; verdict rule in the Submissions table |
 
 **External reference points** (not ours — for calibrating ambition):
 
@@ -683,6 +684,57 @@ stand. Only the 5-fold ensemble is outstanding.
 Fixed in `src/kaggle_pipeline.py`: glob depth 2 → 4, and a missing cache in train mode is now a
 `SystemExit` unless `ALLOW_DECODE_FALLBACK = True`.
 
+### 2026-08-29 — P-22: checkpoint on OOF-vs-teacher instead of fixed last epoch ✅ KEEP for the concat head · 🔁 neutral for attn · policy switched
+
+`src/oof_epoch_analysis.py` on the per-epoch OOF csvs already on disk (v13 `v05a`/`v05b`, v6
+`v02`, v8 `v03`; the v11 arms are unreachable — traps 12e). Metric = the kernel's `evaluate()`
+(hard = y > 0.5, macro over finite labels); the script **reproduces every logged number to 4 dp**
+(`v05a` 0.8574/0.8576, `v05b` 0.8471/0.8600, `v02` 0.821) before reporting anything new.
+
+Two estimates per arm. *In-sample*: best epoch on all 882 val studies minus the last epoch —
+biased upward, it is the max of N noisy values. *Split-half*: choose the epoch on a random half
+of the val studies, score on the other half, 200 splits — the honest number.
+
+| arm | epochs | last | best (epoch) | Δ in-sample | **Δ split-half** | chosen > last | gold at best / last (n=11) |
+|---|---|---|---|---|---|---|---|
+| `v05b` concat + jitter | 8 | 0.8471 | 0.8600 (4) | +0.0129 | **+0.0128** (sd 0.002) | 100% | 0.873 / 0.876 |
+| `v05a` attn + jitter | 8 | 0.8574 | 0.8576 (6) | +0.0002 | **−0.0002** (sd 0.0005) | 31% | 0.924 / 0.927 |
+| `v03` concat | 4 | 0.8426 | 0.8457 (2) | +0.0032 | +0.0032 | 100% | 0.898 / 0.906 |
+| `v02` concat, decode path | 4 | 0.8214 | 0.8257 (2) | +0.0043 | +0.0041 | 100% | 0.861 / 0.847 |
+
+**Verdict by the card's own rule** (split-half gain > 0.008 floor **and** gold not moving against
+it): ✅ **KEEP for the concat head** — +0.0128 is 1.6× the floor, chosen in 200/200 splits, and
+gold at the chosen epoch is within 0.003 of gold at the last epoch (SE 0.09, direction only). For
+the attention head the two policies are indistinguishable (−0.0002), so nothing is lost there.
+The 4-epoch concat arms gain +0.003–0.004 — below the floor, but the same sign every time.
+
+**Teacher-chasing check: negative.** After the OOF peak `v05b`'s OOF falls −0.013 while its gold
+*rises* +0.002; `v05a` the same (−0.0002 / +0.003). Nowhere does OOF-vs-teacher rise while gold
+falls, which is the pattern selecting-on-the-teacher would produce. (Gold's own peak for `v05b` is
+epoch 2 at 0.9135, two epochs before the OOF peak — n=11, inside the ±0.09 interval; noted, not
+acted on.)
+
+**Verdicts that move under the new policy:**
+
+- **P-09 becomes a tie**: attn − concat at each head's best epoch is **−0.0024** (was +0.0103 at
+  the last epoch). The +0.0103 was the concat head's decay, not the attention head's gain. Both
+  heads stay — the blend needs both — but "attn wins" is no longer a claim we make.
+- **P-04 stays 🔁**: `v05b` at its best epoch (0.8600) vs `v04d` at its last (0.8528) is +0.0072,
+  but `v04d`'s own best epoch is unknown (its csvs are unreachable), so the comparison is
+  policy-mismatched.
+- **P-21 blend at best-epoch checkpoints: 0.8695** (vs 0.8670 at last-epoch); still fold 0 only.
+- Snapshot rank-mean of one arm's last three epochs: `v05a` 0.8579 (+0.0005), `v05b` 0.8507
+  (+0.0036) — below the floor, not pursued.
+
+**Shipped:** `Config.ckpt_policy = "best_oof"` (default) — `_best.pt` and `_oof.csv` follow the
+epoch with the highest `auc_soft` so far; `_last.pt` still every epoch for resume, now carrying
+`best_epoch`. `"last"` restores fixed-epoch. Gold is never the selector. Takes effect from the
+`v05g` 5-fold run onward; every number above and before it was checkpointed at the last epoch.
+
+**Caveat:** one fold, and the OOF the epoch is chosen on is the OOF later reported for that fold —
+the split-half says the bias is ≤ 0.001 here, but the per-fold OOFs of a `best_oof` run are
+*selected* numbers and should be read as such.
+
 ---
 
 ## Infrastructure
@@ -831,6 +883,43 @@ not by a failing test.
 Also measured while fixing #1: `kaggle kernels output --file-pattern "<no match>"` downloads the
 log alone, avoiding ~700 MB of checkpoints per log read.
 
+### 2026-08-29 — Cross-version rank blend + decode-once inference shipped (P-21 / P-18, kernel `rsna-knee-infer` v5) ✅ KEEP the code · ⏳ LB pending
+
+`INFER_MEMBERS = ["v05a", "v05b"]`: in infer mode every mounted `{version}_fold*_best.pt` of every
+listed version is one member of a flat rank-mean; a listed version with no checkpoint is a
+`SystemExit`; members must agree on preprocessing geometry (read from each checkpoint's saved
+config) and each builds its own head from its own config. Test studies are decoded **once**
+(`build_study_array`, the cache builder's function) into the system temp dir and registered in
+`CACHE_INDEX`, so every member reads the same array through the training code path; the kernel
+rebuilds the first three studies and asserts array + mask equality before predicting.
+
+Verified three ways before submission #5: local CPU run in train mode (new checkpoint code
+exercised, decode-once verified), local CPU run in infer mode with the real v13 checkpoints
+(`v05a/fold0=attn, v05b/fold0=concat`, geometry `2 -> 6` taken from the checkpoint), and kernel v5
+on Kaggle:
+
+```
+infer members (2): v05a/fold0, v05b/fold0
+infer heads: v05a/fold0=attn, v05b/fold0=concat
+decode-once: 3 test studies -> /tmp/rsna_test_cache/c01_p224_s16_crop130_lat20 in 0.1 min
+decode-once verified: 3 studies rebuilt, identical
+v05a/fold0 (attn): predicted 3 studies in 2s (61 s per 100 studies) [epoch 7, score 0.9266]
+v05b/fold0 (concat): predicted 3 studies in 1s (21 s per 100 studies) [epoch 7, score 0.8755]
+```
+
+Per-member inference is now ~21 s/100 studies once decoded (the 61 s includes CUDA warm-up), so a
+7-member blend on ~1,300 hidden studies is ~20 min of decode + ~5 min per member instead of
+~35 min per member. Submitted as **#5** (ref 55870514); the LB reads the OOF 0.8670 blend.
+Decision rule written before the score: a sub-0.005 LB move is 🔁, and the +0.02–0.03 OOF→LB
+offset was calibrated on single models, so ~0.89 is **not** a prediction.
+
+**Also observed in this log, and it changes traps 6f:** `/kaggle/input` is now laid out
+type-prefixed on the *old* `rsna-knee-infer` slug too — the train kernel's output sits at
+`/kaggle/input/notebooks/tiankljucanin/rsna-knee-train/` (depth 3), the cache shards will sit at
+`/kaggle/input/notebooks/tiankljucanin/rsna-knee-cache-{a,b}/`. Kernel v13 at ~10:00 the same day
+still saw `/kaggle/input/rsna-knee-cache-a/`. So this was a platform-wide layout change during
+2026-08-29, not a property of new slugs. Every kernel now prints the layout at startup.
+
 ### 2026-08-28 — Bugs found by running the pipeline (all fixed) ✅ KEEP the fixes
 
 1. **A fold could finish with no `best.pt`.** When AUC is undefined (no positives in a
@@ -898,3 +987,4 @@ and public LB score, so a public/private divergence can be traced to a specific 
 | 2 | 2026-08-28 | rsna-knee-infer v1 (mounts rsna-knee-train v6) | v02 fold 0: DINOv2-S 224, 6 slices/slot, 4 ep, prob targets, LR 2e-5+LLRD, EMA | 0.821 | **0.841** | First non-0.500 score — the submission path works. Above the ~0.809 public DINOv2-S baseline on one fold. |
 | 3 | 2026-08-28 | rsna-knee-infer v3 (mounts rsna-knee-train v8) | v03: same recipe, trained from the cache — adds 130 mm crop + laterality + per-series norm | 0.843 | **0.871** | **+0.030 vs #2**, 6× the 0.005 LB floor. The OOF gain transferred and amplified. Also the first submission through the fixed infer path (traps 6d). |
 | 4 | 2026-08-29 | rsna-knee-infer v4 (mounts rsna-knee-train v11) | v04d: v03 recipe + `cache_jitter` slice augmentation | 0.8528 | **0.877** | +0.0113 OOF over `v04base` against a **measured** 0.008 floor; 11/12 labels up, none down; removes the epoch-2 overfitting turn. Predicted ~0.875–0.88 from the +0.02–0.03 OOF→LB offset. |
+| 5 | 2026-08-29 | rsna-knee-infer v5 (mounts rsna-knee-train v13) | P-21: rank-mean of `v05a` (attn) + `v05b` (concat), fold 0, 8 ep, jitter, last-epoch checkpoints; decode-once inference | 0.8670 (blend; singles 0.8574 / 0.8471) | ⏳ ref 55870514 | First multi-model submission. Rule set before scoring: < 0.005 over 0.877 is 🔁; the single-model OOF→LB offset does not transfer to a blend, so no point prediction. |
