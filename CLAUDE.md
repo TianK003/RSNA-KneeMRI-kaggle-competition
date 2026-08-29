@@ -11,12 +11,14 @@ by **macro ROC-AUC** (unweighted mean of 12 per-label AUCs).
 Competition: https://www.kaggle.com/competitions/rsna-knee-abnormality-detection
 
 **State as of 2026-08-29:** **four submissions, best public LB 0.877** (v04d: DINOv2-S/14 224,
-one fold, no ensemble, + slice jitter). Progression 0.500 → 0.841 → 0.871 → **0.877**.
-An epoch costs ~11 min,
+one fold, no ensemble, + slice jitter). Progression 0.500 → 0.841 → 0.871 → **0.877**. An epoch costs ~11 min,
 so a fold-0 arm is ~0.9 h. The five-arm batch landed: the **OOF noise floor is now measured**
 (0.008 macro / ~0.03 per label), **slice jitter is worth +0.011** and removes the overfitting
-turn, and **laterality is ≈ +0.015 of v03's +0.022** — most of the LB gain. Two runs are in
-flight (8-epoch head A/B; first 5-fold ensemble) — see [docs/handoff.md](docs/handoff.md).
+turn, and **laterality is ≈ +0.015 of v03's +0.022** — most of the LB gain. The 8-epoch head
+A/B then closed P-09 (attention head **+0.0103**, by resisting overfitting rather than the
+predicted plane-specialisation) and showed that **rank-meaning the two heads reaches OOF
+0.8670** at ρ = 0.773 — free error diversity, no second backbone (P-21). The first 5-fold
+run is still in flight — see [docs/handoff.md](docs/handoff.md).
 
 ## 📚 Documentation map — read the relevant one before acting
 

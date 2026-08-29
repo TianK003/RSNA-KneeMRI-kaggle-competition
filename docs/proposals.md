@@ -56,13 +56,13 @@ result*, per unit of cost. "Depends on" lists hard blockers only.
 | P-01 | Preprocessing cache kernel (uint8, ordered, cropped, laterality-normalised) | ✅ MEASURED — see experiments.md (5.4× end to end, OOF 0.821→0.843, **LB 0.841→0.871**) | very high — delivered speed *and* the largest scoring gain so far | done | — |
 | P-02 | Seed-noise baseline, then site-grouped folds + grouped-vs-random OOF | ✅ step 1 DONE — **floor = 0.008 macro / ~0.03 per label** · step 2 💡 | delivered: every A/B in the repo now has a real floor | step 2 ~40 lines | P-01 header manifest |
 | P-03 | Fine-tuning recipe: (a) LR 2e-5 + EMA shipped; (b) LLRD 0.75 vs uniform | (a) 🔧 shipped, effect pending · (b) 💡 | medium | (a) done · (b) 0.3 session | P-01 for (b) |
-| P-04 | Fixed-epoch schedule, 8 epochs, chosen from fold-mean OOF curve | ⏳ RUNNING (v13 `v05b`) — reopened: with jitter the curve had **not peaked** at epoch 3 | medium-high | done in v13 | P-01, P-03 |
+| P-04 | Fixed-epoch schedule, 8 epochs, chosen from fold-mean OOF curve | 🔁 8 ep does not beat 4 for concat; **epoch count is head-specific** (attn 8, concat 4) | answered | done | P-01, P-03 |
 | P-05 | Laterality normalisation from DICOM geometry | ✅ CONFIRMED — **−0.0147 OOF when removed**, ~1.9× the floor | high — it is ≈ +0.015 of v03's +0.022, i.e. most of the LB gain | done | P-01 |
 | P-06 | Per-label failure analysis + gold_weight {1,3,8} arm + slot-fill census | 🔧 logging shipped · arms 💡 | high (finds the cheapest lever per weak label) | 0.1–0.5 session | — |
 | P-07 | Synovitis ← Effusion back-fill (measured, not adopted) | 🔁 measured on gold; OOF pending | low-medium | done (audit) | P-06 OOF |
 | P-08 | Slices per slot 6 → 12–16, per-plane bands, random offsets | ✅ jitter sub-arm KEEP (**+0.0113 OOF, LB 0.877**) · K sweep 💡 **downgraded** | delivered by jitter; low-medium for K | 0.5 session | P-01 |
-| P-09 | Per-label masked attention head over slots | 🔁 INCONCLUSIVE at 4 ep (unconverged) · ⏳ 8-epoch retest RUNNING (v13 `v05a`/`v05b`) | still medium-high — the arm never converged, so untested rather than refuted | 0.3 session | P-01 |
-| P-10 | Second architecture family (timm ConvNeXt first; RadImageNet behind a flag) | 💡 untested | medium (diversity) | 1 session | P-01, P-04 |
+| P-09 | Per-label masked attention head over slots | ✅ KEEP — **+0.0103** at matched 8 ep; mechanism is overfit-resistance, **not** the predicted plane-specialisation | delivered | done | P-01 |
+| P-10 | Second architecture family (timm ConvNeXt first; RadImageNet behind a flag) | 💡 untested, **de-prioritised** — P-21 buys diversity free | medium, now behind P-21 | 1 session | P-01, P-04 |
 | P-11 | Resolution 224 vs 336 after the 130 mm crop | 💡 untested | low-medium | 1 session + sharded cache | P-01, P-08 |
 | P-12 | Slice-window TTA (label-safe only) [our hypothesis] | 💡 untested | low | 0.1 session | P-01 |
 | P-13 | 3 vs 5 folds under a fixed session budget [our hypothesis] | 💡 untested | low | 1–2 sessions | P-10 |
@@ -73,6 +73,8 @@ result*, per unit of cost. "Depends on" lists hard blockers only.
 | P-18 | Efficiency-track variant + decode-once inference + slot census | 🔧 infer mode + loud-failure submission shipped · variant 💡 | medium (separate prize) | 0.2 session + browser | P-01 |
 | P-19 | Decoder wheels + TransferSyntax census | 💡 untested | insurance | 0.1 session | P-01 header pass |
 | P-20 | Leave-one-slot-out ablation, T1 slot retirement | 💡 untested | low-medium | 0.1 session | first real model |
+| **P-21** | **Blend two heads on one backbone as the default ensemble axis** | 💡 submission untested · OOF ✅ **0.8670, +0.0096** | **high — free error diversity (ρ 0.773) with no second family** | 0.2 session, no extra training | P-09 (done) |
+| **P-22** | **Checkpoint selection on OOF-vs-teacher instead of fixed last epoch** | 💡 untested | medium-high — `v05b` ships 0.013 below its own peak, and it decides P-09's verdict | 0.1 session, analysis only | — |
 
 ---
 
@@ -159,7 +161,12 @@ If it fails: (a) OOF < what v01-config would have given is unknowable without a 
 Depends on: (b) P-01.
 
 ### P-04 Fixed-epoch schedule (8 epochs) chosen from the fold-mean OOF curve
-Status: ⏳ **RUNNING** (kernel v13, `v05b`). Reopened by v11: without augmentation the OOF curve
+Status: 🔁 **INCONCLUSIVE — 8 epochs does not beat 4**, see [experiments.md](experiments.md).
+`v05b` (concat, 8 ep) ends at 0.8471 vs `v04d` (concat, 4 ep) at 0.8528 — inside the floor, no
+gain and possibly a small loss; the concat head overfits past epoch 4 even with jitter. **The
+epoch count is not a global setting**: the attention head needs 8 (still climbing at 3), the
+concat head wants 4. Tie the schedule to the head, not to the project.
+Status (original): ⏳ RUNNING (kernel v13, `v05b`). Reopened by v11: without augmentation the OOF curve
 peaked at epoch 2 and declined, which argued *against* more epochs; **with jitter it rises
 monotonically and had not peaked at epoch 3** (0.8492 → 0.8528). So the question is no longer
 "more epochs?" but "more epochs now that a regulariser exists?" — judged against `v04d`'s 0.8528.
@@ -266,7 +273,16 @@ If it fails: keep K=6; spend budget on resolution or a second member.
 Depends on: P-01.
 
 ### P-09 Per-label masked attention head over slots (optionally all slice tokens)
-Status: 🔁 **INCONCLUSIVE at 4 epochs — retest ⏳ RUNNING** (kernel v13, `v05a` attn+jitter vs
+Status: ✅ **KEEP — card closed, see [experiments.md](experiments.md)**. At a matched 8-epoch
+schedule the attention head beats concat by **+0.0103**, 1.3× the 0.008 floor. **The card's
+rationale was wrong even though its conclusion was right**: it predicted gains on the
+plane-specific findings, and those are precisely where the head *loses* (MCL −0.040, Lateral
+Meniscus −0.032, both beyond the 0.03 per-label floor). What it actually buys is **resistance to
+overfitting** — it plateaus at 0.857 and holds while concat peaks at epoch 4 and decays. Verdict
+is also **policy-dependent**: at each head's own best epoch they are indistinguishable, and attn
+wins only under fixed-last-epoch checkpointing (see P-22). Do not reuse the plane-specialisation
+argument as if it were confirmed.
+Status (original): 🔁 INCONCLUSIVE at 4 epochs — retest ⏳ RUNNING (kernel v13, `v05a` attn+jitter vs
 `v05b` concat+jitter, 8 epochs, only the head differs). v11 gave −0.0048, inside the 0.008 floor,
 but the arm was **unconverged**: still rising at epoch 3 with train loss 0.4471 vs the concat
 head's 0.3980, which is what a 27,732 → 9,300 parameter cut and a new initialisation do to a
@@ -291,7 +307,10 @@ If it fails: keep concat; record in experiments.md.
 Depends on: P-01.
 
 ### P-10 Second architecture family (timm ConvNeXt first; RadImageNet R50 behind a flag)
-Status: 💡 untested.
+Status: 💡 untested, and **de-prioritised 2026-08-29**: kernel v13 showed a *different head on the
+same backbone* already gives ρ = 0.773 and a +0.0096 blend gain at zero extra training cost
+(P-21). Buy the free diversity first; this card only earns a session if P-21's LB gain lands and
+more is still wanted.
 Hypothesis: A CNN member adds error diversity an all-DINOv2 blend lacks; the rank-mean of two families is at least as good as five DINOv2 folds on OOF.
 Origin: competition write-up / peer-reviewed.
 Evidence: every RSNA winner blended families ([TheoViel], [Nischaydnk], [darraghdog/RSNA22]); ConvNeXt-B > ViT-B/16 on CXR ([2510.07191](https://arxiv.org/abs/2510.07191)); DINOv2 lost to ImageNet CNNs on clinical brain MRI ([2402.07595](https://arxiv.org/abs/2402.07595)); RadImageNet R50 > ImageNet R50 on knee tasks (ACL 0.97 vs 0.91, [RadImageNet](https://pmc.ncbi.nlm.nih.gov/articles/PMC9530758/)); public +0.003 from a RadImageNet head blend is inside noise (prvsiyan, **notebook, not re-read**). BatchNorm diverges at tiny effective batch ([ELNet](https://arxiv.org/abs/2005.02706)).
@@ -429,6 +448,65 @@ Cost: 0.1 session (inference-time flag).
 If it works: slot budget reallocated to K in fat-sat slots.
 If it fails: keep all 6 slots.
 Depends on: the first real model (v02 fold 0); P-01 for speed.
+
+### P-21 Blend two heads on one backbone as the default ensemble axis
+Status: 💡 untested as a *submission*; the OOF half is already ✅ measured (see experiments.md).
+Hypothesis: Rank-meaning an attention-head and a concat-head model trained on the same backbone,
+fold and seed beats either alone by more than the noise floor, and is a cheaper source of error
+diversity than a second architecture family.
+Origin: verified in our code+data (kernel v13), then generalised.
+Evidence:
+- **Measured on fold 0**: `v05a` 0.8574, `v05b` 0.8471, **rank-mean 0.8670** — +0.0096 over the
+  best single arm (1.2× the 0.008 floor), +0.0142 over the submitted `v04d`. Plain rank-mean, no
+  weights fitted, so it is a held-out estimate.
+- **Mean rank correlation 0.773** between two models sharing backbone, data, fold, schedule and
+  seed — differing only in the head. Least correlated exactly where each is weakest (Fracture
+  0.664, Lateral Meniscus 0.695, MCL 0.715).
+- The two heads have complementary per-label profiles: attn wins Fracture/LatOA/Contusion, concat
+  wins MCL/Lateral Meniscus, both beyond the 0.03 per-label floor.
+- Contrast with P-10/P-13, which assume diversity must be bought with a second family (a session
+  each; RadImageNet also has an unresolved licence). This costs **nothing extra** when the two
+  heads are already run as an A/B.
+Measure: LB of the two-head rank-mean vs the best single arm's LB; OOF blend gain on more than one
+fold before believing the magnitude.
+Noise floor: 0.008 OOF macro; 0.005 LB. The expected LB gain is small — do not read a sub-0.005
+LB movement as confirmation.
+Cost: ~0.2 session of code. The infer path currently rank-means across **folds** for one
+`cfg.version`; blending across *versions* needs `ckpt_paths` to accept a list of (version, fold)
+pairs. No extra training.
+If it works: head diversity becomes the default ensemble axis and P-10/P-14/P-15 drop in priority.
+If it fails: (LB flat) the OOF blend gain did not transfer; keep the single best head and revisit
+family diversity.
+Depends on: P-09 (done).
+
+### P-22 Checkpoint selection on OOF-vs-teacher instead of fixed last epoch
+Status: 💡 untested.
+Hypothesis: Selecting the epoch by OOF-vs-teacher over 882 held-out studies is enough less noisy
+than the 11-gold selection we rejected that it beats fixed-last-epoch, and it removes the
+policy-dependence that currently decides P-09.
+Origin: our hypothesis, forced by kernel v13.
+Evidence:
+- **The problem is now concrete.** `v05b` peaks at 0.8600 (epoch 4) and is checkpointed at 0.8471
+  (epoch 7) — fixed-last-epoch throws away 0.013, more than the floor. `v05a` peaks 0.8576 and
+  ships 0.8574, so it loses nothing. **P-09's verdict flips depending on which policy is used**
+  (attn +0.0103 under fixed-epoch; the two are indistinguishable under best-epoch).
+- Fixed-epoch was adopted for a good reason that still holds: best-epoch on ~11 gold studies is a
+  coin flip at Hanley–McNeil SE ≈ 0.09 (experiments.md, traps 3).
+- But OOF-vs-teacher is measured on **882** studies, not 11, and its run-to-run floor is now
+  **measured at 0.008** — two orders of decision quality apart from the gold selection we banned.
+- The stated counter-argument (docs/research.md) is that selecting on soft targets rewards
+  memorising the teacher. That is a real risk and is exactly what this card must measure, not
+  assume: a head that overfits the teacher would show a *rising* OOF-vs-teacher while gold falls.
+  `v05b` shows both falling together, which is ordinary overfitting rather than teacher-chasing.
+Measure: for each existing arm, OOF at the best epoch vs OOF at the last epoch, and the gold curve
+alongside to detect teacher-chasing; then whether best-epoch selection changes any recorded
+verdict. All computable from the `_ep{e}_oof.csv` files already written — **no new training**.
+Noise floor: 0.008 OOF macro; the decision is whether the gap between policies exceeds it.
+Cost: ~0.1 session, analysis only, on files we already have.
+If it works: switch the policy, and re-read P-09 and P-04 under it.
+If it fails: (best-epoch tracks the teacher while gold diverges) keep fixed-epoch and record why,
+with the evidence this time rather than the argument.
+Depends on: nothing — the per-epoch OOF csvs from v11 and v13 are enough.
 
 ---
 

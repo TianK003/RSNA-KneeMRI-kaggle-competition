@@ -547,6 +547,10 @@ it, and it should have been written before the fix, not after.
 
 ### 2026-08-29 — 8-epoch head A/B and first 5-fold ensemble ⏳ PENDING
 
+> **HALF RESOLVED 2026-08-29** — `rsna-knee-train` v13 (the head A/B) finished in 3.38 h;
+> results in the two entries below. `rsna-knee-folds` v2 (5 folds) was still running at
+> 14:38, ~6.6 h in against a ~4.5 h estimate — the estimate was wrong, the run is not.
+
 Two kernels launched concurrently (Kaggle allows two GPU sessions; verified by both smokes
 running at once):
 
@@ -562,6 +566,87 @@ differs**. `v05b` alone answers P-04 (does 8 epochs beat 4 once augmentation exi
 The 5-fold run is deliberately the *current* winner rather than the eventual one — it is worth a
 real ensemble and the first trustworthy LB number regardless of how the head A/B lands. 5 × 8
 epochs would be ~9 h and needs the resume path instead.
+
+### 2026-08-29 — 8-epoch matched head A/B (kernel `rsna-knee-train` v13): P-09 ✅ KEEP · P-04 🔁 INCONCLUSIVE
+
+Two fold-0 arms, 8 epochs, `cache_jitter=True`, seed 42, from the cache. `v05a` uses the P-09
+attention head, `v05b` the concat head. **Nothing else differs** — same schedule, same
+augmentation, same seed. 3.38 h total.
+
+| epoch | `v05a` attn | `v05b` concat |
+|---|---|---|
+| 0 | 0.7449 | 0.7778 |
+| 1 | 0.7963 | 0.8326 |
+| 2 | 0.8281 | 0.8538 |
+| 3 | 0.8452 | 0.8590 |
+| 4 | 0.8536 | **0.8600** ← peak |
+| 5 | 0.8575 | 0.8542 |
+| 6 | **0.8576** | 0.8494 |
+| 7 (checkpointed) | **0.8574** | 0.8471 |
+| train loss @ ep7 | 0.4129 | **0.3585** |
+| gold @ ep7 (n=11) | 0.9266 | 0.8755 |
+
+**P-09 ✅ KEEP: +0.0103 at the checkpointed epoch, 1.3× the measured 0.008 floor.**
+
+**But the mechanism is not the one the card predicted.** P-09's hypothesis was that per-label
+queries would help the *side-specific / plane-specific* findings. Per-label at epoch 7
+(attn − concat), against the 0.03 per-label floor:
+
+| attn wins | | attn loses |
+|---|---|---|
+| Fracture +0.040 | | **MCL −0.040** |
+| Lateral OA +0.038 | | **Lateral Meniscus −0.032** |
+| Contusion +0.035 | | |
+| Medial OA +0.019, PF OA +0.016, Effusion/Synovitis +0.014, Baker's +0.009, Medial Meniscus +0.008, ACL +0.001 | | |
+
+The two labels it *loses* on are the two most plane-specific in the set, and both clear the
+per-label floor. **Right answer, wrong reason** — the card's rationale should not be reused as if
+it were confirmed.
+
+**What actually drives it is resistance to overfitting.** The concat head peaks at epoch 4 and
+then decays for three straight epochs while its train loss falls to 0.3585; the attention head
+plateaus at 0.857 and holds, with train loss only reaching 0.4129. Cutting the head from 27,732
+to 9,300 parameters bought schedule robustness. This also reinterprets the v11 result: `v04c` was
+not merely "unconverged", it was the same curve seen too early.
+
+⚠️ **The verdict is policy-dependent, and that is worth stating.** At each head's *own best*
+epoch it is attn 0.8576 vs concat 0.8600 — concat marginally ahead, well inside the floor. The
+attention head wins **because our checkpoint policy is fixed-last-epoch** (chosen because
+best-epoch selection on ~11 gold studies is a coin flip). Under best-epoch selection the two are
+indistinguishable. See the new P-22 card.
+
+**P-04 🔁 INCONCLUSIVE — 8 epochs does not beat 4.** `v05b` (concat, 8 ep) finishes at 0.8471
+against `v04d` (concat, 4 ep) at 0.8528: −0.0057, inside the floor, so no gain and possibly a
+small loss. Even with jitter the concat head overfits past epoch 4. The attention head is the one
+that *needs* the longer schedule — it was still climbing at epoch 3 in v11.
+
+### 2026-08-29 — Two heads rank-blend to 0.8670 (ρ = 0.773) ✅ KEEP — head-level diversity is real
+
+Plain rank-mean of `v05a` and `v05b` epoch-7 OOF predictions over the same 882 held-out studies.
+**No weights fitted**, so this is a legitimate held-out estimate, not a tuned one.
+
+| | OOF macro |
+|---|---|
+| `v05b` concat | 0.8471 |
+| `v05a` attn | 0.8574 |
+| **rank-mean of the two** | **0.8670** |
+| gain over the best single arm | **+0.0096** (1.2× the 0.008 floor) |
+| gain over submitted `v04d` (0.8528) | **+0.0142** |
+
+**Mean rank correlation between the two arms: 0.773** — strikingly low for two models sharing a
+backbone, a dataset, a fold, a schedule and a seed, differing *only* in the head. Least correlated
+where each is weakest: Fracture 0.664, Lateral Meniscus 0.695, MCL 0.715; most correlated on
+Medial Meniscus 0.870, Effusion 0.858, Medial OA 0.853.
+
+**Why this matters more than the +0.0103 head A/B.** P-10 and P-13 assume error diversity has to
+be bought with a second architecture family (a CNN, DINOv3, RadImageNet) — which costs a session
+each and, for RadImageNet, carries an unresolved licence. This says a **different head on the same
+backbone** already yields ρ ≈ 0.77 and a real blend gain, at **zero extra training cost**, because
+both arms were going to be run anyway as an A/B.
+
+Caveats: fold 0 only (n=1 fold); the blend gain is 1.2× the floor, so it is real but not large;
+and the +0.02–0.03 OOF→LB offset was calibrated on single models, so extrapolating this blend to
+~0.891 LB is **not** supported — an ensemble need not sit on the same curve.
 
 ---
 

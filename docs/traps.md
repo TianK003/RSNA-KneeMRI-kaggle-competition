@@ -64,6 +64,21 @@ notebook, after a fork-and-republish race chasing movements of 0.001–0.003. Ju
 changes on **coverage** (does the rule fire at all, per language) and on **OOF across all
 4,407 studies**, not on the 58 gold alone.
 
+### 4b. Comparing epoch N of two runs with different epoch budgets
+
+The cosine LR schedule is built over `cfg.epochs`, so a 4-epoch run and an 8-epoch run are at
+**different learning rates at every single step**. Epoch 3 of a 4-epoch run is at the end of its
+decay; epoch 3 of an 8-epoch run is still near peak LR. They are not the same model at the same
+point in training, and their epoch-3 scores are not comparable.
+
+Concretely: `v04d` (4 ep) scored 0.8528 at epoch 3 and `v05b` (8 ep, same config otherwise)
+scored 0.8590 at epoch 3. That +0.006 looks like a result and is an artefact of the schedule.
+
+**Do:** across different epoch budgets, compare **final checkpoint to final checkpoint** only —
+that is what the fixed-epoch policy actually ships. Within one run, the per-epoch curve is fine
+for reading *shape* (does it plateau, does it decay), which is where most of the signal was in
+kernel v13 anyway.
+
 ### 5. Trusting `Fluid_Sensitive` / `Fat_Suppression` as shipped
 
 They are **degenerate**. Verified across all 24,371 training series: only `(1,1)` (14,010
@@ -271,28 +286,38 @@ inferring it from a smoke log — and print the resolved value in the run banner
 says it out loud in its first seconds. Related: 12 (always smoke first) tells you the code runs;
 it does not tell you what the code will do at production settings.
 
-### 12e. Kernel output is only ever the LATEST version's, and vanishes while a run is live
+### 12e. Kernel output is unreachable **while that slug has a run in flight**
 
-`kaggle kernels output <slug>` returns the most recent version's files. Push a new version and
-the previous one's artifacts stop being retrievable; while a version is **running**, the endpoint
-returns nothing at all. The `<owner>/<kernel>/<version>` form in `--help` did not recover them
-either (returned empty, 2026-08-29).
+**CORRECTED 2026-08-29, same day.** The first version of this entry claimed old versions'
+outputs were lost once a new version was pushed. That was wrong, and it was wrong because the
+test was confounded: `rsna-knee-train/11` returned nothing *because v13 was running on that slug*,
+which makes the output endpoint return nothing for **any** version form, not because v11's output
+had been discarded.
 
-Hit for real: kernel v11's five arms wrote `v04*_fold0_oof.csv` (the per-study predictions, a few
-MB). Only the **log** was pulled, using `--file-pattern "no_match"` to avoid ~1 GB of checkpoints
-— and once v12 and v13 were pushed, the OOF csvs were gone. They were the input to an inter-arm
-prediction-correlation analysis that then could not be run.
+Retested on a settled slug (`rsna-knee-infer`, versions 1–4, none running):
+`kaggle kernels output tiankljucanin/rsna-knee-infer/3` returns **version 3's** files while
+version 4 is the latest. **Per-version output is retrievable and outputs are not discarded.**
 
-**Do:** when a run finishes, pull the log **and** the small result files in one go, before pushing
-anything else to that slug:
+The real rules:
+
+- `kaggle kernels output <slug>` gives the **latest** version's output.
+- `kaggle kernels output <slug>/<version>` gives **that** version's output.
+- While any version of that slug is **running**, both return nothing. Wait for it to finish.
+- `--file-pattern` is a **regex, not a glob** — `"*_oof.csv"` errors with "nothing to repeat".
+  Use `"(oof|manifest)"`. The log always downloads regardless, which is why `"no_match"` fetches
+  the log alone.
+
+**Still worth doing anyway:** pull the small result files with the log in one command, rather than
+relying on being able to come back for them.
 
 ```bash
-kaggle kernels output <slug> -p artifacts/kaggle_out/<ver> --file-pattern "(oof|log|manifest)"
+kaggle kernels output <slug> -p artifacts/kaggle_out/<ver> --file-pattern "(oof|manifest)"
 ```
 
-`--file-pattern` is a **regex, not a glob** — `"*_oof.csv"` errors with "nothing to repeat".
-The log always comes down regardless of the pattern, which is why `"no_match"` fetches the log
-alone; that is a log-only trick, not a general-purpose download.
+**And the trap that survives the correction:** a *smoke* run writes checkpoints with the **same
+filenames** as the real run (`v04d_fold0_best.pt` from 4 studies is indistinguishable by name from
+the 0.877 model). Download smoke output into a directory named as such, or it will be mistaken for
+the real thing later.
 
 ### 13. Horizontal-flip augmentation
 
