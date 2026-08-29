@@ -6,6 +6,125 @@ to read first after a break.
 
 ---
 
+## 2026-08-29 (14:50) — LB 0.877, P-09 and P-04 closed, head-blend found; 5-fold still running
+
+Findings are all logged as of `0a131ea`. This entry is state only. Continues the 00:13 entry
+below, which described the five-arm batch while it was still in flight.
+
+### ⏳ Still in flight as this was written (14:50)
+
+| In flight | What it is | Started | How to check | How to read it |
+|---|---|---|---|---|
+| **`rsna-knee-folds` v2** | First real ensemble: **5 folds × 4 epochs** of the confirmed `v04d` recipe (concat head + `cache_jitter`), arm `v05f`. New kernel slug so it could run beside `rsna-knee-train` | 2026-08-29 ~08:00 | `kaggle kernels status tiankljucanin/rsna-knee-folds`, then **`kaggle kernels output tiankljucanin/rsna-knee-folds -p artifacts/kaggle_out/folds --file-pattern "(oof\|manifest)"`** — pulls log **and** the OOF csvs together (traps 12e) | **~6.9 h in at 14:50 against a ~4.5 h estimate — the estimate was wrong, the run is not.** The 8.3 h guard fires ~16:20. Log has 20 `fold N epoch M:` lines (5 folds × 4 epochs) and a `=== v05f fold K ===` banner per fold. Per-fold OOF ~0.85 is normal; the number that matters is the **rank-mean across folds**, printed by the inference block only if *all five* folds completed. If the guard fired mid-fold, `all folds complete: False`, inference is skipped by design, and each fold has `v05f_fold{k}_last.pt` — attach this run's output as an input to a new run and it resumes |
+
+**Compare the 5-fold ensemble gain against P-21's head-blend gain (+0.0096 on fold 0).** That
+comparison is the point of the run: it decides whether the final submission spends its budget on
+folds or on head diversity.
+
+### Where things stand
+
+| | Status |
+|---|---|
+| Submissions | ✅ **four**: 0.500 → 0.841 → 0.871 → **0.877** (`v04d`, new best) |
+| Best single model | ✅ `v05a` attn + jitter, 8 ep: OOF **0.8574**, gold 0.9266 (n=11) — **not yet submitted** |
+| Best OOF of any kind | ✅ **0.8670** — rank-mean of `v05a` + `v05b` on fold 0 (P-21, not yet submitted) |
+| Noise floor | ✅ measured: **0.008 macro, ~0.03 per label** |
+| P-09 attention head | ✅ KEEP (+0.0103 at matched 8 ep) |
+| P-04 8 epochs | 🔁 does not beat 4 for concat; epoch count is **head-specific** |
+| P-05 laterality | ✅ confirmed, ≈ +0.015 of v03's +0.022 |
+| 5-fold ensemble | ⏳ running |
+| Repo | ✅ clean, pushed through `0a131ea` |
+
+### What we talked about and decided
+
+- **Ran all five of the previous turn's suggestions rather than picking.** Submitted `v04d`; the
+  8-epoch P-09 retest; the 5-fold run; the direct worker-RNG check; and P-04 folded into the same
+  kernel as the retest's control arm.
+- **The 8-epoch retest ships a matched control (`v05b`) rather than comparing back to `v04d`.**
+  Comparing a new head against a differently-scheduled run would have confounded head with
+  schedule — the exact mistake that made v03 ambiguous for a day.
+- **The 5-fold run uses today's confirmed winner (`v04d`), not "whatever wins".** #3 was
+  contingent on #2, but sequencing them wastes a sitting, and Kaggle runs two GPU sessions at
+  once. The ensemble and the first trustworthy multi-fold number are worth having either way.
+- **Deliberately did not launch a third GPU run while both were busy** — quota is shared, and the
+  right next arm depended on results an hour away.
+- **P-10 (second architecture family) de-prioritised** behind the new P-21: head diversity is free,
+  a CNN member costs a session, and RadImageNet's licence is still unresolved.
+
+### What we figured out
+
+1. **Submission #4 = 0.877, a new best**, and the **third** OOF→LB point at a +0.024 offset —
+   three for three inside +0.02–0.03. Honest caveat recorded: +0.006 LB is only 1.2× the LB
+   floor, so jitter is carried by its 11-of-12 per-label sign pattern, not the leaderboard.
+   → experiments.md, Submissions.
+2. **P-09 ✅ KEEP at a matched schedule (+0.0103), but the card's reasoning was wrong.** It
+   predicted gains on plane-specific findings; those are where it *loses* (MCL −0.040, Lateral
+   Meniscus −0.032). What it buys is **overfit resistance** — it plateaus at 0.857 while concat
+   peaks at epoch 4 and decays to 0.8471. → experiments.md.
+3. **That verdict is policy-dependent.** At each head's own best epoch they are indistinguishable
+   (0.8576 vs 0.8600); attn wins only under fixed-last-epoch checkpointing. → new card **P-22**.
+4. **The two heads rank-blend to OOF 0.8670** (+0.0096 over the best single arm) at mean rank
+   correlation **0.773**, despite sharing backbone, data, fold, schedule and seed. Free error
+   diversity. → new card **P-21**, the highest-value untested item now.
+5. **P-04: 8 epochs does not beat 4 for the concat head** (0.8471 vs 0.8528). The epoch count is
+   **head-specific**, not a project setting. → experiments.md.
+6. **traps 6e was wrong and is corrected**: the on-Kaggle check shows PyTorch already seeds numpy
+   and `random` per worker, so the fork pathology does not exist here. `v04d`'s jitter was never
+   confounded. → traps 6e.
+7. **traps 12e was also wrong and is corrected**: per-version output *is* retrievable
+   (`<slug>/<version>`); what actually blocks it is a **run in flight on that slug**. → traps 12e.
+8. **New trap 4b — the cosine schedule spans `cfg.epochs`**, so epoch N of a 4-epoch run and
+   epoch N of an 8-epoch run sit at different learning rates and are not comparable. Compare
+   final-to-final across budgets. → traps 4b.
+
+### ⏭ Next action, in order
+
+1. **Read the 5-fold run** (command in the in-flight table). Take the **rank-mean across folds**
+   from the inference block, not the per-fold numbers. Decision rule: compare the ensemble's gain
+   over a single fold (`v04d` 0.8528) against **P-21's +0.0096 head-blend gain**. If 5 folds buys
+   less than ~0.01 over one fold, head diversity is the better use of the budget and P-21 comes
+   first. If it buys more, folds win and P-21 becomes an addition rather than a substitute.
+2. **Ship P-21** (~0.2 session, no training): make the infer path rank-mean across *versions*, not
+   just folds — `ckpt_paths` currently maps `fold -> path` for one `cfg.version`; it needs
+   (version, fold) pairs. Then submit the `v05a` + `v05b` blend. Expect a *small* LB move; do not
+   read a sub-0.005 change as confirmation.
+3. **Run P-22** (~0.1 session, analysis only, no training): for every arm, compare best-epoch vs
+   last-epoch OOF from the `_ep{e}_oof.csv` files already downloaded in
+   `artifacts/kaggle_out/v13/`, with the gold curve alongside to detect teacher-chasing. If
+   best-epoch beats fixed-epoch by more than 0.008 **and** gold does not diverge, switch the
+   policy and re-read P-09 and P-04 under it.
+4. **Only then** consider more architecture (P-10/P-14/P-15) or P-16's re-labelling.
+
+### Open decisions for Tian
+
+- **Pin the final submission's weights to a Kaggle Dataset instead of `kernel_sources`.** Right
+  now `rsna-knee-infer` mounts *the latest version* of `rsna-knee-train`, so pushing a training
+  run changes what a submission would load. It forced submit-before-push ordering twice today. A
+  dataset is immutable and removes the whole failure class before the deadline.
+- **`artifacts/kaggle_out/v9smoke/` is 1.8 GB of smoke checkpoints** (4-study models) with
+  **filenames identical to the real ones** — `v9smoke/v04d_fold0_best.pt` is *not* the 0.877
+  model. Safe to delete; flagged rather than deleted.
+- Browser-only questions still block P-10/P-16/P-18: rules text (hosted-LLM clause, winner
+  licence), Efficiency Prize formula, radimagenet.com T&C, hidden test size.
+- **The remaining 0.075 to the public top is still unexplained.** We use the same public label
+  tables the leaders use; ensembling plausibly accounts for 0.01–0.02.
+
+### Things that will bite if forgotten
+
+- **A run in flight on a slug makes `kernels output` return nothing for that whole slug**, for
+  every version form. Wait for it to finish (traps 12e).
+- Pull the log **and** the small result files in one command: `--file-pattern "(oof|manifest)"`.
+  `--file-pattern` is a **regex, not a glob**; `"no_match"` is the log-only trick.
+- `src/kaggle_pipeline.py` is committed with `FORCE_SMOKE = True` on purpose; the kernels that ran
+  had `False`. Regenerating a notebook locally produces a *smoke* notebook.
+- The 5-fold kernel is generated by `sed 's/^FIVE_FOLD = False/FIVE_FOLD = True/'` — never edit
+  the `.ipynb`.
+- Push `rsna-knee-infer` **before** re-pushing `rsna-knee-train` (see the Kaggle Dataset item).
+- Everything from the entries below still applies (`PYTHONUTF8=1`, never sort DICOMs by filename,
+  do not download the 21 GB cache, `experiments.md` is append-only).
+
+---
+
 ## 2026-08-29 (00:13) — LB 0.841 → 0.871, four silent bugs fixed, five-arm batch launched
 
 All findings are logged in experiments.md / traps.md / proposals.md / CLAUDE.md as of commit
