@@ -56,6 +56,7 @@ Judge label changes on **coverage** (does the rule fire at all, per language) an
 | 2026-08-30 | **`v09h` fold 0 (RunPod 4090, 50 min)**: CoAtNet-1 @224 on c02 + window_attn | gold 0.923 (n=11) · OOF **0.8683** | — | ✅ **best single model**, cheapest strong recipe |
 | 2026-08-30 | **P-23 six-version blend, submission #9 (infer v12)**: #8 set + v08w + v10c | fold-0 proxy **0.8795** | **0.909** | ✅ **KEEP: +0.009 over #8 = 1.8× the 0.005 LB floor**; OOF→LB offset +0.0295 (predicted 0.905–0.907, landed 0.909); the c02 band + window-attention recipe carries to the hidden test (Submissions #9) |
 | 2026-08-30 | **P-23 seven-version blend, submission #10 (infer v13)**: #9 set + v09h | fold-0 proxy **0.8820** | **0.912** | ✅ **best on the board and the default blend** (tie rule: more members); the `v09h` *increment* is **+0.003 vs #9 → 🔁 under the 0.005 floor** (OOF said +0.0024); +0.012 vs #8's 0.900 = 2.4× the floor for the c02 lane as a whole; offset +0.030 (Submissions #10) |
+| 2026-08-30 | **5-fold `v09h` (RunPod chain4, folds 1–4 added to fold 0; 3.4 h, ≈ $2.6)** | pooled OOF **0.8625** · gold-58 0.874 | — | ✅ the ensemble base: +0.016 over `v05g`'s pooled 0.8467; per-fold 0.8546–0.8683; infer v14 mounts all five (one vote) |
 
 **External reference points** (not ours — for calibrating ambition):
 
@@ -1092,6 +1093,42 @@ stays empty**; the mean-TTA per-member gain is real but redundant with ensemblin
 `artifacts/kaggle_out/eval_pod/tta_mean/`, `tta_focal/`. The Kaggle `oof_eval` kernel (traps 28) was not
 needed after all — the pod ran all four members in 6 min per pool with 503 GB RAM and identical numbers for v05a
 (0.8621 on both), so the pod's c01 pull and preprocessing match Kaggle.
+
+### 2026-08-30 — 5-fold `v09h` (RunPod chain4): pooled OOF 0.8625, +0.016 over `v05g`'s 0.8467; gold-58 0.874 ✅ KEEP as the ensemble base
+
+**Config:** the `v09h` arm exactly (CoAtNet-1 @224 on c02, window_attn, 24 random train windows, all windows at
+eval, 8 ep, `best_oof`, EMA 0.998, `lr_backbone` 1e-4, seed 42); folds 1–4 trained back to back on the RunPod 4090
+(`ARM_FOLDS` sed on the pod copy; fold 0 reused from the 15:30 run — `_last.pt` at epoch 7 resumed at epoch 8 =
+skipped, `_best.pt` untouched). ≈ 50 min/fold at 0.09 s/study; chain4 16:03–19:37 UTC; ≈ $2.6.
+
+| fold | n | OOF | gold (n) | ckpt epoch |
+|---|---|---|---|---|
+| 0 | 882 | **0.8683** | 0.923 (11) | 7 |
+| 1 | 882 | 0.8668 | 0.889 (12) | 7 |
+| 2 | 881 | 0.8589 | 0.831 (12) | 6 |
+| 3 | 881 | 0.8546 | 0.847 (12) | 6 |
+| 4 | 881 | 0.8653 | 0.919 (11) | 5 |
+
+- **Pooled over all 4,407: 0.8625** fold-rank-normalised (raw 0.8623); mean of folds 0.8628; **gold over all 58:
+  0.874** (raw 0.873). `v05g`, the previous 5-fold base: pooled 0.8467, gold 0.848 → **+0.016 / +0.026**.
+- **Fold spread 0.0137 (0.8546–0.8683) — 1.7× the 0.008 floor**, wider than `v05g`'s 0.0079. Fold difficulty only
+  partly matches `v05g` (fold 0 easiest and folds 2–3 hard in both; fold 1 was `v05g`'s worst but is second best
+  here), so it is fold difficulty *plus* seed noise, and the mid-run "every fold is getting worse" appearance was
+  a coincidence fold 4 broke. Fold-0 A/Bs stay flattered by ≈ +0.006 vs the fold mean — fine for deltas, not levels.
+- **Per-label pooled**: Medial Meniscus 0.903, Fracture 0.893, Baker's/Synovitis 0.892 … **Lateral Meniscus 0.847
+  vs `v05g`'s 0.789 (+0.058)** — the band + window-head claim survives at 5-fold scale; the floor is now MCL 0.799
+  and PF OA 0.826.
+- **`ckpt_policy="best_oof"` bit for the first time on this recipe**: folds 2/3/4 peaked at epochs 6/6/5 (fold 4:
+  0.8653 at ep5 vs 0.8642 at ep7). The fixed-last-epoch policy would have cost ~0.001 macro on three folds.
+- **Ship**: the pod's `ship` step failed **silently** on the 3-h-expired OAuth token (`kaggle datasets version`
+  exited 0 in < 2 s with no upload — the upload-side twin of traps 20); the Dataset was versioned from the local
+  pull instead: `rsna-knee-ckpt-v09h` now holds 5 × `_best.pt` + 5 × `_oof.csv` (766 MB compressed, file list
+  verified). Everything else (40 per-epoch csvs, all logs) pulled and md5-verified to
+  `artifacts/{ship_v09h_5fold,kaggle_out/pod_v09h_5fold}/`; **pod deleted 22:05 local** (day's pod spend ≈ $7).
+- **Verdict: ✅ KEEP** — the `v09h` vote in the default blend is now 5 folds (infer v14). Expected LB effect of the
+  folds alone is below the floor (folds are replicates: `v05g`'s five folds bought +0.009 as a *lone* version, and
+  less inside a 7-vote blend), so no submission was spent on it; it firms up the best member for the private set
+  and gives `v09h` a full-corpus OOF — the target P-17 self-training needs.
 
 ## Infrastructure
 
