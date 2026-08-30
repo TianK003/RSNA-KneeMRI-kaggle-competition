@@ -953,6 +953,48 @@ Verdict: ✅ **KEEP the recipe** (c02 + random windows + window_attn is the new 
 `v08w` would replace `v05g` as the fold-ensemble base if folds are ever re-run), 🔁 on the blend gain — no
 submission on this alone (expected LB +0.003–0.004 < the 0.005 floor); decide the blend with `v10c` in hand.
 
+### 2026-08-30 — `v10c` fold 0 (P-23 #2b: `timm:coatnet_rmlp_2_rw_384` @384, c02, window_attn; RunPod RTX 4090, 2.9 h): OOF **0.8641** = parity with `v08w` from a second family · meniscus specialist (Lateral Meniscus 0.858, Medial Meniscus 0.922) · 6-member blend 0.8795 (+0.0073 over the LB blend) 🔁 by the single-candidate rule, ✅ KEEP as a member
+
+The 0.936 notebook's strongest-member recipe on our cache: CoAtNet-2 (73 M, ImageNet-pretrained, offline
+timm safetensors) at **384 px** over the **c02** wide-band cache, `window_mode="random"` (24 train windows,
+**42 equidistant eval windows**), `head_type="window_attn"`, `lr_backbone=1e-4` (5× DINOv2's), LLRD 0.75, 8
+epochs, `best_oof`, EMA 0.998, `grad_checkpoint=True`, seed 42, fold 0. **0.30 s/study → 17.7 min train + 3.2
+min val per epoch, 8 GB VRAM training / 14 GB with the 42-window validation** on the 4090 (`RSNA_WORKERS=8`,
+blobs on local NVMe; needs `ulimit -n` raised — traps 29). Run 1 died at epoch 0 (fd limit); run 2 is this.
+
+| epoch | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 |
+|---|---|---|---|---|---|---|---|---|
+| OOF (auc_soft) | 0.733 | 0.764 | 0.810 | 0.830 | 0.845 | 0.854 | 0.861 | **0.8641** |
+| MCL | 0.698 | 0.707 | 0.741 | 0.751 | 0.773 | 0.784 | 0.796 | 0.807 |
+| Lateral Meniscus | 0.693 | 0.702 | 0.712 | 0.732 | 0.775 | 0.816 | 0.845 | **0.858** |
+| `v08w` same epoch | 0.747 | 0.805 | 0.834 | 0.849 | 0.858 | 0.863 | 0.865 | 0.8648 |
+
+Slower start than DINOv2 (a fresh 286 k-param head over CNN-hybrid features at high LR, 10 % warmup, EMA
+lag), then it closes the gap every epoch and is **still rising at epoch 7 (+0.0035)** — a 10–12-epoch rerun is
+the obvious follow-up (P-23 card). Gold 0.913 (n = 11, noise).
+
+**Per label, alone:** Lateral Meniscus **0.858** and Medial Meniscus **0.922** are the best of any member
+(v08w 0.827 / 0.903; the 4-member LB blend 0.833 / 0.904); ACL 0.841 and MCL 0.807 are the weakest (v08w
+0.865 / 0.823). The 384-px hybrid reads the menisci, DINOv2 reads ACL/MCL: **the two families are strong on
+different labels**, which is what rank fusion pays for and what P-10/P-23 predicted.
+
+**Blends (`src/blend_check.py`, fold 0, 882 studies):**
+
+| blend | OOF | note |
+|---|---|---|
+| LB blend v05a+v05b+v05g+v06c | 0.8722 | base (LB 0.900) |
+| + v10c | 0.8774 | +0.0052, ρ vs base 0.838 → 🔁 by the rule; Lateral Meniscus +0.017, Medial Meniscus +0.009 |
+| + v08w + v10c (**6 members**) | **0.8795** | **+0.0073** over the LB blend; the two new members together are just under the 0.008 floor |
+| v08w + v06c + v10c (three families) | 0.8785 | three members ≈ six |
+| v08w + v10c | 0.8736 | **+0.0088 over v08w alone** — the first pair to clear the gain floor (ρ 0.847) |
+
+ρ: v10c–v05b 0.731, –v06c 0.776, –v05g 0.800, –v05a 0.813 — the most different member we have (v08w–v05a
+was 0.841). Verdict: ✅ **KEEP `v10c` as a member** (parity single, lowest correlation, complementary labels);
+each addition alone is 🔁 under the single-candidate rule, and the six-member blend's +0.0073 predicts an LB
+of ≈ 0.905–0.907 by the +0.02–0.03 offset — around the 0.005 LB floor, so a submission is an *information*
+buy, not a proven gain. Infer kernel v12 (6 members) pushed 16:41 to check the mixed-geometry path end to end;
+submission is Tian's call. Checkpoint: Dataset `tiankljucanin/rsna-knee-ckpt-v10c` (`ship` on the pod).
+
 ## Infrastructure
 
 ### 2026-08-30 — Cache v2 (`c02`), window-attention path, timm hybrids and mixed-geometry inference shipped; local verification ✅ KEEP the code · Kaggle ⏳

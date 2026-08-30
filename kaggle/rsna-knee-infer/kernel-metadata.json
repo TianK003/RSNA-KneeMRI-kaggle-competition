@@ -18,7 +18,8 @@
     "tiankljucanin/rsna-knee-ckpt-v06",
     "tiankljucanin/rsna-knee-ckpt-v05g",
     "tiankljucanin/timm-coatnet-rmlp-1-rw-224",
-    "tiankljucanin/timm-coatnet-rmlp-2-rw-384"
+    "tiankljucanin/timm-coatnet-rmlp-2-rw-384",
+    "tiankljucanin/rsna-knee-ckpt-v10c"
   ],
   "kernel_sources": [
     "tiankljucanin/rsna-knee-train"
