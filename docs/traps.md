@@ -521,6 +521,14 @@ specific line, grep the log for *that line*, not for "exit 0".
 
 ### 20. The Kaggle OAuth token expires after ~12 h, and the error blames your slug
 
+**Update 2026-08-30: the lifetime is not fixed — today's two tokens lasted exactly 3 h** (10:28 → 13:30,
+13:55 → 16:54; `access_token_expiration` in `credentials.json` says when). The CLI (2.2.4) does **not** use the
+`refresh_token` on its own; every `kaggle kernels output` running at expiry ends early **with exit 0** (the pod's
+two c01 pulls stopped at 1080/2115 and 980/2292 files at 11:30:44 UTC — traps 14 again), and a copy of the file
+on another machine dies at the same minute. **Do:** read the expiry before starting anything longer than an
+hour; for an unattended box (RunPod `ship`) a legacy API token (`kaggle.json`, kaggle.com/settings → Create New
+Token) does not expire and is the right credential.
+
 `~/.kaggle/credentials.json` (written by `kaggle auth login`) stopped working 12 h after it was
 issued (09:26 → 21:31 on 2026-08-29). Every command then fails, but not with an auth message:
 `kaggle kernels status <slug>` prints **"Cannot access kernel … (Permission 'kernels.get' was
@@ -585,3 +593,11 @@ Five things that each cost one round trip on the first RunPod run:
   carries nothing to match. Also `scp a b host:/path/x` with two sources makes `x` a *directory*.
 - Kaggle pulls on the pod: blobs stream at ~30 MB/s, but per-study `.npy` (c01, ~4,400 files) at ~0.7 files/s
   — pull the two c01 shards in parallel (~50 min instead of ~100).
+- **`ulimit -n` is 1024 in the container** (hard 524288). With `RSNA_WORKERS=8` the DataLoader's
+  `file_descriptor` sharing ran out at ~3,500 studies into epoch 0 of `v10c` — `RuntimeError: Too many open
+  files. Communication with the workers is no longer possible` — 18 min lost, no checkpoint yet, and the arm
+  loop "continued with the next arm", which would have died the same way. **Do:** `ulimit -n $(ulimit -Hn)`
+  in the launcher before `python` (chain3 does; run 2 passed the same point with 497 fds open).
+- **`python … | tee log` block-buffers stdout**: the progress lines arrive in 8 KB bursts (the whole first
+  epoch's `N studies in` lines landed at once), so an empty log is not a hung run — check `nvidia-smi`, the
+  per-epoch `{arm}_fold0_ep*_oof.csv` in `/kaggle/working`, or launch with `PYTHONUNBUFFERED=1`.

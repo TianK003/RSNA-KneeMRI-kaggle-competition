@@ -10,6 +10,7 @@ by **macro ROC-AUC** (unweighted mean of 12 per-label AUCs).
 
 Competition: https://www.kaggle.com/competitions/rsna-knee-abnormality-detection
 
+**State as of 2026-08-30 (14:15):** **`v08w` fold 0 = OOF 0.8648, the best single model** (v05a 0.8574; 12/12 labels up; MCL +0.028 confirms half of P-26) but it blends to only +0.0044 as a fifth member (ρ 0.866) — the DINOv2 family saturates at ≈ 0.876; no submission on it alone. RunPod: `v10c` (CoAtNet-2 @384) trains at 0.30 s/study (~22 min/epoch, fold 0 ≈ 16:50) after an fd-limit crash (traps 29), then `v09h`, then the P-12 evals. Kaggle OAuth tokens today last **3 h** (traps 20). See [docs/handoff.md](docs/handoff.md).
 **State as of 2026-08-30 (13:10):** `v08w` fold 0 runs on Kaggle (train v17, expect ~15:00). The Kaggle P-12 `oof_eval` pass (eval v2) **died OOM on its second member** (traps 28) after scoring v05a at 0.8621 with mean TTA (+0.0047, 🔁 alone); the measurement moved to **RunPod**: a secure RTX 4090 pod (`2wend9j0lr7zf3`, EUR-IS-2, $0.74/h, MCP-driven, direct SSH) runs `oof_eval` mean + focal, then `v10c`, then `v09h`, shipping each as `rsna-knee-ckpt-<arm>` — the P-24 runner's first real run (traps 29 for the first-run fixes). See [docs/handoff.md](docs/handoff.md).
 **State as of 2026-08-30 (afternoon):** the 0.936 notebook was re-read cell by cell; its gap to our 0.900 is
 (a) a **0.924 single model** — CoAtNet-2 @384 over 64 slices at a **2–98 % slice band** with **per-label

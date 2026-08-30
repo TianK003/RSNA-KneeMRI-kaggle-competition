@@ -913,6 +913,46 @@ the pod pulls the c01 shards and the three checkpoint pins for exactly this. Cos
 ~0.2 h GPU. ⏳ until the pod's `tta_mean/` and `tta_focal/` csvs are pulled and `blend_check.py` is run
 against the untouched OOF files (base 0.8722 for the 4-version blend).
 
+### 2026-08-30 — `v08w` fold 0 (P-25 window-attention head + P-26 wide-band c02 cache, kernel `rsna-knee-train` v17): OOF **0.8648**, the best single model · 12/12 labels up vs the blend ✅ KEEP as a member recipe · blend gain +0.0044 🔁 (REJECT as a *fifth* member by the rule) · P-26 half-confirmed (MCL +0.028, Lateral Meniscus +0.009)
+
+DINOv2-S/14 @224 on the **c02** cache (2–98 % band, ragged 18/12/12/14/8/8 slices), `window_mode="random"`
+(24 train windows, all windows at eval), `head_type="window_attn"`, 8 epochs, `best_oof`, fold 0, seed 42,
+1.5 h on the T4 (train 7.2 min + val 3.7 min per epoch; **0.12 s/study on the blob loader vs 0.19 for c01**).
+
+| epoch | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 |
+|---|---|---|---|---|---|---|---|---|
+| OOF (auc_soft) | 0.747 | 0.805 | 0.834 | 0.849 | 0.858 | 0.863 | 0.8646 | **0.8648** |
+| gold (n=11) | 0.813 | 0.873 | 0.896 | 0.902 | 0.916 | 0.916 | 0.927 | 0.927 |
+
+Still rising at epoch 7 (+0.0002), so 8 epochs is about right; `best_oof` picked epoch 7. `pred_std` 0.24.
+
+**Singles:** v08w 0.8648 vs v05a 0.8574 (same backbone, same fold, c01 + fixed K=6 + attn head): **+0.0074**,
+just under the 0.008 macro floor — but **all 12 labels move up** when it joins the blend (seed noise
+scatters signs, so a consistent sign is evidence), and it is the first member to beat v05a. Gold 0.927 = v05a.
+
+**Blend (`src/blend_check.py`, fold 0, 882 studies):**
+
+| blend | OOF | note |
+|---|---|---|
+| v05a+v05b+v05g+v06c (LB 0.900) | 0.8722 | base |
+| + v08w as fifth | 0.8766 | +0.0044 — **REJECT** by the rule (ρ vs base blend 0.866 ≥ 0.80; gain < 0.008) |
+| v08w **replacing** v05a | 0.8749 | +0.0027, 🔁; the replaced v05a then adds back only +0.0017 |
+| v08w + v06c | 0.8739 | two members already at the 4-member level |
+| v08w + v05b | 0.8722 | = the 4-member base with two members |
+
+Every DINOv2-based subset saturates at 0.872–0.877: **v08w is a stronger member of the same family, not new
+diversity** (ρ 0.84 with v05a, 0.76 with v05b). That is the P-10/P-23 lesson again and what `v10c` (CoAtNet-2
+@384, RunPod) is for.
+
+**Per label (v08w alone vs v05a alone):** MCL **0.823 vs 0.795 (+0.028)** — the P-26 claim (+0.03) holds within
+the per-label floor; Lateral Meniscus 0.827 vs 0.818 (+0.009) does not. In the 5-member blend the two labels
+move +0.006 / +0.010. So the wide band buys MCL, and Lateral Meniscus needs something else (resolution / a
+different family — `v10c` is the test).
+
+Verdict: ✅ **KEEP the recipe** (c02 + random windows + window_attn is the new default member recipe; a 5-fold
+`v08w` would replace `v05g` as the fold-ensemble base if folds are ever re-run), 🔁 on the blend gain — no
+submission on this alone (expected LB +0.003–0.004 < the 0.005 floor); decide the blend with `v10c` in hand.
+
 ## Infrastructure
 
 ### 2026-08-30 — Cache v2 (`c02`), window-attention path, timm hybrids and mixed-geometry inference shipped; local verification ✅ KEEP the code · Kaggle ⏳
