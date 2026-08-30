@@ -97,8 +97,16 @@ train)
 
 ship)
   [ -n "$ARM" ] || { echo "usage: $0 ship <arm>"; exit 1; }
-  OUT="$WORK/ship_$ARM"; mkdir -p "$OUT"
-  cp "$WORK/${ARM}_fold"*"_best.pt" "$WORK/${ARM}_fold"*"_oof.csv" "$OUT/" 2>/dev/null || true
+  # Fresh ship dir every time (a stale one from an earlier fold-0 ship would carry old files into
+  # the new Dataset version). Only the checkpointed-epoch files go: `fold[0-9]_` excludes the
+  # per-epoch `_ep*_oof.csv` and the `_tta_oof.csv` that the old `fold*_oof.csv` glob swept in
+  # (the fold-0 v09h ship uploaded 8 per-epoch csvs that way). Zero checkpoints = a loud failure,
+  # not an empty Dataset version.
+  OUT="$WORK/ship_$ARM"; rm -rf "$OUT"; mkdir -p "$OUT"
+  cp "$WORK/${ARM}"_fold[0-9]_best.pt "$WORK/${ARM}"_fold[0-9]_oof.csv "$OUT/" 2>/dev/null || true
+  n_ckpt=$(ls "$OUT"/*_best.pt 2>/dev/null | wc -l)
+  [ "$n_ckpt" -ge 1 ] || { echo "!! ship $ARM: no ${ARM}_fold*_best.pt in $WORK -- nothing to publish"; exit 2; }
+  echo "shipping $n_ckpt checkpoint(s) + $(ls "$OUT"/*_oof.csv 2>/dev/null | wc -l) oof csv(s)"
   ls -la "$OUT"
   cat > "$OUT/dataset-metadata.json" <<EOF
 {"title": "RSNA knee ckpt $ARM", "id": "$OWNER/rsna-knee-ckpt-$ARM", "licenses": [{"name": "other"}]}
