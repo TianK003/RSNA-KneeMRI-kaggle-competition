@@ -6,6 +6,102 @@ to read first after a break.
 
 ---
 
+## 2026-08-30 (17:55) — ⭐ The 0.936 notebook's mechanism is measured (band + window head + hybrid backbone, not pixels); three new best single models in one day on RunPod + Kaggle; submissions #9 and #10 scoring; P-12 TTA 🔁
+
+Consolidates the 13:10 entry and its 14:20 / 16:45 / 17:35 deltas below. Read this one; the deltas hold the
+minute-by-minute record.
+
+### ⏳ Still in flight as this was written (17:55)
+
+| In flight | What it is | Started | How to check | How to read it |
+|---|---|---|---|---|
+| **Submission #9** — infer v12, six versions (v05a+v05b+v05g+v06c+v08w+v10c), fold-0 proxy OOF 0.8795 | first submission with the c02 / window-attn members and a second family | 17:08 | `kaggle competitions submissions rsna-knee-abnormality-detection --csv \| head -3` (ref 55893845); the scoring rerun is ≈ 10 min per 100 hidden-test studies (v10c is 3 of those), so 1.5–3 h; `PENDING` → `COMPLETE` | Expected **≈ 0.905–0.907** by the +0.02–0.03 OOF→LB offset. ≥ 0.905 = the c02 recipe carries to the LB; 0.900–0.904 = 🔁 (LB floor 0.005); < 0.900 = a *rerun* problem (compare the 3-study `submission.csv` of v12 vs v10 locally), not a model problem. `ERROR` = read the rerun log via `kaggle kernels output tiankljucanin/rsna-knee-infer -p … --file-pattern no_match` (the version's own log shows only the placeholder run) |
+| **Submission #10** — infer v13, seven versions (#9 set + v09h), OOF 0.8820 | Tian's instruction: a second submission after `v09h` | 17:37 | same, ref 55894428 | Expected within ±0.003 of #9 (OOF +0.0024). Both scores go into the Scoreboard rows already added (⏳) via `/update`; **default blend = whichever is higher; on a tie prefer #10 (more members, more robust privately)** |
+| **P-12 focal pass** on the pod | `oof_eval` with `tta_pool="focal"` for the four c01 members (mean pass done: 🔁) | 17:38 | `ssh root@213.181.111.2 -p 26323 -i ~/.ssh/id_ed25519 'tail -n 20 /workspace/evals.log; ls /kaggle/working/tta_focal'` | v05a focal = 0.8621 (= mean). Pull `tta_focal/*.csv` to `artifacts/kaggle_out/eval_pod/tta_focal/`, run `blend_check.py` with the four focal files as `--base` (compare 0.8722 / mean 0.8738); fill the ⏳ cells of the P-12 experiments entry. Nothing will change the verdict unless the 4-blend gains > 0.008 |
+| **RunPod pod `2wend9j0lr7zf3`** | secure RTX 4090, EUR-IS-2, **$0.74/h, idle after the focal pass (~18:00)**; all inputs (c01 + c02 caches, weights, three ckpt pins), repo at `/workspace/RSNA_Knee` (CRLF-stripped `8aad0c8`), Kaggle token valid to **20:06** | 12:52 | `mcp get-pod 2wend9j0lr7zf3`; SSH as above; `nvidia-smi` | **Decision needed: queue the 5-fold `v09h` (~4 h, ≈ $3) or delete/stop the pod.** To queue: `cd /workspace/RSNA_Knee && sed -i 's/^ARM_FOLDS = (0,)/ARM_FOLDS = (0, 1, 2, 3, 4)/' src/kaggle_pipeline.py` on the pod (check with `grep -n "^ARM_FOLDS"`), then `setsid bash -c 'ulimit -n $(ulimit -Hn); bash scripts/runpod_bootstrap.sh train v09h; bash scripts/runpod_bootstrap.sh ship v09h' > /workspace/chain4.log 2>&1 < /dev/null &` — **`ship` will need a token valid at ~22:00** (re-auth + scp, or a legacy `kaggle.json`). Note `v09h_fold0_best.pt` already exists in `/kaggle/working`; the fold loop skips completed folds only via `_last.pt` resume — check the log's first lines say fold 1 starts, or move fold-0 files aside |
+
+Watchers armed **in this session only**: both submissions, evals.log tail. Kaggle GPU quota this week ≈ 3.5 h left
+(v08w 1.5 h + eval v2 0.2 h + infer v12/v13 0.1 h spent today).
+
+### Where things stand
+
+| | Status |
+|---|---|
+| Best LB | **0.900** (#8) until #9/#10 score |
+| Best single model | **`v09h` 0.8683** (CoAtNet-1 @224, c02, window_attn; 50 min on a 4090) > `v08w` 0.8648 > `v10c` 0.8641 > v05a 0.8574 |
+| Best blend (OOF) | 7 versions **0.8820** (infer v13 / #10); 6 versions 0.8795 (#9); old 4-version 0.8722 (#8, LB 0.900) |
+| ⭐ Finding | **The 0.936 notebook's 0.924 member gains from the 2–98 % band + per-label window attention (+0.007 on the same DINOv2-S) and from the hybrid backbone (+0.004, different errors: menisci), not from 384 px (−0.004 at 3.5× cost).** experiments.md ⭐ entry, research.md §2.7.1 MEASURED block, CLAUDE.md |
+| P-12 TTA | 🔁 mean: members +0.003–0.006 each, 4-blend +0.0016, 7-blend +0.0002 → **not adopted**, `INFER_OVERRIDES = {}`; focal ⏳ (v05a identical) |
+| P-24 RunPod | ✅ works end to end (setup, train, ship); ≈ $4.5 spent (pod since 12:52 + 3 min of two dead community pods); traps 29 (CRLF, no public IP on community, `bc`, `pgrep`, `ulimit -n`, `tee` buffering) |
+| Checkpoint pins | `rsna-knee-ckpt-v05` (v05a, v05b), `-v05g` (5 folds), `-v06` (v06c), **`-v10c`, `-v09h`** (new, from the pod); **`v08w` is NOT pinned** — infer v12/v13 read it from the `rsna-knee-train` **v17 output**, so ⚠ **do not push `rsna-knee-train` before pinning `v08w`** (`kaggle kernels output tiankljucanin/rsna-knee-train -p … --file-pattern "v08w_fold0_best"` → Dataset `rsna-knee-ckpt-v08w`, add to infer metadata) |
+| Kaggle | eval v2 ❌ OOM (traps 28); train v17 ✅ (v08w); infer v12 ✅, v13 ✅ (both clean on the placeholder test); OAuth tokens last **3 h** today (traps 20) |
+| Repo | pushed through this handoff; committed `src/` unchanged today (`FORCE_SMOKE = True`, `MODE = "auto"`, `ARMS = [v08w, v09h]`, `INFER_MEMBERS = ["v05a","v05b"]`); `kaggle/rsna-knee-infer/` = the 7-member v13 variant + metadata with all five pins; `kaggle/rsna-knee-eval/rsna-knee-eval.ipynb`, `crazy_good_rsna.ipynb` untracked |
+| Local artifacts | `artifacts/kaggle_out/{v17,pod_v10c,pod_v09h}/` OOF csvs (+ per-epoch), `eval_pod/tta_mean/`, `eval_v2/` log, `infer_v12/`, `infer_v13/` |
+
+### What we talked about and decided
+
+- **Cost-efficiency first**: 4090 by cost-per-work; community 4090s failed on public IP → secure at $0.74/h (every
+  secure option ≈ $5 per `v10c`, so wall-clock decided). One pod, sequential chain, `v10c` before `v09h`.
+- **Kaggle `oof_eval` OOM → measure on the pod** rather than spend quota on an unexplained RAM issue; then, when the
+  token died mid-pull, **train first, evals last** so the GPU never waited on a human step.
+- Tian: **submit #9 (six versions) now and #10 (seven) after `v09h`**; submissions do not consume GPU quota
+  (5/day; 2 left today). Both sent; expectation stated up front that #10 is within noise of #9.
+- Tian's questions answered in the log: why a learner can beat its noisy teacher (random vs systematic noise,
+  monotone posterior → same ranking → AUC unaffected; phases of memorisation → `best_oof`/EMA; self-training =
+  P-17, with orthogonal text-vs-image errors as the reason it should work here); why more epochs / higher LR were
+  not pulled mid-run for `v10c` (peak LR already reached; the curve converged).
+- **Not copied on purpose**: the notebook's gold-tuned calibrator and clinical residual; 384 px is now measured as
+  unnecessary, so `v10c` at 12 epochs is dropped from the plan.
+
+### What we figured out
+
+1. ⭐ **Band + window head + hybrid backbone are the mechanism; resolution is not** (v05a 0.8574 → v08w 0.8648 →
+   v09h 0.8683; v10c @384 0.8641) — experiments.md ⭐ entry. Default member recipe changed accordingly.
+2. **The three c02 arms are one blending family (ρ ≈ 0.84)** — +0.0098 over the LB blend for three members; new
+   diversity needs a new input representation or pretraining (P-23 #3/#4, P-17), exactly the notebook's own lesson.
+3. **`v09h` at 50 min/fold on a 4090 makes 5-fold hybrids a $3 job**; the c02 blob loader is 0.09–0.12 s/study
+   on NVMe/FUSE vs 0.19 for c01 per-study files.
+4. **TTA is redundant with ensembling here** (P-12 🔁) — members +0.005, blend +0.0016.
+5. **Six first-RunPod-run traps** (29) and two Kaggle ones (28 `oof_eval` OOM; 20 update: 3-h tokens, pulls die
+   silently at expiry).
+
+### ⏭ Next action, in order
+
+1. **Read #9 / #10** when they flip (watchers, or the CSV command above); fill the two ⏳ Scoreboard rows and the
+   `CLAUDE.md` "Best LB" via `/update`; set `INFER_MEMBERS` in the committed `src/` to the winning set.
+2. **Focal pass** (≈ 18:00): pull `tta_focal/`, `blend_check.py`, fill the ⏳ cells in the P-12 entry (one commit).
+3. **Pin `v08w`**: `mkdir -p artifacts/pin_v08w && kaggle kernels output tiankljucanin/rsna-knee-train -p artifacts/pin_v08w --file-pattern "v08w_fold0_(best|oof)"`,
+   write `dataset-metadata.json` (`id: tiankljucanin/rsna-knee-ckpt-v08w`), `kaggle datasets create -p artifacts/pin_v08w`
+   (traps 21 on Windows), add to `kaggle/rsna-knee-infer/kernel-metadata.json` and `rsna-knee-eval`. Until then, no train pushes.
+4. **Pod: 5-fold `v09h` or stop** (Tian). If go: command in the in-flight table; ≈ 4 h → `rsna-knee-ckpt-v09h` gets
+   folds 1–4 (`kaggle datasets version`), infer picks up all five automatically (one vote per version).
+   Read: per-fold OOF 0.86–0.87; pooled OOF vs v05g's 0.8467; then infer push + submission on Tian's call.
+5. After that: P-17 self-training card (targets = ½ teacher + ½ multi-family OOF rank blend; retrain `v09h`
+   recipe; judge vs the *original* teacher + LB) and P-23 #3/#4 (a new input representation).
+6. **Cost guard**: `mcp delete-pod 2wend9j0lr7zf3` when the pod is no longer needed (`stop-pod` keeps the 120 GB
+   volume for ≈ $0.20/GB-month if more arms are planned within days).
+
+### Open decisions for Tian
+
+- 5-fold `v09h` on the pod tonight (~$3, ~4 h, token re-auth at ~22:00 for `ship`) vs stop the pod.
+- Which of #9/#10 becomes the default blend once scored (rule above).
+- A non-expiring Kaggle API token (`kaggle.json`) for the pod, so `ship` never races the 3-h OAuth token.
+- Unchanged: make `convnext-tiny-224-hf`, `timm-*`, `rsna-knee-ckpt-*` public before a *final* submission; browser
+  items (rules text, radimagenet T&C, Kaggle caps); `crazy_good_rsna.ipynb` keep/delete.
+
+### Things that will bite if forgotten
+
+- **Pod bills until deleted**; no auto-terminate via the MCP.
+- **`v08w` is unpinned** — a `rsna-knee-train` push repoints infer v12/v13's `v08w` source (they are already
+  scored/scoring, so only *future* infer pushes are affected, but the committed infer notebook lists `v08w`).
+- Kaggle OAuth token: 3 h; pulls/uploads die **silently** at expiry (exit 0) — verify by file count (traps 14/20).
+- On the pod: `ulimit -n $(ulimit -Hn)` before any 8-worker training; logs through `tee` are buffered — read
+  `/kaggle/working/*_ep*_oof.csv` (`python3 /workspace/oof_summary.py`) for live progress.
+- `chain2.log` is dead history; `chain3.log` = today's training; `evals.log` = P-12; `failed_run1/` = the fd crash.
+- `blend_check.py` needs the repo `.venv` (system Python lacks scipy).
+- The 5-fold `v09h` run must not re-use `/kaggle/working/v09h_fold0_*` blindly — check the resume logic (`_last.pt`
+  exists for fold 0 → it will "resume" fold 0 at epoch 8 = skip, which is fine; verify the log).
+
 ## 2026-08-30 (13:10) — RunPod lane live: secure 4090 pod runs P-12 `oof_eval` (mean + focal) → `v10c` → `v09h`; Kaggle eval v2 died OOM on member 2; `v08w` (train v17) still running
 
 Tian's instruction at 12:45: "while waiting for Kaggle, check the RunPod MCP and start running the most

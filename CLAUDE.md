@@ -10,6 +10,7 @@ by **macro ROC-AUC** (unweighted mean of 12 per-label AUCs).
 
 Competition: https://www.kaggle.com/competitions/rsna-knee-abnormality-detection
 
+**State as of 2026-08-30 (17:50):** ⭐ **The 0.936 notebook's mechanism is measured**: band + window head (+0.007) + hybrid backbone (+0.004, menisci), *not* resolution (CoAtNet-1 @224 0.8683 > CoAtNet-2 @384 0.8641). Default member recipe is now `c02` + `window_mode="random"` + `head_type="window_attn"`; `v09h` costs 50 min/fold on a 4090. **Submissions #9 (six versions, OOF 0.8795) and #10 (seven, 0.8820) are scoring.** P-12 TTA: 🔁, not adopted. Next pod job: 5-fold `v09h` (~4 h, ≈ $3) on Tian's go-ahead; the pod idles at $0.74/h. See [docs/handoff.md](docs/handoff.md).
 **State as of 2026-08-30 (17:35):** three RunPod/Kaggle arms on the c02 cache with the window-attention head are the three best single models — **`v09h` 0.8683 (CoAtNet-1 @224, 50 min)**, `v08w` 0.8648, `v10c` 0.8641 — and one family (ρ 0.84). Blends: 6-member 0.8795 (**submitted #9, infer v12, 17:08**), 7-member 0.8820 (infer v13 → #10 on Tian's instruction). P-12 TTA evals running on the pod. See [docs/handoff.md](docs/handoff.md).
 **State as of 2026-08-30 (16:45):** **`v10c` (CoAtNet-2 @384, c02, RunPod) fold 0 = OOF 0.8641**, parity with `v08w` from a second family, the least correlated member (ρ 0.73–0.81) and the best on both menisci (LatMen 0.858); **6-member blend v05a+v05b+v05g+v06c+v08w+v10c = 0.8795 (+0.0073 over the LB-0.900 blend)** — infer v12 with those six pushed for an end-to-end check; submission pending Tian. `v09h` training on the pod; P-12 evals after it. Next arm: `v10c` at 10–12 epochs (still rising). See [docs/handoff.md](docs/handoff.md).
 **State as of 2026-08-30 (14:15):** **`v08w` fold 0 = OOF 0.8648, the best single model** (v05a 0.8574; 12/12 labels up; MCL +0.028 confirms half of P-26) but it blends to only +0.0044 as a fifth member (ρ 0.866) — the DINOv2 family saturates at ≈ 0.876; no submission on it alone. RunPod: `v10c` (CoAtNet-2 @384) trains at 0.30 s/study (~22 min/epoch, fold 0 ≈ 16:50) after an fd-limit crash (traps 29), then `v09h`, then the P-12 evals. Kaggle OAuth tokens today last **3 h** (traps 20). See [docs/handoff.md](docs/handoff.md).
@@ -329,7 +330,10 @@ port of "DINOsaur V10"; [docs/research.md](docs/research.md) §2.7.1): DINOv2-S 
 16-slices-as-channels ViT + RadImageNet R50 frozen-feature heads + stacking calibrator ≈ 0.920 → +
 CoAtNet-2 @384 over 64 slices (0.924 alone) 0.935 → + gold-58-tuned weights 0.936. It trains nothing:
 every member is a mounted public checkpoint. **Our DINOv2 recipe is at parity with theirs; the gap is
-the number of families, which is P-23.** Its own counter-example: three backbones on the same input
+the number of families, which is P-23.** **Measured 2026-08-30 (evening):** the 0.924 member's gain is the **wide slice band +
+per-label window attention (+0.007 on the same DINOv2-S) and the hybrid backbone (+0.004, different errors on
+the menisci) — not the 384 px** (CoAtNet-1 @224 = 0.8683 beats CoAtNet-2 @384 = 0.8641 at ⅓ of the cost); the
+three c02 arms blend with the c01 members to 0.8820 (experiments.md ⭐ "What made the 0.936 notebook good"). Its own counter-example: three backbones on the same input
 blended to +0.001 — diversity has to come from the input representation and pretraining regime.
 
 Consensus architecture there: DINOv2 ViT-S/14 as the workhorse (with DINOv3 and RadImageNet

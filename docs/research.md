@@ -274,6 +274,20 @@ fastest route to ~0.93 — at the cost of becoming one more fork of the ensemble
 expects a private shakeup. → **P-23** in proposals.md (raised to the top of the backlog by Tian,
 2026-08-30).
 
+**MEASURED 2026-08-30 (evening) — which ingredient of the 0.924 member carries the gain.** Three fold-0 arms
+on our own data (experiments.md ⭐ "What made the 0.936 notebook good"): DINOv2-S 224 moved from the c01 cache
+(8–92 / 20–80 % bands, fixed triplets) to the **c02 cache (2–98 % band, ragged budgets) with per-label
+attention over 24 random windows** = 0.8574 → **0.8648** (`v08w`, +0.0074, 12/12 labels, MCL +0.028); the same
+recipe on **CoAtNet-1 @224** = **0.8683** (`v09h`, 50 min on a 4090); on **CoAtNet-2 @384** = **0.8641**
+(`v10c`, 2.9 h). So the notebook's +0.025 over its DINOv2 branch decomposes as **band + window head ≈ +0.007,
+hybrid backbone ≈ +0.004 with a different error profile (menisci), resolution ≈ 0 (−0.004, one seed)** — and
+the rest is ensembling across input representations plus the gold-tuned calibrator (not copied). The
+"CoAtNet-2 @384 over 64 slices" description in the docstring above is therefore the *implementation*, not the
+*mechanism*; a 224-px hybrid reproduces it at ⅓ of the cost. Blending the three arms with the four c01
+members: 0.8722 → 0.8820 (ρ ≈ 0.84 among the three — one family). Row 3 of the summary table ("do not go
+ViT-B first; compute goes to data") and row 7 (wide band) are confirmed; row 10's "5 folds of one family"
+should now be five folds of `v09h`, not of DINOv2 on c01.
+
 ### 2.8 Data-pipeline engineering
 
 **What we learned**

@@ -51,6 +51,11 @@ Judge label changes on **coverage** (does the rule fire at all, per language) an
 | 2026-08-29 | **by-version blend attn + concat-8ep + 5-fold concat, submission #7 (infer v8)** | fold-0 proxy 0.8680 | **0.896** | 🔁 equal to #5 — folds add nothing on top of head diversity. **Best remains 0.896** (two kernels, v5 and v8) |
 | 2026-08-30 | **P-23 4-version blend + `v06c` ConvNeXt-T, submission #8 (infer v10)** | fold-0 proxy 0.8722 (v06c alone 0.8562, gold 0.905 n=11) | **0.900** | 🔁 +0.004 is under the 0.005 floor — new best on the board, not proof the family earns its place; OOF→LB offset +0.028 held (n=5). **Best is now 0.900 (infer v10)** |
 | 2026-08-30 | `v07s` 16-slices-as-channels DINOv2-S, 5 folds (not submitted) | fold-0 OOF **0.7366**, gold 0.70 | — | ❌ DEAD END as built: blend −0.015 despite ρ 0.61 (experiments entry) |
+| 2026-08-30 | **`v08w` fold 0 (train v17)**: DINOv2-S 224 on **c02** (2–98 % band) + window_attn, 24 random windows, 8 ep | gold 0.927 (n=11) · OOF **0.8648** | — | ✅ best single at the time; blend +0.0044 as a fifth member 🔁 |
+| 2026-08-30 | **`v10c` fold 0 (RunPod 4090, 2.9 h)**: CoAtNet-2 @384 on c02 + window_attn | gold 0.913 (n=11) · OOF **0.8641** | — | ✅ member (meniscus specialist, ρ 0.73–0.81); 384 px buys nothing over 224 (v09h) |
+| 2026-08-30 | **`v09h` fold 0 (RunPod 4090, 50 min)**: CoAtNet-1 @224 on c02 + window_attn | gold 0.923 (n=11) · OOF **0.8683** | — | ✅ **best single model**, cheapest strong recipe |
+| 2026-08-30 | **P-23 six-version blend, submission #9 (infer v12)**: #8 set + v08w + v10c | fold-0 proxy **0.8795** | ⏳ | expected ≈ 0.905–0.907 |
+| 2026-08-30 | **P-23 seven-version blend, submission #10 (infer v13)**: #9 set + v09h | fold-0 proxy **0.8820** | ⏳ | within noise of #9 expected (+0.0024 OOF) |
 
 **External reference points** (not ours — for calibrating ambition):
 
@@ -1021,6 +1026,65 @@ resolution (224 vs 384) barely matters for CoAtNet here (0.8683 vs 0.8641, 3.5×
 pixels**. Verdict: ✅ KEEP as a member (cheapest strong model — 50 min/fold makes a 5-fold `v09h` a 4 h job),
 🔁 for the blend increment. Infer v13 (7 members) pushed 17:31 for submission #10 on Tian's instruction, with the
 expectation that its LB is within noise of #9.
+
+### 2026-08-30 — ⭐ What made the 0.936 notebook good, **measured**: the wide slice band + per-label window attention + a hybrid backbone — **not the pixels**. Three arms in one day (`v08w` 0.8648, `v10c` 0.8641, `v09h` 0.8683) are the three best single models we have ✅ KEEP (recipe) · the ensemble gain is small because they are one family 🔁
+
+**The question** (research.md §2.7.1): the public 0.936 notebook's strongest member is a CoAtNet-2 @384 over 64
+slices at a 2–98 % slice band with per-label attention over every window, scoring 0.924 alone; our DINOv2 recipe
+was at parity with *its* DINOv2 branch (≈ 0.899 vs our 0.896 LB). Which of its ingredients carries the +0.025?
+Today's three arms separate them, all on the same fold-0 split (882 studies), same teacher, same 8-epoch
+`best_oof` schedule:
+
+| arm | backbone | px | cache / band | head | fold-0 OOF | Δ vs v05a (0.8574) | wall-clock |
+|---|---|---|---|---|---|---|---|
+| v05a (reference) | DINOv2-S | 224 | c01: 8–92 % sag / 20–80 % cor, 16 dense | attn over 6 fixed triplets | 0.8574 | — | 1.5 h T4 |
+| **v08w** | DINOv2-S | 224 | **c02: 2–98 %, ragged 18/12/12/14/8/8** | **window_attn, 24 random windows** | **0.8648** | +0.0074 | 1.5 h T4 |
+| **v10c** | CoAtNet-2 (73 M) | **384** | c02 | window_attn | **0.8641** | +0.0067 | 2.9 h 4090 |
+| **v09h** | CoAtNet-1 (42 M) | 224 | c02 | window_attn | **0.8683** | **+0.0109** | **0.85 h 4090** |
+
+Readings, each backed by a row pair:
+
+1. **Band + window head, same backbone, same pixels (v05a → v08w): +0.0074**, 12/12 labels up in the blend, MCL
+   0.795 → 0.823. That is the first ingredient and it is free (0 GPU h to build the cache, same training cost).
+2. **Hybrid backbone on top (v08w → v09h, both 224, both c02): +0.0035**, and a different error profile —
+   Lateral Meniscus 0.867 vs 0.827, Lateral OA 0.848 vs 0.833, while MCL/ACL stay with DINOv2. Second ingredient.
+3. **384 px vs 224 px, same family (v10c vs v09h): −0.0042 at 3.5× the cost.** Resolution is *not* an
+   ingredient at our data size; CoAtNet-2 @384 was the notebook's choice, not its reason. (Caveat: one seed each;
+   the OOF floor is 0.008, so "no gain" is the honest reading, not "worse".)
+4. **The three c02 arms are one family for blending purposes** — ρ 0.84 between any two — so the 4-member LB
+   blend (0.8722) goes to 0.8795 with v08w+v10c and 0.8820 with all three (+0.0098 total, three members). The
+   notebook's remaining +0.01–0.02 came from *input-representation* families (16-channel ViT, RadImageNet
+   frozen features) and a gold-tuned calibrator we deliberately do not copy — that is the part still open.
+
+**Consequences.** (a) `c02 + window_mode="random" + head_type="window_attn"` is the default member recipe from
+now on; every c01 member is dominated. (b) **The cheapest strong model is `v09h`: 50 min per fold on a 4090
+(~$0.65)** — a 5-fold `v09h` is ~4 h / ~$3 and gives the fold-ensemble base the 5-fold `v05g` (0.8467 pooled)
+gave before, but from 0.868 instead of 0.847. (c) A 12-epoch `v10c` is *not* the next arm: 384 px buys nothing
+here. (d) New diversity has to come from a different input representation or pretraining (P-23 #3/#4, P-17
+self-training), not from more backbones on the same windows — the notebook's own +0.001 three-backbone
+counter-example, now reproduced on our side.
+
+Submissions: **#9 (infer v12, six versions, OOF 0.8795) and #10 (infer v13, seven versions, OOF 0.8820)** were
+sent 17:08 / 17:37; scores ⏳ (Scoreboard). Expected LB from the +0.02–0.03 offset: ≈ 0.905–0.908.
+
+### 2026-08-30 — P-12 slice-offset TTA, measured on the RunPod pod (`oof_eval`, all four c01 members, (-1, 0, 1)): every member up +0.003–0.006 alone, the 4-member blend **+0.0016** (0.8722 → 0.8738) 🔁 INCONCLUSIVE · not adopted
+
+| member | OOF no TTA | mean TTA | Δ | focal TTA |
+|---|---|---|---|---|
+| v05a | 0.8574 | 0.8621 | +0.0047 | ⏳ |
+| v05b | 0.8471 | 0.8532 | +0.0061 | ⏳ |
+| v05g (fold 0) | 0.8508 | 0.8537 | +0.0029 | ⏳ |
+| v06c | 0.8562 | 0.8625 | +0.0063 | ⏳ |
+| **4-member blend** | **0.8722** | **0.8738** | **+0.0016** | ⏳ |
+| 7-member blend (c01 members TTA'd) | 0.8820 | 0.8822 | +0.0002 | ⏳ |
+
+The pattern is exactly what a variance-reduction technique should show: **each single model gains (consistent
+sign, 4/4), the blend does not** — averaging ranks over members already removes the per-view noise that TTA
+removes within a member. Cost: 3 forwards per study per c01 member at inference. Verdict: 🔁, **`INFER_OVERRIDES`
+stays empty**; the mean-TTA per-member gain is real but redundant with ensembling. Files:
+`artifacts/kaggle_out/eval_pod/tta_mean/`, `tta_focal/`. The Kaggle `oof_eval` kernel (traps 28) was not
+needed after all — the pod ran all four members in 6 min per pool with 503 GB RAM and identical numbers for v05a
+(0.8621 on both), so the pod's c01 pull and preprocessing match Kaggle.
 
 ## Infrastructure
 
