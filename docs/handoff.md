@@ -86,8 +86,10 @@ Watchers armed **in this session only** (they die with it): pod `chain.log` + `c
 ### Open decisions for Tian
 
 - Keep the pod after `v09h` for more arms (5-fold of the winner? `v10c` seeds?) vs delete — ~$18/day if idle.
-- Register the `id_ed25519_work` public key in RunPod account settings → the $0.34 community pods become
-  usable via the SSH proxy (halves the hourly cost next time).
+- ~~Register a public key in RunPod account settings~~ **done 13:17** (`~/.ssh/id_ed25519.pub`; also appended
+  to the running pod's `authorized_keys`, so `ssh root@213.181.111.2 -p 26323 -i ~/.ssh/id_ed25519` works).
+  The `ssh.runpod.io` proxy now authenticates (use `ssh -t`, exec only, no SCP) → $0.34 community pods are
+  usable for launch/tail next time; anything needing SCP still wants a public-IP (secure) host.
 - Whether the Kaggle `oof_eval` OOM (traps 28) is worth a fix (one member per kernel is the cheap dodge).
 - Unchanged: make `convnext-tiny-224-hf`, `timm-*`, `rsna-knee-ckpt-*` public before a *final* submission;
   browser items (rules text, radimagenet T&C, Kaggle caps); `crazy_good_rsna.ipynb` keep/delete.
