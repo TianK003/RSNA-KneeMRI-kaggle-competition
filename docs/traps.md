@@ -390,6 +390,17 @@ Vertical flip is also wrong: knee anatomy is not up/down symmetric.
 
 ---
 
+### 22. A new member family needs its weights mounted in the *infer* kernel too
+
+`rsna-knee-infer` v9 (2026-08-30) mounted the `v06c` checkpoint (via the `rsna-knee-train` output) but
+not the ConvNeXt weights dataset it is built on. Seven DINOv2 members predicted, then the eighth raised
+`convnext_tiny weights not found` and the whole run was lost. The checkpoint holds the fine-tuned
+weights, but `KneeNet` still calls `from_pretrained(backbone_dir)` to build the architecture, so every
+family in `INFER_MEMBERS` needs its `BACKBONES` source in the infer kernel's `dataset_sources` /
+`model_sources`. Fixed: the infer member scan now calls `resolve_backbone_dir()` for each member's
+family before any prediction, so a missing mount fails in seconds. Checklist when adding a member: its
+checkpoint mount **and** its weights mount, both in `kaggle/rsna-knee-infer/kernel-metadata.json`.
+
 ## Tier 3 — tooling friction
 
 ### 14. Kaggle rate-limits file downloads, and reports success anyway

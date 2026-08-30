@@ -1792,6 +1792,10 @@ if mode == "infer":
         st0 = torch.load(p, map_location="cpu", weights_only=False)
         saved = st0.get("config", {})
         infer_heads[(v, f)] = saved.get("head_type", cfg.head_type)
+        # Fail here, in seconds, if a member's backbone weights are not mounted -- not after
+        # seven other members have already predicted (infer v9, 2026-08-30: the ConvNeXt
+        # dataset was missing from the infer kernel's sources).
+        resolve_backbone_dir(saved.get("backbone", "dinov2"))
         geom = {k: saved[k] for k in INFER_GEOM_KEYS if k in saved}
         if geom_ref is None:
             geom_ref, geom_src = geom, f"{v}/fold{f}"

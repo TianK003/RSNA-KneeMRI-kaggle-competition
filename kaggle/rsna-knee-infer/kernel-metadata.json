@@ -13,7 +13,8 @@
     "pilkwang/rsna-knee-llm-labels",
     "stevenleehans/rsna-knee-llm-report-labels",
     "lixin73/rsna-knee-llm-report-labels-sol56",
-    "tiankljucanin/rsna-knee-ckpt-v05"
+    "tiankljucanin/rsna-knee-ckpt-v05",
+    "tiankljucanin/convnext-tiny-224-hf"
   ],
   "kernel_sources": [
     "tiankljucanin/rsna-knee-train",
