@@ -6,6 +6,89 @@ to read first after a break.
 
 ---
 
+## 2026-08-30 (22:00) — `v09h` is the 5-fold production member (pooled 0.8625, shipped, infer v14 verified); LB 0.900 → **0.909 (#9)** → **0.912 (#10)**; pod deleted; nothing left in flight
+
+Closes the 18:10 entry: everything it had in flight has landed. This was the "implement v09h" session
+(plan `~/.claude/plans/i-want-you-to-fluffy-hellman.md`): the 0.936 notebook re-inventoried (its strongest member's
+mechanism was already fully inside `v09h`), the 5-fold `v09h` trained on the pod, both submissions scored and logged,
+all pod artifacts pulled and md5-verified locally, the Dataset versioned **from local**, infer v14 pushed and verified,
+the pod **deleted** (day's pod spend ≈ $7).
+
+### ⏳ Still in flight — nothing
+
+Infer v14 `COMPLETE` and log-verified (15 checkpoints, `v09h (5 folds)` one vote, both decode groups byte-identical,
+valid `submission.csv`). No kernels running, no pods, no background watchers. Kaggle GPU quota ≈ 3.5 h this week;
+**2 submissions left today** (resets 02:00 local); the Kaggle OAuth token self-refreshed at ~21:45 during
+`kaggle datasets version` — the *pod* copy did not (see bites).
+
+### Where things stand
+
+| | Status |
+|---|---|
+| Best LB | **0.912** — #10 (infer v13, seven versions, OOF 0.8820); #9 six versions 0.909; offsets +0.0295/+0.030 (experiments.md Submissions #9/#10) |
+| Default blend | the seven versions, `INFER_MEMBERS` in `src/` = v05a v05b v05g v06c v08w v10c v09h; **infer v14 = that blend with `v09h` as 5 folds** — pushed, verified, **not submitted** |
+| `v09h` | ✅ 5-fold: per-fold **0.8683/0.8668/0.8589/0.8546/0.8653**, pooled **0.8625** (+0.016 over `v05g`), gold-58 0.874; `rsna-knee-ckpt-v09h` = 10 files, 766 MB (experiments.md "5-fold `v09h`") |
+| Pins | all seven members are Dataset pins (`-v05`, `-v05g`, `-v06`, `-v08w`, `-v09h` 5-fold, `-v10c`); infer `kernel_sources: []` — train pushes are safe |
+| Local artifacts | `artifacts/ship_v09h_5fold/` (5+5+metadata, the Dataset's exact content), `artifacts/kaggle_out/pod_v09h_5fold/` (5 oof csvs + `epochs/` 40 per-epoch csvs + chain3/chain4/evals/train logs + `oof_summary5.py`), `artifacts/ckpt_pod/` (`v10c_fold0_best.pt` + oof) — every checkpoint md5-verified against the pod before deletion |
+| Pod | **deleted 22:05** (`2wend9j0lr7zf3`); the `ARM_FOLDS = (0,1,2,3,4)` sed lived only on its copy, so no revert needed anywhere |
+| Tools | `src/fold_oof_summary.py` (pooled/per-fold/gold; validated on `v05g`), fixed `ship` glob in `scripts/runpod_bootstrap.sh` |
+| Docs | experiments.md: Scoreboard #9/#10 + 5-fold row, Submissions rows 9/10, "Rerun cost of the blend", 5-fold entry; P-23 status/index; traps 29 + two new bullets; CLAUDE.md 22:15 state |
+| Repo | pushed through this handoff (`4949c5c` … `ecebcc7` + this); `crazy_good_rsna.ipynb`, `kaggle/rsna-knee-eval/rsna-knee-eval.ipynb` still untracked |
+
+### What we talked about and decided
+
+- Tian: "implement v09h = all the bits that made the 0.936 notebook good" → inventory showed the bits are already in;
+  chose **5-fold production run** over porting more cells or a new-family arm tonight; **delete the pod** after pulling
+  (later sharpened to "pull everything locally so the pod stops costing"); no submission without his call.
+- **Both submissions read as pre-registered**: #9 = 0.909 ✅ (the c02 recipe carries, 1.8× floor); #10 = 0.912, best,
+  default by the tie rule, but the `v09h` increment (+0.003) is 🔁 exactly as the OOF predicted.
+- Tian's questions answered in the log: why scoring took ~2 h (rerun cost table — `v10c` + a second decode pass);
+  whether "each fold worse" was real (fold difficulty + noise; fold 4 = 0.8653 broke the trend); what folds are for
+  (replicates inside one vote; rank-mean within version, then across versions).
+- v14 submission timing: ready ~21:55; **held for Tian** (expected 0.912–0.916, likely 🔁; 2 slots left today).
+
+### What we figured out
+
+1. **5-fold `v09h` pooled 0.8625** (+0.016 over `v05g`'s 0.8467); LatMen pooled 0.789 → 0.847; fold spread 0.0137 =
+   1.7× the floor, so fold-0 A/Bs are flattered ≈ +0.006 as levels (fine as deltas) — experiments.md 5-fold entry.
+2. **`best_oof` bit for the first time** on this recipe (folds 2/3/4 peaked at epochs 6/6/5).
+3. **The rerun cost doubled with the c02 members** (#9 ≈ 15 min/100 studies; `v10c` alone 174 s/100) — experiments.md
+   Infrastructure entry; dropping `v10c` would cut a third of the rerun if 384 px stays useless.
+4. **`kaggle datasets version` dies silently (exit 0, < 2 s) on an expired token** — the upload twin of traps 20; and
+   **overwriting a script a running bash is executing corrupts its next read** (spurious `!! train v09h FAILED` after a
+   clean 5-fold run) — both appended to traps 29. Kaggle Dataset "size" is the *compressed* bytes (766 MB for 825 MB).
+5. The 0.936 notebook's primary CoAtNet arm evaluates `K_EVAL = 62` windows (its "42" docstring is stale) — proposals
+   Rejected row corrected; our `eval_windows=42` stays as a T4 budget cap, not a copy of theirs.
+
+### ⏭ Next action, in order
+
+1. **(Tian) submit infer v14 or hold**: `kaggle competitions submit rsna-knee-abnormality-detection -k tiankljucanin/rsna-knee-infer -v 14 -f submission.csv -m "seven-version blend with 5-fold v09h (pooled OOF 0.8625)"`.
+   Read: ≥ 0.917 real gain; 0.912–0.916 = 🔁 (folds are replicates); scoring ≈ 2 h 40 min. Either way v14 is the base
+   the next member rides on.
+2. **Next GPU work = a new input representation**: write the card first (`/try-out`) — P-23 #3 (16-ch with a gated
+   stem, the P-15 retry) or #4 (RadImageNet frozen heads, licence gate), or P-17 self-training (targets = ½ teacher +
+   ½ multi-family OOF rank blend, retrain the `v09h` recipe; its full-corpus OOF now exists in
+   `artifacts/kaggle_out/pod_v09h_5fold/`). A new pod needs `setup` again (~40 min; traps 29 checklist).
+3. Housekeeping when convenient: make `convnext-tiny-224-hf`, `timm-*`, `rsna-knee-ckpt-*` public before any *final*
+   submission; a legacy `kaggle.json` for unattended pods; `crazy_good_rsna.ipynb` keep/delete.
+
+### Open decisions for Tian
+
+- Submit v14 tonight (2 slots left) vs let the next member's submission carry the 5-fold.
+- Which new-family lane gets the next pod dollar: P-23 #3 (gated-stem 16-ch), #4 (RadImageNet, licence), or P-17.
+- Unchanged browser items: rules text, radimagenet T&C, Kaggle caps.
+
+### Things that will bite if forgotten
+
+- **Uploads with an expired OAuth token exit 0 doing nothing** — verify Datasets by file list + size, never exit
+  status (the local CLI *can* self-refresh; the copied pod credentials did not).
+- **Never truncate-overwrite a running script** — `mv` over it instead (traps 29, cost a spurious FAILED line).
+- Bash tool: `cd` persists across calls; long Markdown heredocs fail — write a scratchpad `.py` (memory
+  `bash-tool-env-traps`).
+- The infer kernel now mounts **no** kernel_sources: a new member = pin a Dataset + add it to
+  `kernel-metadata.json` + `INFER_MEMBERS`, then push.
+- Kaggle Dataset "size" in listings is compressed bytes — a 5 × 165 MB ship shows as ≈ 766 MB.
+
 ## 2026-08-30 (18:10) — 5-fold `v09h` training on the pod (chain4, folds 1–4); `v08w` pinned and the infer kernel is now 100 % pin-based; #9/#10 still scoring; monitors armed
 
 Tian's instruction (17:58): "implement v09h — all the bits that made the 0.936 notebook good — before #9/#10 score;
