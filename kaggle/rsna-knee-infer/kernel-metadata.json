@@ -14,11 +14,14 @@
     "stevenleehans/rsna-knee-llm-report-labels",
     "lixin73/rsna-knee-llm-report-labels-sol56",
     "tiankljucanin/rsna-knee-ckpt-v05",
-    "tiankljucanin/convnext-tiny-224-hf"
+    "tiankljucanin/convnext-tiny-224-hf",
+    "tiankljucanin/rsna-knee-ckpt-v06",
+    "tiankljucanin/rsna-knee-ckpt-v05g",
+    "tiankljucanin/timm-coatnet-rmlp-1-rw-224",
+    "tiankljucanin/timm-coatnet-rmlp-2-rw-384"
   ],
   "kernel_sources": [
-    "tiankljucanin/rsna-knee-train",
-    "tiankljucanin/rsna-knee-folds"
+    "tiankljucanin/rsna-knee-train"
   ],
   "competition_sources": [
     "rsna-knee-abnormality-detection"

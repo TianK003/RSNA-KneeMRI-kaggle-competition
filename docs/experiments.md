@@ -869,7 +869,61 @@ blend `v05a`+`v05b`+`v05g`+`v06c`** (rule set before scoring: < +0.005 over 0.89
 **Result: LB 0.900 (+0.004) — 🔁 by the rule, best on the board.** P-10's family bet is therefore *half* confirmed — the family is as
 strong as ours, but not much more diverse than a second head at 224 px with the same slots and slices.
 
+### 2026-08-30 — Per-label OOF of the 4-version blend: the weakest labels are the ones the discarded outer slices carry ⏳ PENDING (diagnostic → P-26)
+
+`src/blend_check.py --base v05a v05b v05g --cand v06c` on fold 0 (882 studies), read for *where* the
+0.900 blend is weak rather than for the candidate verdict:
+
+| label | base (3 versions) | + v06c | label | base | + v06c |
+|---|---|---|---|---|---|
+| Fracture | 0.911 | 0.917 | Effusion | 0.857 | 0.861 |
+| Baker's | 0.909 | 0.913 | **MCL** | **0.836** | **0.836** |
+| Medial Meniscus | 0.896 | 0.904 | **Lateral Meniscus** | **0.827** | **0.833** |
+| Synovitis | 0.884 | 0.888 | PF OA | 0.830 | 0.833 |
+| ACL | 0.883 | 0.897 | Lateral OA | 0.825 | 0.828 |
+| Medial OA | 0.880 | 0.883 | Contusion | 0.877 | 0.873 |
+
+MCL and Lateral Meniscus are the two worst labels, 0.05–0.08 under the best, and are exactly the two
+findings the 0.936 notebook's strongest member says it lost when the outer slices were cut (its
+docstring, read 2026-08-30: 2–98 % span vs our sag 8–92 / cor 20–80). ConvNeXt-T does not move them
+(MCL +0.000). This is the evidence behind P-26 (wide-band cache) and P-25 (per-label attention over
+every window); the measurement that settles it is `v08w` fold 0 per label vs `v05a`. ⏳ until then.
+
 ## Infrastructure
+
+### 2026-08-30 — Cache v2 (`c02`), window-attention path, timm hybrids and mixed-geometry inference shipped; local verification ✅ KEEP the code · Kaggle ⏳
+
+What changed (P-25 / P-26 / P-12 / P-23 #2 / P-24; details in the cards): a second cache scheme
+(`c02`: 6 slots × budgets 18/12/12/14/8/8 = 72 slices, band 2–98 % all planes, 336 px, flat
+`[72, 336, 336]` per study packed into 64-study blobs with CSV sidecars; version string
+`c02_p336_b18-12-12-14-8-8_band2-98_crop130_lat20`), `window_mode="random"` + `head_type="window_attn"`,
+`backbone="timm:<arch>"` loaded offline, `INFER_CACHE_KEYS` / `INFER_MEMBER_KEYS` replacing the single
+geometry gate (one decode-once pass per cache geometry group; member settings applied per member),
+`tta_offsets` / `tta_pool` / `INFER_OVERRIDES`, `MODE="oof_eval"`, env hooks for the RunPod runner.
+
+**Verified locally (CPU, no GPU spent), 2026-08-30 11:40–12:40:**
+
+| check | result |
+|---|---|
+| c02 build on the 3 sample studies (`RSNA_N_SHARDS=1 RSNA_CACHE_SCHEME=c02`) | 1 blob (3, 72, 336, 336) = 24,385,664 B + sidecar; resume-only rerun: "1 complete, 0 to build", manifest still written |
+| c01 rebuilt with the new builder vs the 2026-08-28 local files | **byte-identical** arrays and `manifest_shard0.csv` |
+| `src/cache_selftest.py` (builder vs `build_study_array`, both schemes) | **bit-identical** for all 3 studies × 2 schemes; slots, side, masks, version strings, offsets, blob rows equal |
+| `src/window_head_test.py` | 60 / 84 windows; sampling never picks an absent slot, no repeats, ≥ 2 per present slot; head finite in fp16 with masks and all-masked rows; `param_groups` covers every parameter exactly once for dinov2 / convnext / coatnet-1 / coatnet-2; timm offline load 0 missing / 0 unexpected |
+| Local smoke train (`MODE="train"`, arms `v08w` + `v09h`) | both trained 1 epoch on c02, checkpoints + OOF csvs written, per-arm inference through the c02 decode-once group "3 studies rebuilt, identical" |
+| Pre-change code (`git show HEAD:src/kaggle_pipeline.py`) vs new code, infer of `v05a`+`v05b` | **identical `submission.csv`** (max abs diff 0.0) — the c01 members are untouched |
+| Mixed-geometry infer `["v05a","v08w","v09h"]` | 2 geometry groups, both decode-once passes verified, 3 members blended by version |
+| TTA `INFER_OVERRIDES={"v05a": (-1,0,1)/focal}` | output differs from plain `(0,)` (max abs 0.333 on 3 studies); `(0,)` is byte-identical |
+| `MODE="oof_eval"` on `v05a` (c01, TTA) and `v08w` (c02, all windows) | `{v}_fold0_tta_oof.csv` written with the `pred__/y__/w__/is_gold` schema `blend_check.py` reads |
+| `build_targets.py` | teacher 0.8948 unchanged |
+
+Also shipped: four private Datasets — `rsna-knee-ckpt-v06` (`v06c_fold0_best.pt`), `rsna-knee-ckpt-v05g`
+(five folds), `timm-coatnet-rmlp-1-rw-224`, `timm-coatnet-rmlp-2-rw-384` (HF repo files, Apache-2.0) —
+so `rsna-knee-train` / `-folds` can be pushed again without repointing infer v10's mounts (the infer
+metadata now lists the pins and drops `rsna-knee-folds` as a kernel source). Cache kernels
+`rsna-knee-cache2-a..d` launched 12:20 and **ran concurrently** (four CPU sessions at once — verified).
+**Verdict: ✅ KEEP the code (every local rung green, old members byte-identical); the Kaggle smoke and the
+first real arm are ⏳.** Throughput of the blob loader on the mounted input and of the window path on a
+T4 are the two numbers the smoke must return.
 
 ### 2026-08-28 — ⚠️ Throughput is the open risk, and it blocks the real run
 

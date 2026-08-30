@@ -217,6 +217,53 @@ experiments.md):
 
 Sum of the estimates ≈ 0.036 + 0.003 + 0.001 ≈ 0.040, consistent with the observed gap.
 
+**CORRECTED / EXTENDED 2026-08-30 (afternoon) — a second, cell-level re-read** (every line of cells 02–08,
+calibrator payload decoded) fixes and sharpens the table above:
+
+- **No DINOv3 code exists.** `find_dinov2(variant)` ignores its argument and always loads the mounted
+  `metaresearch/dinov2/pytorch/small/1`; every "protocol model" is ViT-S/14. The DINO branch's img / slices /
+  band / crop come from a `manifest.json` that is not in the notebook (code defaults 336 px, band 0.2–0.8,
+  crop 130). Members are fingerprint-checked against a seeded input (`FINGERPRINT_TOL 0.002`).
+- **The submitted DINO output is the NO-jitter view** (`submission_public_0899.csv`, "exact no-jitter
+  public-frontier rank mean"): the affine-jitter TTA is computed when time allows and then discarded. The
+  per-label window pooling that *is* submitted: max for Fracture / Contusion / both Menisci / Baker's, top-2
+  mean for ACL / MCL, mean otherwise, over **overlapping** windows (every start 0..slices−3).
+- **The CoAtNet "Raptor" branch has no laterality normalisation at all**, no TTA, 5 ordered slots
+  (Sag fluid 18 / Sag non-fluid 14 / Cor fluid 12 / Cor non-fluid 8 / Axial any 12 = 64 slices) chosen
+  from `test_series.csv` preferring the requested `Fluid_Sensitive`, MaxSpan v5 span 0.02–0.98 (`low =
+  int(n·0.02)`, `high = int(n·0.98) − 1`), WideDense v4 / FineSpacing v9 span 0.06–0.94, `pos = IPP · (row ×
+  col)` ordering, `apply_modality_lut` + MONOCHROME1 inversion, **per-slot-series [2, 98] percentile before
+  crop**, 140 mm crop → 336 (`INTER_AREA`) → 384 bilinear per window; `K_EVAL = 62` windows over the
+  concatenated volume (windows can straddle slot boundaries; **no slot embedding**); head = `LayerNorm →
+  Linear(F,256) → Tanh → Dropout(0.2) → Linear(256,12)`, softmax over windows **per label**, per-label
+  classifier. "swa" appears only in the v5 filename. The v4 complement enters 7 labels at w 0.10–0.16 with
+  correlation guards (`corr > 0.992 → ×0.5`, `< 0.65 → ×0.4`); v4/v9 run only with **2 GPUs**.
+- **16-channel branch:** timm ViT at **336 px**, `SLICE_BAND (0.12, 0.88)`, 16 evenly spaced slices ordered
+  by **InstanceNumber only**, **per-slice** [1, 99] on a 4× subsample, laterality = `IPP[0] < 0 → flip cor/ax`
+  (no dead zone), stems `in_chans=16` | `DepthCompress` (gated 1×1 depth blocks → 3 ch) | `SlotDepthMixer`
+  (5-tap learned depth smoothing per plane), readouts `mean_max` / `attn` / `xattn` (12 queries over all patch
+  tokens) / `xres` / `clsadd`; fused at **w 0.45**. This is why our linear 16-ch patch embed (`v07s`) is not
+  a test of their member (P-15 retry spec).
+- **RadImageNet branch:** frozen torchvision R50 GAP (2048-d), input `/127.5 − 1`, 224 px, two 5-fold head
+  bundles (3 FS slots no crop; 4 slots 130 mm) + a slot-permuted "pass 2"; α 0.5 on 10 labels (**excluded
+  from Baker's and Fracture**), pass-2 0.15; head = per-label queries + `MultiheadAttention(512, 8)` over
+  slot × 8 position tokens.
+- **Calibrator (V18):** 88 features = 6 rank blocks × 12 + 4 anatomical group means + 12 protocol counts;
+  linear per label, mixed at **0.40 into 7 labels** (ACL, Medial OA, Lateral OA, PF OA, Effusion, Baker's,
+  Contusion). Decoded coefficients are dominated by the label's own rank (Effusion `baseline:Effusion +0.157`);
+  protocol columns ≤ 0.003 — it is a per-label reweighting, not a protocol model.
+- **Fusion weights:** transformer vs CoAtNet 0.50 everywhere, 0.53–0.61 CoAtNet on ACL / MM / LM / Lateral
+  OA / Fracture after the calibrator; `clinical_moderate` residual (ACL −0.10 × mean rank(Contusion, LM),
+  Lateral OA +0.10, Synovitis +0.10, Fracture +0.05, …) is the porter's addition with **no stated LB**.
+- Stated numbers not in the table above: live LB **0.914** for CoAtNet alone with blends 0.914–0.915
+  ("ensembling is worth ~+0.001 there"); 45-gold panel coatnet384 0.9025 / swin-B 0.8825 / effv2-L 0.8716 /
+  cnn336 0.8833 / convnext-B 0.8754 / maxvit 0.8438; corpus 3,155 → 4,349 = gold 0.8923 → 0.9054.
+
+What this changed in our plan (proposals P-25, P-26, P-23 #2, P-15): the per-label window attention and
+the 2–98 % band are the parts copied; the 140 mm crop / [2, 98] normalisation / no-laterality / slot-crossing
+windows are deliberately **not** (a shared test-time builder and our measured +0.015 laterality gain matter
+more); the calibrator, residual and tuned weights are in "Rejected without testing".
+
 Three things it changes for us: (1) **P-10's direction is confirmed** by the strongest evidence
 available, but their own panel puts ConvNeXt among the *weakest* single families and a
 high-resolution, many-slice hybrid at the top — a ConvNeXt-T member is a diversity bet, not a

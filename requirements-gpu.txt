@@ -1,0 +1,12 @@
+# Off-Kaggle GPU box (RunPod etc.) -- scripts/runpod_bootstrap.sh installs this on top of a
+# CUDA PyTorch image (runpod/pytorch:*-cuda12*). torch/torchvision come from the image; if the
+# image has none, install them first from https://download.pytorch.org/whl/cu124.
+# Versions mirror requirements.txt (the local CPU env) where they matter for identical decoding.
+kaggle==2.2.4
+numpy>=2.0
+pandas>=2.2
+pydicom==3.0.2
+timm==1.0.28
+transformers>=4.45
+safetensors>=0.4
+scikit-learn>=1.5

@@ -34,6 +34,20 @@
 # **Sharding:** ~4,407 × 6 × 16 × 224² bytes ≈ 21 GB, above Kaggle's per-kernel
 # output cap, so studies are split into `N_SHARDS` deterministic shards and this
 # notebook is run once per `SHARD` (two kernels: `rsna-knee-cache-a` / `-b`).
+#
+# **Two cache schemes** (2026-08-30). `c01` is the original: 6 slots × 16 slices at
+# 224 px inside a per-plane central band (sag 8–92 %, cor 20–80 %, ax 10–90 %), one
+# `.npy` per study. `c02` is the wide-band rebuild: the same 6 slots with **ragged
+# slice budgets** 18/12/12/14/8/8 (= 72 slices, order = `SLOTS`), band **2–98 %** for
+# every plane, **336 px**, stored FLAT as `(72, 336, 336)` per study with fixed slot
+# offsets, and packed into multi-study **blobs** of 64 studies (`blob{shard}_{k}.npy`,
+# ~520 MB) with a CSV sidecar each — ~70 files for the corpus instead of 4,407, so it
+# can leave Kaggle for a rented GPU without tripping the per-file rate limit. Why the
+# rebuild: the 0.936 public notebook's strongest member uses 2–98 % and reports that
+# cutting the outer slices "was measurably costing accuracy on the collateral
+# ligaments and the lateral meniscus" — exactly our two weakest labels. Four kernels:
+# `rsna-knee-cache2-a` … `-d`. The version string now encodes everything that changes
+# the stored bytes (band and budgets included — traps 23).
 
 # %%
 # ── Section 0: environment ────────────────────────────────────────────────────
@@ -96,8 +110,13 @@ print(f"ON_KAGGLE={ON_KAGGLE}  COMP={COMP}  WORK={WORK}")
 # %%
 # ── Section 1: configuration ──────────────────────────────────────────────────
 SMOKE = None            # True / False / None = auto (smoke locally, real on Kaggle)
-SHARD = 0               # which shard this kernel writes
-N_SHARDS = 2
+SHARD = 0               # which shard this kernel writes (sed'd to 1/2/3 for -b/-c/-d)
+N_SHARDS = 4            # c02: 4 shards of ~9 GB (c01 was built as 2 shards of ~10.6 GB)
+SCHEME = "c02"          # "c01" = the original 224/16 cache; "c02" = wide-band 336 ragged cache
+# Local-only overrides so the sample-DICOM smoke can build one shard of either scheme.
+SHARD = int(os.environ.get("RSNA_SHARD", SHARD))
+N_SHARDS = int(os.environ.get("RSNA_N_SHARDS", N_SHARDS))
+SCHEME = os.environ.get("RSNA_CACHE_SCHEME", SCHEME)
 
 LABELS = ["ACL", "MCL", "Medial Meniscus", "Lateral Meniscus", "Medial OA", "Lateral OA",
           "PF OA", "Effusion", "Synovitis", "Baker's", "Contusion", "Fracture"]
@@ -105,33 +124,78 @@ SLOTS = ["SAG_FLUID_FS", "COR_FLUID_FS", "AX_FLUID_FS", "SAG_FLUID_NOFS", "COR_T
 PLANE_OF_SLOT = {"SAG_FLUID_FS": "Sagittal", "COR_FLUID_FS": "Coronal", "AX_FLUID_FS": "Axial",
                  "SAG_FLUID_NOFS": "Sagittal", "COR_T1": "Coronal", "SAG_T1": "Sagittal"}
 
+# Per-scheme geometry. c02's budgets follow the 0.936 notebook's strongest member (SAG-FS 18,
+# SAG 14, COR-FS 12, COR 8, AX 12) mapped onto our six slots: the two T1 slots share the
+# notebook's non-fluid coronal budget (8) because they fill only 50-62 % of studies.
+SCHEME_DEFAULTS = {
+    "c01": dict(px=224, slot_slices=(16, 16, 16, 16, 16, 16),
+                band={"Sagittal": (0.08, 0.92), "Axial": (0.10, 0.90), "Coronal": (0.20, 0.80)}),
+    "c02": dict(px=336, slot_slices=(18, 12, 12, 14, 8, 8),
+                band={"Sagittal": (0.02, 0.98), "Axial": (0.02, 0.98), "Coronal": (0.02, 0.98)}),
+}
+
 
 @dataclass
 class CacheConfig:
     smoke: bool = (not ON_KAGGLE) if SMOKE is None else bool(SMOKE)
-    px: int = 224                 # stored resolution
-    n_slices: int = 16            # stored slices per slot, equidistant over the band
+    scheme: str = SCHEME
+    px: int = 0                   # stored resolution; 0 -> scheme default
+    slot_slices: tuple = ()       # stored slices per slot, order = SLOTS; () -> scheme default
     crop_mm: float = 130.0        # physical centre crop; 0 disables
-    # Central band per plane (fraction of the ordered stack). Menisci and MCL sit
-    # near the ends of a sagittal stack, so sagittal keeps more of the range.
+    # Central band per plane (fraction of the ordered stack); None -> scheme default.
     band: dict = None
     lat_dead_zone_mm: float = 20.0
     pct_lo: float = 1.0
     pct_hi: float = 99.0
+    blob_size: int = 64           # c02: studies per blob file (~520 MB at 72 x 336^2)
     smoke_max_studies: int = 24
     workers: int = 4
 
     def __post_init__(self):
+        if self.scheme not in SCHEME_DEFAULTS:
+            raise SystemExit(f"unknown cache scheme {self.scheme!r}; known: {sorted(SCHEME_DEFAULTS)}")
+        d = SCHEME_DEFAULTS[self.scheme]
+        self.px = self.px or d["px"]
+        self.slot_slices = tuple(self.slot_slices) or d["slot_slices"]
         if self.band is None:
-            self.band = {"Sagittal": (0.08, 0.92), "Axial": (0.10, 0.90),
-                         "Coronal": (0.20, 0.80)}
+            self.band = dict(d["band"])
+        if len(self.slot_slices) != len(SLOTS):
+            raise SystemExit(f"slot_slices needs {len(SLOTS)} entries, got {self.slot_slices}")
+
+    @property
+    def n_slices(self):
+        """Uniform slices per slot (c01 only); None when the budgets are ragged."""
+        return self.slot_slices[0] if len(set(self.slot_slices)) == 1 else None
+
+
+def cache_version_of(scheme, px, slot_slices, band, crop_mm, lat_dead_zone_mm):
+    """Name of the directory a cache lives in. It must encode EVERYTHING that changes the
+    stored bytes: c01's string left out the band and the percentiles, so a band change at the
+    same px/slices would have been silently accepted by the loader (traps 23). Byte-identical
+    copy in src/kaggle_pipeline.py -- src/cache_selftest.py asserts the two agree."""
+    if scheme == "c01":
+        return f"c01_p{px}_s{slot_slices[0]}_crop{int(crop_mm)}_lat{int(lat_dead_zone_mm)}"
+    lo, hi = band["Sagittal"]                       # c02: one band for every plane
+    return (f"c02_p{px}_b{'-'.join(str(int(s)) for s in slot_slices)}"
+            f"_band{int(round(lo * 100))}-{int(round(hi * 100))}"
+            f"_crop{int(crop_mm)}_lat{int(lat_dead_zone_mm)}")
+
+
+def slot_offsets(slot_slices):
+    """Start index of each slot inside the flat (sum(slot_slices), P, P) array, plus the total."""
+    starts, acc = [], 0
+    for n in slot_slices:
+        starts.append(acc)
+        acc += int(n)
+    return tuple(starts), acc
 
 
 cfg = CacheConfig()
-CACHE_VERSION = (f"c01_p{cfg.px}_s{cfg.n_slices}_crop{int(cfg.crop_mm)}"
-                 f"_lat{int(cfg.lat_dead_zone_mm)}")
+CACHE_VERSION = cache_version_of(cfg.scheme, cfg.px, cfg.slot_slices, cfg.band,
+                                 cfg.crop_mm, cfg.lat_dead_zone_mm)
+SLOT_START, N_TOTAL_SLICES = slot_offsets(cfg.slot_slices)
 print(json.dumps({k: str(v) for k, v in asdict(cfg).items()}, indent=1))
-print("cache version:", CACHE_VERSION)
+print(f"cache version: {CACHE_VERSION}  (slot offsets {SLOT_START}, {N_TOTAL_SLICES} slices/study)")
 
 # %% [markdown]
 # ## Section 2: series header scan
@@ -447,8 +511,12 @@ def resize_u8(stack01, px):
                                     .resize((px, px), Image.BILINEAR)) for s in stack01])
 
 
-def cache_series(series_dir, plane, cfg, is_right):
+def cache_series(series_dir, plane, cfg, is_right, n_slices):
     """-> ((n_slices, px, px) uint8, n_failed_slices) or (None, 0).
+
+    `n_slices` is the slot's budget (uniform 16 in c01, ragged in c02); the band comes from
+    `cfg.band[plane]`. IDENTICAL to src/kaggle_pipeline.py::cache_series -- keep in sync
+    (src/cache_selftest.py checks both schemes bit for bit).
 
     Canonicalisation to a LEFT knee:
       * sagittal: stack sorted along +x (patient left); reversed for right knees, so
@@ -468,7 +536,7 @@ def cache_series(series_dir, plane, cfg, is_right):
     if hi_i <= lo_i:
         lo_i, hi_i = 0, n - 1
     # Repeated neighbours on short series are intended (no np.unique).
-    idx = np.linspace(lo_i, hi_i, cfg.n_slices).round().astype(int)
+    idx = np.linspace(lo_i, hi_i, n_slices).round().astype(int)
     if plane == "Sagittal" and is_right:
         idx = idx[::-1]
     iop = getattr(head, "ImageOrientationPatient", None)
@@ -507,6 +575,7 @@ def cache_series(series_dir, plane, cfg, is_right):
 
 
 def cache_study(args):
+    """c01: one (6, n_slices, px, px) .npy per study."""
     study, row, image_root, cfg, out_dir = args
     t0 = time.time()
     arr = np.zeros((len(SLOTS), cfg.n_slices, cfg.px, cfg.px), np.uint8)
@@ -522,7 +591,7 @@ def cache_study(args):
             fails += 1
             continue
         plane = PLANE_OF_SLOT[slot]
-        a, n_fail = cache_series(d, plane, cfg, is_right)
+        a, n_fail = cache_series(d, plane, cfg, is_right, cfg.n_slices)
         fails += n_fail
         if a is None:
             fails += 1
@@ -537,6 +606,88 @@ def cache_study(args):
             "mask": "".join(map(str, mask.tolist())), "decode_fails": fails,
             "seconds": time.time() - t0}
 
+
+def build_study_flat(args):
+    """c02: one study as a FLAT (sum(slot_slices), px, px) uint8 array; slot `si` occupies rows
+    `SLOT_START[si] : SLOT_START[si] + slot_slices[si]`. Returns the array (None when no slot
+    could be read) so the parent can pack it into a blob. Mirrors
+    src/kaggle_pipeline.py::build_study_array for scheme c02 -- keep in sync."""
+    study, row, image_root, cfg = args
+    t0 = time.time()
+    starts, total = slot_offsets(cfg.slot_slices)
+    arr = np.zeros((total, cfg.px, cfg.px), np.uint8)
+    mask = np.zeros(len(SLOTS), np.uint8)
+    is_right = row["side"] == "R"
+    fails = 0
+    for si, slot in enumerate(SLOTS):
+        sid = row[slot]
+        if not isinstance(sid, str) or not sid:
+            continue
+        d = os.path.join(image_root, study, sid)
+        if not os.path.isdir(d):
+            fails += 1
+            continue
+        a, n_fail = cache_series(d, PLANE_OF_SLOT[slot], cfg, is_right, cfg.slot_slices[si])
+        fails += n_fail
+        if a is None:
+            fails += 1
+            continue
+        arr[starts[si]:starts[si] + cfg.slot_slices[si]] = a
+        mask[si] = 1
+    meta = {"StudyInstanceUID": study, "cached": int(mask.sum() > 0),
+            "n_slots_cached": int(mask.sum()), "mask": "".join(map(str, mask.tolist())),
+            "decode_fails": fails, "seconds": time.time() - t0}
+    return (arr if mask.sum() else None), meta
+
+
+def blob_names(shard, k):
+    return f"blob{shard:02d}_{k:03d}.npy", f"blob{shard:02d}_{k:03d}.csv"
+
+
+def npy_header(path):
+    """(shape, dtype, header_bytes) of a .npy file, public numpy API only. The training loader
+    uses header_bytes to read ONE study out of a blob with a single seek+read instead of
+    mmap-ing 520 MB inside every DataLoader worker."""
+    with open(path, "rb") as f:
+        version = np.lib.format.read_magic(f)
+        reader = {(1, 0): np.lib.format.read_array_header_1_0,
+                  (2, 0): np.lib.format.read_array_header_2_0}.get(version)
+        if reader is None:
+            raise ValueError(f"unsupported .npy version {version} in {path}")
+        shape, fortran, dtype = reader(f)
+        if fortran:
+            raise ValueError(f"{path} is Fortran-ordered; blobs must be C-ordered")
+        return tuple(shape), dtype, f.tell()
+
+
+def blob_is_complete(out_dir, shard, k, n_expected):
+    """A blob counts as done when the array AND its sidecar exist and both hold n_expected
+    rows (a crash between the two writes, or a short partial write, is rebuilt)."""
+    npy, csv = blob_names(shard, k)
+    p_npy, p_csv = os.path.join(out_dir, npy), os.path.join(out_dir, csv)
+    if not (os.path.exists(p_npy) and os.path.exists(p_csv)):
+        return False
+    try:
+        shape, dtype, hdr = npy_header(p_npy)
+        n_bytes = int(np.prod(shape)) * np.dtype(dtype).itemsize
+        return (shape[0] == n_expected and os.path.getsize(p_npy) == hdr + n_bytes
+                and len(pd.read_csv(p_csv)) == n_expected)
+    except Exception:
+        return False
+
+
+def write_blob(out_dir, shard, k, arr, rows):
+    """Atomic write of blob k: array + CSV sidecar go to *.tmp first, then os.replace, so a
+    killed kernel never leaves a half-written blob that looks complete."""
+    npy, csv = blob_names(shard, k)
+    p_npy, p_csv = os.path.join(out_dir, npy), os.path.join(out_dir, csv)
+    tmp_npy = p_npy + ".tmp.npy"
+    np.save(tmp_npy, arr)
+    os.replace(tmp_npy, p_npy)
+    tmp_csv = p_csv + ".tmp"
+    pd.DataFrame(rows).to_csv(tmp_csv, index=False)
+    os.replace(tmp_csv, p_csv)
+
 # %% [markdown]
 # ## Section 4: run
 #
@@ -545,6 +696,9 @@ def cache_study(args):
 
 # %%
 # ── Section 4: run ────────────────────────────────────────────────────────────
+if os.environ.get("RSNA_DEFS_ONLY"):
+    raise SystemExit(0)          # src/cache_selftest.py imports the definitions above and stops here
+
 TRAIN_IMG = os.path.join(COMP, "train_series")
 series_csv = os.path.join(COMP, "train_series.csv")
 if not os.path.isdir(TRAIN_IMG) and os.path.isdir(os.path.join(COMP, "sample_dicom", "test_series")):
@@ -572,38 +726,98 @@ print(f"shard {SHARD}/{N_SHARDS}: {len(todo)} of {len(manifest)} studies")
 
 out_dir = os.path.join(WORK, CACHE_VERSION)
 os.makedirs(out_dir, exist_ok=True)
-jobs = [(r.StudyInstanceUID, r.to_dict(), TRAIN_IMG, cfg, out_dir)
-        for _, r in todo.iterrows()
-        if not os.path.exists(os.path.join(out_dir, f"{r.StudyInstanceUID}.npy"))]
-print(f"  {len(todo) - len(jobs)} already cached, {len(jobs)} to do")
-
+# c01 keeps its historical file names (manifest_shard{k}.csv next to the version dir); c02 adds
+# the scheme suffix so a local run of both schemes into one WORK never overwrites the other's
+# manifest. The loader globs `manifest_shard*.csv` and reads the `cache_version` column.
+suffix = "" if cfg.scheme == "c01" else f"_{cfg.scheme}"
+manifest_shard_path = os.path.join(WORK, f"manifest_shard{SHARD}{suffix}.csv")
+log_path = os.path.join(WORK, f"cache_log_shard{SHARD}{suffix}.csv")
 t0 = time.time()
-logs = []
-for i, res in enumerate(parallel_map(cache_study, jobs, cfg.workers)):
-    logs.append(res)
-    if (i + 1) in (10, 50) or (i + 1) % 200 == 0:
-        dt = time.time() - t0
-        print(f"    {i+1}/{len(jobs)} studies  {dt:.0f}s  {dt/(i+1):.2f} s/study  "
-              f"ETA {dt/(i+1)*(len(jobs)-i-1)/60:.0f} min")
-log_df = pd.DataFrame(logs)
-if len(log_df):
-    log_df.to_csv(os.path.join(WORK, f"cache_log_shard{SHARD}.csv"), index=False)
-    # The presence mask lives in the manifest too, so the loader needs one file per shard
-    # and never has to infer presence from "is the slot all zeros".
-    m2 = manifest.merge(log_df[["StudyInstanceUID", "cached", "mask", "decode_fails"]]
-                        if "mask" in log_df else log_df[["StudyInstanceUID", "cached", "decode_fails"]],
-                        on="StudyInstanceUID", how="left")
-    m2.to_csv(os.path.join(WORK, f"manifest_shard{SHARD}.csv"), index=False)
-    n_ok = int(log_df.cached.sum())
-    print(f"\ncached {n_ok}/{len(log_df)} studies in {(time.time()-t0)/60:.1f} min; "
-          f"decode failures {int(log_df.decode_fails.sum())}; "
-          f"mean {log_df.seconds.mean():.2f} s/study")
-    if n_ok == 0:
+
+if cfg.scheme == "c01":
+    jobs = [(r.StudyInstanceUID, r.to_dict(), TRAIN_IMG, cfg, out_dir)
+            for _, r in todo.iterrows()
+            if not os.path.exists(os.path.join(out_dir, f"{r.StudyInstanceUID}.npy"))]
+    print(f"  {len(todo) - len(jobs)} already cached, {len(jobs)} to do")
+    logs = []
+    for i, res in enumerate(parallel_map(cache_study, jobs, cfg.workers)):
+        logs.append(res)
+        if (i + 1) in (10, 50) or (i + 1) % 200 == 0:
+            dt = time.time() - t0
+            print(f"    {i+1}/{len(jobs)} studies  {dt:.0f}s  {dt/(i+1):.2f} s/study  "
+                  f"ETA {dt/(i+1)*(len(jobs)-i-1)/60:.0f} min")
+    log_df = pd.DataFrame(logs)
+    if len(log_df):
+        log_df.to_csv(log_path, index=False)
+        # The presence mask lives in the manifest too, so the loader needs one file per shard
+        # and never has to infer presence from "is the slot all zeros".
+        m2 = manifest.merge(log_df[["StudyInstanceUID", "cached", "mask", "decode_fails"]]
+                            if "mask" in log_df else log_df[["StudyInstanceUID", "cached", "decode_fails"]],
+                            on="StudyInstanceUID", how="left")
+        m2.to_csv(manifest_shard_path, index=False)
+        n_ok = int(log_df.cached.sum())
+        print(f"\ncached {n_ok}/{len(log_df)} studies in {(time.time()-t0)/60:.1f} min; "
+              f"decode failures {int(log_df.decode_fails.sum())}; "
+              f"mean {log_df.seconds.mean():.2f} s/study")
+        if n_ok == 0:
+            raise SystemExit("cached nothing -- refusing to leave an empty cache")
+else:
+    # c02: deterministic blobs. Studies of this shard sorted by UID and chunked by blob_size;
+    # EVERY study of a group gets a row (an unreadable one stays zeros with cached=0), so
+    # `row` is derivable from the manifest alone and never shifts on a rebuild. Resume is per
+    # blob: a complete blob (array + sidecar, both with the group's row count) is skipped.
+    uids = sorted(todo.StudyInstanceUID.tolist())
+    rows_by_uid = {r.StudyInstanceUID: r.to_dict() for _, r in todo.iterrows()}
+    groups = [uids[i:i + cfg.blob_size] for i in range(0, len(uids), cfg.blob_size)]
+    done = [k for k, g in enumerate(groups) if blob_is_complete(out_dir, SHARD, k, len(g))]
+    n_todo = sum(len(g) for k, g in enumerate(groups) if k not in done)
+    print(f"  {len(groups)} blobs of <= {cfg.blob_size} studies; {len(done)} complete, "
+          f"{len(groups) - len(done)} to build ({n_todo} studies)")
+    n_done_studies = 0
+    for k, grp in enumerate(groups):
+        if k in done:
+            continue
+        arr = np.zeros((len(grp), N_TOTAL_SLICES, cfg.px, cfg.px), np.uint8)
+        rows = []
+        jobs = [(u, rows_by_uid[u], TRAIN_IMG, cfg) for u in grp]
+        for i, (a, meta) in enumerate(parallel_map(build_study_flat, jobs, cfg.workers)):
+            if a is not None:
+                arr[i] = a
+            rows.append({**meta, "row": i, "blob": blob_names(SHARD, k)[0]})
+            n_done_studies += 1
+            if n_done_studies in (10, 50) or n_done_studies % 200 == 0:
+                dt = time.time() - t0
+                print(f"    {n_done_studies}/{n_todo} studies  {dt:.0f}s  {dt/n_done_studies:.2f} s/study  "
+                      f"ETA {dt/n_done_studies*(n_todo-n_done_studies)/60:.0f} min")
+        write_blob(out_dir, SHARD, k, arr, rows)
+        del arr
+        if time.time() - T_START > 11.5 * 3600:
+            print("!! approaching the 12 h CPU-kernel limit -- stopping after a complete blob; "
+                  "re-run this kernel with its own output attached to resume")
+            break
+    # Sidecars are the log; the shard manifest is rebuilt from ALL of them every run, so a
+    # resume-only run (nothing new to build) still leaves a complete manifest_shard file.
+    sidecars = sorted(f for f in os.listdir(out_dir)
+                      if f.startswith(f"blob{SHARD:02d}_") and f.endswith(".csv"))
+    log_df = pd.concat([pd.read_csv(os.path.join(out_dir, f), dtype={"mask": str}) for f in sidecars],
+                       ignore_index=True) if sidecars else pd.DataFrame()
+    if len(log_df) == 0 or int(log_df.cached.sum()) == 0:
         raise SystemExit("cached nothing -- refusing to leave an empty cache")
+    log_df.to_csv(log_path, index=False)
+    m2 = manifest.merge(log_df[["StudyInstanceUID", "cached", "mask", "decode_fails", "blob", "row"]],
+                        on="StudyInstanceUID", how="inner")
+    m2.to_csv(manifest_shard_path, index=False)
+    n_ok = int(log_df.cached.sum())
+    print(f"\ncached {n_ok}/{len(log_df)} studies of shard {SHARD} ({len(sidecars)} blobs) in "
+          f"{(time.time()-t0)/60:.1f} min this run; decode failures {int(log_df.decode_fails.sum())}; "
+          f"mean {log_df.seconds.mean():.2f} s/study")
+    if len(m2) < len(todo):
+        print(f"!! manifest_shard covers {len(m2)}/{len(todo)} studies -- shard incomplete, resume needed")
 
 size_gb = sum(os.path.getsize(os.path.join(out_dir, f)) for f in os.listdir(out_dir)) / 1e9
-print(f"cache dir {out_dir}: {len(os.listdir(out_dir))} files, {size_gb:.2f} GB")
+print(f"cache dir {out_dir}: {len(os.listdir(out_dir))} files, {size_gb:.2f} GB -> {manifest_shard_path}")
 if len(manifest) and not cfg.smoke:
-    est = size_gb / max(len(os.listdir(out_dir)), 1) * len(manifest) / N_SHARDS
+    n_cached_here = int(pd.read_csv(manifest_shard_path).cached.sum()) if os.path.exists(manifest_shard_path) else 0
+    est = size_gb / max(n_cached_here, 1) * len(manifest) / N_SHARDS
     print(f"  projected full shard size {est:.1f} GB (Kaggle output cap ~20 GB)")
 print(f"total elapsed {(time.time()-T_START)/60:.1f} min")

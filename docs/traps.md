@@ -229,6 +229,30 @@ target** — you can trivially inflate spread without improving ranking.
 
 ---
 
+### 23. A cache version string that does not encode everything the bytes depend on
+
+`c01_p224_s16_crop130_lat20` named the cache by px, slice count, crop and dead zone — **not** by the
+per-plane slice band or the normalisation percentiles. A cache rebuilt with a different band at the
+same px/slices would have carried the *same* version string, and the loader (`load_cache_manifests`,
+which filters shards by that string) would have mixed it with, or silently substituted it for, the
+old one. Found 2026-08-30 while designing the c02 cache; no run was hurt. **Do:** the version string is
+`cache_version_of(scheme, px, slot_slices, band, crop, lat)` in *both* files, identical text; c02
+strings read `c02_p336_b18-12-12-14-8-8_band2-98_crop130_lat20`. Any new knob that changes stored bytes
+goes into that function first, or it does not exist. Related: 6d (one flag meaning two things).
+
+### 24. The two hand-copied preprocessing paths had drifted
+
+`src/kaggle_pipeline.py::cache_series` is a copy of the builder's function, guarded only by a "keep in
+sync" comment and a two-study manual check. On 2026-08-30 it differed in two places: it read IOP /
+PixelSpacing from the **spatially first** slice (the builder reads the **filename-first** header), and it
+hard-coded `[1, 99]` where the builder used `cfg.pct_lo / pct_hi`. Harmless *today* only because IOP and
+PixelSpacing are constant within a series and the percentiles happened to match — a test study would have
+silently been preprocessed differently from the training cache the moment either assumption broke.
+**Do:** run `python src/cache_selftest.py` before any push that touches `cache_pipeline.py`, the
+`cache_*` functions in `kaggle_pipeline.py`, or a cache scheme. It builds the 3 sample studies through both
+modules for both schemes and exits non-zero on the first differing byte. A green selftest is the *only*
+evidence the two files agree; the comment is not.
+
 ## Tier 2 — breaks the run, wastes a session
 
 ### 8. A fold finishing with no `best.pt`
@@ -401,6 +425,26 @@ family in `INFER_MEMBERS` needs its `BACKBONES` source in the infer kernel's `da
 family before any prediction, so a missing mount fails in seconds. Checklist when adding a member: its
 checkpoint mount **and** its weights mount, both in `kaggle/rsna-knee-infer/kernel-metadata.json`.
 
+### 25. A shard manifest that is written only when something new was built
+
+The c01 builder wrote `manifest_shard{k}.csv` inside `if len(log_df):` — i.e. only when this run built at
+least one study. A **resume-only** run (kernel re-launched after a crash, everything already on disk)
+wrote no manifest, and the training loader would have indexed nothing from that shard while the arrays sat
+there. Never bit us because no cache kernel had to resume. **Do (c02):** every blob has a CSV sidecar, and
+the shard manifest is rebuilt from *all* sidecars on every run, so the manifest reflects the disk, not
+the run. If a c01 rebuild is ever needed, check the manifest exists before mounting it.
+
+### 26. Fixed-resolution backbones vs the smoke clamps; float windows through DataLoader shared memory
+
+Two design-time catches from the 2026-08-30 review, recorded because both would have looked like a
+*model* problem: (a) `Config.__post_init__` forces `img_size = 224` in smoke — a fixed-resolution timm
+hybrid (`coatnet_rmlp_2_rw_384`) then dies on a shape mismatch (`196 vs 576` tokens) *in the smoke only*,
+so the smoke would have "found a bug" the real run does not have; the clamp now skips `timm:` backbones.
+(b) Shipping 60 float windows per study through the DataLoader (`(60, 3, 336, 336)` fp32 = 81 MB, ×
+workers × prefetch in `/dev/shm`) is the classic Kaggle "DataLoader worker killed by bus error"; the
+window Dataset ships the 8 MB uint8 study + indices and the model gathers / normalises / resizes on the
+GPU. Related: 12d (a real-mode value smoke mode cannot reveal).
+
 ## Tier 3 — tooling friction
 
 ### 14. Kaggle rate-limits file downloads, and reports success anyway
@@ -495,3 +539,14 @@ Publishing the ConvNeXt weights (2026-08-29) failed twice before it worked:
 A private dataset then mounts at **`/kaggle/input/<slug>/`** (depth 1, no `datasets/<owner>/`
 prefix — unlike the third-party label datasets), so weight resolvers must list both layouts.
 Anything a final submission relies on must be **public** (competition rule) — flip it before then.
+
+### 27. Regenerating `rsna-knee-cache-a/-b.ipynb` now yields a c02 kernel
+
+`src/cache_pipeline.py` defaults to `SCHEME = "c02"`, `N_SHARDS = 4` since 2026-08-30. Running the
+CLAUDE.md nbgen line for `rsna-knee-cache-a` without a sed produces a notebook that would build **c02
+shard 0 into the c01 kernel's output** and repoint every consumer of `rsna-knee-cache-a`. Done once by
+reflex on 2026-08-30 and reverted with `git checkout` before pushing. **Do:** the c01 kernels are
+committed notebooks — do not regenerate them; if a c01 rebuild is ever needed, sed `SCHEME = "c02"` →
+`"c01"` and `N_SHARDS = 4` → `2` first. c02 kernels are `kaggle/rsna-knee-cache2-{a,b,c,d}` with
+`SHARD = 0..3` sed'd in. Related: locally, `find_mounted_checkpoints` searches `WORK` only when `MODE`
+is explicitly `"infer"` / `"oof_eval"` — with `"auto"` it would flip every local smoke into infer mode.

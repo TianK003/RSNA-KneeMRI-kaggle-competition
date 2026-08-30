@@ -10,6 +10,19 @@ by **macro ROC-AUC** (unweighted mean of 12 per-label AUCs).
 
 Competition: https://www.kaggle.com/competitions/rsna-knee-abnormality-detection
 
+**State as of 2026-08-30 (afternoon):** the 0.936 notebook was re-read cell by cell; its gap to our 0.900 is
+(a) a **0.924 single model** — CoAtNet-2 @384 over 64 slices at a **2–98 % slice band** with **per-label
+attention over every window** — and (b) three more input-representation families rank-fused on top;
+same-geometry backbones gave head-like diversity only. Our two weakest labels (MCL 0.836, Lateral Meniscus
+0.833 OOF) are the ones its docstring says the discarded outer slices carry. **Shipped, locally verified,
+zero GPU spent:** cache v2 (`c02`: 6 slots × 18/12/12/14/8/8 slices, 2–98 %, 336 px, 64-study blobs —
+kernels `rsna-knee-cache2-a..d` building), the window-attention head + random-window training (P-25),
+offline timm hybrids (`timm:coatnet_rmlp_1_rw_224`, `timm:coatnet_rmlp_2_rw_384`), mixed-geometry
+inference (c01 + c02 members in one blend), slice-offset TTA + `MODE="oof_eval"` (P-12), a RunPod runner
+(P-24; Tian chose RunPod for the hybrids), pins `rsna-knee-ckpt-v06` / `-v05g`, `src/cache_selftest.py` +
+`src/window_head_test.py`. Pre-change and post-change inference of the existing members are byte-identical.
+Next: Kaggle smoke of arms `v08w` + `v09h` once the c02 kernels finish, then (go-ahead) `v08w` fold 0
+(~2 h) and the `oof_eval` TTA pass (~0.5 h); `v09h` / `v10c` on RunPod. Backlog: P-25, P-26, P-23 #2, P-12.
 **State as of 2026-08-30 (morning):** **eight submissions, best public LB 0.900** (#8, infer v10: the P-21 two-head
 blend + `v05g` 5-fold + **`v06c` ConvNeXt-T**, one vote per version; **+0.004 over 0.896 is 🔁 under the 0.005
 floor**, but it is the default blend now). Overnight
@@ -108,9 +121,15 @@ src/label_audit.py      per-language / per-label audit of the LLM label sources
 src/oof_epoch_analysis.py  P-22: checkpoint-policy analysis on the per-epoch OOF csvs (no GPU)
 src/dicom_probe.py      DICOM header / ordering / normalisation audit
 src/baseline_infer.py   standalone inference smoke test
+src/cache_selftest.py   builder vs on-the-fly preprocessing, both cache schemes, bit for bit (run before any cache push)
+src/window_head_test.py unit checks: windows, WindowAttnHead, timm offline load, param_groups coverage
+src/blend_check.py      P-23 acceptance rule on fold-0 OOF csvs (rho, blend gain, per-label table)
+scripts/runpod_bootstrap.sh  off-Kaggle runner: setup | train <arm> | ship <arm>   (requirements-gpu.txt)
 kaggle/rsna-knee-train/     generated training/inference notebook + kernel-metadata.json
 kaggle/rsna-knee-folds/     5-fold ensemble run (FIVE_FOLD=True sed'd in at build time)
-kaggle/rsna-knee-cache-a/   cache kernel, shard 0  (-b: shard 1, SHARD=1 sed'd in at build time)
+kaggle/rsna-knee-infer/     MODE="infer" copy -- the kernel that gets SUBMITTED
+kaggle/rsna-knee-cache-a/   c01 cache kernel, shard 0 of 2 (-b: shard 1) -- committed notebooks, do NOT regenerate (traps 27)
+kaggle/rsna-knee-cache2-a/  c02 cache kernel, shard 0 of 4 (-b/-c/-d: SHARD=1/2/3 sed'd in at build time)
 data/  models/  artifacts/   all gitignored (see docs/setup.md)
 ```
 
@@ -199,6 +218,37 @@ sed 's/^SHARD = 0 /SHARD = 1 /' src/cache_pipeline.py > /tmp/cache_b.py
 python src/nbgen.py /tmp/cache_b.py kaggle/rsna-knee-cache-b/rsna-knee-cache-b.ipynb
 kaggle kernels push -p kaggle/rsna-knee-cache-a; kaggle kernels push -p kaggle/rsna-knee-cache-b
 ```
+
+**Cache v2 (`c02`) kernels** (CPU, 2026-08-30) — `src/cache_pipeline.py` defaults to `SCHEME = "c02"`,
+`N_SHARDS = 4`; the c01 kernels are committed notebooks and are never regenerated (traps 27):
+
+```bash
+for i in 0 1 2 3; do s=$(echo abcd | cut -c$((i+1)));
+  sed "s/^SHARD = 0               #/SHARD = $i               #/" src/cache_pipeline.py > artifacts/cache2_$s.py
+  python src/nbgen.py artifacts/cache2_$s.py kaggle/rsna-knee-cache2-$s/rsna-knee-cache2-$s.ipynb
+  kaggle kernels push -p kaggle/rsna-knee-cache2-$s; done
+python src/cache_selftest.py          # BEFORE any cache push: both schemes, both modules, bit for bit
+```
+
+**Two cache schemes, one pipeline.** `Config.cache_scheme` (`"c01"` 224/16 dense per-study files; `"c02"`
+336, budgets 18/12/12/14/8/8, band 2–98 %, 64-study blobs) resolves through `cache_version_for(cfg)`; every
+mounted shard of every scheme is indexed (`CACHE_INDEX[version]`) and each **arm** or **member** reads the
+one its config names. Arms are one edit: `("v08w", {**C02, "backbone": "dinov2", "img_size": 224})`.
+`window_mode="random"` + `head_type="window_attn"` is the P-25 member (Dataset ships uint8 + window
+indices; the model gathers/resizes on the GPU). `backbone="timm:<arch>"` loads `<dir>/model.safetensors`
+offline (Datasets `timm-coatnet-rmlp-1-rw-224`, `-2-rw-384`). **Inference** groups members by
+`INFER_CACHE_KEYS` (one decode-once pass per cache geometry) and applies `INFER_MEMBER_KEYS` per member;
+`INFER_OVERRIDES = {version: {member keys}}` gives old members TTA (`tta_offsets`, `tta_pool`) or an
+`eval_windows` cap. **`MODE="oof_eval"`** scores each `INFER_MEMBERS` fold-0 checkpoint on its held-out
+studies with those settings → `{version}_fold0_tta_oof.csv` for `src/blend_check.py` (P-12 measurement).
+Local checks before any push: `python src/cache_selftest.py`, `python src/window_head_test.py`, then the
+smoke run (`FORCE_SMOKE = True` locally trains both arms on the 3 sample studies and infers).
+
+**Off-Kaggle training (RunPod, P-24):** `scripts/runpod_bootstrap.sh setup` lays the inputs out under
+`/kaggle/input` exactly as Kaggle mounts them (CSVs, label tables, weights, the four c02 shards via
+`kaggle kernels output`, verified by file count + bytes), `train <arm>` runs one arm (`RSNA_ARM`,
+`RSNA_TRAIN_ONLY=1`, `RSNA_WORKERS=8`, `RSNA_RUNTIME_H=40`; resumable), `ship <arm>` publishes
+`_best.pt` + `_oof.csv` as Dataset `rsna-knee-ckpt-<arm>` for the infer kernel. Inference stays on Kaggle.
 
 **Resuming:** five folds do not fit in one 9 h session. When the runtime guard fires, each
 fold has written `{version}_fold{k}_last.pt` and inference is skipped. Attach that run's

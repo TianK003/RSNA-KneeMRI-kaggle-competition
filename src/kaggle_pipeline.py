@@ -160,6 +160,10 @@ FORCE_SMOKE = True
 # │                 SUBMITTED: a code competition re-runs the notebook on    │
 # │                 the hidden test, and re-training there would both blow   │
 # │                 the runtime and change the model being scored.           │
+# │       "oof_eval" = score each INFER_MEMBERS version's fold-0 checkpoint  │
+# │                 on its held-out studies from the cache, with the TTA /  │
+# │                 eval_windows in INFER_OVERRIDES -> {v}_fold0_tta_oof.csv │
+# │                 for src/blend_check.py. No test prediction (P-12).       │
 # │       "auto"  = "infer" if such checkpoints are mounted, else "train".   │
 # └──────────────────────────────────────────────────────────────────────────┘
 MODE = "auto"
@@ -180,6 +184,11 @@ INFER_MEMBERS = ["v05a", "v05b"]        # attn + concat heads, fold 0: OOF 0.867
 # the two-head blend alone (0.8670) -- because the attention head, the source of the
 # diversity, becomes 1/7 of the vote. Versions are the unit of diversity; folds are replicates.
 INFER_BLEND = "by_version"
+# Per-version MEMBER-key overrides at inference (P-12 TTA for members whose checkpoints predate
+# the fields, or an eval_windows cap). Only keys in INFER_MEMBER_KEYS are allowed -- an override
+# can change how a member reads the decoded array, never which array is decoded. Example:
+#   INFER_OVERRIDES = {"v05a": {"tta_offsets": (-1, 0, 1), "tta_pool": "focal"}}
+INFER_OVERRIDES = {}
 
 # ┌──────────────────────────────────────────────────────────────────────────┐
 # │ ARMS: run several fold-0 configurations back to back in ONE session.     │
@@ -197,11 +206,31 @@ INFER_BLEND = "by_version"
 # make *different* errors -- a second architecture family. ConvNeXt-Tiny, concat head, jitter,
 # 8 epochs under ckpt_policy=best_oof (unknown peak epoch for a CNN), backbone LR 1e-4 per the
 # card (ImageNet-supervised CNN tolerates 5x the LR that DINOv2's SSL features need).
+# 2026-08-30 (P-25 / P-26 / P-23 #2): members on the wide-band c02 cache with the window-attention
+# head. `v08w` = DINOv2-S at 224 (isolates band + windows + head from resolution; ~2 h fold 0 on a
+# T4). `v09h` = the timm CoAtNet-1 hybrid probe at 224 (RunPod). `v10c` = CoAtNet-2 @384, the 0.936
+# notebook's strongest-member recipe (RunPod; grad_checkpoint for 24 GB cards, eval_windows 42 so
+# the hidden-test rerun stays inside the budget -- oof_eval must use the same value).
+C02 = {"cache_scheme": "c02", "window_mode": "random", "head_type": "window_attn",
+       "train_windows": 24, "epochs": 8}
 ARMS = [
-    ("v06c", {"backbone": "convnext_tiny", "cache_jitter": True, "epochs": 8, "lr_backbone": 1e-4}),
+    ("v08w", {**C02, "backbone": "dinov2", "img_size": 224}),
+    ("v09h", {**C02, "backbone": "timm:coatnet_rmlp_1_rw_224", "img_size": 224, "lr_backbone": 1e-4}),
 ]
-PRIMARY_ARM = "v06c"
+ARM_V10C = ("v10c", {**C02, "backbone": "timm:coatnet_rmlp_2_rw_384", "img_size": 384,
+                     "lr_backbone": 1e-4, "eval_windows": 42, "grad_checkpoint": True})
+PRIMARY_ARM = "v08w"
 ARM_FOLDS = (0,)
+# Off-Kaggle runner (scripts/runpod_bootstrap.sh): RSNA_ARM=<version> runs exactly that arm
+# (from ARMS or ARM_V10C) and makes it PRIMARY_ARM; RSNA_WORKERS / RSNA_RUNTIME_H override the
+# loader worker count and the session guard. Unset on Kaggle, so nothing changes there.
+if os.environ.get("RSNA_ARM"):
+    _only = os.environ["RSNA_ARM"]
+    ARMS = [a for a in list(ARMS) + [ARM_V10C] if a[0] == _only]
+    if not ARMS:
+        raise SystemExit(f"RSNA_ARM={_only!r} is not one of the defined arms")
+    PRIMARY_ARM = _only
+    print(f"RSNA_ARM: running only {_only}")
 
 # Refuse to silently train the v02 decode path when the cache is expected (traps 6f).
 ALLOW_DECODE_FALLBACK = False
@@ -263,6 +292,36 @@ class Config:
     stack_mode: str = "triplet"
     lr_stem: float = 2e-4            # channels mode only: the widened patch-embedding conv
 
+    # Cache SCHEME (2026-08-30). "c01" = the original cache: dense [6, 16, 224, 224] per study,
+    # one .npy each, per-plane band sag 8-92 / cor 20-80 / ax 10-90 -- described by cache_px /
+    # cache_n_slices above. "c02" = the wide-band rebuild: the same six slots with RAGGED slice
+    # budgets (18/12/12/14/8/8 = 72 slices, order = SLOTS), band 2-98 % for every plane, 336 px,
+    # stored FLAT [72, 336, 336] inside multi-study blob files. Why: the 0.936 notebook's best
+    # member uses 2-98 % and reports the outer slices carry the collaterals and the lateral
+    # meniscus -- our two weakest labels. Both caches can be mounted at once; each Config resolves
+    # to exactly one of them through cache_version_for(). The c02 fields below are ignored for c01.
+    cache_scheme: str = "c01"
+    cache_px_wide: int = 336         # c02 stored resolution (cache_px stays the c01 value)
+    cache_slot_slices: tuple = ()    # c02 budgets per slot; () -> (18, 12, 12, 14, 8, 8)
+    cache_band: tuple = ()           # c02 (lo, hi) for every plane; () -> (0.02, 0.98)
+
+    # WINDOWS (P-25). "fixed" = K equidistant triplet centres per slot (every member through
+    # v06c; array_to_tensor). "random" = the study is a set of (slot, centre) windows: training
+    # samples `train_windows` of them (stratified, >= 2 per present slot) as its augmentation,
+    # evaluation feeds every valid window (or `eval_windows` equidistant ones when > 0 -- the
+    # SAME value must be used by oof_eval and infer so the OOF number predicts the LB number).
+    # The Dataset ships the uint8 array + indices; the model gathers/normalises/resizes on the
+    # GPU, so 60 windows never travel through DataLoader shared memory as float tensors.
+    window_mode: str = "fixed"
+    train_windows: int = 24
+    eval_windows: int = 0
+    # Slice-offset TTA for fixed-window members (P-12): the K centres are shifted by each offset
+    # (clipped to the stack), one forward per offset, probabilities pooled per label.
+    # tta_pool "mean" = average; "focal" = the 0.936 notebook's rule: max over views for
+    # Fracture / Contusion / both Menisci / Baker's, top-2 mean for ACL / MCL, mean otherwise.
+    tta_offsets: tuple = (0,)
+    tta_pool: str = "mean"
+
     # model
     # P-10: a second architecture family as a blend member. "dinov2" = DINOv2 ViT-S/14 (CLS
     # token); "convnext_tiny" = HF facebook/convnext-tiny-224 (ImageNet-1k, Apache-2.0,
@@ -273,8 +332,15 @@ class Config:
     dropout: float = 0.1
     # P-09. "concat" = v03 baseline (6 slot vectors + mask -> one Linear); "attn" = 12
     # learned label queries doing masked attention over the present slot vectors.
+    # P-25. "window_attn" = 12 label queries attending over EVERY (slot, window) token of the
+    # study (per-label softmax over windows, slot embedding added), with no label-agnostic
+    # per-slot pooling in between -- the 0.936 notebook's strongest member pools this way.
     head_type: str = "concat"
     slot_dropout: float = 0.0        # P-09 sub-arm; 0 keeps the head A/B clean
+    slot_embed: bool = True          # window_attn: add a learned per-slot embedding to each token
+    # timm hybrids (P-23 #2): `backbone="timm:<arch>"` loads <dir>/model.safetensors offline.
+    # Gradient checkpointing halves activation memory for coatnet_2 @384 x 24 windows on 24 GB.
+    grad_checkpoint: bool = False
 
     # optimisation
     folds: tuple = (0, 1, 2, 3, 4)
@@ -302,9 +368,9 @@ class Config:
     weak_weight_floor: float = 0.15
 
     # runtime
-    runtime_limit_hours: float = 8.3   # leave headroom under Kaggle's 9 h ceiling
+    runtime_limit_hours: float = float(os.environ.get("RSNA_RUNTIME_H", 8.3))   # headroom under Kaggle's 9 h
     seed: int = 42
-    num_workers: int = 2
+    num_workers: int = int(os.environ.get("RSNA_WORKERS", 2))     # 8 on a local-NVMe box
     # Which epoch `_best.pt` holds. "best_oof": the epoch with the highest OOF-vs-teacher
     # macro-AUC so far (P-22: +0.013 split-half for the concat head, ~0 for attn, gold flat).
     # "last": EMA weights after the last completed epoch (fixed-epoch, used through v05).
@@ -314,22 +380,89 @@ class Config:
     smoke_max_studies: int = 24
 
     def __post_init__(self):
+        if self.cache_scheme not in ("c01", "c02"):
+            raise SystemExit(f"unknown cache_scheme {self.cache_scheme!r}")
+        if self.cache_scheme == "c02":
+            self.cache_slot_slices = tuple(self.cache_slot_slices) or (18, 12, 12, 14, 8, 8)
+            self.cache_band = tuple(self.cache_band) or (0.02, 0.98)
+            if self.stack_mode != "triplet" or self.lat_undo:
+                raise SystemExit("stack_mode='channels' and lat_undo are c01-only (v07s is dead, "
+                                 "P-05 is closed); they were not ported to the flat c02 layout")
+        self.tta_offsets = tuple(self.tta_offsets)
         if self.smoke:
             self.folds = (0,)
             self.epochs = 1
             self.slices_per_slot = 2
-            self.img_size = 224
+            self.train_windows = 4
+            if not str(self.backbone).startswith("timm:"):
+                # a fixed-resolution timm hybrid (coatnet_rmlp_2_rw_384) crashes at 224; DINOv2
+                # and ConvNeXt take any size, and 224 keeps a CPU smoke fast
+                self.img_size = 224
             self.runtime_limit_hours = 0.4
             self.ema_decay = 0.9      # 8 steps of smoke would leave a 0.998 EMA ~= init
 
 
-cfg = Config()
-CACHE_VERSION = (f"c01_p{cfg.cache_px}_s{cfg.cache_n_slices}_crop{int(cfg.crop_mm)}"
-                 f"_lat{int(cfg.lat_dead_zone_mm)}")
 CACHE_BAND = {"Sagittal": (0.08, 0.92), "Axial": (0.10, 0.90), "Coronal": (0.20, 0.80)}
 PLANE_OF_SLOT = {"SAG_FLUID_FS": "Sagittal", "COR_FLUID_FS": "Coronal", "AX_FLUID_FS": "Axial",
                  "SAG_FLUID_NOFS": "Sagittal", "COR_T1": "Coronal", "SAG_T1": "Sagittal"}
-CACHE_INDEX = {}      # StudyInstanceUID -> path of the cached .npy (filled in Section 8)
+CACHE_PCT = (1.0, 99.0)      # per-series percentile window (the cache builder's pct_lo / pct_hi)
+
+
+def cache_version_of(scheme, px, slot_slices, band, crop_mm, lat_dead_zone_mm):
+    """Name of the directory a cache lives in. It must encode EVERYTHING that changes the
+    stored bytes: c01's string left out the band and the percentiles, so a band change at the
+    same px/slices would have been silently accepted by the loader (traps 23). Byte-identical
+    copy in src/kaggle_pipeline.py -- src/cache_selftest.py asserts the two agree."""
+    if scheme == "c01":
+        return f"c01_p{px}_s{slot_slices[0]}_crop{int(crop_mm)}_lat{int(lat_dead_zone_mm)}"
+    lo, hi = band["Sagittal"]                       # c02: one band for every plane
+    return (f"c02_p{px}_b{'-'.join(str(int(s)) for s in slot_slices)}"
+            f"_band{int(round(lo * 100))}-{int(round(hi * 100))}"
+            f"_crop{int(crop_mm)}_lat{int(lat_dead_zone_mm)}")
+
+
+def slot_offsets(slot_slices):
+    """Start index of each slot inside the flat (sum(slot_slices), P, P) array, plus the total."""
+    starts, acc = [], 0
+    for n in slot_slices:
+        starts.append(acc)
+        acc += int(n)
+    return tuple(starts), acc
+
+
+def _cfg_get(c):
+    """Uniform reader over a Config object or a checkpoint's saved-config dict (old checkpoints
+    lack the new fields, so every read carries the c01-era default)."""
+    if isinstance(c, dict):
+        return lambda k, d=None: c.get(k, d)
+    return lambda k, d=None: getattr(c, k, d)
+
+
+def cache_geom(c):
+    """(scheme, px, slot_slices, band_dict) that Config `c` resolves to -- the one place the two
+    schemes' field conventions meet. Works on a Config or on a saved-config dict."""
+    g = _cfg_get(c)
+    scheme = g("cache_scheme", "c01")
+    if scheme == "c01":
+        n = int(g("cache_n_slices", 16))
+        return "c01", int(g("cache_px", 224)), (n,) * len(SLOTS), dict(CACHE_BAND)
+    ss = tuple(int(s) for s in (g("cache_slot_slices", ()) or (18, 12, 12, 14, 8, 8)))
+    band = tuple(float(b) for b in (g("cache_band", ()) or (0.02, 0.98)))
+    return "c02", int(g("cache_px_wide", 336)), ss, {p: band for p in ("Sagittal", "Coronal", "Axial")}
+
+
+def cache_version_for(c):
+    g = _cfg_get(c)
+    scheme, px, ss, band = cache_geom(c)
+    return cache_version_of(scheme, px, ss, band, float(g("crop_mm", 130.0)),
+                            float(g("lat_dead_zone_mm", 20.0)))
+
+
+cfg = Config()
+CACHE_VERSION = cache_version_for(cfg)     # the DEFAULT config's cache; arms/members recompute
+# cache_version -> {StudyInstanceUID -> locator}; a locator is a .npy path (c01, one study per
+# file) or (blob_path, row) (c02). Filled per cache version in Section 8 / at inference.
+CACHE_INDEX = {}
 
 # Weight locations differ between Kaggle (mounted Model, two possible layouts) and
 # local (models/). config.json is the marker that a real HF checkpoint dir is there.
@@ -345,6 +478,18 @@ BACKBONES = {
         "/kaggle/input/convnext-tiny-224-hf",
         "models/convnext_tiny",
     ], "tiankljucanin/convnext-tiny-224-hf as a Dataset input"),
+    # timm hybrids (P-23 #2). Each Dataset holds the HF timm repo files: config.json (the marker
+    # resolve_dir probes) + model.safetensors; timm itself ships in the Kaggle image.
+    "timm:coatnet_rmlp_1_rw_224": ([
+        "/kaggle/input/datasets/tiankljucanin/timm-coatnet-rmlp-1-rw-224",
+        "/kaggle/input/timm-coatnet-rmlp-1-rw-224",
+        "models/coatnet_rmlp_1_rw_224",
+    ], "tiankljucanin/timm-coatnet-rmlp-1-rw-224 as a Dataset input"),
+    "timm:coatnet_rmlp_2_rw_384": ([
+        "/kaggle/input/datasets/tiankljucanin/timm-coatnet-rmlp-2-rw-384",
+        "/kaggle/input/timm-coatnet-rmlp-2-rw-384",
+        "models/coatnet_rmlp_2_rw_384",
+    ], "tiankljucanin/timm-coatnet-rmlp-2-rw-384 as a Dataset input"),
 }
 
 
@@ -843,19 +988,22 @@ IMAGENET_STD = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1)
 GRAY_MEAN, GRAY_STD = 0.449, 0.226     # ImageNet mean/std averaged over RGB, for N-channel stacks
 
 
-def ordered_slice_paths(series_dir: str, plane: str = None) -> list:
+def ordered_slice_paths(series_dir: str, plane: str = None, return_head: bool = False):
     """Spatially ordered slice paths. NEVER trust filename order.
 
     With `plane` given (cache path) the sort direction has a FIXED sign: sagittal
     stacks run along +x (patient left), other planes along the positive dominant axis,
     so "reverse for right knees" canonicalises rather than randomises between sites.
-    Without `plane` (legacy decode path) the cross-product normal is used as before."""
+    Without `plane` (legacy decode path) the cross-product normal is used as before.
+    `return_head=True` also returns the header of the FIRST FILE IN FILENAME ORDER -- the one
+    the cache builder reads IOP / PixelSpacing from (src/cache_pipeline.py::ordered_slice_paths);
+    reading the spatially-first slice instead was a latent divergence between the two."""
     files = [f for f in os.listdir(series_dir) if f.endswith(".dcm")]
     if not files:   # do not assume the hidden test tree keeps the .dcm extension
         files = [f for f in os.listdir(series_dir)
                  if os.path.isfile(os.path.join(series_dir, f))]
     if not files:
-        return []
+        return ([], None) if return_head else []
     paths = [os.path.join(series_dir, f) for f in sorted(files)]
     heads, kept = [], []
     for p in paths:
@@ -866,8 +1014,13 @@ def ordered_slice_paths(series_dir: str, plane: str = None) -> list:
             continue                    # a stray non-DICOM file must not poison the order
     paths = kept
     if not heads:
-        return []
-    iop = next((getattr(h, "ImageOrientationPatient", None) for h in heads), None)
+        return ([], None) if return_head else []
+    first = heads[0]
+
+    def done(ordered):
+        return (ordered, first) if return_head else ordered
+
+    iop = getattr(first, "ImageOrientationPatient", None)
     if iop is not None and len(iop) == 6:
         n = np.cross(np.array(iop[:3], float), np.array(iop[3:], float))
         if plane == "Sagittal":
@@ -882,12 +1035,12 @@ def ordered_slice_paths(series_dir: str, plane: str = None) -> list:
                 break
             keys.append(float(np.dot(np.array(ipp, float), n)))
         if ok:
-            return [p for _, p in sorted(zip(keys, paths), key=lambda t: t[0])]
+            return done([p for _, p in sorted(zip(keys, paths), key=lambda t: t[0])])
     inst = [getattr(h, "InstanceNumber", None) for h in heads]
     if all(i is not None for i in inst):
-        return [p for _, p in sorted(zip(inst, paths), key=lambda t: t[0])]
+        return done([p for _, p in sorted(zip(inst, paths), key=lambda t: t[0])])
     print(f"  ! {series_dir}: no usable position/instance headers -- filename order")
-    return paths
+    return done(paths)
 
 
 def read_plane(path: str) -> np.ndarray:
@@ -948,20 +1101,22 @@ def resize_u8(stack01, px):
     return (t.squeeze(1).clamp_(0, 1) * 255).round().to(torch.uint8).numpy()
 
 
-def cache_series(series_dir, plane, cfg, is_right):
-    """-> ((cache_n_slices, cache_px, cache_px) uint8, n_failed) or (None, n_failed).
-    IDENTICAL to src/cache_pipeline.py::cache_series -- keep them in sync. Used at test
-    time so a test study gets exactly the preprocessing the cached training studies got."""
-    ordered = ordered_slice_paths(series_dir, plane)
+def cache_series(series_dir, plane, cfg, is_right, n_slices, band=None, px=None):
+    """-> ((n_slices, px, px) uint8, n_failed) or (None, n_failed).
+    IDENTICAL to src/cache_pipeline.py::cache_series -- keep them in sync (src/cache_selftest.py
+    checks both schemes bit for bit). Used at test time so a test study gets exactly the
+    preprocessing the cached training studies got. `band` is the plane's (lo, hi) fraction of
+    the ordered stack and `px` the stored resolution; both default to the c01 values."""
+    ordered, head = ordered_slice_paths(series_dir, plane, return_head=True)
     if not ordered:
         return None, 0
-    head = pydicom.dcmread(ordered[0], stop_before_pixels=True)
     n = len(ordered)
-    lo_f, hi_f = CACHE_BAND.get(plane, (0.0, 1.0))
+    lo_f, hi_f = band if band is not None else CACHE_BAND.get(plane, (0.0, 1.0))
     lo_i, hi_i = int(round(lo_f * (n - 1))), int(round(hi_f * (n - 1)))
     if hi_i <= lo_i:
         lo_i, hi_i = 0, n - 1
-    idx = np.linspace(lo_i, hi_i, cfg.cache_n_slices).round().astype(int)
+    # Repeated neighbours on short series are intended (no np.unique).
+    idx = np.linspace(lo_i, hi_i, n_slices).round().astype(int)
     if plane == "Sagittal" and is_right:
         idx = idx[::-1]
     iop = getattr(head, "ImageOrientationPatient", None)
@@ -982,6 +1137,8 @@ def cache_series(series_dir, plane, cfg, is_right):
         return None, n_fail
     h = min(a.shape[0] for a in good)
     w = min(a.shape[1] for a in good)
+    # A failed slice is replaced by its nearest good neighbour, never by zeros (zeros
+    # would drag the per-series percentiles down and enter the model as a black slice).
     fixed = []
     for k, a in enumerate(planes):
         if a is None:
@@ -990,16 +1147,23 @@ def cache_series(series_dir, plane, cfg, is_right):
         fixed.append(a[:h, :w])
     stack = np.stack(fixed).astype(np.float32)
     stack = np.stack([centre_crop_mm(x, ps, cfg.crop_mm) for x in stack])
-    lo, hi = np.percentile(stack, [1, 99])
+    lo, hi = np.percentile(stack, [CACHE_PCT[0], CACHE_PCT[1]])   # per SERIES, whole stack
     stack = (np.clip(stack, lo, hi) - lo) / max(hi - lo, 1e-6)
     if mirror:
         stack = stack[:, :, ::-1]
-    return resize_u8(stack, cfg.cache_px), n_fail
+    return resize_u8(stack, px if px is not None else cfg.cache_px), n_fail
 
 
 def build_study_array(study, row, image_root, cfg):
-    """On-the-fly equivalent of one cached study: ([6, S, P, P] uint8, mask[6])."""
-    arr = np.zeros((len(SLOTS), cfg.cache_n_slices, cfg.cache_px, cfg.cache_px), np.uint8)
+    """On-the-fly equivalent of one cached study, in the layout of `cfg`'s cache scheme:
+    c01 -> ([6, S, P, P] uint8, mask[6]); c02 -> ([sum(budgets), P, P] uint8, mask[6]) with slot
+    `si` at rows slot_offsets()[si]. Mirrors cache_study / build_study_flat in the builder."""
+    scheme, px, slot_slices, band = cache_geom(cfg)
+    starts, total = slot_offsets(slot_slices)
+    if scheme == "c01":
+        arr = np.zeros((len(SLOTS), slot_slices[0], px, px), np.uint8)
+    else:
+        arr = np.zeros((total, px, px), np.uint8)
     mask = np.zeros(len(SLOTS), np.float32)
     is_right = str(row.get("side", "")) == "R"
     for si, slot in enumerate(SLOTS):
@@ -1009,19 +1173,143 @@ def build_study_array(study, row, image_root, cfg):
         d = os.path.join(image_root, study, sid)
         if not os.path.isdir(d):
             continue
-        a, _ = cache_series(d, PLANE_OF_SLOT[slot], cfg, is_right)
+        plane = PLANE_OF_SLOT[slot]
+        a, _ = cache_series(d, plane, cfg, is_right, slot_slices[si], band=band[plane], px=px)
         if a is None:
             continue
-        arr[si] = a
+        if scheme == "c01":
+            arr[si] = a
+        else:
+            arr[starts[si]:starts[si] + slot_slices[si]] = a
         mask[si] = 1.0
     return arr, mask
 
 
-def array_to_tensor(arr, mask, cfg, train):
+def slot_stacks(arr, cfg):
+    """The six per-slot (n_i, P, P) views of a cached study, for either layout: c01 arrays are
+    [6, S, P, P] (view = arr[si]); c02 arrays are flat [sum, P, P] (view = a row range)."""
+    if arr.ndim == 4:
+        return [arr[si] for si in range(len(SLOTS))]
+    _, _, slot_slices, _ = cache_geom(cfg)
+    starts, _ = slot_offsets(slot_slices)
+    return [arr[s:s + n] for s, n in zip(starts, slot_slices)]
+
+
+_NPY_HEADERS = {}     # blob path -> (shape, dtype, header_bytes); per process (DataLoader worker)
+
+
+def npy_header(path):
+    """(shape, dtype, header_bytes) of a .npy file, public numpy API only."""
+    with open(path, "rb") as f:
+        version = np.lib.format.read_magic(f)
+        reader = {(1, 0): np.lib.format.read_array_header_1_0,
+                  (2, 0): np.lib.format.read_array_header_2_0}.get(version)
+        if reader is None:
+            raise ValueError(f"unsupported .npy version {version} in {path}")
+        shape, fortran, dtype = reader(f)
+        if fortran:
+            raise ValueError(f"{path} is Fortran-ordered; blobs must be C-ordered")
+        return tuple(shape), dtype, f.tell()
+
+
+def read_cached(locator):
+    """One study's uint8 array from its locator: a .npy path (c01) or (blob_path, row) (c02).
+    The blob read is a single seek + read of that study's bytes -- no np.load(mmap_mode) on
+    Kaggle's FUSE input mount, no mapping held open inside DataLoader workers, and the 8 MB
+    buffer is freed with the item (the design review's memory concern, 2026-08-30)."""
+    if isinstance(locator, str):
+        return np.load(locator)
+    path, row = locator
+    hdr = _NPY_HEADERS.get(path)
+    if hdr is None:
+        hdr = _NPY_HEADERS[path] = npy_header(path)
+    shape, dtype, header_bytes = hdr
+    if not (0 <= row < shape[0]):
+        raise IndexError(f"row {row} outside blob {path} with {shape[0]} studies")
+    per_study = int(np.prod(shape[1:]))
+    itemsize = np.dtype(dtype).itemsize
+    with open(path, "rb") as f:
+        f.seek(header_bytes + row * per_study * itemsize)
+        buf = np.fromfile(f, dtype=dtype, count=per_study)
+    if buf.size != per_study:
+        raise IOError(f"short read on {path} row {row}: {buf.size} of {per_study} elements")
+    return buf.reshape(shape[1:])
+
+
+def valid_windows(mask, cfg):
+    """Every (slot, centre) triplet window a study offers: centres 1 .. n_i-2 of each PRESENT
+    slot. Returns (centres, slot_id) as int arrays; the centre indexes the slot's own stack."""
+    _, _, slot_slices, _ = cache_geom(cfg)
+    cs, ss = [], []
+    for si, n in enumerate(slot_slices):
+        if float(mask[si]) <= 0:
+            continue
+        c = np.arange(1, int(n) - 1)
+        cs.append(c)
+        ss.append(np.full(len(c), si, dtype=np.int64))
+    if not cs:
+        return np.zeros(0, np.int64), np.zeros(0, np.int64)
+    return np.concatenate(cs), np.concatenate(ss)
+
+
+def sample_train_windows(centres, slot_id, n, min_per_slot=2):
+    """Training view: `n` windows without replacement, stratified so every present slot keeps at
+    least `min_per_slot` (if it has that many), the rest uniform over what is left. Uses the
+    global numpy RNG, which seed_worker re-seeds per worker and epoch."""
+    W = len(centres)
+    if n >= W:
+        order = np.random.permutation(W)          # every window, shuffled
+        return centres[order], slot_id[order]
+    chosen = []
+    for si in np.unique(slot_id):
+        pool = np.flatnonzero(slot_id == si)
+        k = min(min_per_slot, len(pool), max(0, n - len(chosen)))
+        if k:
+            chosen.extend(np.random.choice(pool, k, replace=False).tolist())
+    rest = np.setdiff1d(np.arange(W), np.array(chosen, dtype=np.int64))
+    need = n - len(chosen)
+    if need > 0:
+        chosen.extend(np.random.choice(rest, need, replace=False).tolist())
+    ix = np.array(sorted(chosen), dtype=np.int64)
+    return centres[ix], slot_id[ix]
+
+
+def eval_windows_subset(centres, slot_id, n_eval):
+    """Evaluation view: all windows when n_eval <= 0 or >= W; otherwise n_eval windows spread
+    equidistantly over the (slot-ordered) list -- the same rule for oof_eval and infer."""
+    W = len(centres)
+    if n_eval <= 0 or n_eval >= W:
+        return centres, slot_id
+    ix = np.linspace(0, W - 1, n_eval).round().astype(np.int64)
+    return centres[ix], slot_id[ix]
+
+
+def array_to_tensor(arr, mask, cfg, train, centre_offset=0):
     """[6, S, P, P] uint8 -> (6, K, 3, img, img) float normalised for the encoder.
     Triplet channels are neighbouring cached slices [c-1, c, c+1]; the K centres are
     equidistant over the interior of the stack (eval) -- the same for train in v03 so the
-    cache experiment isolates the cache, not a new augmentation."""
+    cache experiment isolates the cache, not a new augmentation. `centre_offset` shifts every
+    centre by that many cached slices (clipped) -- the slice-offset TTA views (P-12); 0 is
+    bit-identical to the pre-TTA code. A flat c02 array is handled slot by slot (ragged S)."""
+    if arr.ndim == 3:                                   # c02 flat layout: per-slot stacks
+        K = cfg.slices_per_slot
+        views = []
+        for st in slot_stacks(arr, cfg):
+            S = st.shape[0]
+            centres = np.linspace(1, S - 2, K).round().astype(int)
+            if train and getattr(cfg, "cache_jitter", False):
+                centres = centres + np.random.randint(-1, 2, size=K)
+            centres = np.clip(centres + centre_offset, 1, S - 2)
+            idx = np.stack([centres - 1, centres, centres + 1], axis=1)
+            views.append(torch.from_numpy(st[idx].astype(np.float32) / 255.0))   # (K, 3, P, P)
+        x = torch.stack(views)                                                    # (6, K, 3, P, P)
+        if x.shape[-1] != cfg.img_size:
+            x = F.interpolate(x.reshape(-1, 3, x.shape[-2], x.shape[-1]),
+                              size=(cfg.img_size, cfg.img_size), mode="bilinear",
+                              align_corners=False).reshape(len(SLOTS), K, 3, cfg.img_size, cfg.img_size)
+        x = (x - IMAGENET_MEAN) / IMAGENET_STD
+        m = torch.as_tensor(np.asarray(mask, dtype=np.float32))
+        return x * m.view(-1, 1, 1, 1, 1), m
     S = arr.shape[1]
     if getattr(cfg, "stack_mode", "triplet") == "channels":
         idx = np.arange(S)
@@ -1039,6 +1327,8 @@ def array_to_tensor(arr, mask, cfg, train):
     centres = np.linspace(1, S - 2, K).round().astype(int)
     if train and getattr(cfg, "cache_jitter", False):
         centres = np.clip(centres + np.random.randint(-1, 2, size=K), 1, S - 2)
+    if centre_offset:
+        centres = np.clip(centres + centre_offset, 1, S - 2)
     idx = np.stack([centres - 1, centres, centres + 1], axis=1)          # (K, 3)
     x = torch.from_numpy(arr[:, idx].astype(np.float32) / 255.0)         # (6, K, 3, P, P)
     if x.shape[-1] != cfg.img_size:
@@ -1051,7 +1341,7 @@ def array_to_tensor(arr, mask, cfg, train):
     return x, m
 
 
-def undo_laterality(arr):
+def undo_laterality(arr, cfg):
     """P-05 ablation: put a right knee back into its own chirality.
 
     The cache stores every study in a canonical left-knee frame -- coronal/axial mirrored
@@ -1064,11 +1354,11 @@ def undo_laterality(arr):
     a cleaner test than v03-vs-v02, where the 130 mm crop varied at the same time.
     """
     out = arr.copy()
-    for si, slot in enumerate(SLOTS):
+    for si, (slot, st) in enumerate(zip(SLOTS, slot_stacks(out, cfg))):
         if PLANE_OF_SLOT[slot] == "Sagittal":
-            out[si] = out[si][::-1]           # reverse the slice axis
+            st[:] = st[::-1].copy()           # reverse the slice axis
         else:
-            out[si] = out[si][:, :, ::-1]     # mirror the width axis (coronal / axial)
+            st[:] = st[:, :, ::-1].copy()     # mirror the width axis (coronal / axial)
     return np.ascontiguousarray(out)
 
 # %% [markdown]
@@ -1104,18 +1394,42 @@ class KneeStudyDataset(Dataset):
         study = self.studies[i]
         row = self.m.loc[study]
         if self.cfg.use_cache:
-            path = CACHE_INDEX.get(study)
-            if path is not None:
-                arr = np.load(path)
+            locator = CACHE_INDEX.get(cache_version_for(self.cfg), {}).get(study)
+            if locator is not None:
+                arr = read_cached(locator)
                 mk = str(row["mask"]) if "mask" in row and isinstance(row["mask"], str) else None
                 if mk is None or len(mk) != len(SLOTS):
-                    mk = "".join("1" if arr[si].any() else "0" for si in range(len(SLOTS)))
+                    mk = "".join("1" if st.any() else "0" for st in slot_stacks(arr, self.cfg))
                 mask_np = np.array([float(c) for c in mk], np.float32)
             else:                       # test study, or a study the cache missed
                 arr, mask_np = build_study_array(study, row, self.root, self.cfg)
             if self.cfg.lat_undo and str(row.get("side", "")) == "R":
-                arr = undo_laterality(arr)      # P-05 ablation arm; counted in train_fold
-            imgs, mask = array_to_tensor(arr, mask_np, self.cfg, self.train)
+                arr = undo_laterality(arr, self.cfg)   # P-05 ablation arm; counted in train_fold
+            if getattr(self.cfg, "window_mode", "fixed") == "random":
+                # P-25: ship the uint8 study + window indices; the model gathers, normalises and
+                # resizes on the GPU (60 float windows per study would otherwise cross the
+                # DataLoader shared-memory boundary at ~80-100 MB each).
+                centres, slot_id = valid_windows(mask_np, self.cfg)
+                if self.train:
+                    centres, slot_id = sample_train_windows(centres, slot_id, self.cfg.train_windows)
+                else:
+                    centres, slot_id = eval_windows_subset(centres, slot_id, self.cfg.eval_windows)
+                out = {"study": study, "arr": torch.from_numpy(np.ascontiguousarray(arr)),
+                       "centres": torch.from_numpy(centres.astype(np.int64)),
+                       "slot_id": torch.from_numpy(slot_id.astype(np.int64)),
+                       "mask": torch.as_tensor(mask_np)}
+                if self.t is not None:
+                    r = self.t.loc[study]
+                    out["y"] = torch.tensor([float(r[l]) for l in LABELS])
+                    out["w"] = torch.tensor([float(r[f"w__{l}"]) for l in LABELS])
+                    out["is_gold"] = torch.tensor(float(r["is_gold"]))
+                return out
+            offsets = (0,) if self.train else tuple(getattr(self.cfg, "tta_offsets", (0,)))
+            views = [array_to_tensor(arr, mask_np, self.cfg, self.train, centre_offset=o)
+                     for o in offsets]
+            imgs, mask = views[0]
+            if len(views) > 1:
+                imgs = torch.stack([v[0] for v in views])        # (n_views, 6, K, 3, H, W)
         else:
             imgs = torch.zeros(len(SLOTS), self.cfg.slices_per_slot, 3,
                                self.cfg.img_size, self.cfg.img_size)
@@ -1254,41 +1568,123 @@ def widen_patch_embedding(enc, in_chans):
     print(f"  patch embedding widened 3 -> {in_chans} channels (embeddings.{name})")
 
 
+class WindowAttnHead(nn.Module):
+    """P-25: 12 label queries over EVERY (slot, window) token of a study.
+
+    The existing heads pool each slot's windows with a label-AGNOSTIC AttnPool first, so a
+    Fracture slice and a meniscus slice in the same sagittal stack compete for one 384-d slot
+    vector before any label reads it. Here each label runs its own softmax over all windows
+    of the study (the 0.936 notebook's strongest member pools this way), with a learned slot
+    embedding added to every token so "which sequence" survives the flattening. Gate =
+    Linear(dim,256) -> Tanh -> Dropout -> Linear(256, 12); output = per-label context dot a
+    per-label weight. Padded / absent windows are masked with finfo.min before the softmax
+    (fp16-safe); an all-masked row falls back to uniform rather than NaN."""
+
+    def __init__(self, dim, n_labels=len(LABELS), n_slots=len(SLOTS), slot_embed=True,
+                 dropout=0.2, hidden=256):
+        super().__init__()
+        self.slot_emb = nn.Parameter(torch.zeros(n_slots, dim)) if slot_embed else None
+        self.norm = nn.LayerNorm(dim)
+        self.gate = nn.Sequential(nn.Linear(dim, hidden), nn.Tanh(), nn.Dropout(dropout),
+                                  nn.Linear(hidden, n_labels))
+        self.w = nn.Parameter(torch.randn(n_labels, dim) * dim ** -0.5)
+        self.b = nn.Parameter(torch.zeros(n_labels))
+
+    def forward(self, feats, slot_id, valid=None):
+        # feats (B, W, dim)   slot_id (B, W) long   valid (B, W) bool or None
+        h = feats
+        if self.slot_emb is not None:
+            h = h + self.slot_emb[slot_id]
+        h = self.norm(h)
+        att = self.gate(h).transpose(1, 2)                       # (B, L, W)
+        if valid is not None:
+            keep = valid.unsqueeze(1)                            # (B, 1, W)
+            att = att.masked_fill(~keep, torch.finfo(att.dtype).min)
+            dead = (~keep).all(-1, keepdim=True).expand_as(att)
+            att = torch.where(dead, torch.zeros_like(att), att)
+        a = torch.softmax(att.float(), dim=-1).to(h.dtype)       # per-label softmax over windows
+        ctx = torch.einsum("blw,bwd->bld", a, h)                 # (B, L, dim)
+        return (ctx * self.w.unsqueeze(0)).sum(-1) + self.b
+
+
+def load_timm_backbone(arch, backbone_dir, grad_checkpoint=False):
+    """timm model built offline from <backbone_dir>/model.safetensors (the HF timm repo files,
+    mounted as a Kaggle Dataset). Loads strictly except for the classifier head, and REFUSES a
+    silent architecture mismatch -- `strict=False` alone would happily train from scratch."""
+    import timm
+    from safetensors.torch import load_file
+    enc = timm.create_model(arch, pretrained=False, num_classes=0)
+    sd = load_file(os.path.join(backbone_dir, "model.safetensors"))
+    head_keys = [k for k in sd if k.startswith("head.fc")]        # ImageNet classifier
+    for k in head_keys:
+        sd.pop(k)
+    res = enc.load_state_dict(sd, strict=False)
+    bad_unexpected = [k for k in res.unexpected_keys if not k.startswith("head.")]
+    if res.missing_keys or bad_unexpected:
+        raise SystemExit(f"timm {arch}: weights do not match the architecture -- missing "
+                         f"{res.missing_keys[:5]} ({len(res.missing_keys)}), unexpected "
+                         f"{bad_unexpected[:5]} ({len(bad_unexpected)})")
+    print(f"  timm {arch}: loaded {len(sd)} tensors from {backbone_dir} (dropped head "
+          f"{len(head_keys)}); num_features {enc.num_features}, {len(enc.stages)} stages, "
+          f"grad_checkpoint={grad_checkpoint}")
+    if grad_checkpoint and hasattr(enc, "set_grad_checkpointing"):
+        enc.set_grad_checkpointing(True)
+    return enc
+
+
 class KneeNet(nn.Module):
     def __init__(self, backbone_dir: str, n_labels=len(LABELS), dropout=0.1,
-                 head_type="concat", slot_dropout=0.0, backbone="dinov2", in_chans=3):
+                 head_type="concat", slot_dropout=0.0, backbone="dinov2", in_chans=3,
+                 slot_embed=True, grad_checkpoint=False, img_size=224):
         super().__init__()
         self.backbone = backbone
         self.in_chans = in_chans
+        self.img_size = img_size
         if backbone == "convnext_tiny":
             from transformers import ConvNextModel
             self.enc = ConvNextModel.from_pretrained(backbone_dir)
             self.dim = self.enc.config.hidden_sizes[-1]          # 768 for Tiny
+        elif str(backbone).startswith("timm:"):
+            self.enc = load_timm_backbone(backbone.split(":", 1)[1], backbone_dir, grad_checkpoint)
+            self.dim = self.enc.num_features
         else:
             from transformers import Dinov2Model
             self.enc = Dinov2Model.from_pretrained(backbone_dir)
             self.dim = self.enc.config.hidden_size
         if in_chans != 3:
             widen_patch_embedding(self.enc, in_chans)
-        self.pool = AttnPool(self.dim)
         self.drop = nn.Dropout(dropout)
         self.head_type = head_type
         self.slot_dropout = slot_dropout
-        if head_type == "attn":
-            self.attn_head = SlotAttnHead(self.dim, n_labels)
+        if head_type == "window_attn":
+            self.window_head = WindowAttnHead(self.dim, n_labels, slot_embed=slot_embed)
         else:
-            self.head = nn.Linear(self.dim * len(SLOTS) + len(SLOTS), n_labels)
+            self.pool = AttnPool(self.dim)
+            if head_type == "attn":
+                self.attn_head = SlotAttnHead(self.dim, n_labels)
+            else:
+                self.head = nn.Linear(self.dim * len(SLOTS) + len(SLOTS), n_labels)
+
+    def encode(self, x):
+        """(N, C, H, W) normalised images -> (N, dim) one vector per image."""
+        if str(self.backbone).startswith("timm:"):
+            return self.enc(x)                               # num_classes=0 -> pooled features
+        out = self.enc(pixel_values=x)
+        if self.backbone == "convnext_tiny":
+            return out.pooler_output                         # LayerNorm(global-avg-pool), (N, 768)
+        return out.last_hidden_state[:, 0]                   # CLS token, (N, 384)
 
     def forward(self, imgs, mask):
         # imgs: (B, SLOT, S, C, H, W)   mask: (B, SLOT)   C = 3 (triplet) or 16 (channels, S = 1)
         B, NS, S = imgs.shape[0], imgs.shape[1], imgs.shape[2]
         flat = imgs.reshape(B * NS * S, *imgs.shape[3:])
-        out = self.enc(pixel_values=flat)
-        if self.backbone == "convnext_tiny":
-            feats = out.pooler_output                    # LayerNorm(global-avg-pool), (N, 768)
-        else:
-            feats = out.last_hidden_state[:, 0]          # CLS token, (N, 384)
-        feats = feats.reshape(B, NS, S, self.dim)
+        feats = self.encode(flat).reshape(B, NS, S, self.dim)
+        if self.head_type == "window_attn":
+            # fixed-window input through the window head: every (slot, centre) is a token,
+            # tokens of absent slots are masked out
+            slot_id = torch.arange(NS, device=feats.device).repeat_interleave(S).unsqueeze(0).expand(B, -1)
+            valid = (mask > 0.5).repeat_interleave(S, dim=1)
+            return self.window_head(self.drop(feats.reshape(B, NS * S, self.dim)), slot_id, valid)
         pooled = torch.stack([
             torch.stack([self.pool(feats[b, s]) for s in range(NS)])
             for b in range(B)
@@ -1306,6 +1702,31 @@ class KneeNet(nn.Module):
         x = torch.cat([pooled.reshape(B, -1), mask], dim=1)
         return self.head(self.drop(x))
 
+    def forward_windows(self, arr, centres, slot_id, slot_starts):
+        """P-25 window mode, one study per call. arr (T, P, P) uint8 on the device (c02 flat)
+        or (6, S, P, P) (c01); centres / slot_id (W,) long index the slot's own stack. Gathers
+        [c-1, c, c+1] triplets, scales, resizes to img_size and ImageNet-normalises ON THE GPU,
+        then runs the encoder and the window head."""
+        if arr.ndim == 4:                                   # c01 dense: flatten to (6*S, P, P)
+            S = arr.shape[1]
+            starts = torch.arange(arr.shape[0], device=arr.device) * S
+            arr = arr.reshape(-1, *arr.shape[2:])
+        else:
+            starts = torch.as_tensor(slot_starts, device=arr.device, dtype=torch.long)
+        base = starts[slot_id] + centres                    # (W,) row of each centre in `arr`
+        idx = torch.stack([base - 1, base, base + 1], dim=1)  # (W, 3)
+        x = arr[idx].float() / 255.0                        # (W, 3, P, P)
+        if x.shape[-1] != self.img_size:
+            x = F.interpolate(x, size=(self.img_size, self.img_size), mode="bilinear",
+                              align_corners=False)
+        x = (x - IMAGENET_MEAN.to(x.device)) / IMAGENET_STD.to(x.device)
+        if self.training and torch.rand(()) < 0.5:
+            x = x + torch.randn_like(x) * 0.01              # the Dataset's noise aug, moved here
+        feats = self.encode(x).unsqueeze(0)                 # (1, W, dim)
+        if self.head_type != "window_attn":
+            raise SystemExit("window_mode='random' needs head_type='window_attn'")
+        return self.window_head(self.drop(feats), slot_id.unsqueeze(0))
+
 
 def weighted_bce(logits, y, w):
     """Confidence-weighted soft-target BCE.
@@ -1316,6 +1737,69 @@ def weighted_bce(logits, y, w):
     """
     loss = F.binary_cross_entropy_with_logits(logits, y, reduction="none")
     return (loss * w).sum() / w.sum().clamp_min(1e-6)
+
+
+def build_model(c, device):
+    """One factory for training and inference, from a Config or a checkpoint's saved config."""
+    g = _cfg_get(c)
+    backbone = g("backbone", "dinov2")
+    sm = g("stack_mode", "triplet")
+    in_ch = int(g("cache_n_slices", 16)) if sm == "channels" else 3
+    m = KneeNet(resolve_backbone_dir(backbone), dropout=float(g("dropout", 0.1)),
+                head_type=g("head_type", "concat"), slot_dropout=float(g("slot_dropout", 0.0)),
+                backbone=backbone, in_chans=in_ch, slot_embed=bool(g("slot_embed", True)),
+                grad_checkpoint=bool(g("grad_checkpoint", False)), img_size=int(g("img_size", 224)))
+    return m.to(device)
+
+
+def forward_batch(model, b, device, cfg):
+    """Logits for one batch, whichever representation the Dataset produced: fixed windows
+    (`imgs`, one view) or random/all windows (`arr` + indices). TTA views are NOT handled here
+    (training only); predict_probs() does the multi-view pooling."""
+    if "arr" in b:
+        if b["arr"].shape[0] != 1:
+            raise SystemExit("window_mode='random' runs one study per step (batch_studies=1)")
+        _, _, slot_slices, _ = cache_geom(cfg)
+        starts, _ = slot_offsets(slot_slices)
+        return model.forward_windows(b["arr"][0].to(device), b["centres"][0].to(device),
+                                     b["slot_id"][0].to(device), starts)
+    imgs = b["imgs"]
+    if imgs.ndim == 7:                                   # (B, n_views, 6, K, 3, H, W): view 0 only
+        imgs = imgs[:, 0]
+    return model(imgs.to(device), b["mask"].to(device))
+
+
+FOCAL_MAX = {"Fracture", "Contusion", "Medial Meniscus", "Lateral Meniscus", "Baker's"}
+FOCAL_TOP2 = {"ACL", "MCL"}
+
+
+def pool_views(probs, how):
+    """(n_views, B, L) probabilities -> (B, L). "mean" averages; "focal" is the 0.936 notebook's
+    per-label rule (max for focal findings, top-2 mean for the cruciate/collateral, mean else)."""
+    if probs.shape[0] == 1 or how == "mean":
+        return probs.mean(0)
+    out = probs.mean(0).clone()
+    for i, lab in enumerate(LABELS):
+        if lab in FOCAL_MAX:
+            out[:, i] = probs[:, :, i].max(0).values
+        elif lab in FOCAL_TOP2:
+            k = min(2, probs.shape[0])
+            out[:, i] = probs[:, :, i].topk(k, dim=0).values.mean(0)
+    return out
+
+
+@torch.no_grad()
+def predict_probs(model, b, device, cfg):
+    """Per-study probabilities with the member's TTA applied: for fixed-window members the
+    Dataset stacks one view per `tta_offsets` entry along a leading axis; each view is a forward
+    pass and the views are pooled per label with `tta_pool`. (0,) + "mean" == a single forward."""
+    if "arr" in b or b["imgs"].ndim != 7:
+        return torch.sigmoid(forward_batch(model, b, device, cfg)).float()
+    views = []
+    for v in range(b["imgs"].shape[1]):
+        logits = model(b["imgs"][:, v].to(device), b["mask"].to(device))
+        views.append(torch.sigmoid(logits).float())
+    return pool_views(torch.stack(views), getattr(cfg, "tta_pool", "mean"))
 
 # %% [markdown]
 # ## Section 7: training
@@ -1414,17 +1898,17 @@ def bootstrap_macro_ci(Y_hard, P, n_boot=2000, seed=0):
     return (float(np.percentile(vals, 2.5)), float(np.percentile(vals, 97.5)))
 
 
-def evaluate(model, loader, device):
+def evaluate(model, loader, device, cfg):
     """Validation pass. Returns (metrics, table) where `table` is a DataFrame with the
     per-study predictions, targets, weights and gold flag -- the OOF rows. Per-label
     numbers are kept because the metric charges every label the same, so the label
-    stuck at 0.5 is the thing we most need to see."""
+    stuck at 0.5 is the thing we most need to see. TTA (tta_offsets / tta_pool, eval_windows)
+    is whatever `cfg` says -- oof_eval and infer must run the same setting."""
     model.eval()
     P, Y, W, G, S = [], [], [], [], []
     with torch.no_grad():
         for b in loader:
-            logits = model(b["imgs"].to(device), b["mask"].to(device))
-            P.append(torch.sigmoid(logits).float().cpu().numpy())
+            P.append(predict_probs(model, b, device, cfg).cpu().numpy())
             Y.append(b["y"].numpy())
             W.append(b["w"].numpy())
             G.append(b["is_gold"].numpy())
@@ -1484,9 +1968,14 @@ def param_groups(model, cfg):
     """
     # DINOv2: `encoder.layer.<i>` x 12 blocks. ConvNeXt (HF): `encoder.stages.<s>` x 4 stages
     # (depths 3/3/9/3) -- decay per stage, since a stage is the CNN's unit of feature level.
+    # timm hybrids (coatnet_rmlp_*): `stem.*`, `stages.<s>.*` x 4, `norm.*` -- same per-stage rule.
     is_cnn = getattr(model, "backbone", "dinov2") == "convnext_tiny"
-    n_blocks = (len(model.enc.config.hidden_sizes) if is_cnn
-                else model.enc.config.num_hidden_layers)
+    is_timm = str(getattr(model, "backbone", "dinov2")).startswith("timm:")
+    if is_timm:
+        n_blocks = len(model.enc.stages)
+    else:
+        n_blocks = (len(model.enc.config.hidden_sizes) if is_cnn
+                    else model.enc.config.num_hidden_layers)
     groups = {}
 
     def add(name, p, lr):
@@ -1503,10 +1992,12 @@ def param_groups(model, cfg):
         if getattr(model, "in_chans", 3) != 3 and "patch_embeddings" in name:
             add(name, p, cfg.lr_stem)     # widened conv = new capacity; under LLRD it would never move
             continue
-        if name.startswith("embeddings."):
+        if name.startswith("embeddings.") or name.startswith("stem."):
             depth = 0
         elif name.startswith("encoder.layer.") or name.startswith("encoder.stages."):
             depth = int(name.split(".")[2]) + 1
+        elif name.startswith("stages."):                 # timm: stages.<s>.blocks.<j>...
+            depth = int(name.split(".")[1]) + 1
         else:                       # final layernorm
             depth = n_blocks + 1
         lr = cfg.lr_backbone * (cfg.llrd_decay ** (n_blocks + 1 - depth))
@@ -1557,9 +2048,7 @@ def train_fold(fold, manifest, targets, image_root, cfg, device):
     ckpt_last = os.path.join(WORK, f"{cfg.version}_fold{fold}_last.pt")
     oof_path = os.path.join(WORK, f"{cfg.version}_fold{fold}_oof.csv")
 
-    model = KneeNet(cfg.backbone_dir, dropout=cfg.dropout, head_type=cfg.head_type,
-                    slot_dropout=cfg.slot_dropout, backbone=cfg.backbone,
-                    in_chans=cfg.cache_n_slices if cfg.stack_mode == "channels" else 3).to(device)
+    model = build_model(cfg, device)
     opt = torch.optim.AdamW(param_groups(model, cfg))
     ema = EMA(model, cfg.ema_decay) if cfg.ema_decay > 0 else None
 
@@ -1604,7 +2093,7 @@ def train_fold(fold, manifest, targets, image_root, cfg, device):
         opt.zero_grad(set_to_none=True)
         for i, b in enumerate(tr_loader):
             with torch.amp.autocast("cuda", enabled=use_amp):
-                logits = model(b["imgs"].to(device), b["mask"].to(device))
+                logits = forward_batch(model, b, device, cfg)
                 loss = weighted_bce(logits, b["y"].to(device), b["w"].to(device))
             scaler.scale(loss / cfg.grad_accum).backward()
             if (i + 1) % cfg.grad_accum == 0:
@@ -1622,8 +2111,10 @@ def train_fold(fold, manifest, targets, image_root, cfg, device):
             # Throughput is the open risk of this pipeline; print it early and often.
             if n_studies in (10, 50) or (n_studies % 500 == 0):
                 dt = time.time() - t_epoch
+                geom_note = (f"windows/study {cfg.train_windows}" if cfg.window_mode == "random"
+                             else f"slices/slot {cfg.slices_per_slot}")
                 print(f"    {n_studies} studies in {dt:.0f}s = {dt/n_studies:.2f} s/study "
-                      f"(slices/slot {cfg.slices_per_slot}, workers "
+                      f"({geom_note}, img {cfg.img_size}, workers "
                       f"{tr_loader.num_workers}) -> epoch ETA "
                       f"{dt/n_studies*len(tr_loader.dataset)/60:.0f} min")
             if out_of_time():
@@ -1633,7 +2124,7 @@ def train_fold(fold, manifest, targets, image_root, cfg, device):
 
         eval_model = ema.module if ema is not None else model
         t_eval = time.time()
-        metrics, oof = evaluate(eval_model, va_loader, device)
+        metrics, oof = evaluate(eval_model, va_loader, device, cfg)
         per_label = metrics.pop("per_label", {})
         print(f"  fold {fold} epoch {epoch}: loss {running/max(nb,1):.4f}  {metrics}")
         print(f"    train {train_secs/60:.1f} min ({train_secs/max(n_studies,1):.2f} s/study), "
@@ -1693,6 +2184,9 @@ def train_fold(fold, manifest, targets, image_root, cfg, device):
 
 # %%
 # ── Section 8: run training ───────────────────────────────────────────────────
+if os.environ.get("RSNA_DEFS_ONLY"):
+    raise SystemExit(0)          # src/cache_selftest.py imports Sections 1-7 and stops here
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"device: {device}")
 
@@ -1742,7 +2236,10 @@ def find_mounted_checkpoints(version, kind="best"):
     """`{version}_fold<k>_{kind}.pt` files attached as a kernel/dataset input (Kaggle) or
     left in artifacts/kaggle_out (local). Shallow search only. Returns {fold: path}."""
     import re
-    roots = ["/kaggle/input"] if ON_KAGGLE else ["artifacts/kaggle_out"]
+    # Locally, WORK (this machine's own smoke checkpoints) is searched only when MODE asks for
+    # inference explicitly -- in "auto" it would flip every local smoke run into infer mode.
+    roots = (["/kaggle/input"] if ON_KAGGLE else
+             ["artifacts/kaggle_out"] + ([WORK] if MODE in ("infer", "oof_eval") else []))
     found = {}
     for root in roots:
         # depth 4 like load_cache_manifests: a new slug mounts kernel outputs type-prefixed
@@ -1764,54 +2261,96 @@ else:
     mode = "infer" if mounted_ckpts and set(cfg.folds) <= set(mounted_ckpts) else "train"
 print(f"MODE={mode}  mounted best: {sorted(mounted_ckpts)}  mounted last: {sorted(mounted_last)}")
 
-INFER_GEOM_KEYS = ("slices_per_slot", "triplet_gap", "img_size", "use_cache", "cache_n_slices",
-                   "cache_px", "crop_mm", "lat_dead_zone_mm", "lat_undo")
-# `stack_mode` and `head_type` are deliberately NOT geometry: they read the same decoded array
-# differently and are applied per member in the inference loop (P-21 heads, P-23 stack).
-infer_members = []          # [(version, fold, path)] -- the blend, in infer mode
-infer_heads = {}            # (version, fold) -> head_type, read from each checkpoint
-if mode == "infer":
-    # P-21: the submission is a flat rank-mean over every mounted fold checkpoint of every
-    # version in INFER_MEMBERS. Each version must be present -- a blend that silently lost a
-    # member is not the model that was validated (the traps 6d failure class again).
+# What a member's checkpoint decides, split in two (2026-08-30). CACHE keys describe the decoded
+# test array -- members that agree on all of them share ONE decode-once pass (a "geometry group");
+# c01 members (v05a/v05b/v05g/v06c) and c02 members (v08w, the hybrids) are two groups in one
+# blend. MEMBER keys only change how a member READS the array and are applied per member around
+# predict() -- the way stack_mode already was (P-21 heads, P-23 stack, P-25 windows, P-12 TTA).
+INFER_CACHE_KEYS = ("use_cache", "cache_scheme", "cache_px", "cache_n_slices", "cache_px_wide",
+                    "cache_slot_slices", "cache_band", "crop_mm", "lat_dead_zone_mm")
+INFER_MEMBER_KEYS = ("slices_per_slot", "triplet_gap", "img_size", "stack_mode", "lat_undo",
+                     "window_mode", "eval_windows", "tta_offsets", "tta_pool", "head_type",
+                     "backbone", "slot_embed", "dropout", "slot_dropout")
+
+
+def _norm_val(v):
+    return tuple(v) if isinstance(v, (list, tuple)) else v
+
+
+def member_settings(saved, version=None):
+    """Every CACHE + MEMBER key for one checkpoint: the saved config where present, else the
+    dataclass default (old checkpoints predate the new fields and mean the c01-era value).
+    INFER_OVERRIDES[version] then applies on top -- MEMBER keys only, TTA/eval_windows for
+    members whose checkpoints predate them; it can never change what array is decoded."""
+    out = {}
+    for k in INFER_CACHE_KEYS + INFER_MEMBER_KEYS:
+        if k in saved:
+            out[k] = _norm_val(saved[k])
+        else:
+            out[k] = _norm_val(Config.__dataclass_fields__[k].default)
+    for k, v in (INFER_OVERRIDES.get(version, {}) if version else {}).items():
+        if k not in INFER_MEMBER_KEYS:
+            raise SystemExit(f"INFER_OVERRIDES[{version}][{k}]: only member keys may be "
+                             f"overridden at inference ({INFER_MEMBER_KEYS})")
+        out[k] = _norm_val(v)
+    return out
+
+
+def cache_signature(settings):
+    return tuple((k, settings[k]) for k in INFER_CACHE_KEYS)
+
+
+def apply_settings(target_cfg, settings, keys):
+    """setattr the chosen keys onto a Config (the module global, at inference); returns the
+    previous values so they can be restored."""
+    prev = {k: getattr(target_cfg, k) for k in keys}
+    for k in keys:
+        setattr(target_cfg, k, settings[k])
+    return prev
+
+
+infer_members = []          # [(version, fold, path)] -- the blend, in infer / oof_eval mode
+infer_settings = {}         # (version, fold) -> resolved CACHE + MEMBER settings
+if mode in ("infer", "oof_eval"):
+    # P-21: the submission is a rank-mean over every mounted fold checkpoint of every version in
+    # INFER_MEMBERS. Each version must be present -- a blend that silently lost a member is not
+    # the model that was validated (the traps 6d failure class again). oof_eval scores fold 0
+    # of each version on its held-out studies instead of predicting the test set.
     for v in (list(INFER_MEMBERS) or [cfg.version]):
         found = find_mounted_checkpoints(v, "best")
+        if mode == "oof_eval":
+            found = {f: p for f, p in found.items() if f in ARM_FOLDS}
         if not found:
-            raise SystemExit(f"MODE=infer but no {v}_fold*_best.pt is mounted (INFER_MEMBERS="
+            raise SystemExit(f"MODE={mode} but no {v}_fold*_best.pt is mounted (INFER_MEMBERS="
                              f"{INFER_MEMBERS}). Attach the training run's output as a kernel "
                              f"input (kernel_sources), or drop {v} from INFER_MEMBERS on purpose.")
         infer_members += [(v, f, found[f]) for f in sorted(found)]
-    print(f"  infer members ({len(infer_members)}): "
+    print(f"  {mode} members ({len(infer_members)}): "
           + ", ".join(f"{v}/fold{f}" for v, f, _ in infer_members))
     # The checkpoints decide the input geometry, not FORCE_SMOKE: a smoke-mode infer would
-    # otherwise feed 2 slices/slot to a model trained on 6 and pass every assert. One test
-    # array feeds every member (decode-once), so all members must agree on preprocessing;
-    # the head is per member.
-    geom_ref, geom_src = None, None
+    # otherwise feed 2 slices/slot to a model trained on 6 and pass every assert.
     for v, f, p in infer_members:
         st0 = torch.load(p, map_location="cpu", weights_only=False)
-        saved = st0.get("config", {})
-        infer_heads[(v, f)] = saved.get("head_type", cfg.head_type)
+        s = member_settings(st0.get("config", {}), v)
+        infer_settings[(v, f)] = s
         # Fail here, in seconds, if a member's backbone weights are not mounted -- not after
         # seven other members have already predicted (infer v9, 2026-08-30: the ConvNeXt
         # dataset was missing from the infer kernel's sources).
-        resolve_backbone_dir(saved.get("backbone", "dinov2"))
-        geom = {k: saved[k] for k in INFER_GEOM_KEYS if k in saved}
-        if geom_ref is None:
-            geom_ref, geom_src = geom, f"{v}/fold{f}"
-            for k, val in geom.items():
-                if getattr(cfg, k) != val:
-                    print(f"  infer: {k} {getattr(cfg, k)} -> {val} (from {geom_src} checkpoint)")
-                    setattr(cfg, k, val)
-        elif geom != geom_ref:
-            diff = {k: (geom_ref.get(k), geom.get(k)) for k in set(geom) | set(geom_ref)
-                    if geom_ref.get(k) != geom.get(k)}
-            raise SystemExit(f"infer members disagree on preprocessing: {v}/fold{f} vs "
-                             f"{geom_src}: {diff}. Members of one blend must share geometry.")
+        resolve_backbone_dir(s["backbone"])
         del st0
-    cfg.head_type = infer_heads[infer_members[0][:2]]
+    groups = {}
+    for (v, f), s in infer_settings.items():
+        groups.setdefault(cache_signature(s), []).append(f"{v}/fold{f}")
+    print(f"  {len(groups)} geometry group(s) (one decode-once pass each):")
+    for sig, members in groups.items():
+        d = dict(sig)
+        print(f"    {cache_version_for(d)} x{len(members)}: {', '.join(members)}")
+    for (v, f), s in infer_settings.items():
+        print(f"    {v}/fold{f}: {s['backbone']}, {s['head_type']}, {s['window_mode']}"
+              + (f", eval_windows {s['eval_windows']}" if s['window_mode'] == 'random' else
+                 f", K {s['slices_per_slot']}, tta {s['tta_offsets']}/{s['tta_pool']}")
+              + f", img {s['img_size']}")
     cfg.folds = tuple(sorted({f for _, f, _ in infer_members}))
-    print("  infer heads: " + ", ".join(f"{v}/fold{f}={h}" for (v, f), h in infer_heads.items()))
 else:
     # Resume: a previous session's output is mounted read-only; copy its checkpoints
     # into WORK so train_fold finds them (otherwise every fold restarts at epoch 0).
@@ -1824,10 +2363,13 @@ else:
                 shutil.copy(src, dst)
                 print(f"  resume: copied {os.path.basename(src)} into WORK")
 
-# ---- the cache (P-01): mounted shards written by src/cache_pipeline.py ----------------
+# ---- the caches (P-01 c01 / 2026-08-30 c02): shards written by src/cache_pipeline.py -----
 def load_cache_manifests():
+    """{cache_version: manifest DataFrame with a `locator` column}. EVERY mounted shard of every
+    scheme is indexed; which cache an arm or a member reads is decided by cache_version_for(its
+    config), so a c01 and a c02 cache can be mounted side by side."""
     roots = ["/kaggle/input"] if ON_KAGGLE else ["artifacts/cache_local"]
-    frames = []
+    frames = {}
     for root in roots:
         # depth 4, not 2: a NEWLY created kernel mounts kernel outputs type-prefixed
         # (/kaggle/input/<type>/<owner>/<name>/...) while older kernels mount them at
@@ -1835,50 +2377,65 @@ def load_cache_manifests():
         # silently missed it in rsna-knee-folds -- nine hours of the wrong recipe.
         for mpath in shallow_glob(root, "manifest_shard*.csv", max_depth=4):
             m = pd.read_csv(mpath, dtype={"mask": str})
-            if "cache_version" in m and (m.cache_version != CACHE_VERSION).any():
-                print(f"  ! {mpath}: cache version {m.cache_version.iloc[0]} != {CACHE_VERSION}, ignored")
+            if "cache_version" not in m.columns or len(m) == 0:
+                print(f"  ! {mpath}: no cache_version column or empty, ignored")
                 continue
+            version = str(m.cache_version.iloc[0])
             m = m[m.get("cached", 1) == 1].copy()
-            arr_dir = os.path.join(os.path.dirname(mpath), CACHE_VERSION)
-            m["npy"] = [os.path.join(arr_dir, f"{u}.npy") for u in m.StudyInstanceUID]
-            m = m[[os.path.exists(x) for x in m.npy]]
+            arr_dir = os.path.join(os.path.dirname(mpath), version)
+            if "blob" in m.columns:                     # c02: (blob path, row inside the blob)
+                m["locator"] = [(os.path.join(arr_dir, str(b)), int(r)) for b, r in zip(m.blob, m.row)]
+                m = m[[os.path.exists(loc[0]) for loc in m.locator]]
+            else:                                       # c01: one .npy per study
+                m["locator"] = [os.path.join(arr_dir, f"{u}.npy") for u in m.StudyInstanceUID]
+                m = m[[os.path.exists(x) for x in m.locator]]
             m["mask"] = m["mask"].map(lambda v: str(v).zfill(len(SLOTS)) if isinstance(v, str) or v == v else "")
-            frames.append(m)
-            print(f"  cache shard {mpath}: {len(m)} studies")
-    return pd.concat(frames, ignore_index=True) if frames else None
+            frames.setdefault(version, []).append(m)
+            print(f"  cache shard {mpath}: {len(m)} studies ({version})")
+    return {v: pd.concat(fs, ignore_index=True) for v, fs in frames.items()}
 
 
-cache_manifest = load_cache_manifests() if cfg.use_cache else None
-if cfg.use_cache and cache_manifest is None:
-    if mode == "infer":
-        # `use_cache` selects the PREPROCESSING (130 mm crop, per-series 1/99 normalisation,
-        # laterality) as well as the .npy read. No TEST study is ever in the cache, so infer
-        # builds every study through build_study_array -- the same functions the cache was
-        # built with. Flipping it off here would take the v02 decode branch and score a v03
-        # model on v02 pixels, and nothing would say so (traps.md 12d).
-        print("  infer: no cache mounted (expected) -- test studies built on the fly by the "
-              "cache-era preprocessing")
-    elif ALLOW_DECODE_FALLBACK:
-        print("  ! use_cache=True but no cache is mounted -- falling back to per-epoch DICOM "
-              "decode (ALLOW_DECODE_FALLBACK=True)")
-        cfg.use_cache = False
-    else:
-        # Loud failure beats nine hours of the wrong experiment. Every recipe since v03
-        # depends on cache-era preprocessing (130 mm crop, laterality, per-series norm);
-        # the decode branch silently trains v02 pixels at 5.5x the cost. If a decode-path
-        # run is genuinely wanted, set ALLOW_DECODE_FALLBACK = True.
-        raise SystemExit(
-            "use_cache=True but no cache is mounted. Attach rsna-knee-cache-a and "
-            "rsna-knee-cache-b as kernel_sources, or set ALLOW_DECODE_FALLBACK=True to "
-            "train on the v02 decode path deliberately.")
-if cache_manifest is not None:
-    CACHE_INDEX.update(dict(zip(cache_manifest.StudyInstanceUID, cache_manifest.npy)))
-    print(f"  cache: {len(CACHE_INDEX)} studies indexed ({CACHE_VERSION})")
+cache_manifests = load_cache_manifests() if cfg.use_cache else {}
+for _v, _m in cache_manifests.items():
+    CACHE_INDEX[_v] = dict(zip(_m.StudyInstanceUID, _m.locator))
+    print(f"  cache: {len(CACHE_INDEX[_v])} studies indexed ({_v})")
+if cfg.use_cache and not cache_manifests and mode == "infer":
+    # `use_cache` selects the PREPROCESSING (130 mm crop, per-series 1/99 normalisation,
+    # laterality) as well as the array read. No TEST study is ever in the cache, so infer
+    # builds every study through build_study_array -- the same functions the cache was
+    # built with. Flipping it off here would take the v02 decode branch and score a v03
+    # model on v02 pixels, and nothing would say so (traps.md 12d).
+    print("  infer: no cache mounted (expected) -- test studies built on the fly by the "
+          "cache-era preprocessing")
 
-results = {}
-if mode == "train":
+
+def ensure_cache(c):
+    """The manifest of the cache `c` resolves to. Missing -> loud failure (traps 6f): every
+    recipe since v03 depends on cache-era preprocessing and the decode branch would silently
+    train v02 pixels at 5.5x the cost. ALLOW_DECODE_FALLBACK takes it deliberately (c01 only)."""
+    if not c.use_cache:
+        return None
+    cv = cache_version_for(c)
+    if cv in cache_manifests:
+        return cache_manifests[cv]
+    if ALLOW_DECODE_FALLBACK and cache_geom(c)[0] == "c01":
+        print(f"  ! use_cache=True but cache {cv} is not mounted -- falling back to per-epoch "
+              f"DICOM decode (ALLOW_DECODE_FALLBACK=True)")
+        c.use_cache = False
+        return None
+    raise SystemExit(
+        f"use_cache=True but cache {cv} is not mounted (mounted: {sorted(cache_manifests) or 'none'}). "
+        f"Attach the matching cache kernels as kernel_sources (c01: rsna-knee-cache-a/-b; "
+        f"c02: rsna-knee-cache2-a/-b/-c/-d), or set ALLOW_DECODE_FALLBACK=True to train on the "
+        f"v02 decode path deliberately.")
+
+
+def training_manifest(cache_manifest):
+    """Train manifest for one cache (slots, side, mask straight from its manifest; a header scan
+    only on the legacy decode path), plus placeholder target rows for imaged studies that are
+    not in targets (the local sample). Mutates the module-level `targets`."""
+    global targets
     if cache_manifest is not None:
-        # No train header scan needed: the cache manifest already holds slots, side, mask.
         manifest = cache_manifest[["StudyInstanceUID", *SLOTS, "n_slots", "side", "mask"]].copy()
         print(f"  manifest from cache: {len(manifest)} studies; mean slots "
               f"{manifest.n_slots.mean():.2f}; side resolved {(manifest.side.fillna('') != '').mean():.1%}")
@@ -1893,9 +2450,6 @@ if mode == "train":
             series_df = scan_series(os.path.join(COMP, "test_series.csv"), TRAIN_IMG,
                                     os.path.join(WORK, "series_scan_fallback.csv"))
         manifest = build_manifest(series_df, os.path.join(WORK, "manifest_train.csv"))
-
-    # Studies present as images but absent from targets (local case) get placeholder
-    # rows so the smoke test can build batches.
     missing = set(manifest.StudyInstanceUID) - set(targets.StudyInstanceUID)
     if missing:
         print(f"  {len(missing)} imaged studies not in targets; adding placeholder "
@@ -1909,7 +2463,11 @@ if mode == "train":
         for l in LABELS:
             add[f"w__{l}"] = cfg.weak_weight_floor
         targets = pd.concat([targets, add], ignore_index=True)
+    return manifest
 
+
+results = {}
+if mode == "train":
     # Kaggle only: this script has no `if __name__ == "__main__"` guard, and Windows spawns
     # workers (re-importing __main__) instead of forking. The bug it tests is fork-specific.
     if ON_KAGGLE:
@@ -1924,9 +2482,17 @@ if mode == "train":
         cfg = replace(base_cfg, version=arm_version, **_ov)
         cfg.backbone_dir = resolve_backbone_dir(cfg.backbone)   # an arm may switch family (P-10)
         globals()["cfg"] = cfg
+        # The cache and the manifest are per ARM: an arm may read a different cache scheme
+        # than the default config (c02 arms next to c01 ones), so this cannot happen once
+        # before the loop -- that would silently index the default config's cache for every arm.
+        manifest = training_manifest(ensure_cache(cfg))
         if ARMS:
             print(f"\n########## arm {arm_version}: {overrides or 'baseline'} "
                   f"| folds {cfg.folds} epochs {cfg.epochs} seed {cfg.seed} ##########")
+            print(f"  cache {cache_version_for(cfg)} | window_mode {cfg.window_mode}"
+                  + (f" (train {cfg.train_windows}, eval {cfg.eval_windows or 'all'})"
+                     if cfg.window_mode == "random" else f" (K {cfg.slices_per_slot})")
+                  + f" | head {cfg.head_type} | backbone {cfg.backbone} | img {cfg.img_size}")
             if cfg.lat_undo:
                 n_r = int((manifest["side"].astype(str) == "R").sum())                     if "side" in manifest.columns else 0
                 print(f"  lat_undo: {n_r} of {len(manifest)} studies "
@@ -1963,13 +2529,56 @@ if mode == "train":
     # members are (version, fold, path), the same shape the infer branch builds
     ckpt_members = [(cfg.version, f, os.path.join(WORK, f"{cfg.version}_fold{f}_best.pt"))
                     for f in cfg.folds]
+elif mode == "oof_eval":
+    # P-12 / P-25 measurement mode: score each member's fold-0 checkpoint on its own held-out
+    # studies from the cache with the TTA / eval_windows it would use at inference, so the
+    # `_tta_oof.csv` it writes is read by src/blend_check.py exactly like a training OOF file.
+    base_cfg = replace(cfg)
+    for v, f, p in infer_members:
+        s = infer_settings[(v, f)]
+        mcfg = replace(base_cfg, version=v)
+        apply_settings(mcfg, s, INFER_CACHE_KEYS + INFER_MEMBER_KEYS)   # exact member settings, no smoke clamps
+        mcfg.backbone_dir = resolve_backbone_dir(mcfg.backbone)
+        globals()["cfg"] = mcfg
+        cfg = mcfg
+        print(f"\n=== oof_eval {v}/fold{f}: cache {cache_version_for(cfg)}, {s['window_mode']}, "
+              f"eval_windows {s['eval_windows'] or 'all'}, tta {s['tta_offsets']}/{s['tta_pool']} ===")
+        manifest = training_manifest(ensure_cache(cfg))
+        _, va_loader = make_loaders(manifest, targets, TRAIN_IMG, cfg, f)
+        model = build_model(cfg, device)
+        st = torch.load(p, map_location=device, weights_only=False)
+        model.load_state_dict(st["model"])
+        t_eval = time.time()
+        metrics, table = evaluate(model, va_loader, device, cfg)
+        per_label = metrics.pop("per_label", {})
+        print(f"  {v}/fold{f}: {metrics}  ({(time.time()-t_eval)/60:.1f} min)")
+        if per_label:
+            print_per_label(per_label)
+        if table is not None:
+            out_csv = os.path.join(WORK, f"{v}_fold{f}_tta_oof.csv")
+            table.to_csv(out_csv, index=False)
+            print(f"  -> {out_csv} ({len(table)} studies)")
+        results[f"{v}/{f}"] = {"best": metrics.get("auc_soft", float("nan")), "completed": True}
+        del model, st
+        gc.collect()
+        if device.type == "cuda":
+            torch.cuda.empty_cache()
+    ckpt_members = []
 else:
     results = {f"{v}/{f}": {"best": float("nan"), "completed": True} for v, f, _ in infer_members}
     ckpt_members = list(infer_members)
 
 print("\nfold results:", json.dumps(results, indent=1))
+if os.environ.get("RSNA_TRAIN_ONLY") and mode == "train":
+    # Off-Kaggle (RunPod) training box: there is no test tree, so stop cleanly here instead of
+    # dying at the coverage gate below. The checkpoints in WORK are the deliverable.
+    print("RSNA_TRAIN_ONLY is set -- stopping before inference (train-only box)")
+    raise SystemExit(0)
 if mode == "infer":
     all_done = True                       # every member was verified mounted above
+elif mode == "oof_eval":
+    all_done = False                      # measurement only; nothing to submit
+    print("oof_eval done -- no test prediction in this mode")
 else:
     # With ARMS, `results` is keyed "<arm>/<fold>" across every arm, so completion has to be
     # judged on the arm inference will actually use -- otherwise the count never matches
@@ -2000,8 +2609,7 @@ def predict(model, manifest, image_root, cfg, studies, device):
     model.eval()
     with torch.no_grad():
         for b in dl:
-            logits = model(b["imgs"].to(device), b["mask"].to(device))
-            preds.append(torch.sigmoid(logits).float().cpu().numpy())
+            preds.append(predict_probs(model, b, device, cfg).cpu().numpy())
             ids.extend(b["study"])
     if not preds:
         return pd.DataFrame(columns=["StudyInstanceUID"] + LABELS)
@@ -2054,15 +2662,19 @@ else:
         raise SystemExit(f"only {coverage:.1%} of test studies have images under "
                          f"{TEST_IMG} -- refusing to submit constants")
 
-    # ---- decode once, predict with every member (P-18 / P-21) --------------------------
+    # ---- decode once PER GEOMETRY GROUP, predict with every member (P-18 / P-21 / P-25) ------
     # A test study is never in the mounted cache, so each member used to re-decode the whole
-    # test set (~1.5-2 s/study). Build every test array ONCE with build_study_array -- the
-    # cache builder's own function, so a test study is preprocessed exactly like a cached
-    # training study -- store it under the system temp dir (NOT WORK: ~4.8 MB/study must not
-    # become kernel output), and register it in CACHE_INDEX so KneeStudyDataset takes the
-    # same np.load branch it takes for training data.
-    if cfg.use_cache and test_studies:
-        test_cache_dir = os.path.join(tempfile.gettempdir(), "rsna_test_cache", CACHE_VERSION)
+    # test set (~1.5-2 s/study). Members that share every CACHE key form a group; each group's
+    # test arrays are built ONCE with build_study_array -- the cache builder's own function, so
+    # a test study is preprocessed exactly like a cached training study -- stored under the
+    # system temp dir (NOT WORK: 5-8 MB/study must not become kernel output), registered in
+    # CACHE_INDEX[version] so KneeStudyDataset takes the same read branch it takes in training,
+    # and deleted once the group's members have predicted (two schemes = two footprints).
+    import shutil
+
+    def decode_once(group_cfg, studies, manifest_df):
+        version = cache_version_for(group_cfg)
+        test_cache_dir = os.path.join(tempfile.gettempdir(), "rsna_test_cache", version)
         os.makedirs(test_cache_dir, exist_ok=True)
 
         class _BuildOnce(Dataset):
@@ -2075,66 +2687,87 @@ else:
 
             def __getitem__(self, i):
                 study = self.s[i]
-                arr, mask = build_study_array(study, self.m.loc[study], TEST_IMG, cfg)
+                arr, mask = build_study_array(study, self.m.loc[study], TEST_IMG, group_cfg)
                 path = os.path.join(test_cache_dir, f"{study}.npy")
                 np.save(path, arr)
                 return study, path, "".join("1" if v > 0 else "0" for v in mask)
 
         t_dec = time.time()
-        test_masks = {}
-        dec_loader = DataLoader(_BuildOnce(test_manifest, test_studies), batch_size=1,
-                                shuffle=False, num_workers=0 if cfg.smoke else cfg.num_workers,
+        masks, index = {}, {}
+        dec_loader = DataLoader(_BuildOnce(manifest_df, studies), batch_size=1, shuffle=False,
+                                num_workers=0 if group_cfg.smoke else group_cfg.num_workers,
                                 collate_fn=lambda b: b[0])
         for k, (study, path, mk) in enumerate(dec_loader):
-            CACHE_INDEX[study] = path
-            test_masks[study] = mk
+            index[study] = path
+            masks[study] = mk
             if (k + 1) in (10, 100) or (k + 1) % 500 == 0:
                 dt = time.time() - t_dec
-                print(f"    decoded {k+1}/{len(test_studies)} test studies in {dt:.0f}s "
-                      f"({dt/(k+1):.2f} s/study) -> ETA {dt/(k+1)*len(test_studies)/60:.0f} min")
-        test_manifest["mask"] = test_manifest.StudyInstanceUID.map(test_masks).fillna("")
-        n_bytes = sum(os.path.getsize(p) for p in
-                      (CACHE_INDEX[s] for s in test_studies[:50])) * len(test_studies) / max(min(50, len(test_studies)), 1)
-        print(f"  decode-once: {len(test_masks)} test studies -> {test_cache_dir} in "
+                print(f"    decoded {k+1}/{len(studies)} test studies in {dt:.0f}s "
+                      f"({dt/(k+1):.2f} s/study) -> ETA {dt/(k+1)*len(studies)/60:.0f} min")
+        CACHE_INDEX[version] = index
+        n_bytes = sum(os.path.getsize(index[s]) for s in studies[:50]) * len(studies) / max(min(50, len(studies)), 1)
+        print(f"  decode-once [{version}]: {len(masks)} test studies -> {test_cache_dir} in "
               f"{(time.time()-t_dec)/60:.1f} min (~{n_bytes/1e9:.1f} GB)")
         # Verify by equality, not by absence of errors (traps 6d/6e): rebuild a few studies on
-        # the fly and compare with what every member is about to read.
-        _chk = test_manifest.set_index("StudyInstanceUID")
-        for study in test_studies[:3]:
-            arr, mask = build_study_array(study, _chk.loc[study], TEST_IMG, cfg)
+        # the fly and compare with what every member of the group is about to read.
+        _chk = manifest_df.set_index("StudyInstanceUID")
+        for study in studies[:3]:
+            arr, mask = build_study_array(study, _chk.loc[study], TEST_IMG, group_cfg)
             mk = "".join("1" if v > 0 else "0" for v in mask)
-            if not (np.array_equal(arr, np.load(CACHE_INDEX[study])) and mk == test_masks[study]):
+            if not (np.array_equal(arr, np.load(index[study])) and mk == masks[study]):
                 raise SystemExit(f"decode-once mismatch on {study}: the stored array or mask "
                                  f"differs from a fresh build -- refusing to predict")
-        print(f"  decode-once verified: {min(3, len(test_studies))} studies rebuilt, identical")
+        print(f"  decode-once verified [{version}]: {min(3, len(studies))} studies rebuilt, identical")
+        return version, masks, test_cache_dir
 
-    frames, member_tags = [], []
+    member_list = []                      # (version, fold, path, settings)
     for v, fold, ck in ckpt_members:
         if not ck or not os.path.exists(ck):
             print(f"  {v}/fold{fold}: no checkpoint, skipped")
             continue
-        st = torch.load(ck, map_location=device, weights_only=False)
-        saved_cfg = st.get("config", {})
-        head = saved_cfg.get("head_type", cfg.head_type)
-        bb = saved_cfg.get("backbone", "dinov2")          # family is per member (P-10)
-        # Input representation is per member too (P-23 #3): the shared decode-once array is
-        # [6, 16, P, P] for everyone; `stack_mode` only decides how array_to_tensor reads it.
-        sm = saved_cfg.get("stack_mode", "triplet")
-        in_ch = int(saved_cfg.get("cache_n_slices", cfg.cache_n_slices)) if sm == "channels" else 3
-        m = KneeNet(resolve_backbone_dir(bb), dropout=cfg.dropout, head_type=head,
-                    slot_dropout=cfg.slot_dropout, backbone=bb, in_chans=in_ch).to(device)
-        m.load_state_dict(st["model"])
-        t_f = time.time()
-        prev_sm, cfg.stack_mode = cfg.stack_mode, sm
-        frames.append(predict(m, test_manifest, TEST_IMG, cfg, test_studies, device))
-        cfg.stack_mode = prev_sm
-        member_tags.append(f"{v}/fold{fold}")
-        dt = time.time() - t_f
-        print(f"  {v}/fold{fold} ({bb}, {head}, {sm}): predicted {len(frames[-1])} studies in {dt:.0f}s "
-              f"({dt/max(len(frames[-1]),1)*100:.0f} s per 100 studies) "
-              f"[epoch {st.get('epoch')}, score {st.get('score')}, ema {st.get('ema')}]")
-        del m
-        gc.collect()
+        s = infer_settings.get((v, fold))
+        if s is None:                     # train mode: this run's own checkpoints
+            st0 = torch.load(ck, map_location="cpu", weights_only=False)
+            s = member_settings(st0.get("config", {}), v)
+            del st0
+        member_list.append((v, fold, ck, s))
+    geometry_groups = {}
+    for item in member_list:
+        geometry_groups.setdefault(cache_signature(item[3]), []).append(item)
+    print(f"  {len(member_list)} members in {len(geometry_groups)} geometry group(s)")
+
+    frames, member_tags = [], []
+    cfg_snapshot = replace(cfg)
+    for sig, members in geometry_groups.items():
+        apply_settings(cfg, members[0][3], INFER_CACHE_KEYS)
+        group_version, tmp_dir = cache_version_for(cfg), None
+        if cfg.use_cache and test_studies:
+            group_version, masks, tmp_dir = decode_once(cfg, test_studies, test_manifest)
+            test_manifest["mask"] = test_manifest.StudyInstanceUID.map(masks).fillna("")
+        for v, fold, ck, s in members:
+            prev = apply_settings(cfg, s, INFER_MEMBER_KEYS)
+            st = torch.load(ck, map_location=device, weights_only=False)
+            m = build_model(s, device)
+            m.load_state_dict(st["model"])
+            t_f = time.time()
+            frames.append(predict(m, test_manifest, TEST_IMG, cfg, test_studies, device))
+            member_tags.append(f"{v}/fold{fold}")
+            dt = time.time() - t_f
+            how = (f"windows eval {s['eval_windows'] or 'all'}" if s["window_mode"] == "random"
+                   else f"K {s['slices_per_slot']}, tta {s['tta_offsets']}/{s['tta_pool']}, {s['stack_mode']}")
+            print(f"  {v}/fold{fold} ({s['backbone']}, {s['head_type']}, {how}, {group_version}): "
+                  f"predicted {len(frames[-1])} studies in {dt:.0f}s "
+                  f"({dt/max(len(frames[-1]),1)*100:.0f} s per 100 studies) "
+                  f"[epoch {st.get('epoch')}, score {st.get('score')}, ema {st.get('ema')}]")
+            apply_settings(cfg, prev, INFER_MEMBER_KEYS)
+            del m, st
+            gc.collect()
+            if device.type == "cuda":
+                torch.cuda.empty_cache()
+        if tmp_dir:
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+            CACHE_INDEX.pop(group_version, None)
+    apply_settings(cfg, {k: getattr(cfg_snapshot, k) for k in INFER_CACHE_KEYS}, INFER_CACHE_KEYS)
 
     if not frames:
         raise SystemExit("no checkpoints produced predictions -- refusing to submit "

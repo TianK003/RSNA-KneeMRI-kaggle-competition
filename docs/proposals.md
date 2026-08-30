@@ -60,14 +60,14 @@ result*, per unit of cost. "Depends on" lists hard blockers only.
 | P-05 | Laterality normalisation from DICOM geometry | ✅ CONFIRMED — **−0.0147 OOF when removed**, ~1.9× the floor | high — it is ≈ +0.015 of v03's +0.022, i.e. most of the LB gain | done | P-01 |
 | P-06 | Per-label failure analysis + gold_weight {1,3,8} arm + slot-fill census | 🔧 logging shipped · arms 💡 | high (finds the cheapest lever per weak label) | 0.1–0.5 session | — |
 | P-07 | Synovitis ← Effusion back-fill (measured, not adopted) | 🔁 measured on gold; OOF pending | low-medium | done (audit) | P-06 OOF |
-| P-08 | Slices per slot 6 → 12–16, per-plane bands, random offsets | ✅ jitter sub-arm KEEP (**+0.0113 OOF, LB 0.877**) · K sweep 💡 **re-raised 2026-08-30 as P-23 candidate #2a**: `slices_per_slot` 12 from the existing 16-slice cache is the one *input* change that needs no rebuild, after `v06c`/`v07s` showed the missing diversity is in the input, not the backbone | delivered by jitter; low-medium for K | 0.5 session | P-01 |
+| P-08 | Slices per slot 6 → 12–16, per-plane bands, random offsets | ✅ jitter sub-arm KEEP (**+0.0113 OOF, LB 0.877**) · K sweep **withdrawn 2026-08-30 (afternoon)**: re-presenting the same 16 band-truncated slices is superseded by the c02 cache (P-26: the *band* and per-slot budgets change) + random-window training (P-25: every window is seen across epochs) | delivered by jitter | — | P-01 |
 | P-09 | Per-label masked attention head over slots | ✅ KEEP — **+0.0103** at matched 8 ep; mechanism is overfit-resistance, **not** the predicted plane-specialisation | delivered | done | P-01 |
 | P-10 | Second architecture family (HF ConvNeXt-Tiny first; RadImageNet behind a flag) | 🔁 **MEASURED 2026-08-30**: `v06c` own OOF 0.8562 (parity), ρ 0.831, blend +0.0059 (10/12 labels up) — narrow reject by the rule; #8 scored **0.900 (+0.004, 🔁)**; see experiments.md · was: 🔧 implemented, effect pending — arm `v06c` (ConvNeXt-T, concat, jitter, 8 ep, fold 0); smoke pushed 2026-08-29 late; **real run `v06c` = train v15 in flight 2026-08-30** · the 0.936 notebook's own 45-gold panel ranks ConvNeXt-B/L among its *weakest* families (0.875 vs CoAtNet-384 0.9025): `v06c` is a diversity bet — judge it on ρ, not own OOF (research.md §2.7.1) | **high — first P-23 candidate**; judge on ρ < 0.77 vs both heads **and** 3-way fold-0 blend > 0.8670 + 0.008 | ~1.8 h fold-0 arm | P-01, P-04 |
 | P-11 | Resolution 224 vs 336 after the 130 mm crop | 💡 untested · **raised 2026-08-30**: every branch of the 0.936 notebook runs at 336–384 px and its 0.924 single model is 384 px × 64 slices (research.md §2.7.1) | **medium** (was low-medium) — a 336/384 many-slice hybrid is P-23 candidate #2 | 1 session + sharded cache | P-01, P-08 |
-| P-12 | Slice-window TTA (label-safe only) [our hypothesis] | 💡 untested · **raised 2026-08-30**: the 0.936 notebook's DINOv2 branch runs every window position ×2 jittered views with per-label pooling (max for focal labels, mean for diffuse); est. +0.003–0.008 on that branch (research.md §2.7.1) | low-medium (was low) — cheapest item on the list | 0.1 session | P-01 |
+| P-12 | Slice-window TTA (label-safe only) [our hypothesis] | 🔧 **implemented 2026-08-30** (`tta_offsets`, `tta_pool` mean/focal, `INFER_OVERRIDES`, `MODE="oof_eval"`); measure pending: `oof_eval` on the four fold-0 members (~0.5 h GPU) · **the submitted 0.936 DINO frontier is the NO-jitter view** (cell re-read), so only the window/offset part is copied | low-medium — cheapest item on the list | 0.5 h GPU to measure | P-01 |
 | P-13 | 3 vs 5 folds under a fixed session budget [our hypothesis] | 💡 untested, but **directly supported 2026-08-29**: 5 folds alone +0.009 LB, 5 folds on top of a second head **+0.000** — diversity beats replicates (experiments.md, "First valid 5-fold run", RESOLVED note) | **raised — the next GPU spend is a diverse member, not folds** | 1–2 sessions | P-10 |
 | P-14 | DINOv2-S vs DINOv2-B (registers variant noted) | 💡 untested | low | 1 session | P-10 |
-| P-15 | DINOv3-S/16 as diversity member | 💡 DINOv3 half untested · 16-channel re-scope **❌ run as `v07s` 2026-08-30, own OOF 0.74, dead as built** (experiments.md) · **raised 2026-08-30**: a 16-slices-as-channels ViT with a slot token is one of the 0.936 notebook's four families (w 0.45 in its transformer stack); the *input representation*, not the DINOv3 weights, is the diversity (research.md §2.7.1) | medium as P-23 candidate #3 (was low) | 1 session + model mirror | P-10 |
+| P-15 | DINOv3-S/16 as diversity member | 💡 DINOv3 half untested · 16-channel re-scope **❌ run as `v07s` 2026-08-30, own OOF 0.74, dead as built** (experiments.md) · **retry spec from the cell-level re-read (afternoon)**: their 16-ch member runs at **336 px**, per-slice [1, 99] normalisation, `DepthCompress` (gated 1×1 depth blocks → 3 ch) or `SlotDepthMixer` (5-tap learned depth smoothing per plane) stem — *not* a linear 16-ch patch embed — with `xattn` (12 label queries over all patch tokens of all slots) readout; a retry = non-linear stem at ≥ 1e-3, 12+ epochs, on the c02 cache (16 → 18/14 slices per fluid slot) | medium as P-23 candidate #3 | ~2.5 h fold 0 (6 forwards/study) | P-26 |
 | P-16 | Re-labelling with an open-weights LLM inside Kaggle (graded, native language) | 💡 untested | high but slow (raises the teacher ceiling) | 1–2 sessions | P-06 audit (done) |
 | P-17 | Noise-robust loss / self-distillation | 💡 untested | low | 0.3 session each | P-01, P-04, P-06 |
 | P-18 | Efficiency-track variant + decode-once inference + slot census | 🔧 infer mode + loud-failure submission shipped · **decode-once shipped 2026-08-29 (infer v5, equality-checked)** · variant 💡 | medium (separate prize) | 0.2 session + browser | P-01 |
@@ -75,8 +75,10 @@ result*, per unit of cost. "Depends on" lists hard blockers only.
 | P-20 | Leave-one-slot-out ablation, T1 slot retirement | 💡 untested | low-medium | 0.1 session | first real model |
 | P-21 | Blend two heads on one backbone as the default ensemble axis | ✅ **KEEP — LB 0.896 (+0.019, 3.8× floor), submission #5**; OOF 0.8670. Head diversity is now the default ensemble axis; see experiments.md | delivered (`INFER_MEMBERS`) | done | P-09 (done) |
 | P-22 | Checkpoint selection on OOF-vs-teacher instead of fixed last epoch | ✅ **MEASURED, policy switched** — +0.0128 split-half for concat, ~0 for attn, gold flat; P-09 becomes a tie. See experiments.md | delivered (`ckpt_policy="best_oof"`) | done | — |
-| P-23 | **Multi-family rank fusion — the ensemble is the product, not a member** | 🔧 **two candidates measured 2026-08-30**: `v06c` strong-but-head-like → **#8 LB 0.900 (+0.004, 🔁)**, `v07s` 16-ch ❌ dead as built; **raised to #1 on 2026-08-30** (Tian's decision after reading the 0.936 notebook in full: its DINOv2 branch alone is ≈ 0.899 ≈ our 0.896; the other +0.036 is three more families rank-fused on top — research.md §2.7.1) | **very high — the only axis with evidence of +0.03**; per-member acceptance rule: own OOF ≥ best − 0.02, ρ < 0.80 vs the blend, blend gain > 0.008 | 1–2 h fold-0 arm per candidate; 5 folds only for accepted members | P-10 (running), P-11, P-15 |
-| P-24 | **Compute expansion for $0: 2×T4 `DataParallel` on Kaggle + off-Kaggle (Colab free) runner** | 💡 untested (2026-08-30) — training needs only the 21 GB cache, never the DICOMs; pipeline already resumes per epoch; Google One storage includes no Colab units (verified) | **high** — ~3× experiment rate if both halves hold; unblocks P-23 #2 | (a) 30 lines + 1 arm · (b) ~1 h code, no GPU | P-01 |
+| P-23 | **Multi-family rank fusion — the ensemble is the product, not a member** | 🔧 **two candidates measured 2026-08-30**: `v06c` strong-but-head-like → **#8 LB 0.900 (+0.004, 🔁)**, `v07s` 16-ch ❌ dead as built; **raised to #1 on 2026-08-30** (research.md §2.7.1) · **afternoon: candidate #2 implemented** — `v09h` (`timm:coatnet_rmlp_1_rw_224` probe, RunPod ~4 h) and `v10c` (`timm:coatnet_rmlp_2_rw_384`, 64-slice c02 cache, per-label window attention, eval 42 windows, RunPod 6–8 h fold 0) — the 0.936 notebook's 0.924 recipe; #2a (K=12) withdrawn; mixed-geometry inference (c01 + c02 members in one blend) shipped | **very high — the only axis with evidence of +0.03**; per-member acceptance rule: own OOF ≥ best − 0.02, ρ < 0.80 vs the blend, blend gain > 0.008 | 1–2 h fold-0 arm per candidate (T4); hybrids on RunPod | P-25, P-26, P-24 |
+| P-24 | **Compute expansion: off-Kaggle runner (RunPod) + optional 2×T4 `DataParallel`** | 🔧 **runner built 2026-08-30** (`scripts/runpod_bootstrap.sh`, `requirements-gpu.txt`, `RSNA_ARM` / `RSNA_TRAIN_ONLY` / `RSNA_WORKERS` / `RSNA_RUNTIME_H`; Tian chose RunPod over Colab — paid per hour, no idle disconnects); 2×T4 half 💡 | **high** — the hybrids (P-23 #2b) run only there | (b) done · (a) 30 lines + 1 arm | P-26 (c02 blobs are what it pulls) |
+| P-25 | **Window-attention head + random-window training** (12 label queries over every (slot, window) token; no label-agnostic per-slot pool) | 🔧 **implemented 2026-08-30**, effect pending — arm `v08w` (DINOv2-S @224, c02) ready for Kaggle smoke → fold 0 | **high** — the 0.936 notebook's strongest member pools this way (≈ +0.005 est.); also the natural home for TTA (all windows at eval) | ~2 h fold-0 arm | P-26 |
+| P-26 | **Cache v2 (`c02`): band 2–98 %, ragged budgets 18/12/12/14/8/8, 336 px, 64-study blobs** | ⏳ **building 2026-08-30** — 4 CPU kernels `rsna-knee-cache2-a..d` (0 GPU h); local build + `src/cache_selftest.py` bit-identical | **high** — MCL 0.836 / Lateral Meniscus 0.833 are our two weakest labels and the ones the discarded outer slices carry | 0 GPU h, ~1 h CPU wall | P-01 |
 
 ---
 
@@ -358,7 +360,17 @@ If it fails: stay at 224; spend budget on slices/folds.
 Depends on: P-01, P-08.
 
 ### P-12 Slice-window TTA (label-safe only) [our hypothesis]
-Status: 💡 untested. **Raised 2026-08-30**: no longer only our hypothesis — the 0.936 notebook's DINOv2 branch averages every window position over the cached slices, ×2 with an affine-jittered view, and pools **per label**: max for Fracture/Contusion/Menisci/Baker's, top-2 for ACL/MCL, mean for OA/Effusion/Synovitis (focal findings live on few slices). Est. +0.003–0.008 on that branch (research.md §2.7.1). Implement the focal/diffuse pooling split with the window offsets; measure on fold-0 OOF.
+Status: 🔧 **implemented 2026-08-30 (afternoon)**, effect pending: `Config.tta_offsets` (e.g. `(-1, 0, 1)`
+shifts every K centre by the offset, clipped; one forward per view), `tta_pool` `"mean"` | `"focal"` (max
+over views for Fracture / Contusion / both Menisci / Baker's, top-2 mean for ACL / MCL, mean else),
+`INFER_OVERRIDES = {version: {member keys}}` to give members whose checkpoints predate the fields their
+TTA at inference, and **`MODE="oof_eval"`**, which scores each `INFER_MEMBERS` fold-0 checkpoint on its
+held-out studies from the cache with exactly those settings and writes `{version}_fold0_tta_oof.csv` for
+`src/blend_check.py`. `(0,)`+`mean` is bit-identical to the pre-change code (local infer of v05a+v05b:
+identical submission). **Measure next:** `oof_eval` on v05a / v05b / v05g / v06c with `(-1,0,1)` × {mean,
+focal} (~0.5 h GPU) → blend_check against the untouched OOF files. Note from the cell-level re-read: the
+0.936 notebook SUBMITS its no-jitter view, so only the window/offset half is copied. Previous status:
+💡 untested. **Raised 2026-08-30**: no longer only our hypothesis — the 0.936 notebook's DINOv2 branch averages every window position over the cached slices, ×2 with an affine-jittered view, and pools **per label**: max for Fracture/Contusion/Menisci/Baker's, top-2 for ACL/MCL, mean for OA/Effusion/Synovitis (focal findings live on few slices). Est. +0.003–0.008 on that branch (research.md §2.7.1). Implement the focal/diffuse pooling split with the window offsets; measure on fold-0 OOF.
 Hypothesis: Averaging logits over 2–3 slice-index offsets per slot reduces variance at small inference cost; geometric TTA is not attempted.
 Origin: our hypothesis (no source shows slice-window TTA helping; critic item 30). The *exclusion* of geometric TTA is peer-reviewed.
 Evidence: winners used some TTA ([brendanartley], [SeuTao](https://github.com/SeuTao/RSNA2019_Intracranial-Hemorrhage-Detection)); geometric TTA degraded 11/12 MedMNIST pairs ([2604.09697](https://arxiv.org/html/2604.09697v1)); flips hurt knee OA even after mirroring ([2311.06118](https://arxiv.org/html/2311.06118)).
@@ -544,7 +556,18 @@ with the evidence this time rather than the argument.
 Depends on: nothing — the per-epoch OOF csvs from v11 and v13 are enough.
 
 ### P-23 Multi-family rank fusion: the ensemble is the product, not a member
-Status: 🔧 **two candidates measured 2026-08-30** (experiments.md): #1 `v06c` ConvNeXt-T — own 0.8562,
+Status (2026-08-30 afternoon): **candidate #2 implemented, not yet run** — `v09h` = `timm:coatnet_rmlp_1_rw_224`
+(41.7 M, 7.8 GMACs) at 224 on the c02 cache with the P-25 window head (RunPod probe, ~4 h fold 0; tests
+"hybrid backbone + all-window per-label attention" before the expensive one) and `v10c` (`ARM_V10C`) =
+`timm:coatnet_rmlp_2_rw_384.sw_in12k_ft_in1k` (73.9 M, 47.7 GMACs) at 384 from the 336 cache, 24 train
+windows, `eval_windows=42`, `grad_checkpoint` on 24 GB cards (RunPod 6–8 h fold 0) — the 0.936 notebook's
+0.924 recipe minus its 140 mm crop / [2, 98] normalisation (kept at ours for a shared test-time builder)
+and plus our laterality (theirs has none). Weights mounted as Datasets `timm-coatnet-rmlp-1-rw-224` /
+`-2-rw-384`; offline load strict except the ImageNet head (`load_timm_backbone`). #2a (K=12) withdrawn —
+superseded by P-25/P-26. Inference now groups members by cache geometry (`INFER_CACHE_KEYS`) and decodes
+the test set once per group, so c01 and c02 members blend in one run. Compute: `v10c` at 42 eval windows
+≈ 15–25 min per checkpoint on the hidden test — budget 1–2 checkpoints of it, not 5 folds.
+Status (morning): 🔧 **two candidates measured 2026-08-30** (experiments.md): #1 `v06c` ConvNeXt-T — own 0.8562,
 ρ 0.831, blend +0.0059, narrow reject by the rule; submission #8 scored **0.900 (+0.004, 🔁 under the 0.005
 floor, best on the board)**; #3 `v07s`
 16-channel DINOv2 — ❌ own 0.7366, blend −0.015 (this stem recipe is dead; the representation is not
@@ -636,6 +659,81 @@ If it works: ~3× the current experiment rate for $0; Kaggle's 30 h reserved for
 If it fails: (a) if 2×T4 is charged 2× or DataParallel stalls the loader, drop it; (b) if Colab's
 dynamic quota starves overnight runs, fall back to Kaggle-only with strict fold-0-first discipline.
 Depends on: P-01 cache (done); P-23 for what to run with the hours.
+**Status update 2026-08-30 (afternoon):** half (b) is **built** as a RunPod runner, not Colab — Tian
+chose a paid-per-hour pod (no idle disconnects, local NVMe): `scripts/runpod_bootstrap.sh setup|train
+<arm>|ship <arm>` mimics the `/kaggle/input` tree on the pod so `src/kaggle_pipeline.py` runs
+unchanged (`ON_KAGGLE` flips true), pulls the four c02 shards with `kaggle kernels output` (~18
+blobs each; verified by file count and bytes, never by exit status — traps 14), trains one arm via
+`RSNA_ARM=<version>` + `RSNA_TRAIN_ONLY=1` (`RSNA_WORKERS=8`, `RSNA_RUNTIME_H=40`), and ships
+`_best.pt` + `_oof.csv` as Dataset `rsna-knee-ckpt-<arm>`. `requirements-gpu.txt` pins the deps. Not yet
+run on a pod. Half (a) 2×T4 stays 💡.
+
+### P-25 Window-attention head + random-window training (every (slot, window) token, per-label softmax)
+Status: 🔧 **implemented 2026-08-30**, effect pending. `Config.head_type="window_attn"` (`WindowAttnHead`:
+learned slot embedding + LayerNorm + gate `Linear(dim,256)→Tanh→Dropout→Linear(256,12)`, softmax over the
+study's windows **per label**, per-label output weight; padded/absent windows masked with `finfo.min`),
+`window_mode="random"` (train: `train_windows`=24 (slot, centre) windows sampled without replacement,
+stratified ≥ 2 per present slot; eval: all valid windows, or `eval_windows` equidistant ones — the SAME
+value in `oof_eval` and infer). The Dataset ships the uint8 study + indices; the model gathers the
+[c−1, c, c+1] triplets, scales, resizes and normalises on the GPU. Unit-verified (`src/window_head_test.py`:
+60/84 window counts, no absent-slot picks, fp16-finite with masks, `param_groups` covers every parameter
+once for all four backbones); local CPU smoke trained `v08w` + `v09h` end to end. First arm **`v08w`**
+= DINOv2-S @224, c02 cache, 24 train windows, 8 ep, `best_oof` — Kaggle smoke, then fold 0 (~2 h).
+Hypothesis: letting each label run its own softmax over every window of the study — with no
+label-agnostic per-slot pooling in between — lifts the focal labels (menisci, MCL, Fracture, Contusion)
+by > 0.008 OOF macro over the attention head at equal backbone, and random-window training replaces
+jitter as the augmentation.
+Origin: verified in a public artefact (the 0.936 notebook's `RaptorClassifier` pools 62 windows with a
+per-label softmax; research.md §2.7.1) + verified in our code (`AttnPool` is label-agnostic).
+Evidence: our `KneeNet` pools each slot's slices with one `AttnPool` whose scores do not depend on the
+label, so a Fracture slice and a meniscus slice in the same sagittal stack compete for one 384-d
+vector before any label reads it; P-09's plane-specialisation story failed (the head won by
+overfit-resistance), which is consistent with the slot vector, not the head, being the bottleneck.
+Their strongest member (0.924 alone) pools per label over all windows; est. ≈ +0.005 of its gain
+(§2.7.1). Jitter's +0.011 (P-08) says slice-position augmentation pays; random window subsets are the
+same idea with full coverage across epochs. Deviation from the notebook: we add a slot embedding and
+keep windows inside a slot (theirs cross slot boundaries and carry no slot identity).
+Measure: fold-0 OOF macro + per-label of `v08w` vs `v05a` (0.8574) over the 882 studies; then
+`src/blend_check.py` vs the 4-version blend under the P-23 rule. **Confound, on purpose:** `v08w` also
+moves to the c02 cache (P-26); one ~2 h arm measures the pair. If it wins, a `window_attn` arm on the
+c01 cache (or an `attn` head on c02) splits them for ~2 h more.
+Noise floor: 0.008 OOF macro; ~0.03 per label.
+Cost: ~2 h GPU (T4) fold 0 at 224 with 24 train windows; eval ≈ 60 windows/study (2× the val time).
+If it works: default head for every new member (the hybrids `v09h`/`v10c` already use it); 5 folds.
+If it fails: keep attn/concat heads; run the c02 cache with the attn head to isolate P-26.
+Depends on: P-26 (the c02 cache), P-01.
+
+### P-26 Cache v2 (`c02`): band 2–98 %, ragged budgets 18/12/12/14/8/8, 336 px, 64-study blobs
+Status: ⏳ **building 2026-08-30** — four CPU kernels `rsna-knee-cache2-a..d` (`SHARD = 0..3` sed'd,
+`N_SHARDS = 4`, ~9 GB each, 0 GPU h) launched 12:20; code shipped in `src/cache_pipeline.py`
+(`SCHEME="c02"`, `SCHEME_DEFAULTS`, `build_study_flat`, `write_blob`, sidecars, manifest rebuilt from
+sidecars every run) and `src/kaggle_pipeline.py` (`cache_scheme`, `cache_geom()`, `cache_version_for()`,
+`read_cached()` header-offset blob read, `slot_stacks()`, per-version `CACHE_INDEX`). Local: the 3
+sample studies built into one blob, resume-only rerun still writes the manifest, and
+`src/cache_selftest.py` shows both modules **bit-identical for c01 and c02** (arrays, masks, slots, side,
+version strings, blob rows). c01 rebuilt with the new code is byte-identical to the 2026-08-28 files.
+Hypothesis: the outer 8 % (sagittal) / 20 % (coronal) of each stack that c01 discards carries the
+collateral ligaments and the lateral meniscus body; a 2–98 % band with more slices in the
+fluid-sensitive slots lifts MCL (0.836) and Lateral Meniscus (0.833) — our two weakest labels — by
+> 0.03 each at equal model, and 336 px storage lets the hybrids run at 336–384 without a third cache.
+Origin: verified in a public artefact (the 0.936 notebook's strongest member: budgets SAG-FS 18 / SAG 14 /
+COR-FS 12 / COR 8 / AX 12 at span 0.02–0.98, and the docstring that cutting the outer slices "was
+measurably costing accuracy on the collateral ligaments and the lateral meniscus") + our per-label
+OOF table (experiments.md 2026-08-30).
+Evidence: per-label OOF of the 4-version blend — MCL 0.836, Lateral Meniscus 0.833, Lateral OA 0.828,
+PF OA 0.833 vs ≥ 0.86 for the other eight; sagittal series are ~26–32 slices, so c01's 16-of-(8–92 %)
+already skips ~2 slices at each end; their WideDense (6–94 %) → MaxSpan (2–98 %) is the notebook's
+own ablation in this direction. Our six slots map onto their five with the two T1 slots sharing the
+non-fluid coronal budget (8). Costs: 8.1 MB/study (was 4.8) → 35.8 GB; the c01 version string did not
+encode the band at all (traps 23), so the scheme carries its own `cache_version_of()`.
+Measure: per-label OOF (MCL, Lateral Meniscus, Lateral OA, PF OA) of the first c02 member (`v08w`) vs
+`v05a`; macro second. Blob loader throughput (`s/study`) vs 0.19 on the mounted input.
+Noise floor: ~0.03 per label; 0.008 macro.
+Cost: 0 GPU h (~1 h CPU wall); +70 % loader bytes per study.
+If it works: c02 is the default cache for every new member; c01 stays mounted for the trained members
+(mixed-geometry inference shipped: one decode-once pass per geometry group).
+If it fails: (no per-label movement) keep c02 for the 336-px hybrids anyway; the band was not the lever.
+Depends on: P-01 (the c01 design it extends).
 
 ---
 
@@ -653,6 +751,10 @@ Merged from brainstorm.md and research.md §5; one line each. Do not resurrect w
 | Averaging probabilities across folds/models | most confident model dominates; rank-mean instead | brainstorm.md |
 | Full fine-tuning or best-epoch selection on 58 gold (~12/fold); a gold fine-tuning stage | SE 0.09, coin flip, our NaN-fold bug; gold role resolved as validation + weight arm | experiments.md, [Andre et al.], critic 25 |
 | Forking the public 0.95 ensemble; tuning on public LB | author-labelled overfit; 0.001–0.003 movements; the 0.936 notebook's gold-58-tuned per-label weights + "clinical residual" are worth **+0.001** over its untuned 0.935 (read in full 2026-08-30) | mattiaangeli (not re-read), `crazy_good_rsna.ipynb` (research.md §2.7.1), CLAUDE.md |
+| The 0.936 notebook's **88-feature stacking calibrator** (rank blocks + cross-view deltas + 12 protocol counts, w 0.4 on 7 labels) | decoded 2026-08-30: coefficients are ≈ a per-label reweighting of the same three views (protocol columns ≤ 0.003); est. +0.002–0.005 and fragile to a protocol-mix shift on private | cell-level re-read (research.md §2.7.1) |
+| **Clinical residual** cross-label adjustments (`ACL −0.10 × mean rank(Contusion, Lateral Meniscus)` etc.) and correlation-guarded per-label fusion weights | the notebook itself: "an aggressive leaderboard experiment, not an unbiased estimate of private-test performance"; +0.001 stated | cell-level re-read |
+| Per-label **max / top-2 pooling over 3 slice-offset views** as a default (P-12 `tta_pool="focal"`) before it is measured | with 3 views the max is a noise amplifier; measure `mean` and `focal` side by side in `oof_eval` first — the notebook applies it over ~14 windows, not 3 | our reading of P-12 |
+| Evaluating CoAtNet-2 @384 on **all 60 windows** at rerun | 60 × 47.7 GMACs per study ≈ 0.6–1.2 s on a T4 before decode; the notebook caps at 42 (`K_EVAL`) — `eval_windows=42` in `v10c`, same value in `oof_eval` | design review 2026-08-30 |
 | Random or report-only K-fold as the comparison metric | grouped vs random gap up to +0.136 | [EXPERIMENTS.md] |
 | Native 3D CNN / nnU-Net / segmentation-first | 0.69 vs 0.85 (p=0.001); multi-A100 budgets | [MST], [CoPAS], [MIC-DKFZ 2025] |
 | Frozen DINOv2 + head as the final model | 0.79 vs 0.85 knee; 0.776 vs 0.866 LB | [MST], sadamtorres (not re-read) |

@@ -1,0 +1,18 @@
+{
+  "id": "tiankljucanin/rsna-knee-cache2-c",
+  "title": "RSNA Knee Cache2 C",
+  "code_file": "rsna-knee-cache2-c.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": false,
+  "enable_tpu": false,
+  "enable_internet": false,
+  "keywords": [],
+  "dataset_sources": [],
+  "kernel_sources": [],
+  "competition_sources": [
+    "rsna-knee-abnormality-detection"
+  ],
+  "model_sources": []
+}
