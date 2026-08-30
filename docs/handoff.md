@@ -6,6 +6,47 @@ to read first after a break.
 
 ---
 
+## 2026-08-30 (22:40) — Submission #11 sent (infer v14, the 0.912 blend with `v09h` as 5 folds); Tian moves to a new laptop — migration notes below
+
+Delta on the 22:00 entry (read that one for the day's full state). Tian's call: submit v14 tonight.
+
+### ⏳ Still in flight as this was written (22:40)
+
+| In flight | What it is | Started | How to check | How to read it |
+|---|---|---|---|---|
+| **Submission #11** — infer v14, ref 55899052 | the #10 blend (seven versions, LB 0.912) with `v09h` as **5 folds** instead of 1 (still one vote); 15 checkpoints, placeholder run verified (decode equality, `v09h (5 folds)`) | 21:55 | `kaggle competitions submissions rsna-knee-abnormality-detection --csv \| head -3` | scoring ≈ 2 h 40 min → **≈ 00:35**. **Expected 0.912–0.916**: folds are replicates, so ≤ +0.005 vs 0.912 = **🔁 by design, not a failure**; ≥ 0.917 = a real fold-ensemble gain (would beat what `v05g`'s folds bought). Whatever it scores stays the default blend (it can only match or beat #10's members). Fill the ⏳ Scoreboard row + this table via `/update`. **The scoring monitor dies with this session** (laptop switch) — read it manually next session |
+
+1 submission left today (resets 02:00). Kaggle GPU quota ≈ 3.5 h this week.
+
+### Moving to the new laptop — what to copy vs re-fetch
+
+`docs/setup.md` is the walkthrough (clone → CPU venv → `kaggle auth login` → re-fetch CSVs/labels/weights →
+verify with `build_targets.py` = 0.8948). Updated today. Copy by hand ONLY:
+
+1. **`data/sample_dicom/`** (572 MB, 557 files) — Kaggle 429-rate-limits it; verify `find data/sample_dicom -name '*.dcm' -size +0 | wc -l` = 557.
+2. **`artifacts/kaggle_out/`** (~50 MB w/o checkpoints) — the pod-era parts (`pod_v09h_5fold/`, `pod_v09h/`, `pod_v10c/`, `eval_pod/`: per-epoch csvs + logs) exist **nowhere else** since the pod was deleted; the rest of `artifacts/kaggle_out` saves re-pulling old kernel outputs. Skip `ship_v09h_5fold/` + `ckpt_pod/` checkpoints (re-downloadable from the `rsna-knee-ckpt-*` Datasets).
+3. **`~/.ssh/id_ed25519`(+`.pub`)** — the key registered in RunPod account settings; or generate a new one there.
+4. Optional: the Claude Code project memory `C:\Users\Tian\.claude\projects\C--Users-Tian-Desktop-RSNA-Knee\memory\` (the dir name encodes the repo path — keep the repo at the same path or rename the dir to match).
+
+Everything else: re-fetch (`data/*.csv`, `data/llm_labels/`, `models/`) or regenerate (`.venv`, `artifacts/targets.csv`).
+Do NOT copy `data/` wholesale — setup.md's warning about partial trees stands; `kaggle auth login` on the new machine
+replaces the token (nothing to copy in `~/.kaggle`).
+
+### ⏭ Next action, in order
+
+1. **Read #11** (≈ 00:35 or next session): fill the Scoreboard ⏳ row, the table above, CLAUDE.md "State"; verdict by the
+   0.005 floor (0.912–0.916 → 🔁 "folds priced in", ≥ 0.917 → ✅). No further action either way — v14 stays the default.
+2. **Next GPU work = a new input representation** (unchanged from 22:00): card first via `/try-out` — P-23 #3 gated-stem
+   16-ch, #4 RadImageNet (licence gate), or P-17 self-training (its target OOF now exists:
+   `artifacts/kaggle_out/pod_v09h_5fold/`). New pod = `setup` ~40 min (traps 29 checklist).
+3. Housekeeping: datasets public before a final submission; legacy `kaggle.json` for pods; `crazy_good_rsna.ipynb` keep/delete.
+
+### Things that will bite if forgotten
+
+- The 22:00 entry's list (silent expired-token uploads; never truncate a running script; Bash-tool `cd` persistence;
+  compressed Dataset sizes) — all still true.
+- On the new laptop the local smoke needs `models/` re-downloaded (setup.md §6) before `python src/kaggle_pipeline.py` runs.
+
 ## 2026-08-30 (22:00) — `v09h` is the 5-fold production member (pooled 0.8625, shipped, infer v14 verified); LB 0.900 → **0.909 (#9)** → **0.912 (#10)**; pod deleted; nothing left in flight
 
 Closes the 18:10 entry: everything it had in flight has landed. This was the "implement v09h" session
