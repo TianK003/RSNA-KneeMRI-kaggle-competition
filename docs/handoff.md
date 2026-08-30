@@ -6,6 +6,102 @@ to read first after a break.
 
 ---
 
+## 2026-08-30 (10:30) — Overnight P-23 read: `v06c` ConvNeXt-T → **LB 0.900** (#8, +0.004 🔁), `v07s` 16-channel dead; nothing running
+
+The overnight session died after launching both runs (the laptop went down), so the chain in the
+00:50 entry was finished by hand at 09:13–10:30. Findings are logged: experiments.md ("ConvNeXt-Tiny
+member `v06c`", "16-slices-as-channels … `v07s`", Submissions #8, Scoreboard), proposals.md (P-10 →
+pointer, P-15, P-23), traps.md (20 addendum, 22), CLAUDE.md state line. This entry is state only.
+
+### ⏳ Still in flight — nothing
+
+`rsna-knee-train` v15, `rsna-knee-stack` v2, `rsna-knee-infer` v10 all `COMPLETE`; #8 scored. No
+background watchers alive (the previous session's Monitors died with it).
+
+### Where things stand
+
+| | Status |
+|---|---|
+| Best LB | **0.900** — #8, `rsna-knee-infer` **v10**: by-version blend `v05a` attn + `v05b` concat + `v05g` 5-fold + `v06c` ConvNeXt-T (8 checkpoints, 4 votes). **+0.004 over 0.896 is 🔁 under the 0.005 floor**, but it is the default blend now. 4 submissions left today |
+| P-23 candidates | #1 `v06c` ✅ strong (own OOF 0.8562 = parity with `v05a`) but head-like (ρ 0.83, blend +0.006, 10/12 labels up) · #3 `v07s` ❌ dead as built (OOF 0.74 on all 5 folds, 4.8 h) · #2 high-res/many-slice hybrid 💡 · #4 RadImageNet 💡 (licence) |
+| OOF→LB offset | held again: fold-0 proxy 0.8722 → 0.900 (+0.028; n=5) |
+| Checkpoint mounts | `v05a`/`v05b` pinned in Dataset `tiankljucanin/rsna-knee-ckpt-v05` (private); `v05g` still only in `rsna-knee-folds` v4 output (**do not push that slug**); `v06c` only in `rsna-knee-train` v15 output (**do not push that slug without pinning `v06c` first**); infer metadata lists both datasets + `convnext-tiny-224-hf` |
+| GPU quota | ≈ **6 h** left this week (resets ~2026-09-05): v15 1.86 h + stack 4.79 h + smokes since the 00:00 entry's ~13 h |
+| Kaggle token | re-logged 10:28 with `kaggle auth login --force`; expires ~22:30 |
+| Repo | pushed through `7f1b01f`; `crazy_good_rsna.ipynb` still untracked by design |
+
+### What we talked about and decided
+
+- **Read `crazy_good_rsna.ipynb` (0.936) cell by cell** → its DINOv2 branch ≈ 0.899 equals our 0.896;
+  the gap is three more families. Tian made **P-23 multi-family fusion the #1 card** (research.md §2.7.1).
+- Tian chose the overnight plan "5 folds + auto-blend + auto-submit" for the 16-channel member, knowing
+  it needed the laptop on; the laptop did not stay on, training finished anyway, evaluation was done at 09:13.
+- **`v06c` failed the pre-registered rule narrowly (ρ 0.831 vs 0.80, +0.0059 vs 0.008); Tian chose to
+  submit and let the LB arbitrate.** It came back +0.004: inside the noise floor, so recorded 🔁 — a real
+  but head-sized gain, not a family-sized one.
+- Compute: Tian does not want to pay for GPUs; Colab free is the realistic supplement (a Google One
+  storage plan includes **no** Colab compute units — verified by search). Off-Kaggle training needs only
+  the 21 GB cache + CSVs + weights, never the DICOMs; inference stays on Kaggle. Not built yet.
+
+### What we figured out
+
+1. **A second family at 224/6 slots buys head-like diversity, not family-like.** ConvNeXt-T matches
+   DINOv2-S alone (0.8562 vs 0.8574) but ρ 0.77–0.83 against the heads — the same band as attn-vs-concat
+   — so the blend gain is +0.006 OOF / +0.004 LB. Diversity has to come from the *input* (resolution,
+   slice count/band, stack representation), as the 0.936 notebook's own +0.001 three-backbone blend also
+   said. → experiments.md "ConvNeXt-Tiny member `v06c`".
+2. **The 16-channel stack as a linear patch embed does not learn** (0.74 on every fold, still climbing
+   at epoch 8, no overfit). The representation is not disproven; the stem is. A retry needs a non-linear
+   stem (`DepthCompress`-style) at ≥ 1e-3. → experiments.md "`v07s`".
+3. `best_oof` earned its keep again: `v06c` peaked at epoch 3 (0.8562) and decayed to 0.8416 by epoch 7.
+4. Two operational traps: a member family's *weights* must be mounted in the infer kernel (infer v9
+   died on the 8th member; now pre-resolved) → traps 22; an expired token still says "already
+   logged-in" → traps 20 addendum.
+5. Data loading, not the GPU, bounds our epoch time: 6× fewer forwards gave only 1.7× (0.19 → 0.11
+   s/study). Any off-Kaggle box needs local NVMe + more workers to be worth it.
+
+### ⏭ Next action, in order
+
+1. **Decide the compute path** (open decision below). If Colab: build the off-Kaggle runner — env-var
+   paths (`RSNA_CACHE_DIR`, `RSNA_DATA_DIR`, `RSNA_MODELS_DIR`) replacing `artifacts/cache_local` /
+   `data` / `models` in `src/kaggle_pipeline.py`, CUDA requirements, `FORCE_SMOKE` honoured off-Kaggle,
+   `num_workers` 8, and a `colab_bootstrap.ipynb` (mount Drive → copy cache to `/content` → clone →
+   run → `kaggle datasets version` the checkpoints). First turn the two cache outputs into one **private**
+   Dataset (browser: "create dataset from notebook output" on `rsna-knee-cache-a`/`-b`). No GPU needed.
+2. **Cheap Kaggle win regardless:** 2×T4 sessions count once against the 30 h — add `DataParallel`
+   over `batch_studies=2` (~30 lines), smoke, measure s/study against 0.19. Rule: adopt if ≥ 1.5× faster
+   at identical OOF (same seed; within the 0.008 floor).
+3. **P-23 candidate #2 on the remaining ~6 h** — the only lever that changes the *input* without a cache
+   rebuild is more slices from the existing 16: `ARMS = [("v08k", {"slices_per_slot": 12, "cache_jitter": True, "epochs": 8})]`
+   on `rsna-knee-train` **after pinning `v06c`** (pull `v06c_fold0_best.pt` with
+   `kaggle kernels output tiankljucanin/rsna-knee-train -p artifacts/kaggle_out/v15_ckpt --file-pattern "v06c_fold0_best"`,
+   then a Dataset like the v05 pin). Cost ~2× a normal arm ≈ 3.5 h. Read with
+   `python src/blend_check.py --base v05a=… v05b=… v05g=… v06c=artifacts/kaggle_out/v15/v06c_fold0_oof.csv --cand v08k=…`;
+   accept on the P-23 rule (ρ < 0.80 vs the 4-version blend, gain > 0.008).
+4. If none of the above: infer v10 (0.900) is the standing submission; do not spend submissions on
+   weight tuning.
+
+### Open decisions for Tian
+
+- Compute path: Colab free (+ the 2×T4 change) vs staying Kaggle-only with ~6 h/week.
+- Whether the ~6 h go to candidate #2 (K=12) now or wait for the Colab runner.
+- Make `convnext-tiny-224-hf` and `rsna-knee-ckpt-v05` public before any *final* submission relies on them.
+- Browser items still open: rules text (off-platform data use, winner licence), radimagenet.com T&C,
+  licence fields of the `raptor-knee-*` / tonylica datasets (only if the "mount their checkpoints" path
+  is ever wanted), `crazy_good_rsna.ipynb` keep/delete.
+
+### Things that will bite if forgotten
+
+- **Pushing `rsna-knee-train` or `rsna-knee-folds` repoints infer v10's mounts** (`v06c`, `v05g` live
+  only there). Pin before pushing.
+- **`kaggle auth login` lies when the token is expired — use `--force`** (traps 20 addendum).
+- **Every member family needs its weights dataset in the infer kernel** (traps 22).
+- Background Monitors/waits die with the session; Bash `run_in_background` waits are capped at 10 min —
+  use Monitor (persistent) for kernel waits.
+- `src/kaggle_pipeline.py` is committed with `FORCE_SMOKE = True`, `STACK_RUN = False`,
+  `INFER_MEMBERS = ["v05a","v05b"]`; the real kernels are sed'd copies (infer v10 = `["v05a","v05b","v05g","v06c"]`).
+- `rsna-knee-stack` v2 output holds five `v07s` checkpoints — ❌, never mount them.
+
 ## 2026-08-30 (00:50) — Overnight P-23 chain: `v07s` 16-channel member (5 folds) IN FLIGHT as `rsna-knee-stack` v2, `v06c` still running
 
 Tian's go-ahead at ~00:35: "5 fold + auto-blend + auto-submit". The session was told to leave the
