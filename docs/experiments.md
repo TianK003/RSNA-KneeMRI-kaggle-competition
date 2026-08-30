@@ -995,6 +995,33 @@ of ≈ 0.905–0.907 by the +0.02–0.03 offset — around the 0.005 LB floor, s
 buy, not a proven gain. Infer kernel v12 (6 members) pushed 16:41 to check the mixed-geometry path end to end;
 submission is Tian's call. Checkpoint: Dataset `tiankljucanin/rsna-knee-ckpt-v10c` (`ship` on the pod).
 
+### 2026-08-30 — `v09h` fold 0 (P-23 #2a probe: `timm:coatnet_rmlp_1_rw_224` @224, c02, window_attn; RunPod 4090, 50 min): OOF **0.8683** — the best single model · 7-member blend 0.8820 (+0.0024) 🔁 as an addition · ✅ KEEP as the cheapest strong member
+
+CoAtNet-1 (41.7 M) at **224 px** on the c02 cache, same recipe as `v10c` otherwise (24 random train windows, all
+windows at eval, window_attn, `lr_backbone=1e-4`, 8 epochs, `best_oof`, EMA 0.998), fold 0, seed 42. **0.09
+s/study → 5.3 min train + 0.9 min val per epoch = 50 min for the fold** (vs 2.9 h for `v10c`, 1.5 h for `v08w` on
+the T4).
+
+| epoch | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 |
+|---|---|---|---|---|---|---|---|---|
+| OOF | 0.759 | 0.814 | 0.836 | 0.853 | 0.864 | 0.867 | 0.868 | **0.8683** |
+| Lateral Meniscus | 0.698 | 0.743 | 0.766 | 0.802 | 0.835 | 0.854 | 0.863 | **0.867** |
+| MCL | 0.686 | 0.756 | 0.770 | 0.793 | 0.805 | 0.802 | 0.798 | 0.799 |
+
+Fastest learner of the three new arms at every epoch, converged (+0.0003 over the last epoch), gold 0.923.
+Singles now: **v09h 0.8683 > v08w 0.8648 > v10c 0.8641** > v05a 0.8574 — all three c02/window-attn arms beat
+every c01 member. Per label alone: Lateral Meniscus **0.867** (best of all), Lateral OA 0.848 (best), ACL 0.871
+(≈ v05a), MCL 0.799 (v08w 0.823 still best), Medial Meniscus 0.899 (v10c 0.922 best).
+
+**Blends (`src/blend_check.py`, fold 0):** 6-member (#9) + v09h → **0.8820 (+0.0024, ρ 0.879 → 🔁)**;
+v08w+v10c+v09h (the three new arms alone) 0.8788; + v06c 0.8816; 4 old + v09h 0.8778. ρ(v09h, v08w) 0.843,
+ρ(v09h, v10c) 0.843 — a third strong member of the *same* recipe family, so it buys little diversity; the
+resolution (224 vs 384) barely matters for CoAtNet here (0.8683 vs 0.8641, 3.5× the cost), which reframes the
+"0.924 needs 384" reading of the 0.936 notebook: **the band + window head + hybrid backbone are the gain, not the
+pixels**. Verdict: ✅ KEEP as a member (cheapest strong model — 50 min/fold makes a 5-fold `v09h` a 4 h job),
+🔁 for the blend increment. Infer v13 (7 members) pushed 17:31 for submission #10 on Tian's instruction, with the
+expectation that its LB is within noise of #9.
+
 ## Infrastructure
 
 ### 2026-08-30 — Cache v2 (`c02`), window-attention path, timm hybrids and mixed-geometry inference shipped; local verification ✅ KEEP the code · Kaggle ⏳

@@ -33,6 +33,20 @@ real run — and the Kaggle `oof_eval` crash (12:56) was rerouted onto the same 
   (arrive in bursts) — read `/kaggle/working/v10c_fold0_ep*_oof.csv` for per-epoch OOF, not the log.
 - RunPod account SSH key registered (13:17): `ssh root@213.181.111.2 -p 26323 -i ~/.ssh/id_ed25519` works.
 
+### 🔄 Update 17:35 — `v09h` 0.8683 (best single), #9 submitted, infer v13 (7 members) pushed, P-12 evals running
+
+- **Submission #9 = infer v12, 17:08** (v05a+v05b+v05g+v06c+v08w+v10c; OOF 0.8795). Scoring in progress; 3 submissions left today.
+- **`v09h` fold 0 = OOF 0.8683 in 50 min** (0.09 s/study) — best single; 7-member blend **0.8820 (+0.0024)**. Shipped as
+  `rsna-knee-ckpt-v09h`. Logged: experiments.md 2026-08-30 `v09h`, P-23. Files `artifacts/kaggle_out/pod_v09h/`.
+- **Infer v13 pushed 17:31** (`INFER_MEMBERS` = the seven; metadata mounts `-v09h`) → submit as **#10** per Tian's
+  instruction once its log is clean (10+1 checkpoints, 2 geometry groups, decode verified, no errors).
+- **P-12 evals running on the pod** (`/workspace/evals_only.sh`, log `/workspace/evals.log`; chain3 had skipped them on a
+  wrong completeness check — the c01 shard manifests list all 4,407 studies; fixed). Results →
+  `/kaggle/working/tta_mean/`, `tta_focal/`; read with `blend_check.py` against the untouched 4 OOF files (base 0.8722).
+- **Pod is otherwise idle after the evals (~$0.74/h)** — decision: queue 5-fold `v09h` (~4 h) / 12-epoch `v10c` (~4.5 h) /
+  P-17 self-training, or stop the pod.
+- Kaggle token expires **20:06**.
+
 ### ⏳ Still in flight as this was written (13:10)
 
 | In flight | What it is | Started | How to check | How to read it |
