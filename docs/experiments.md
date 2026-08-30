@@ -798,7 +798,7 @@ two heads; the attention half costs ~9 h and stays a decision for the next sessi
 
 ---
 
-### 2026-08-30 — 16-slices-as-channels DINOv2-S member `v07s` (P-23 candidate #3, kernel `rsna-knee-stack` v2) ⏳ PENDING
+### 2026-08-30 — 16-slices-as-channels DINOv2-S member `v07s` (P-23 candidate #3, kernel `rsna-knee-stack` v2) ❌ DEAD END (this recipe)
 
 **Config:** `stack_mode="channels"` — each slot's 16 cached slices are the 16 input channels of ONE
 image, so the encoder sees the whole stack in one pass (6 forwards per study instead of 36). DINOv2-S/14
@@ -818,7 +818,54 @@ the `v05a`+`v05b` rank-mean < 0.80; blend gain over 0.8670 > 0.008. `src/blend_c
 Accepted → `INFER_MEMBERS` gains `v07s` (all five folds, one vote by version) and one submission is
 placed; rejected → logged here, no submission.
 
-**Result:** _pending_.
+**Result (read 09:15, 4.79 h GPU, five folds complete):** every fold plateaus at **OOF 0.73–0.74**
+(fold 0 0.7366 at epoch 5; folds 1–4 0.7419 / 0.7381 / 0.7324 / 0.7411), still creeping up at epoch 8
+(loss 0.61 → 0.48, no overfitting signature). Gold 0.70. Throughput 0.10–0.12 s/study (vs 0.19 for a
+triplet member) — the 6× fewer forwards bought ~1.7×, the rest is data loading.
+`blend_check.py` on fold 0: own 0.7366 **fails** (a) by 0.10; ρ vs the `v05a`+`v05b` blend **0.609**
+— the most diverse member we have ever built — but adding it moves the blend **0.8670 → 0.8524
+(−0.0146)**; only Effusion (+0.001) and Synovitis (+0.004) survive, every other label drops 0.006–0.028.
+**Verdict ❌ DEAD END for this recipe**: a mean-initialised 16-channel patch embed at 224 px, `lr_stem`
+2e-4, 8 epochs cannot learn to separate slices through a linear 14×14 conv — the backbone effectively
+sees a blurred stack average. Not evidence against the *representation* (the 0.936 notebook's version
+uses a gated `DepthCompress` stem, 336 px, and presumably far more stem learning); a retry would need a
+non-linear stem at ≥ 1e-3 and more epochs, and is not worth the quota this week. Checkpoints not used.
+
+
+### 2026-08-30 — ConvNeXt-Tiny member `v06c` (P-10 / P-23 candidate #1, kernel `rsna-knee-train` v15) 🔁 INCONCLUSIVE by the rule · a second family at parity
+
+**Config:** HF `facebook/convnext-tiny-224` (ImageNet-1k, Apache-2.0), concat head, `cache_jitter`,
+8 epochs, `ckpt_policy=best_oof`, `lr_backbone` 1e-4 with LLRD 0.75 per stage, fold 0, from the cache.
+1.86 h; 0.19 s/study (same as ViT-S/14). Launched 23:57, read 09:15 (the overnight session died).
+
+**Own OOF curve:** 0.7795 → 0.8297 → 0.8530 → **0.8562 (epoch 3, checkpointed)** → 0.8515 → 0.8460 →
+0.8425 → 0.8416. Peaks earlier and decays faster than the DINOv2 concat head (`v05b` peaked at epoch 4);
+`best_oof` (P-22) kept the peak — under the old fixed-epoch policy this member would have shipped at
+0.8416. Gold 0.905 (n=11).
+
+**As a single model it is at parity with our best DINOv2 head:** 0.8562 vs `v05a` 0.8574 (attn), above
+`v05b` 0.8471 and `v05g` 0.8508 (concat). A supervised ImageNet CNN at 224 matches the SSL ViT here,
+which the 0.936 notebook's own gold panel (ConvNeXt-B/L ≈ 0.875 vs CoAtNet 0.9025) did not predict.
+
+**Blend check on fold 0 (`src/blend_check.py`, `artifacts/kaggle_out/blend_verdicts.jsonl`):**
+
+| vs base | base OOF | ρ(v06c, base blend) | ρ per member | + v06c | gain |
+|---|---|---|---|---|---|
+| `v05a`+`v05b` | 0.8670 | **0.831** | 0.805 (v05a), 0.767 (v05b) | 0.8729 | **+0.0059** |
+| `v05a`+`v05b`+`v05g` (the submitted blend) | 0.8680 | 0.848 | 0.822 (v05g) | 0.8722 | +0.0043 |
+
+Per label (2-version base → + v06c): **10 of 12 up** — ACL +0.016, Lateral Meniscus +0.009, Fracture
++0.008, Synovitis +0.008, Medial Meniscus +0.007, Baker's +0.007, Medial OA +0.006, Effusion +0.006,
+Lateral OA +0.004, PF OA +0.004; MCL 0.000; Contusion −0.003.
+
+**Verdict:** by the pre-registered P-23 rule (ρ < 0.80 **and** gain > 0.008) it is a **reject on both
+counts, narrowly** — ρ 0.831 is in the same band as attn-vs-concat (0.773) and folds-vs-heads (0.84),
+i.e. head-like diversity, not a new error profile; +0.0059 is 0.7× the 0.008 macro floor → **🔁
+INCONCLUSIVE**. What argues for it is the *sign pattern*: 10/12 labels up is the same kind of evidence
+that carried jitter (11/12). Tian chose to let the LB arbitrate: **submission #8 = infer v9, by-version
+blend `v05a`+`v05b`+`v05g`+`v06c`** (rule set before scoring: < +0.005 over 0.896 is 🔁, not a win).
+Result in the Submissions table. P-10's family bet is therefore *half* confirmed — the family is as
+strong as ours, but not much more diverse than a second head at 224 px with the same slots and slices.
 
 ## Infrastructure
 

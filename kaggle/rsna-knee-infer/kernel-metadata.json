@@ -17,8 +17,7 @@
   ],
   "kernel_sources": [
     "tiankljucanin/rsna-knee-train",
-    "tiankljucanin/rsna-knee-folds",
-    "tiankljucanin/rsna-knee-stack"
+    "tiankljucanin/rsna-knee-folds"
   ],
   "competition_sources": [
     "rsna-knee-abnormality-detection"
