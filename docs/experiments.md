@@ -889,6 +889,30 @@ docstring, read 2026-08-30: 2–98 % span vs our sag 8–92 / cor 20–80). Conv
 (MCL +0.000). This is the evidence behind P-26 (wide-band cache) and P-25 (per-label attention over
 every window); the measurement that settles it is `v08w` fold 0 per label vs `v05a`. ⏳ until then.
 
+### 2026-08-30 — P-12 slice-offset TTA, first number (kernel `rsna-knee-eval` v2, `oof_eval`, T4): v05a mean-TTA OOF 0.8621 vs 0.8574 🔁 INCONCLUSIVE · the run died OOM on member 2 → measurement moved to the RunPod pod ⏳
+
+`MODE="oof_eval"`, `INFER_MEMBERS = [v05a, v05b, v05g, v06c]`, every member `tta_offsets=(-1, 0, 1)`,
+`tta_pool="mean"`, c01 cache, fold 0 (882 held-out studies), `num_workers=2`. Only the first member
+finished (7.2 min on the T4):
+
+| v05a fold 0 | macro OOF | MCL | Lateral Meniscus | auc_gold (n=11) |
+|---|---|---|---|---|
+| no TTA (train-time OOF, kernel v13) | 0.8574 | 0.795 | 0.818 | — |
+| TTA (-1, 0, 1) / mean | **0.8621** | 0.805 | 0.802 | 0.921 (CI 0.82–0.98) |
+
++0.0047 macro is **under the 0.008 OOF floor → 🔁 on its own**; MCL +0.010 and Lateral Meniscus −0.016
+are both inside the ~0.03 per-label floor. The P-12 verdict is the *4-version blend* with vs without TTA
+(rule: adopt per member only if the blend gains > 0.008), which needs all four `_tta_oof.csv` files.
+
+Then, ~2.5 min into `v05b`, `RuntimeError: DataLoader worker (pid 73) is killed by signal: Killed` —
+the host-RAM OOM killer, not CUDA (traps 28). Per-member RAM is small (3 views × 21.7 MB per study, 2
+workers), and v05a ran clean, so something accumulates across members on Kaggle's ~30 GB box; the root
+cause is **open**. Rather than spend another ~0.5 h of the ~3.6 h weekly quota on a guess, the same
+`oof_eval` (mean **and** focal) runs on the RunPod pod (503 GB RAM, 4090) before its training arms —
+the pod pulls the c01 shards and the three checkpoint pins for exactly this. Cost of the failed kernel:
+~0.2 h GPU. ⏳ until the pod's `tta_mean/` and `tta_focal/` csvs are pulled and `blend_check.py` is run
+against the untouched OOF files (base 0.8722 for the 4-version blend).
+
 ## Infrastructure
 
 ### 2026-08-30 — Cache v2 (`c02`), window-attention path, timm hybrids and mixed-geometry inference shipped; local verification ✅ KEEP the code · Kaggle ⏳

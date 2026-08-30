@@ -10,6 +10,7 @@ by **macro ROC-AUC** (unweighted mean of 12 per-label AUCs).
 
 Competition: https://www.kaggle.com/competitions/rsna-knee-abnormality-detection
 
+**State as of 2026-08-30 (13:10):** `v08w` fold 0 runs on Kaggle (train v17, expect ~15:00). The Kaggle P-12 `oof_eval` pass (eval v2) **died OOM on its second member** (traps 28) after scoring v05a at 0.8621 with mean TTA (+0.0047, 🔁 alone); the measurement moved to **RunPod**: a secure RTX 4090 pod (`2wend9j0lr7zf3`, EUR-IS-2, $0.74/h, MCP-driven, direct SSH) runs `oof_eval` mean + focal, then `v10c`, then `v09h`, shipping each as `rsna-knee-ckpt-<arm>` — the P-24 runner's first real run (traps 29 for the first-run fixes). See [docs/handoff.md](docs/handoff.md).
 **State as of 2026-08-30 (afternoon):** the 0.936 notebook was re-read cell by cell; its gap to our 0.900 is
 (a) a **0.924 single model** — CoAtNet-2 @384 over 64 slices at a **2–98 % slice band** with **per-label
 attention over every window** — and (b) three more input-representation families rank-fused on top;

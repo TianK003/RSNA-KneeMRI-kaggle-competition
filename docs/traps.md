@@ -445,6 +445,20 @@ workers × prefetch in `/dev/shm`) is the classic Kaggle "DataLoader worker kill
 window Dataset ships the 8 MB uint8 study + indices and the model gathers / normalises / resizes on the
 GPU. Related: 12d (a real-mode value smoke mode cannot reveal).
 
+### 28. `MODE="oof_eval"` on Kaggle: the *second* member's DataLoader worker is OOM-killed (host RAM)
+
+Kernel `rsna-knee-eval` v2 (2026-08-30): four c01 members with 3-view TTA, `num_workers=2`. Member 1
+(`v05a`) scored in 7.2 min; ~2.5 min into member 2 (`v05b`) — same cache, same geometry, same loader —
+`DataLoader worker (pid 73) is killed by signal: Killed` = the Linux OOM killer on the ~30 GB host RAM, not
+CUDA. Per-member memory is modest (a study is 3 × 21.7 MB through `/dev/shm`, 2 workers × prefetch 2), so
+something **accumulates across members**; the `del model, st; gc.collect()` at the end of each member does
+not free it. Suspects, unverified: the page cache of ~4,400 FUSE `np.load`s charged to the cgroup, the
+discarded-but-referenced train loader from `make_loaders`, or the c01 per-study `.npy` reads themselves.
+**Do:** treat `oof_eval` on Kaggle as one member per kernel until the cause is found, or run it off-Kaggle
+(the RunPod pod has 503 GB and the same `/kaggle/input` layout — 2026-08-30 it runs mean and focal there).
+The infer kernel is on a different path (decode-once to disk, one geometry group) and has not shown this.
+Related: 26 (shared-memory sizing), experiments.md 2026-08-30 P-12 entry.
+
 ## Tier 3 — tooling friction
 
 ### 14. Kaggle rate-limits file downloads, and reports success anyway
@@ -550,3 +564,24 @@ committed notebooks — do not regenerate them; if a c01 rebuild is ever needed,
 `"c01"` and `N_SHARDS = 4` → `2` first. c02 kernels are `kaggle/rsna-knee-cache2-{a,b,c,d}` with
 `SHARD = 0..3` sed'd in. Related: locally, `find_mounted_checkpoints` searches `WORK` only when `MODE`
 is explicitly `"infer"` / `"oof_eval"` — with `"auto"` it would flip every local smoke into infer mode.
+
+
+### 29. Shipping the repo from the Windows checkout to a Linux GPU box (RunPod, 2026-08-30)
+
+Five things that each cost one round trip on the first RunPod run:
+
+- **CRLF.** `git archive HEAD` from this checkout ships `\r\n` (autocrlf); `scripts/runpod_bootstrap.sh`
+  then dies at line 1 with `set: pipefail: invalid option name`. **Do:** after unpacking,
+  `grep -rlI $'\r' . | xargs sed -i 's/\r$//'` (49 files), or archive with `-c core.autocrlf=false`.
+- **Community-cloud pods had no public IP** (two 4090 hosts in the 100.65.x pool: only proxied HTTP ports,
+  `ssh.direct: null`), and the `ssh.runpod.io` proxy needs an SSH key registered in the RunPod *account*,
+  which the MCP cannot do. **Do:** `cloudType: SECURE` (a 4090 in EUR-IS-2 gave `22/tcp` at once, $0.74/h vs
+  $0.34/h), pass `sshPublicKey`, expose `22/tcp` + `8888/http`, set `JUPYTER_PASSWORD` as a second way in.
+- **`bc` is not in `runpod/pytorch:*-ubuntu2404`**, and `verify_count` in the bootstrap uses it (`set -e`
+  would abort the setup on the first shard). `pip` needs `PIP_BREAK_SYSTEM_PACKAGES=1` (PEP 668).
+- **`pgrep -f <name>` inside an SSH command that mentions `<name>` matches its own shell** — the idempotent
+  launcher refused to start because the probe command contained the script's filename. Use `pgrep -f
+  "runpod_[b]ootstrap.sh"`, and run remote scripts via `ssh host 'bash -s' <<'EOF'` so the command line
+  carries nothing to match. Also `scp a b host:/path/x` with two sources makes `x` a *directory*.
+- Kaggle pulls on the pod: blobs stream at ~30 MB/s, but per-study `.npy` (c01, ~4,400 files) at ~0.7 files/s
+  — pull the two c01 shards in parallel (~50 min instead of ~100).
