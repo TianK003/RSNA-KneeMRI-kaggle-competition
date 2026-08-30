@@ -921,9 +921,35 @@ Also shipped: four private Datasets — `rsna-knee-ckpt-v06` (`v06c_fold0_best.p
 so `rsna-knee-train` / `-folds` can be pushed again without repointing infer v10's mounts (the infer
 metadata now lists the pins and drops `rsna-knee-folds` as a kernel source). Cache kernels
 `rsna-knee-cache2-a..d` launched 12:20 and **ran concurrently** (four CPU sessions at once — verified).
-**Verdict: ✅ KEEP the code (every local rung green, old members byte-identical); the Kaggle smoke and the
-first real arm are ⏳.** Throughput of the blob loader on the mounted input and of the window path on a
-T4 are the two numbers the smoke must return.
+**Verdict: ✅ KEEP the code (every local rung green, old members byte-identical); the first real arm is ⏳.**
+
+> **EXTENDED 2026-08-30 13:15 — Kaggle smoke `rsna-knee-train` v16 ✅ green** (FORCE_SMOKE, arms
+> `v08w` + `v09h`, ~2 min GPU): both caches indexed on the T4 kernel — `cache: 4407 studies indexed
+> (c01_…)` **and** `(c02_…)` from the six mounted shards; `manifest from cache: 4407 studies`; `v08w`
+> trained + checkpointed (`auc_soft 0.5208` on 4 val studies — smoke arithmetic, not a result); `v09h`
+> loaded `timm coatnet_rmlp_1_rw_224: 445 tensors from /kaggle/input/timm-coatnet-rmlp-1-rw-224 (dropped
+> head 2)`, trained + checkpointed; per-arm inference through the c02 decode-once group "3 studies
+> rebuilt, identical"; `submission.csv` validated; worker-RNG check unchanged. Smoke s/study (4 studies,
+> 4 windows, warm-up included) is not a throughput measurement — the real `v08w` run returns it.
+
+### 2026-08-30 — Cache v2 (`c02`) built: 4,407/4,407 studies, 70 blobs, 35.8 GB, 0 decode failures, 0 GPU h ✅ KEEP
+
+`rsna-knee-cache2-a..d` v1 (CPU, 4 workers, `SHARD = 0..3`, `N_SHARDS = 4`), all four running
+concurrently, launched 12:20 and complete by ~12:45. Version `c02_p336_b18-12-12-14-8-8_band2-98_crop130_lat20`.
+
+| shard | studies | blobs | GB | wall (build / total) | s/study (wall / CPU) | decode failures |
+|---|---|---|---|---|---|---|
+| a (0) | 1,064 | 17 | 8.65 | 11.4 / 13.8 min | 0.64 / 2.46 | 0 |
+| b (1) | 1,164 | 19 | 9.46 | ~12 / 14.2 min | — | 0 |
+| c (2) | 1,051 | 17 | 8.54 | 11.3 / 13.8 min | 0.65 / 2.48 | 0 |
+| d (3) | 1,128 | 18 | 9.17 | ~15 / 17.8 min | — | 0 |
+| **total** | **4,407** | **70** (+70 sidecars) | **35.8** | ~18 min wall for all four | | **0** |
+
+Same corpus facts as c01 (mean slots 4.78, side resolved 96.9 %, 25 conflicts, FOV median 160 mm).
+Per-study wall time equals the c01 build (0.6 s/study: decode-bound, 72 slices vs 96) although each study
+is 1.7× more bytes. Four CPU kernels ran at once, so the whole rebuild cost **~20 min of wall clock and no
+GPU quota**. `manifest_shard{k}_c02.csv` carries `blob`, `row`, `mask`, `cached`, `decode_fails`. ✅ the
+build; whether the wider band pays is P-26's measurement (`v08w` fold 0 per label), still ⏳.
 
 ### 2026-08-28 — ⚠️ Throughput is the open risk, and it blocks the real run
 

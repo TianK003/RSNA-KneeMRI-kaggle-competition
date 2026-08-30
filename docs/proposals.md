@@ -77,8 +77,8 @@ result*, per unit of cost. "Depends on" lists hard blockers only.
 | P-22 | Checkpoint selection on OOF-vs-teacher instead of fixed last epoch | ✅ **MEASURED, policy switched** — +0.0128 split-half for concat, ~0 for attn, gold flat; P-09 becomes a tie. See experiments.md | delivered (`ckpt_policy="best_oof"`) | done | — |
 | P-23 | **Multi-family rank fusion — the ensemble is the product, not a member** | 🔧 **two candidates measured 2026-08-30**: `v06c` strong-but-head-like → **#8 LB 0.900 (+0.004, 🔁)**, `v07s` 16-ch ❌ dead as built; **raised to #1 on 2026-08-30** (research.md §2.7.1) · **afternoon: candidate #2 implemented** — `v09h` (`timm:coatnet_rmlp_1_rw_224` probe, RunPod ~4 h) and `v10c` (`timm:coatnet_rmlp_2_rw_384`, 64-slice c02 cache, per-label window attention, eval 42 windows, RunPod 6–8 h fold 0) — the 0.936 notebook's 0.924 recipe; #2a (K=12) withdrawn; mixed-geometry inference (c01 + c02 members in one blend) shipped | **very high — the only axis with evidence of +0.03**; per-member acceptance rule: own OOF ≥ best − 0.02, ρ < 0.80 vs the blend, blend gain > 0.008 | 1–2 h fold-0 arm per candidate (T4); hybrids on RunPod | P-25, P-26, P-24 |
 | P-24 | **Compute expansion: off-Kaggle runner (RunPod) + optional 2×T4 `DataParallel`** | 🔧 **runner built 2026-08-30** (`scripts/runpod_bootstrap.sh`, `requirements-gpu.txt`, `RSNA_ARM` / `RSNA_TRAIN_ONLY` / `RSNA_WORKERS` / `RSNA_RUNTIME_H`; Tian chose RunPod over Colab — paid per hour, no idle disconnects); 2×T4 half 💡 | **high** — the hybrids (P-23 #2b) run only there | (b) done · (a) 30 lines + 1 arm | P-26 (c02 blobs are what it pulls) |
-| P-25 | **Window-attention head + random-window training** (12 label queries over every (slot, window) token; no label-agnostic per-slot pool) | 🔧 **implemented 2026-08-30**, effect pending — arm `v08w` (DINOv2-S @224, c02) ready for Kaggle smoke → fold 0 | **high** — the 0.936 notebook's strongest member pools this way (≈ +0.005 est.); also the natural home for TTA (all windows at eval) | ~2 h fold-0 arm | P-26 |
-| P-26 | **Cache v2 (`c02`): band 2–98 %, ragged budgets 18/12/12/14/8/8, 336 px, 64-study blobs** | ⏳ **building 2026-08-30** — 4 CPU kernels `rsna-knee-cache2-a..d` (0 GPU h); local build + `src/cache_selftest.py` bit-identical | **high** — MCL 0.836 / Lateral Meniscus 0.833 are our two weakest labels and the ones the discarded outer slices carry | 0 GPU h, ~1 h CPU wall | P-01 |
+| P-25 | **Window-attention head + random-window training** (12 label queries over every (slot, window) token; no label-agnostic per-slot pool) | 🔧 **implemented 2026-08-30, Kaggle smoke green (train v16)**, effect pending — arm `v08w` (DINOv2-S @224, c02) awaits the real fold-0 push (Tian's go-ahead) | **high** — the 0.936 notebook's strongest member pools this way (≈ +0.005 est.); also the natural home for TTA (all windows at eval) | ~2 h fold-0 arm | P-26 |
+| P-26 | **Cache v2 (`c02`): band 2–98 %, ragged budgets 18/12/12/14/8/8, 336 px, 64-study blobs** | 🔧 **built 2026-08-30 12:45** — 4,407/4,407 studies, 70 blobs, 35.8 GB, 0 decode failures, ~20 min wall, 0 GPU h (experiments.md "Cache v2 built"); effect pending on `v08w` fold 0 | **high** — MCL 0.836 / Lateral Meniscus 0.833 are our two weakest labels and the ones the discarded outer slices carry | 0 GPU h, ~1 h CPU wall | P-01 |
 
 ---
 
@@ -704,8 +704,9 @@ If it fails: keep attn/concat heads; run the c02 cache with the attn head to iso
 Depends on: P-26 (the c02 cache), P-01.
 
 ### P-26 Cache v2 (`c02`): band 2–98 %, ragged budgets 18/12/12/14/8/8, 336 px, 64-study blobs
-Status: ⏳ **building 2026-08-30** — four CPU kernels `rsna-knee-cache2-a..d` (`SHARD = 0..3` sed'd,
-`N_SHARDS = 4`, ~9 GB each, 0 GPU h) launched 12:20; code shipped in `src/cache_pipeline.py`
+Status: 🔧 **built 2026-08-30** — four CPU kernels `rsna-knee-cache2-a..d` (`SHARD = 0..3` sed'd,
+`N_SHARDS = 4`) launched 12:20, all complete by 12:45: **4,407/4,407 studies, 70 blobs, 35.8 GB (8.5–9.5 GB
+per shard), 0 decode failures, 0 GPU h** (experiments.md "Cache v2 built"); effect pending. Code shipped in `src/cache_pipeline.py`
 (`SCHEME="c02"`, `SCHEME_DEFAULTS`, `build_study_flat`, `write_blob`, sidecars, manifest rebuilt from
 sidecars every run) and `src/kaggle_pipeline.py` (`cache_scheme`, `cache_geom()`, `cache_version_for()`,
 `read_cached()` header-offset blob read, `slot_stacks()`, per-version `CACHE_INDEX`). Local: the 3
