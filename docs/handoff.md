@@ -6,6 +6,105 @@ to read first after a break.
 
 ---
 
+## 2026-08-30 (13:10) — RunPod lane live: secure 4090 pod runs P-12 `oof_eval` (mean + focal) → `v10c` → `v09h`; Kaggle eval v2 died OOM on member 2; `v08w` (train v17) still running
+
+Tian's instruction at 12:45: "while waiting for Kaggle, check the RunPod MCP and start running the most
+cost-efficient progress." The MCP was already OAuth'd (0 pods, $0 spend), so the P-24 runner got its first
+real run — and the Kaggle `oof_eval` crash (12:56) was rerouted onto the same pod instead of spending quota.
+
+### ⏳ Still in flight as this was written (13:10)
+
+| In flight | What it is | Started | How to check | How to read it |
+|---|---|---|---|---|
+| **RunPod pod `2wend9j0lr7zf3`** (`rsna-knee-train`, secure RTX 4090 24 GB, EUR-IS-2, **$0.74/h**, 64 vCPU, 503 GB RAM, 120 GB NVMe at `/workspace`) | `chain2.sh` (pid 1874): waits for the c02 setup + c01 pulls → **`oof_eval` mean** → **`oof_eval` focal** → `train v10c` (CoAtNet-2 @384, 6–8 h est.) → `ship v10c` → `train v09h` (~4 h est.) → `ship v09h` | pod 12:52; chain2 13:04 | `ssh -i ~/.ssh/id_ed25519_work -p 26323 root@213.181.111.2` then `tail -n 40 /workspace/chain2.log` (steps + evals), `tail -n 30 /kaggle/working/train_v10c.log` (epochs), `grep -v "%|" /workspace/chain.log \| tail` (setup), `nvidia-smi`. From here: `mcp get-pod 2wend9j0lr7zf3` (runtime.gpus util) or `stream-pod-logs` | **Timeline (UTC = local −2 h):** c02 shards done ≈ 11:25 UTC; c01 shards (2115 + 2292 `.npy`, ~0.7 files/s each, parallel) ≈ 11:55–12:00 UTC → evals start ≈ 14:00 local, ~10–20 min for both pools; `v10c` epoch 0 ≈ 14:20 local. **Evals:** `/kaggle/working/tta_mean/{v05a,v05b,v05g,v06c}_fold0_tta_oof.csv` and `tta_focal/…` — pull with `scp -P 26323 -r root@213.181.111.2:/kaggle/working/tta_mean artifacts/kaggle_out/eval_pod/` (same for focal) then `python src/blend_check.py --base v05a=…/tta_mean/v05a_fold0_tta_oof.csv v05b=… v05g=… v06c=…` vs the untouched base **0.8722**: adopt TTA per member only if the 4-version blend gains **> 0.008**; a member *dropping* > 0.008 = offset views off the trained centres. Mean vs focal: same rule, side by side. v05a mean-TTA is already known: 0.8621 (own, vs 0.8574). **`v10c`:** first `s/study` (blob loader on NVMe should be well under Kaggle's 0.19), epoch-0 OOF (v05a's was ~0.78; a plateau < 0.80 by epoch 3 = the window head not learning), CUDA OOM in epoch 0 = drop `train_windows` 24 → 16 in `ARM_V10C` and re-run `bash scripts/runpod_bootstrap.sh train v10c` (resumes nothing — fresh). `ship` publishes Dataset `tiankljucanin/rsna-knee-ckpt-v10c`; **if the Kaggle token has expired by then** (traps 20; access token refreshes via the copied `credentials.json`, but verify) `ship` fails loudly — re-run after `kaggle auth login --force` locally and re-`scp` `~/.kaggle/credentials.json` to `/root/.kaggle/` |
+| **`rsna-knee-train` v17** — arm `v08w` | unchanged from the 12:35 entry (DINOv2-S @224, c02, window_attn, 24 windows, 8 ep, fold 0) | 12:36 | `kaggle kernels status tiankljucanin/rsna-knee-train`; expect `COMPLETE` ~14:40–15:00 | exactly as the 12:35 entry: pull with `--file-pattern "(oof\|no_match)"`, `kaggle_log.py … "s/study" "epoch" "EMA score"`, then `blend_check.py --cand v08w=…`; accept own ≥ 0.8574−0.02, ρ < 0.80, gain > 0.008; P-26 claim = MCL / Lateral Meniscus each +0.03 vs v05a's 0.795 / 0.818 |
+| **`rsna-knee-eval` v2** | ❌ **ERROR at 12:56** — DataLoader worker OOM-killed (host RAM) 2.5 min into member 2 (`v05b`) after `v05a` scored 0.8621 with mean TTA. Log pulled to `artifacts/kaggle_out/eval_v2/rsna-knee-eval.log`; traps 28; experiments.md P-12 entry. **Do not re-push** — the pod does this measurement | 12:47 | — | — |
+
+Watchers armed **in this session only** (they die with it): pod `chain.log` + `chain2.log` tails over SSH
+(filtered to steps / epochs / errors), and a Kaggle status poll for train v17 + eval v2.
+
+### Where things stand
+
+| | Status |
+|---|---|
+| Best LB / default blend | **0.900** — infer v10, unchanged; 4 submissions left today, nothing submitted |
+| RunPod (P-24) | ✅ **live**: MCP OAuth'd, pod above; ~$0.05 spent so far (two unreachable community pods deleted within 3 min each) |
+| P-12 measurement | ⏳ on the pod (both pools); Kaggle attempt ❌ (traps 28) |
+| P-23 #2 (`v09h`, `v10c`) | ⏳ queued behind the evals on the pod; **order changed to `v10c` first** (the member that decides whether the lane pays; an OOM shows in minutes, and `v09h` is only its 224 probe) |
+| Kaggle GPU quota | ≈ 6 h at session start − 0.2 h (eval v2) − `v08w` (~2 h running) ≈ **3.6 h** after v17 |
+| Docs | `d390b95`: experiments (P-12 first number), traps 28 + 29, P-12 / P-24 cards + index, CLAUDE.md state line |
+| Repo | committed `src/` unchanged (`FORCE_SMOKE = True`, `MODE = "auto"`, `ARMS = [v08w, v09h]`); `kaggle/rsna-knee-eval/rsna-knee-eval.ipynb` and `crazy_good_rsna.ipynb` still untracked |
+| Pod-only files (not in the repo) | `/workspace/launch.sh`, `/workspace/chain2.sh`, `/workspace/pull_c01.sh`, logs `/workspace/{chain,chain2,pull_c01,pull_c01b}.log`; repo copy at `/workspace/RSNA_Knee` = `8aad0c8` with CRLF stripped; `/kaggle → /workspace/kaggle` |
+
+### What we talked about and decided
+
+- **GPU choice** = cost per unit of work, not $/h: A5000 ($0.16) and 3090 ($0.22) are 2–3× slower per
+  dollar-hour than a 4090 ($0.34 community); 48 GB cards cost 2× for ~½ the throughput and `v10c` already
+  has `grad_checkpoint`. Two **community** 4090s turned out to have no public IP and the SSH proxy needs an
+  account-registered key (not doable from the MCP) → **secure 4090 at $0.74/h**; every secure option
+  lands at ≈ $5 per `v10c` (4090 7 h ≈ A40 12 h ≈ A5000 20 h), so wall-clock decided.
+- **One pod, sequential**, not two in parallel: the duplicated 40-min setup is the only saving of
+  sequential, but one point of failure is easier to babysit; `v10c` before `v09h` (see table).
+- **Eval on the pod instead of a Kaggle retry**: the RAM root cause is not visible in the log, a retry
+  costs ~0.5 h of ~3.6 h quota with an unknown fix, and the pod's 503 GB sidesteps it for ~$0.25. The
+  GPU idles ~35 min waiting for the c01 pulls — accepted for getting P-12 today rather than after `v10c`.
+- **Kaggle auth on the pod** = a copy of the local `credentials.json` (OAuth + refresh token), not an API
+  key; the repo was shipped by `git archive | ssh tar -x` so no GitHub credential lives on the pod.
+- Nothing submitted; no pipeline code changed.
+
+### What we figured out
+
+1. **The P-24 runner works end to end on a real pod** after four first-run fixes (CRLF, `bc`, community
+   IP, `pgrep` self-match) — all in traps 29; none needed a code change in `src/`.
+2. **`oof_eval` with several members OOMs Kaggle's host RAM** in member 2 while member 1 is fine (traps 28);
+   per-member memory is small, so it is cross-member accumulation — cause open, workaround = off-Kaggle.
+3. **v05a with (-1, 0, 1)/mean TTA: 0.8621 vs 0.8574** — +0.0047, under the 0.008 floor, 🔁 alone
+   (experiments.md 2026-08-30 P-12 entry). The verdict is the blend, not the member.
+4. Kaggle kernel-output pulls are **~30 MB/s for blobs but ~0.7 files/s for per-study files** — the c02
+   blob design pays off again off-Kaggle; c01 needs parallel shards.
+
+### ⏭ Next action, in order
+
+1. **When `chain2.log` shows `oof_eval focal: N min`** (both pools done, ≈ 14:20 local): pull both csv
+   folders (`scp` line in the table), run `blend_check.py` twice (mean set, focal set) against the four
+   untouched OOF files; decision rule: > 0.008 blend gain → set `INFER_OVERRIDES` for the winning pool in
+   the infer sed line (CLAUDE.md), push `rsna-knee-infer` (smoke first: `FORCE_SMOKE` variant is not
+   possible for infer — check the log for the 9-checkpoint equality line and elapsed h). Log the verdict via
+   `/update` (P-12 card → pointer). No submission without Tian.
+2. **`v08w` (train v17) completes ≈ 15:00**: read rules in the 12:35 entry; then regenerate the committed
+   train notebook `python src/nbgen.py src/kaggle_pipeline.py kaggle/rsna-knee-train/rsna-knee-train.ipynb`.
+3. **`v10c` epoch 0 ≈ 14:20–14:40**: check `s/study` and the OOF; if CUDA OOM → `train_windows` 16 (edit
+   `ARM_V10C` in `/workspace/RSNA_Knee/src/kaggle_pipeline.py` on the pod *and* locally), re-run
+   `bash scripts/runpod_bootstrap.sh train v10c` in a `setsid` shell. When `ship v10c` prints the Dataset:
+   add `tiankljucanin/rsna-knee-ckpt-v10c` to `kaggle/rsna-knee-infer/kernel-metadata.json` and
+   `kaggle/rsna-knee-eval/kernel-metadata.json`, `scp` the `v10c_fold0_oof.csv`, `blend_check.py --cand`.
+4. **Cost guard:** the pod bills until deleted. After `CHAIN2 DONE` (≈ 02:00–04:00 local if all runs),
+   pull `/kaggle/working/*_oof.csv`, `*_best.pt` sizes, and the logs, confirm the two Datasets exist
+   (`kaggle datasets list -m -s rsna-knee-ckpt`), **then `mcp delete-pod 2wend9j0lr7zf3`** (or `stop-pod` to
+   keep the 120 GB volume at ~$0.20/GB-month if another arm is planned). Idle after completion ≈ $0.74/h.
+
+### Open decisions for Tian
+
+- Keep the pod after `v09h` for more arms (5-fold of the winner? `v10c` seeds?) vs delete — ~$18/day if idle.
+- Register the `id_ed25519_work` public key in RunPod account settings → the $0.34 community pods become
+  usable via the SSH proxy (halves the hourly cost next time).
+- Whether the Kaggle `oof_eval` OOM (traps 28) is worth a fix (one member per kernel is the cheap dodge).
+- Unchanged: make `convnext-tiny-224-hf`, `timm-*`, `rsna-knee-ckpt-*` public before a *final* submission;
+  browser items (rules text, radimagenet T&C, Kaggle caps); `crazy_good_rsna.ipynb` keep/delete.
+
+### Things that will bite if forgotten
+
+- **The pod is billing** ($0.74/h) with no auto-terminate; the MCP `create-pod` has no `terminateAfter`.
+- `chain2` moves each pool's csvs into `tta_mean/` / `tta_focal/` because both runs write the same
+  `{v}_fold0_tta_oof.csv` names; the `ship` step copies `*_fold*_oof.csv` — the `_tta_oof` files are not
+  matched by that glob (good), but don't leave them in `/kaggle/working` when shipping.
+- Kaggle token on the pod: access token expired 13:30 local; the CLI refreshes with the refresh token (it
+  did so for the pulls?) — if a `kaggle` command on the pod 401s, re-copy `credentials.json`.
+- `/workspace/chain.log` (original chain, parent killed) still receives the `setup` output; `chain2.log`
+  is the one to read. The original chain's `train v10c` will **not** auto-start (parent killed on purpose).
+- All the traps-29 items when creating a new pod; use `ssh host 'bash -s' <<'EOF'` for remote scripts.
+- The CLAUDE.md note "Kaggle token valid until ~22:30" is the *refresh* horizon; the pod copy shares it.
+
 ## 2026-08-30 (12:35) — 0.936 notebook diagnosed; cache v2 built (0 GPU h); window-attention head, timm hybrids, mixed-geometry inference, TTA/oof_eval and RunPod runner shipped and smoke-green; STOPPED for the go-ahead on `v08w` fold 0
 
 ### ⏳ Still in flight as this was written (12:50, go-ahead given at 12:36)
