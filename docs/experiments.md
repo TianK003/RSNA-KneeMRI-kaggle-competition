@@ -54,7 +54,7 @@ Judge label changes on **coverage** (does the rule fire at all, per language) an
 | 2026-08-30 | **`v08w` fold 0 (train v17)**: DINOv2-S 224 on **c02** (2–98 % band) + window_attn, 24 random windows, 8 ep | gold 0.927 (n=11) · OOF **0.8648** | — | ✅ best single at the time; blend +0.0044 as a fifth member 🔁 |
 | 2026-08-30 | **`v10c` fold 0 (RunPod 4090, 2.9 h)**: CoAtNet-2 @384 on c02 + window_attn | gold 0.913 (n=11) · OOF **0.8641** | — | ✅ member (meniscus specialist, ρ 0.73–0.81); 384 px buys nothing over 224 (v09h) |
 | 2026-08-30 | **`v09h` fold 0 (RunPod 4090, 50 min)**: CoAtNet-1 @224 on c02 + window_attn | gold 0.923 (n=11) · OOF **0.8683** | — | ✅ **best single model**, cheapest strong recipe |
-| 2026-08-30 | **P-23 six-version blend, submission #9 (infer v12)**: #8 set + v08w + v10c | fold-0 proxy **0.8795** | ⏳ | expected ≈ 0.905–0.907 |
+| 2026-08-30 | **P-23 six-version blend, submission #9 (infer v12)**: #8 set + v08w + v10c | fold-0 proxy **0.8795** | **0.909** | ✅ **KEEP: +0.009 over #8 = 1.8× the 0.005 LB floor**; OOF→LB offset +0.0295 (predicted 0.905–0.907, landed 0.909); the c02 band + window-attention recipe carries to the hidden test (Submissions #9) |
 | 2026-08-30 | **P-23 seven-version blend, submission #10 (infer v13)**: #9 set + v09h | fold-0 proxy **0.8820** | ⏳ | within noise of #9 expected (+0.0024 OOF) |
 
 **External reference points** (not ours — for calibrating ambition):
@@ -1067,6 +1067,9 @@ counter-example, now reproduced on our side.
 Submissions: **#9 (infer v12, six versions, OOF 0.8795) and #10 (infer v13, seven versions, OOF 0.8820)** were
 sent 17:08 / 17:37; scores ⏳ (Scoreboard). Expected LB from the +0.02–0.03 offset: ≈ 0.905–0.908.
 
+**Scored 2026-08-30 ≈ 19:00 — #9 = 0.909** (was 0.900): +0.009 = 1.8× the 0.005 LB floor → ✅ the mechanism carries to
+the hidden test; offset +0.0295, inside the +0.02–0.03 band (n=6 calibration points now). #10 (seven versions) ⏳.
+
 ### 2026-08-30 — P-12 slice-offset TTA, measured on the RunPod pod (`oof_eval`, all four c01 members, (-1, 0, 1)): every member up +0.003–0.006 alone, the 4-member blend **+0.0016 mean / +0.0023 focal** (0.8722 → 0.8738 / 0.8745) 🔁 INCONCLUSIVE · not adopted
 
 | member | OOF no TTA | mean TTA | Δ | focal TTA |
@@ -1354,6 +1357,28 @@ still saw `/kaggle/input/rsna-knee-cache-a/`. So this was a platform-wide layout
 
 ---
 
+### 2026-08-30 — Rerun cost of the blend: #9 ≈ 2× #8 per hidden-test study, `v10c` is the expensive member ✅ measured
+
+Read off the infer kernels' placeholder runs (3 studies on a T4, so warm-up inflates the small members) and the
+scoring wall-clock: #8 (infer v10) scored in ≤ 65 min; **#9 (infer v12) took ≈ 1 h 50 min** (17:08 → ≈ 19:00).
+
+| per 100 hidden-test studies | #8 infer v10 | #9 infer v12 | #10 infer v13 |
+|---|---|---|---|
+| DICOM decode passes | 1 (c01, 224 px; 2 s/study) | **2** (c01 + c02 at 336 px) | 2 |
+| 8 c01 checkpoints (v05a 60 s, v05b 21 s, v05g 5×22 s, v06c 96 s) | 287 s | 287 s | 287 s |
+| `v08w` (DINOv2-S, all windows @224) | — | 30 s | 30 s |
+| **`v10c` (CoAtNet-2 @384, 42 windows)** | — | **174 s** | 166 s |
+| `v09h` (CoAtNet-1 @224, all windows) | — | — | 44 s |
+| model total | 287 s | 491 s | 535 s |
+| ≈ total with decode | ≈ 8 min | ≈ 15 min | ≈ 16 min |
+
+Readings: (1) **`v10c` alone costs 60 % of the eight old checkpoints together** for an OOF at parity with `v09h`
+(0.8641 vs 0.8683) — if the LB confirms 384 px buys nothing, dropping it from the default blend cuts the rerun by a
+third; (2) the second decode pass is the other half of the increase — a c02-only blend (every c01 member is
+dominated by its c02 counterpart) would need one pass again; (3) the 9 h rerun cap is far away (≈ 2 h for ~750
+studies implied by #8's ≤ 65 min at 8 min/100), so cost is a budget question, not a risk yet. The `v09h` 5-fold
+adds 4 × 44 s = ~3 min/100 (one vote, five checkpoints).
+
 ## Submissions
 
 ### 2026-08-29 — OOF-vs-teacher predicts the LB, with a +0.02–0.03 offset ✅ KEEP (n=2)
@@ -1418,3 +1443,4 @@ and public LB score, so a public/private divergence can be traced to a specific 
 | 6 | 2026-08-29 | rsna-knee-infer v6 (mounts rsna-knee-train v13 + rsna-knee-folds v4) | `v05g` alone: 5-fold rank-mean, concat + jitter, 4 ep, `best_oof` (= last epoch on every fold) | per-fold 0.843–0.851, pooled 0.8467 | **0.886** | **Fold-ensemble gain = +0.009 over one fold (0.877), 1.8× the LB floor → ✅ folds pay on their own.** Note the OOF→LB offset is **+0.039** here, outside the +0.02–0.03 band: pooled OOF holds each study out once and cannot see the variance reduction of averaging five models, so **the offset rule does not apply to fold ensembles**. |
 | 7 | 2026-08-29 | rsna-knee-infer v8 (same mounts) | P-21 **by-version** blend: `v05a` attn + `v05b` concat-8ep + `v05g` 5-fold concat, one vote per version (`INFER_BLEND="by_version"`) | fold-0 proxy 0.8680 (a+b+g flat-by-version; the flat 7-checkpoint mean would be 0.8611) | **0.896** | **Identical to #5 → 🔁 folds add nothing on top of head diversity** (the fold-0 proxy predicted +0.001). Two things changed vs #5 at once — five concat folds were added *and* the attention head's vote fell from 1/2 to 1/3 — so "zero" may be a small gain cancelled by a small dilution; not worth a submission to disentangle (weight-tuning on the public LB is the documented trap). Infer v7 (flat 7-member) exists but was deliberately not submitted. |
 | 8 | 2026-08-30 | rsna-knee-infer v10 (mounts rsna-knee-train v15 = `v06c`, rsna-knee-folds v4 = `v05g`, Dataset `rsna-knee-ckpt-v05` = `v05a`/`v05b`, Dataset `convnext-tiny-224-hf`) | **P-23**: by-version blend `v05a` attn + `v05b` concat + `v05g` 5-fold + **`v06c` ConvNeXt-T** (first non-DINOv2 member; 8 checkpoints, 4 votes). infer v9 died on the missing ConvNeXt mount (traps 22) | fold-0 proxy 0.8722 (vs 0.8680 for #7; v06c fails the P-23 rule narrowly: ρ 0.848, +0.0043 on this base, 10/12 labels up) | **0.900** | **+0.004 vs 0.896 → 🔁 INCONCLUSIVE by the pre-registered rule** (0.8× the 0.005 LB floor), although it is the best number on the board and lands exactly where fold-0 OOF predicted (0.8722 + the usual +0.028 offset = 0.900; n=5 for the offset now). Read: ConvNeXt-T is a real but *head-like* member — it adds what a third head would, not what a new family should. Default blend going forward = this 4-version one (more members, same score band, safer on private). Next member must change the input geometry (P-23 #2), not the backbone alone |
+| 9 | 2026-08-30 | rsna-knee-infer v12 (Datasets `rsna-knee-ckpt-v05` = `v05a`/`v05b`, `-v05g`, `-v06` = `v06c`, `-v10c`, `timm-coatnet-rmlp-2-rw-384`, `convnext-tiny-224-hf`; `rsna-knee-train` v17 = `v08w`, pinned later that evening as `rsna-knee-ckpt-v08w`) | **P-23 #2 + P-25 + P-26**: #8's four versions + **`v08w`** (DINOv2-S @224 on the **c02** 2–98 % cache with the **window-attention head**) + **`v10c`** (CoAtNet-2 @384, c02, 42 eval windows); 10 checkpoints, 6 votes; the first mixed-geometry submission — two decode-once groups (c01 + c02) in one kernel | fold-0 proxy 0.8795 (+0.0073 vs #8) | **0.909** | **+0.009 vs 0.900 → ✅ KEEP (1.8× the 0.005 LB floor)**; offset +0.0295 (0.8795 + 0.028 predicted 0.9075). First LB evidence that the 0.936 notebook's mechanism — wide band + per-label window attention + hybrid backbone — carries to the hidden test. Rerun cost ≈ 1 h 50 min vs ≤ 65 min for #8 (Infrastructure 2026-08-30 "Rerun cost of the blend") |
