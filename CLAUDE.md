@@ -10,6 +10,11 @@ by **macro ROC-AUC** (unweighted mean of 12 per-label AUCs).
 
 Competition: https://www.kaggle.com/competitions/rsna-knee-abnormality-detection
 
+**State as of 2026-08-30 (morning):** **eight submissions (#8 pending), best public LB 0.896.** Overnight
+P-23 results: **`v06c` ConvNeXt-Tiny is a second family at parity** (fold-0 OOF 0.8562 vs 0.8574 for the best
+DINOv2 head) but with head-like diversity (ρ 0.83, blend +0.006, 10/12 labels up — a narrow reject by the
+pre-registered rule, submitted as #8 to let the LB arbitrate); **`v07s` 16-slices-as-channels DINOv2 is dead
+as built** (OOF 0.74 on all five folds, 4.8 h). GPU quota left this week ≈ 6 h. The 2026-08-29 state follows.
 **State as of 2026-08-29 (night):** **seven submissions, best public LB 0.896** — #5, the P-21
 rank-mean of an attention-head and a concat-head model on one DINOv2-S/14 224 backbone, fold 0,
 OOF 0.8670 (+0.019 LB over the best single model, 3.8× the LB floor). Progression 0.500 → 0.841 →
