@@ -57,6 +57,7 @@ Judge label changes on **coverage** (does the rule fire at all, per language) an
 | 2026-08-30 | **P-23 six-version blend, submission #9 (infer v12)**: #8 set + v08w + v10c | fold-0 proxy **0.8795** | **0.909** | ✅ **KEEP: +0.009 over #8 = 1.8× the 0.005 LB floor**; OOF→LB offset +0.0295 (predicted 0.905–0.907, landed 0.909); the c02 band + window-attention recipe carries to the hidden test (Submissions #9) |
 | 2026-08-30 | **P-23 seven-version blend, submission #10 (infer v13)**: #9 set + v09h | fold-0 proxy **0.8820** | **0.912** | ✅ **best on the board and the default blend** (tie rule: more members); the `v09h` *increment* is **+0.003 vs #9 → 🔁 under the 0.005 floor** (OOF said +0.0024); +0.012 vs #8's 0.900 = 2.4× the floor for the c02 lane as a whole; offset +0.030 (Submissions #10) |
 | 2026-08-30 | **5-fold `v09h` (RunPod chain4, folds 1–4 added to fold 0; 3.4 h, ≈ $2.6)** | pooled OOF **0.8625** · gold-58 0.874 | — | ✅ the ensemble base: +0.016 over `v05g`'s pooled 0.8467; per-fold 0.8546–0.8683; infer v14 mounts all five (one vote) |
+| 2026-08-30 | **Submission #11 (infer v14)**: the #10 blend with `v09h` as **5 folds** (still one vote) | fold-0 proxy 0.8820 · `v09h` pooled 0.8625 | ⏳ | sent 21:55 (ref 55899052), scoring ≈ 2 h 40 min; expected 0.912–0.916 — folds are replicates, so ≤ +0.005 = 🔁 by design; ≥ 0.917 = real gain. Read next session if this one is closed |
 
 **External reference points** (not ours — for calibrating ambition):
 

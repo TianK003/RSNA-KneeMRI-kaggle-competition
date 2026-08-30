@@ -150,7 +150,7 @@ which runs against the full dataset anyway.
 | `data/llm_labels/` | competition-derived | step 5 |
 | `data/sample_dicom/` | 572 MB of competition images | copy, or step in §"sample DICOMs" |
 | `models/` | 180 MB of third-party weights | step 6 |
-| `artifacts/` | regenerable; **embeds StudyInstanceUIDs** | re-run the scripts |
+| `artifacts/` | mostly regenerable; **embeds StudyInstanceUIDs** | re-run the scripts — **except `artifacts/kaggle_out/`**, the pulled run outputs (OOF + per-epoch csvs, logs): the `pod_v09h_5fold/`, `pod_v09h/`, `pod_v10c/` and `eval_pod/` parts came from a RunPod pod **deleted 2026-08-30** and exist nowhere else — **copy that folder to a new machine** (~50 MB without the checkpoints). The checkpoint copies in `ship_v09h_5fold/` / `ckpt_pod/` are re-downloadable from the `rsna-knee-ckpt-*` Kaggle Datasets |
 | `.venv/` | machine-specific | step 2 |
 
 Never commit any of these. `artifacts/` in particular contains `StudyInstanceUID`s and
