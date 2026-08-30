@@ -476,6 +476,11 @@ check `ls -la ~/.kaggle/credentials.json` first; if it is ~12 h old, re-run `kag
 **2 bytes while the run is in flight** — the same blackout as `kernels output` (12e), so the
 mid-run throughput gate is browser-only.
 
+**Addendum 2026-08-30:** once the token has expired, `kaggle auth login` answers *"You are already
+logged-in to Kaggle as [user]. Please use the --force flag to override."* — it checks that a token file
+exists, not that it is valid, while every API call in the same minute says *"Authentication required"*.
+The fix is `kaggle auth login --force`. Cost this morning: ~10 min and one confused exchange.
+
 ### 21. `kaggle datasets create` on Windows: two silent-looking failures
 
 Publishing the ConvNeXt weights (2026-08-29) failed twice before it worked:

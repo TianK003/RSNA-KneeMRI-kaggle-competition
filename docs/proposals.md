@@ -62,7 +62,7 @@ result*, per unit of cost. "Depends on" lists hard blockers only.
 | P-07 | Synovitis ← Effusion back-fill (measured, not adopted) | 🔁 measured on gold; OOF pending | low-medium | done (audit) | P-06 OOF |
 | P-08 | Slices per slot 6 → 12–16, per-plane bands, random offsets | ✅ jitter sub-arm KEEP (**+0.0113 OOF, LB 0.877**) · K sweep 💡 **downgraded** | delivered by jitter; low-medium for K | 0.5 session | P-01 |
 | P-09 | Per-label masked attention head over slots | ✅ KEEP — **+0.0103** at matched 8 ep; mechanism is overfit-resistance, **not** the predicted plane-specialisation | delivered | done | P-01 |
-| P-10 | Second architecture family (HF ConvNeXt-Tiny first; RadImageNet behind a flag) | 🔁 **MEASURED 2026-08-30**: `v06c` own OOF 0.8562 (parity), ρ 0.831, blend +0.0059 (10/12 labels up) — narrow reject by the rule, submitted as #8 to arbitrate; see experiments.md · was: 🔧 implemented, effect pending — arm `v06c` (ConvNeXt-T, concat, jitter, 8 ep, fold 0); smoke pushed 2026-08-29 late; **real run `v06c` = train v15 in flight 2026-08-30** · the 0.936 notebook's own 45-gold panel ranks ConvNeXt-B/L among its *weakest* families (0.875 vs CoAtNet-384 0.9025): `v06c` is a diversity bet — judge it on ρ, not own OOF (research.md §2.7.1) | **high — first P-23 candidate**; judge on ρ < 0.77 vs both heads **and** 3-way fold-0 blend > 0.8670 + 0.008 | ~1.8 h fold-0 arm | P-01, P-04 |
+| P-10 | Second architecture family (HF ConvNeXt-Tiny first; RadImageNet behind a flag) | 🔁 **MEASURED 2026-08-30**: `v06c` own OOF 0.8562 (parity), ρ 0.831, blend +0.0059 (10/12 labels up) — narrow reject by the rule; #8 scored **0.900 (+0.004, 🔁)**; see experiments.md · was: 🔧 implemented, effect pending — arm `v06c` (ConvNeXt-T, concat, jitter, 8 ep, fold 0); smoke pushed 2026-08-29 late; **real run `v06c` = train v15 in flight 2026-08-30** · the 0.936 notebook's own 45-gold panel ranks ConvNeXt-B/L among its *weakest* families (0.875 vs CoAtNet-384 0.9025): `v06c` is a diversity bet — judge it on ρ, not own OOF (research.md §2.7.1) | **high — first P-23 candidate**; judge on ρ < 0.77 vs both heads **and** 3-way fold-0 blend > 0.8670 + 0.008 | ~1.8 h fold-0 arm | P-01, P-04 |
 | P-11 | Resolution 224 vs 336 after the 130 mm crop | 💡 untested · **raised 2026-08-30**: every branch of the 0.936 notebook runs at 336–384 px and its 0.924 single model is 384 px × 64 slices (research.md §2.7.1) | **medium** (was low-medium) — a 336/384 many-slice hybrid is P-23 candidate #2 | 1 session + sharded cache | P-01, P-08 |
 | P-12 | Slice-window TTA (label-safe only) [our hypothesis] | 💡 untested · **raised 2026-08-30**: the 0.936 notebook's DINOv2 branch runs every window position ×2 jittered views with per-label pooling (max for focal labels, mean for diffuse); est. +0.003–0.008 on that branch (research.md §2.7.1) | low-medium (was low) — cheapest item on the list | 0.1 session | P-01 |
 | P-13 | 3 vs 5 folds under a fixed session budget [our hypothesis] | 💡 untested, but **directly supported 2026-08-29**: 5 folds alone +0.009 LB, 5 folds on top of a second head **+0.000** — diversity beats replicates (experiments.md, "First valid 5-fold run", RESOLVED note) | **raised — the next GPU spend is a diverse member, not folds** | 1–2 sessions | P-10 |
@@ -75,7 +75,7 @@ result*, per unit of cost. "Depends on" lists hard blockers only.
 | P-20 | Leave-one-slot-out ablation, T1 slot retirement | 💡 untested | low-medium | 0.1 session | first real model |
 | P-21 | Blend two heads on one backbone as the default ensemble axis | ✅ **KEEP — LB 0.896 (+0.019, 3.8× floor), submission #5**; OOF 0.8670. Head diversity is now the default ensemble axis; see experiments.md | delivered (`INFER_MEMBERS`) | done | P-09 (done) |
 | P-22 | Checkpoint selection on OOF-vs-teacher instead of fixed last epoch | ✅ **MEASURED, policy switched** — +0.0128 split-half for concat, ~0 for attn, gold flat; P-09 becomes a tie. See experiments.md | delivered (`ckpt_policy="best_oof"`) | done | — |
-| P-23 | **Multi-family rank fusion — the ensemble is the product, not a member** | 🔧 **two candidates measured 2026-08-30**: `v06c` strong-but-head-like (submitted #8 to arbitrate), `v07s` 16-ch ❌ dead as built; **raised to #1 on 2026-08-30** (Tian's decision after reading the 0.936 notebook in full: its DINOv2 branch alone is ≈ 0.899 ≈ our 0.896; the other +0.036 is three more families rank-fused on top — research.md §2.7.1) | **very high — the only axis with evidence of +0.03**; per-member acceptance rule: own OOF ≥ best − 0.02, ρ < 0.80 vs the blend, blend gain > 0.008 | 1–2 h fold-0 arm per candidate; 5 folds only for accepted members | P-10 (running), P-11, P-15 |
+| P-23 | **Multi-family rank fusion — the ensemble is the product, not a member** | 🔧 **two candidates measured 2026-08-30**: `v06c` strong-but-head-like → **#8 LB 0.900 (+0.004, 🔁)**, `v07s` 16-ch ❌ dead as built; **raised to #1 on 2026-08-30** (Tian's decision after reading the 0.936 notebook in full: its DINOv2 branch alone is ≈ 0.899 ≈ our 0.896; the other +0.036 is three more families rank-fused on top — research.md §2.7.1) | **very high — the only axis with evidence of +0.03**; per-member acceptance rule: own OOF ≥ best − 0.02, ρ < 0.80 vs the blend, blend gain > 0.008 | 1–2 h fold-0 arm per candidate; 5 folds only for accepted members | P-10 (running), P-11, P-15 |
 
 ---
 
@@ -311,7 +311,7 @@ Depends on: P-01.
 Status: 🔁 **MEASURED 2026-08-30 — see [experiments.md](experiments.md)** ("ConvNeXt-Tiny member `v06c`"):
 own fold-0 OOF **0.8562** (parity with the best DINOv2 head), ρ 0.831 vs the two-head blend, blend gain
 **+0.0059** with 10/12 labels up — fails the pre-registered P-23 thresholds narrowly; submitted anyway as
-#8 on Tian's call to let the LB arbitrate. ConvNeXt-T is a strong *member* but only head-like diversity
+#8 on Tian's call to let the LB arbitrate: **0.900 (+0.004, 🔁 under the floor; best on the board)**. ConvNeXt-T is a strong *member* but only head-like diversity
 at 224/6 slots; the RadImageNet half of this card is still gated on the licence. The card below is kept
 as written. Previous status: 🔧 **implemented 2026-08-29 (late), effect pending** — `Config.backbone` ∈ {`dinov2`,
 `convnext_tiny`}; HF `facebook/convnext-tiny-224` (Apache-2.0, ImageNet-1k, 27.8 M params,
@@ -544,7 +544,8 @@ Depends on: nothing — the per-epoch OOF csvs from v11 and v13 are enough.
 
 ### P-23 Multi-family rank fusion: the ensemble is the product, not a member
 Status: 🔧 **two candidates measured 2026-08-30** (experiments.md): #1 `v06c` ConvNeXt-T — own 0.8562,
-ρ 0.831, blend +0.0059, narrow reject by the rule, LB arbitrating as submission #8; #3 `v07s`
+ρ 0.831, blend +0.0059, narrow reject by the rule; submission #8 scored **0.900 (+0.004, 🔁 under the 0.005
+floor, best on the board)**; #3 `v07s`
 16-channel DINOv2 — ❌ own 0.7366, blend −0.015 (this stem recipe is dead; the representation is not
 disproven). Lesson so far: a member must be *both* strong and differently-shaped; ConvNeXt at the same
 224/6-slot geometry is strong but head-like (ρ 0.77–0.83). Remaining candidates: #2 high-res many-slice

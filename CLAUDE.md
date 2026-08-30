@@ -10,10 +10,12 @@ by **macro ROC-AUC** (unweighted mean of 12 per-label AUCs).
 
 Competition: https://www.kaggle.com/competitions/rsna-knee-abnormality-detection
 
-**State as of 2026-08-30 (morning):** **eight submissions (#8 pending), best public LB 0.896.** Overnight
+**State as of 2026-08-30 (morning):** **eight submissions, best public LB 0.900** (#8, infer v10: the P-21 two-head
+blend + `v05g` 5-fold + **`v06c` ConvNeXt-T**, one vote per version; **+0.004 over 0.896 is 🔁 under the 0.005
+floor**, but it is the default blend now). Overnight
 P-23 results: **`v06c` ConvNeXt-Tiny is a second family at parity** (fold-0 OOF 0.8562 vs 0.8574 for the best
 DINOv2 head) but with head-like diversity (ρ 0.83, blend +0.006, 10/12 labels up — a narrow reject by the
-pre-registered rule, submitted as #8 to let the LB arbitrate); **`v07s` 16-slices-as-channels DINOv2 is dead
+pre-registered rule; #8 = 0.900); **`v07s` 16-slices-as-channels DINOv2 is dead
 as built** (OOF 0.74 on all five folds, 4.8 h). GPU quota left this week ≈ 6 h. The 2026-08-29 state follows.
 **State as of 2026-08-29 (night):** **seven submissions, best public LB 0.896** — #5, the P-21
 rank-mean of an attention-head and a concat-head model on one DINOv2-S/14 224 backbone, fold 0,
@@ -257,8 +259,8 @@ Macro ROC-AUC is invariant to any strictly increasing per-label transform, so:
 ## Where the field is
 
 Public LB on 2026-08-28: **top 0.952**, ranks 2–9 spanning 0.946–0.949 — the top ten inside
-a **0.006 band**, from 2,559 teams. **We are at 0.896** with two heads on one backbone, one fold
-(2026-08-29 evening; 0.877 for the best single model). The Efficiency Prize has its own leaderboard, published
+a **0.006 band**, from 2,559 teams. **We are at 0.900** (2026-08-30: two DINOv2 heads + five concat folds +
+one ConvNeXt-T, one vote per version; 0.877 for the best single model). The Efficiency Prize has its own leaderboard, published
 as a notebook (`ryanholbrook/rsna-knee-abnormalities-efficiency-lb`, readable via
 `kaggle kernels output`); its leader is also top-5 on accuracy, so efficiency is not being
 bought with score.
