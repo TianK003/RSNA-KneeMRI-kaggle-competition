@@ -12,6 +12,27 @@ Tian's instruction at 12:45: "while waiting for Kaggle, check the RunPod MCP and
 cost-efficient progress." The MCP was already OAuth'd (0 pods, $0 spend), so the P-24 runner got its first
 real run — and the Kaggle `oof_eval` crash (12:56) was rerouted onto the same pod instead of spending quota.
 
+### 🔄 Update 14:20 — what changed since 13:10 (read this before the table below)
+
+- **`v08w` fold 0 is done (train v17, COMPLETE 14:08, 1.5 h): OOF 0.8648 — best single model**, gold 0.927, 12/12
+  labels up in the blend, MCL +0.028 vs v05a; but +0.0044 as a fifth blend member (ρ 0.866 → REJECT by the rule),
+  0.8749 replacing v05a. Files: `artifacts/kaggle_out/v17/` (per-epoch OOF csvs + log). Logged: experiments.md
+  2026-08-30 `v08w`, P-25/P-26 cards, CLAUDE.md. **No submission** — expected LB gain is under the 0.005 floor;
+  decide the blend with `v10c` in hand. The `v08w_fold0_best.pt` lives in the train v17 output (not pinned yet).
+- **Kaggle OAuth token expired at 13:30 (3 h lifetime, traps 20 update)**; Tian re-authed at 13:55, the new token
+  dies **16:54**. The two c01 pulls on the pod died silently at 13:30 and were restarted at 13:56 (resume; ≈ 14:45
+  done). The **`ship` steps on the pod will 401 if they run after 16:54** — re-run them by hand after a re-auth +
+  `scp ~/.kaggle/credentials.json root@213.181.111.2:/root/.kaggle/` (or give the pod a non-expiring `kaggle.json`).
+- **Chain reordered → `/workspace/chain3.sh` (pid 4056): `train v10c` → `ship` → `train v09h` → `ship` → P-12 evals
+  (mean, focal) only if c01 is complete**, else `bash /workspace/evals_only.sh` later. Reason: with the token dead
+  the evals' c01 prerequisite had no ETA, and c02 was complete — no idle GPU. `chain2.sh` is dead; `chain.log`
+  holds the setup only.
+- **`v10c` crashed once at ~3,500 studies with `Too many open files`** (`ulimit -n` 1024; traps 29). Relaunched
+  13:52 with `ulimit -n 524288`; run 2 passed the same point. **0.30 s/study → ~18 min train + ~5 min val per
+  epoch → fold 0 ≈ 16:50**, `v09h` ≈ 18:30, evals ≈ 18:50. Progress lines are block-buffered through `tee`
+  (arrive in bursts) — read `/kaggle/working/v10c_fold0_ep*_oof.csv` for per-epoch OOF, not the log.
+- RunPod account SSH key registered (13:17): `ssh root@213.181.111.2 -p 26323 -i ~/.ssh/id_ed25519` works.
+
 ### ⏳ Still in flight as this was written (13:10)
 
 | In flight | What it is | Started | How to check | How to read it |
