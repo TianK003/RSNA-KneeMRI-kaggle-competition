@@ -1067,16 +1067,16 @@ counter-example, now reproduced on our side.
 Submissions: **#9 (infer v12, six versions, OOF 0.8795) and #10 (infer v13, seven versions, OOF 0.8820)** were
 sent 17:08 / 17:37; scores ⏳ (Scoreboard). Expected LB from the +0.02–0.03 offset: ≈ 0.905–0.908.
 
-### 2026-08-30 — P-12 slice-offset TTA, measured on the RunPod pod (`oof_eval`, all four c01 members, (-1, 0, 1)): every member up +0.003–0.006 alone, the 4-member blend **+0.0016** (0.8722 → 0.8738) 🔁 INCONCLUSIVE · not adopted
+### 2026-08-30 — P-12 slice-offset TTA, measured on the RunPod pod (`oof_eval`, all four c01 members, (-1, 0, 1)): every member up +0.003–0.006 alone, the 4-member blend **+0.0016 mean / +0.0023 focal** (0.8722 → 0.8738 / 0.8745) 🔁 INCONCLUSIVE · not adopted
 
 | member | OOF no TTA | mean TTA | Δ | focal TTA |
 |---|---|---|---|---|
-| v05a | 0.8574 | 0.8621 | +0.0047 | ⏳ |
-| v05b | 0.8471 | 0.8532 | +0.0061 | ⏳ |
-| v05g (fold 0) | 0.8508 | 0.8537 | +0.0029 | ⏳ |
-| v06c | 0.8562 | 0.8625 | +0.0063 | ⏳ |
-| **4-member blend** | **0.8722** | **0.8738** | **+0.0016** | ⏳ |
-| 7-member blend (c01 members TTA'd) | 0.8820 | 0.8822 | +0.0002 | ⏳ |
+| v05a | 0.8574 | 0.8621 | +0.0047 | 0.8621 |
+| v05b | 0.8471 | 0.8532 | +0.0061 | 0.8537 |
+| v05g (fold 0) | 0.8508 | 0.8537 | +0.0029 | 0.8538 |
+| v06c | 0.8562 | 0.8625 | +0.0063 | 0.8621 |
+| **4-member blend** | **0.8722** | **0.8738** | **+0.0016** | **0.8745** (+0.0023) |
+| 7-member blend (c01 members TTA'd) | 0.8820 | 0.8822 | +0.0002 | 0.8826 (+0.0006) |
 
 The pattern is exactly what a variance-reduction technique should show: **each single model gains (consistent
 sign, 4/4), the blend does not** — averaging ranks over members already removes the per-view noise that TTA
