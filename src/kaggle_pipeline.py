@@ -176,7 +176,10 @@ MODE = "auto"
 # │ the one validated (traps 6d). Empty -> [cfg.version]. Ignored in "train".│
 # │ Members must share preprocessing geometry; head_type may differ.        │
 # └──────────────────────────────────────────────────────────────────────────┘
-INFER_MEMBERS = ["v05a", "v05b"]        # attn + concat heads, fold 0: OOF 0.8670 rank-mean
+# 2026-08-30: the seven-version default = submission #10, public LB 0.912 (fold-0 proxy OOF 0.8820).
+# #9 without v09h = 0.909; #8 without the three c02 members = 0.900. Every version is a Dataset pin
+# (kaggle/rsna-knee-infer/kernel-metadata.json); v09h picks up folds 1-4 automatically once shipped.
+INFER_MEMBERS = ["v05a", "v05b", "v05g", "v06c", "v08w", "v10c", "v09h"]
 # How members combine. "by_version": rank-mean the folds of each version, then rank-mean the
 # versions -- every version gets one vote, however many folds it has. "flat": one vote per
 # checkpoint. Measured on fold 0 (2026-08-29): attn + concat-8ep + concat-4ep flat = 0.8680,
