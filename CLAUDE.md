@@ -316,6 +316,13 @@ metadata/header scan (CPU)  →  cache build (CPU)  →  train (T4 GPU)  →  su
 The cache-build step is `src/cache_pipeline.py` (P-01 in [docs/proposals.md](docs/proposals.md));
 the training-side loader that reads the cache is the follow-up.
 
+**Training needs only the cache, never the DICOMs** (verified in the loader, 2026-08-30): the two cache
+shards (~21 GB uint8 `.npy` + manifests), the CSVs, the LLM label tables and the backbone weights are the
+whole training input, so a training run can leave Kaggle (free Colab, any GPU box) while **inference must
+stay a Kaggle notebook** (code competition). Checkpoints come back as a private Kaggle Dataset, which the
+infer kernel already resolves. Kaggle GPU quota is **30 h/week per account**; the P-24 card holds the
+no-cost expansion options (2×T4 sessions, Colab runner). A derived cache must stay private.
+
 ## Rules: AI assistance and data handling
 
 **Using Claude Code / AI agents to develop the solution is permitted.** Nothing in Kaggle's

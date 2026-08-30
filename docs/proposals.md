@@ -60,7 +60,7 @@ result*, per unit of cost. "Depends on" lists hard blockers only.
 | P-05 | Laterality normalisation from DICOM geometry | ✅ CONFIRMED — **−0.0147 OOF when removed**, ~1.9× the floor | high — it is ≈ +0.015 of v03's +0.022, i.e. most of the LB gain | done | P-01 |
 | P-06 | Per-label failure analysis + gold_weight {1,3,8} arm + slot-fill census | 🔧 logging shipped · arms 💡 | high (finds the cheapest lever per weak label) | 0.1–0.5 session | — |
 | P-07 | Synovitis ← Effusion back-fill (measured, not adopted) | 🔁 measured on gold; OOF pending | low-medium | done (audit) | P-06 OOF |
-| P-08 | Slices per slot 6 → 12–16, per-plane bands, random offsets | ✅ jitter sub-arm KEEP (**+0.0113 OOF, LB 0.877**) · K sweep 💡 **downgraded** | delivered by jitter; low-medium for K | 0.5 session | P-01 |
+| P-08 | Slices per slot 6 → 12–16, per-plane bands, random offsets | ✅ jitter sub-arm KEEP (**+0.0113 OOF, LB 0.877**) · K sweep 💡 **re-raised 2026-08-30 as P-23 candidate #2a**: `slices_per_slot` 12 from the existing 16-slice cache is the one *input* change that needs no rebuild, after `v06c`/`v07s` showed the missing diversity is in the input, not the backbone | delivered by jitter; low-medium for K | 0.5 session | P-01 |
 | P-09 | Per-label masked attention head over slots | ✅ KEEP — **+0.0103** at matched 8 ep; mechanism is overfit-resistance, **not** the predicted plane-specialisation | delivered | done | P-01 |
 | P-10 | Second architecture family (HF ConvNeXt-Tiny first; RadImageNet behind a flag) | 🔁 **MEASURED 2026-08-30**: `v06c` own OOF 0.8562 (parity), ρ 0.831, blend +0.0059 (10/12 labels up) — narrow reject by the rule; #8 scored **0.900 (+0.004, 🔁)**; see experiments.md · was: 🔧 implemented, effect pending — arm `v06c` (ConvNeXt-T, concat, jitter, 8 ep, fold 0); smoke pushed 2026-08-29 late; **real run `v06c` = train v15 in flight 2026-08-30** · the 0.936 notebook's own 45-gold panel ranks ConvNeXt-B/L among its *weakest* families (0.875 vs CoAtNet-384 0.9025): `v06c` is a diversity bet — judge it on ρ, not own OOF (research.md §2.7.1) | **high — first P-23 candidate**; judge on ρ < 0.77 vs both heads **and** 3-way fold-0 blend > 0.8670 + 0.008 | ~1.8 h fold-0 arm | P-01, P-04 |
 | P-11 | Resolution 224 vs 336 after the 130 mm crop | 💡 untested · **raised 2026-08-30**: every branch of the 0.936 notebook runs at 336–384 px and its 0.924 single model is 384 px × 64 slices (research.md §2.7.1) | **medium** (was low-medium) — a 336/384 many-slice hybrid is P-23 candidate #2 | 1 session + sharded cache | P-01, P-08 |
@@ -76,6 +76,7 @@ result*, per unit of cost. "Depends on" lists hard blockers only.
 | P-21 | Blend two heads on one backbone as the default ensemble axis | ✅ **KEEP — LB 0.896 (+0.019, 3.8× floor), submission #5**; OOF 0.8670. Head diversity is now the default ensemble axis; see experiments.md | delivered (`INFER_MEMBERS`) | done | P-09 (done) |
 | P-22 | Checkpoint selection on OOF-vs-teacher instead of fixed last epoch | ✅ **MEASURED, policy switched** — +0.0128 split-half for concat, ~0 for attn, gold flat; P-09 becomes a tie. See experiments.md | delivered (`ckpt_policy="best_oof"`) | done | — |
 | P-23 | **Multi-family rank fusion — the ensemble is the product, not a member** | 🔧 **two candidates measured 2026-08-30**: `v06c` strong-but-head-like → **#8 LB 0.900 (+0.004, 🔁)**, `v07s` 16-ch ❌ dead as built; **raised to #1 on 2026-08-30** (Tian's decision after reading the 0.936 notebook in full: its DINOv2 branch alone is ≈ 0.899 ≈ our 0.896; the other +0.036 is three more families rank-fused on top — research.md §2.7.1) | **very high — the only axis with evidence of +0.03**; per-member acceptance rule: own OOF ≥ best − 0.02, ρ < 0.80 vs the blend, blend gain > 0.008 | 1–2 h fold-0 arm per candidate; 5 folds only for accepted members | P-10 (running), P-11, P-15 |
+| P-24 | **Compute expansion for $0: 2×T4 `DataParallel` on Kaggle + off-Kaggle (Colab free) runner** | 💡 untested (2026-08-30) — training needs only the 21 GB cache, never the DICOMs; pipeline already resumes per epoch; Google One storage includes no Colab units (verified) | **high** — ~3× experiment rate if both halves hold; unblocks P-23 #2 | (a) 30 lines + 1 arm · (b) ~1 h code, no GPU | P-01 |
 
 ---
 
@@ -243,7 +244,7 @@ If it fails: closed as ❌/🔁 in experiments.md; **do not** try Fracture ← C
 Depends on: P-06 OOF instrumentation (done), P-01 for the student arm.
 
 ### P-08 Slices per slot 6 → 12–16, per-plane bands, random offsets
-Status: **jitter sub-arm ✅ KEEP — see [experiments.md](experiments.md)**, now **LB-confirmed**
+Status: **K sweep re-raised 2026-08-30** as P-23 candidate #2a — `ARMS = [("v08k", {"slices_per_slot": 12, "cache_jitter": True, "epochs": 8})]`, ~2× a normal fold-0 arm (≈ 3.5 h), judged by `src/blend_check.py` against the 4-version blend (ρ < 0.80, gain > 0.008). Rationale in P-23. Jitter half: **jitter sub-arm ✅ KEEP — see [experiments.md](experiments.md)**, now **LB-confirmed**
 (submission #4: **0.877**, a new best, from OOF 0.8528). `cache_jitter` gives
 **+0.0113 OOF against a 0.008 floor**, removes the epoch-2 overfitting turn (train loss *rises*
 to 0.4265 while OOF improves), and lifts **11 of 12 labels with none regressing** — a pattern no
@@ -582,6 +583,10 @@ order by expected diversity ÷ cost:
    MaxViT/CoAtNet-class backbone at 336–384 with K = 12–16 from the 16-slice cache, label attention
    over all windows. Probe first by upsampling the 224 cache (cheap, measures the K/attention part);
    build a 336 cache shard only if the probe clears the floor. Their single-model 0.924 lives here.
+   **Re-scoped 2026-08-30 after `v06c`/`v07s`:** run **2a** first — DINOv2-S with `slices_per_slot` 12 from
+   the existing 16-slice cache (no rebuild, no new weights, ~3.5 h; fits the ~6 h left this week) — because
+   the two runs showed the missing diversity is in the *input*, not the backbone; **2b** (hybrid at 336–384)
+   waits for P-24 compute.
 3. **16-slices-as-channels member** (P-15 re-scoped): `in_chans=16` patch embed on DINOv2-S with a
    slot token — a new input representation with no new cache and no model mirror.
 4. RadImageNet R50 frozen features + attention heads (~0.3 session) — behind the licence gate.
@@ -595,6 +600,42 @@ clears 0.008 — never fitted on gold-58 or the LB.
 If it fails: (every candidate ρ ≥ 0.80 or blend gain < 0.008) the residual gap is single-model
 strength, and the budget goes to P-11/P-08 on DINOv2 alone.
 Depends on: P-10 (running), P-11, P-15; `INFER_MEMBERS` (done, P-21).
+
+### P-24 Compute expansion without paying: 2×T4 on Kaggle, and an off-Kaggle (Colab-free) runner
+Status: 💡 untested — written 2026-08-30 after the overnight runs left ≈ 6 h of the 30 h weekly Kaggle
+quota and Tian ruled out paid GPUs. Two independent halves.
+Hypothesis: (a) A Kaggle **GPU T4 ×2** session is charged to the quota once, so `DataParallel` over two
+studies per step gives ≥ 1.5× training per quota hour at identical OOF. (b) Training needs only the
+**21 GB uint8 cache + CSVs + weights, never the DICOMs**, so the same `src/kaggle_pipeline.py` can train
+on free Colab (T4, ≤ 12 h sessions, unpublished fluctuating quota) with the cache staged from Google
+Drive to the VM's local disk, and only inference stays on Kaggle — roughly doubling weekly T4 hours.
+Origin: our hypothesis (a: Kaggle quota is counted per session — community-sourced, verify on the first
+2×T4 run); verified facts for (b): a Google One storage plan includes **no** Colab compute units, Colab
+Pro is a separate $9.99/100-unit subscription, the free student Colab Pro was US-only and is closed
+(web search 2026-08-30, sources in the 10:30 handoff conversation); Colab free ≈ 12 h max session,
+~90 min idle disconnect, ephemeral disk.
+Evidence: our pipeline already runs as a plain script off-Kaggle (`ON_KAGGLE=False` → `data/`,
+`artifacts/cache_local`, `models/`) and **resumes from `{version}_fold{k}_last.pt` every epoch**, so a
+Colab disconnect costs ≤ 1 epoch (7–11 min), not the run. Throughput is loader-bound (6× fewer forwards
+bought 1.7× in `v07s`), so an off-Kaggle box needs local NVMe + ≥ 8 workers; reading the cache through
+the Drive FUSE mount would be *slower* than Kaggle. Checkpoints return via `kaggle datasets version`
+into a private Dataset, which `find_mounted_checkpoints` already resolves (the `rsna-knee-ckpt-v05` pin
+proved it 2026-08-30).
+Measure: (a) s/study and fold-0 OOF of one 2×T4 arm vs the single-T4 twin (same seed). (b) wall-clock
+of a fold-0 8-epoch DINOv2 arm on Colab vs 1.9 h on Kaggle; number of disconnects/resumes.
+Noise floor: OOF must match within 0.008 (a is a speed change only); speed gain must be ≥ 1.5× to be
+worth the code.
+Cost: (a) ~30 lines + 1 smoke + 1 arm. (b) ~1 h of code, no GPU: env-var paths (`RSNA_CACHE_DIR`,
+`RSNA_DATA_DIR`, `RSNA_MODELS_DIR`), CUDA requirements file, `FORCE_SMOKE` honoured off-Kaggle,
+`num_workers` 8, `colab_bootstrap.ipynb` (mount Drive → copy cache to `/content` → clone → run →
+`kaggle datasets version`); plus turning the two cache outputs into one **private** Kaggle Dataset
+(browser, "create dataset from notebook output"). Rules note: private use of a derived cache on one's
+own compute is ordinary Kaggle practice; it must never be published or shared outside the team.
+If it works: ~3× the current experiment rate for $0; Kaggle's 30 h reserved for smokes, inference and
+2×T4 arms; P-23 candidate #2 (336–384 px hybrid) becomes affordable.
+If it fails: (a) if 2×T4 is charged 2× or DataParallel stalls the loader, drop it; (b) if Colab's
+dynamic quota starves overnight runs, fall back to Kaggle-only with strict fold-0-first discipline.
+Depends on: P-01 cache (done); P-23 for what to run with the hours.
 
 ---
 

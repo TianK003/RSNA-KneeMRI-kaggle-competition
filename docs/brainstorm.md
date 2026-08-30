@@ -35,6 +35,7 @@ entries.
 | ~~Where does the remaining 0.081 to the public top actually come from?~~ | **ANSWERED 2026-08-30** — read a 0.936 notebook cell by cell (research.md §2.7.1): its DINOv2 branch alone is ≈ 0.899, at parity with our 0.896; the other ≈ 0.036 is three more model families rank-fused on top (16-channel ViT, RadImageNet heads, CoAtNet-2@384 at 0.924 alone), and only +0.001 is LB tuning. Within one family we measured heads +0.019, folds +0.000 on top | Answered; the programme is P-23 |
 | **Mount the public checkpoints as blend members, or build our own families?** | Every member of the 0.936 notebook is a public Kaggle dataset (dreaddevelopment `raptor-knee-*`, tonylica repro assets), so mounting them into `INFER_MEMBERS` is legal and probably ~0.93 in one submission; but it makes us a fork of the shared ensemble expected to shake up on private, the members cannot be validated on our folds (their training studies overlap our held-out set), and the datasets' licence fields are unread | Tian's decision; read the dataset pages' licence fields in a browser; P-23 |
 | Licence of `dreaddevelopment/raptor-knee-*` and `tonylica/rsna-knee-bend-dinov3-0917-repro-assets` | Gates mounting them; the notebook that uses them is Apache-2.0 but the checkpoints' terms are set on the dataset pages | Kaggle dataset pages (browser) |
+| **Compute path for the remaining 7 weeks: Kaggle-only (30 h/wk, ≈ 6 h left this week) vs + free Colab vs 2×T4?** | Tian will not pay for GPUs. Verified 2026-08-30: a Google One storage plan carries **no** Colab compute units (Colab Pro is a separate $9.99/100-unit product; the free US-student Colab Pro is closed). Free Colab ≈ another fluctuating T4 pool with ≤ 12 h sessions and idle disconnects — workable only because the pipeline resumes per epoch. Training needs only the 21 GB cache; inference stays on Kaggle | Tian's decision; then P-24 (runner + 2×T4), no GPU needed to build |
 | Is the ≤9 h runtime limit and internet-off rule accurate? | Community-sourced, never read from the rules page | Read the overview/rules pages in a browser |
 | How is the **Efficiency Prize** actually scored? | It is a separate prize we are eligible for; runtime may be worth optimising deliberately | The efficiency-prize evaluation page (JS-rendered, needs a browser) |
 | Does the winner-licence clause tolerate CC-BY-NC-SA weights? | Gates #3 for a *final* submission | Read the rules page |
@@ -61,6 +62,12 @@ counter-example matters as much: three backbones on the *same* input blended to 
 diversity must come from the input representation and pretraining regime (triplets vs 16-channel
 stack vs 384 px / 64 slices vs frozen radiology features), not from swapping the backbone name.
 P-23 is that programme; each candidate is one fold-0 arm judged on ρ and blend gain, never on LB.
+
+**Compute is now the binding constraint in a new way (2026-08-30).** Two P-23 candidates cost 6.7 h and
+left ≈ 6 h for the week. Every remaining candidate that changes the *input* (more slices, 336–384 px, a
+non-linear stack stem) costs 2–5× a normal arm. Without paid GPUs the options are 2×T4 sessions
+(charged once) and free Colab fed from the 21 GB cache — P-24. Our epoch time is loader-bound, not
+GPU-bound (0.19 s/study with 36 forwards, 0.11 with 6), so any new box needs local NVMe + workers.
 
 **Compute is the binding constraint, not ideas.** We have ~55 days and Kaggle session
 limits. That is why #1 and #2 outrank every modelling idea: one makes experiments cheap, the
