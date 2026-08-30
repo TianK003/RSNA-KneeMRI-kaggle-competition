@@ -920,10 +920,10 @@ Also shipped: four private Datasets — `rsna-knee-ckpt-v06` (`v06c_fold0_best.p
 (five folds), `timm-coatnet-rmlp-1-rw-224`, `timm-coatnet-rmlp-2-rw-384` (HF repo files, Apache-2.0) —
 so `rsna-knee-train` / `-folds` can be pushed again without repointing infer v10's mounts (the infer
 metadata now lists the pins and drops `rsna-knee-folds` as a kernel source). Cache kernels
-`rsna-knee-cache2-a..d` launched 12:20 and **ran concurrently** (four CPU sessions at once — verified).
+`rsna-knee-cache2-a..d` launched ~11:50 and **ran concurrently** (four CPU sessions at once — verified).
 **Verdict: ✅ KEEP the code (every local rung green, old members byte-identical); the first real arm is ⏳.**
 
-> **EXTENDED 2026-08-30 13:15 — Kaggle smoke `rsna-knee-train` v16 ✅ green** (FORCE_SMOKE, arms
+> **EXTENDED 2026-08-30 ~12:15 — Kaggle smoke `rsna-knee-train` v16 ✅ green** (FORCE_SMOKE, arms
 > `v08w` + `v09h`, ~2 min GPU): both caches indexed on the T4 kernel — `cache: 4407 studies indexed
 > (c01_…)` **and** `(c02_…)` from the six mounted shards; `manifest from cache: 4407 studies`; `v08w`
 > trained + checkpointed (`auc_soft 0.5208` on 4 val studies — smoke arithmetic, not a result); `v09h`
@@ -931,11 +931,20 @@ metadata now lists the pins and drops `rsna-knee-folds` as a kernel source). Cac
 > head 2)`, trained + checkpointed; per-arm inference through the c02 decode-once group "3 studies
 > rebuilt, identical"; `submission.csv` validated; worker-RNG check unchanged. Smoke s/study (4 studies,
 > 4 windows, warm-up included) is not a throughput measurement — the real `v08w` run returns it.
+>
+> **EXTENDED 2026-08-30 ~12:28 — Kaggle infer smoke `rsna-knee-infer` v11 ✅ green (NOT submitted):**
+> `INFER_MEMBERS = ["v05a","v05b","v05g","v06c","v08w"]` with `INFER_OVERRIDES = {"v05a": (-1,0,1)/mean}` →
+> 9 checkpoints (`v05a`/`v05b` from Dataset `rsna-knee-ckpt-v05`, `v05g` ×5 from `rsna-knee-ckpt-v05g`,
+> `v06c` from `rsna-knee-ckpt-v06`, smoke `v08w` from train v16) in **2 geometry groups**, each decode-once
+> pass "3 studies rebuilt, identical"; v05a with 3 TTA views took 91 s/100 studies vs 21 for a single-view
+> concat member (so 3-view TTA ≈ +70 s per 100 studies per member at K = 6); by-version blend over 5
+> versions; `submission.csv` validated; 0.03 h. The mixed-geometry path and the pins therefore work on
+> Kaggle end to end; infer v10 (the scored 0.900 blend) is unaffected.
 
 ### 2026-08-30 — Cache v2 (`c02`) built: 4,407/4,407 studies, 70 blobs, 35.8 GB, 0 decode failures, 0 GPU h ✅ KEEP
 
 `rsna-knee-cache2-a..d` v1 (CPU, 4 workers, `SHARD = 0..3`, `N_SHARDS = 4`), all four running
-concurrently, launched 12:20 and complete by ~12:45. Version `c02_p336_b18-12-12-14-8-8_band2-98_crop130_lat20`.
+concurrently, launched ~11:50 and complete by ~12:10. Version `c02_p336_b18-12-12-14-8-8_band2-98_crop130_lat20`.
 
 | shard | studies | blobs | GB | wall (build / total) | s/study (wall / CPU) | decode failures |
 |---|---|---|---|---|---|---|

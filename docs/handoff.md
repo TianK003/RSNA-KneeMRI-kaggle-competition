@@ -6,6 +6,121 @@ to read first after a break.
 
 ---
 
+## 2026-08-30 (12:35) — 0.936 notebook diagnosed; cache v2 built (0 GPU h); window-attention head, timm hybrids, mixed-geometry inference, TTA/oof_eval and RunPod runner shipped and smoke-green; STOPPED for the go-ahead on `v08w` fold 0
+
+### ⏳ Still in flight as this was written (12:35) — nothing
+
+`rsna-knee-train` v16 (smoke), `rsna-knee-infer` v11 (smoke, not submitted) and `rsna-knee-cache2-a..d` v1
+are all `COMPLETE`. No background watchers. Kaggle token from 10:28 (`--force`), good until ~22:30.
+GPU spent this session: ≈ 0.1 h (two smokes). **≈ 6 h of quota left this week.**
+
+### Where things stand
+
+| | Status |
+|---|---|
+| Best LB / default blend | **0.900** — infer **v10** (`v05a`+`v05b`+`v05g`+`v06c`), unchanged. 4 submissions left today; nothing was submitted this session |
+| Diagnosis | done — research.md §2.7.1 (+ CORRECTED block): the gap is a 0.924 single model (CoAtNet-2 @384, 64 slices, 2–98 % band, per-label attention over all windows) + input-representation families; our two weakest labels (MCL 0.836, Lateral Meniscus 0.833) are the ones the discarded outer slices carry (experiments.md 2026-08-30 per-label table) |
+| Cache v2 (`c02`, P-26) | ✅ **built**: `rsna-knee-cache2-a..d` v1, 4,407/4,407 studies, 70 blobs, 35.8 GB, 0 decode failures, ~20 min wall, 0 GPU h (experiments.md "Cache v2 built"). c01 kernels untouched |
+| Pipeline (P-25, P-23 #2, P-12, P-24) | ✅ shipped + locally verified + Kaggle smoke-green (train v16, infer v11): `cache_scheme`, `window_mode="random"` + `head_type="window_attn"`, `backbone="timm:*"`, `INFER_CACHE_KEYS`/`INFER_MEMBER_KEYS` geometry groups, `tta_offsets`/`tta_pool`/`INFER_OVERRIDES`, `MODE="oof_eval"`, `RSNA_ARM`/`RSNA_TRAIN_ONLY`/`RSNA_WORKERS`/`RSNA_RUNTIME_H`. **Pre- and post-change inference of the existing members is byte-identical** |
+| Arms defined | `v08w` (DINOv2-S @224, c02, 24 train windows, window_attn, 8 ep) — Kaggle, ~2 h; `v09h` (`timm:coatnet_rmlp_1_rw_224`, RunPod ~4 h); `ARM_V10C` = `v10c` (`timm:coatnet_rmlp_2_rw_384` @384, eval 42 windows, grad_checkpoint; RunPod 6–8 h) |
+| Pins / Datasets | `rsna-knee-ckpt-v06` (`v06c`), `rsna-knee-ckpt-v05g` (5 folds), `timm-coatnet-rmlp-1-rw-224`, `timm-coatnet-rmlp-2-rw-384` — all private, all verified complete. `rsna-knee-train` / `-folds` may now be pushed freely; infer metadata mounts the pins + `rsna-knee-train` only |
+| Local checks | `src/cache_selftest.py` (both schemes bit-identical), `src/window_head_test.py`, `src/kaggle_log.py` (log reader) — all green |
+| Repo | pushed through `26f070c` + this handoff; `crazy_good_rsna.ipynb` still untracked by design; committed `src/` = `FORCE_SMOKE = True`, `MODE = "auto"`, `ARMS = [v08w, v09h]`, `PRIMARY_ARM = "v08w"`, `INFER_MEMBERS = ["v05a","v05b"]`, `INFER_OVERRIDES = {}` |
+
+### What we talked about and decided
+
+- Tian asked what the 0.936 notebook does better and how to reach/surpass it. Answer (this file's
+  12:00 diagnosis, research.md §2.7.1): ensembling *is* the mechanism, but only of members that differ in
+  **input representation**, and their fusion sits on a **0.924 single model** we do not have. Same-geometry
+  backbones (v06c) buy head-like diversity — measured, not assumed.
+- Plan approved (plan file `i-now-want-you-goofy-cake.md`): rebuild the cache first (zero GPU), implement
+  table rows #2/#3/#4 (window head, hybrid probe, CoAtNet-2@384), TTA included, docs via `/update`;
+  verify locally before any GPU. Tian's choices: **our 6 slots with ragged budgets** (not the notebook's 5),
+  **include TTA**, **RunPod** for the heavy members (paid per hour, chosen over free Colab), Kaggle's ~6 h
+  → smokes + `v08w` fold 0.
+- Deviations from the notebook, on purpose: slot embedding + windows kept inside a slot (theirs cross slot
+  boundaries with no slot identity), 130 mm crop / [1, 99] / laterality kept (theirs: 140 mm / [2, 98] /
+  **no laterality**) so one test-time builder serves both caches and our measured +0.015 laterality gain
+  stays; calibrator, clinical residual and gold-tuned weights **not** copied (Rejected table).
+- P-08's K=12 arm (the previous handoff's next step) **withdrawn** — superseded by c02 + random windows.
+- Design review changes adopted: header-offset blob reads (no mmap on the FUSE mount), uint8 + indices
+  through the DataLoader (not float windows), `eval_windows` cap (42 for CoAtNet-2; same value in
+  `oof_eval` and infer), per-arm cache indexing, CACHE vs MEMBER key split, defaults for old checkpoints.
+- Rule kept: **no real run and no submission without Tian's go-ahead** — the session stops here.
+
+### What we figured out
+
+1. **The gap decomposes as 0.899 → 0.920 → 0.935 → 0.936** and their DINO branch equals ours; the missing
+   +0.015 is one strong hybrid at 384/64 slices; the transformer stack's +0.021 is two more input
+   representations (research.md §2.7.1, CORRECTED block for the cell-level facts).
+2. **MCL and Lateral Meniscus are our two worst labels (0.836 / 0.833 OOF)** and ConvNeXt does not move them —
+   the band, not the backbone, is the suspect (experiments.md 2026-08-30 per-label table → P-26).
+3. **The c01 version string never encoded the band**, and the two preprocessing copies had drifted in two
+   places — both latent, both closed (traps 23, 24; `cache_selftest.py`).
+4. Four CPU kernels run concurrently on Kaggle; a 36 GB cache rebuild costs ~20 min wall and no GPU
+   (experiments.md "Cache v2 built"; brainstorm answered).
+5. The refactor left the existing members byte-identical (old-vs-new `submission.csv` diff 0.0) and the
+   mixed-geometry infer runs on Kaggle in 0.03 h for 9 checkpoints (experiments.md Infrastructure entry).
+
+### ⏭ Next action, in order
+
+1. **Go-ahead needed → real `v08w` fold 0 on Kaggle (~2 h of the ~6 h):**
+   ```bash
+   export PYTHONUTF8=1 PYTHONPATH=src
+   sed -e 's/^FORCE_SMOKE = True/FORCE_SMOKE = False/' -e '/^    ("v09h",/d' src/kaggle_pipeline.py > artifacts/train_real.py
+   python src/nbgen.py artifacts/train_real.py kaggle/rsna-knee-train/rsna-knee-train.ipynb
+   kaggle kernels push -p kaggle/rsna-knee-train        # -> v17
+   ```
+   (the `v09h` line is dropped so only `v08w` runs on the T4; `v09h` belongs to RunPod). Read:
+   `kaggle kernels output tiankljucanin/rsna-knee-train -p artifacts/kaggle_out/v17 --file-pattern "(oof|no_match)"`,
+   `python src/kaggle_log.py artifacts/kaggle_out/v17/rsna-knee-train.log "s/study" "epoch" "EMA score"`.
+   First numbers to check: `s/study` on the blob loader (c01 was 0.19; > 0.35 means the FUSE reads bound us),
+   the epoch-0 OOF (v05a's was ~0.78). Then
+   `python src/blend_check.py --base v05a=artifacts/kaggle_out/v13/v05a_fold0_oof.csv v05b=artifacts/kaggle_out/v13/v05b_fold0_oof.csv v05g=artifacts/kaggle_out/folds_v4/v05g_fold0_oof.csv v06c=artifacts/kaggle_out/v15/v06c_fold0_oof.csv --cand v08w=artifacts/kaggle_out/v17/v08w_fold0_oof.csv`.
+   Verdict rule (P-23/P-25/P-26): own OOF ≥ 0.8574 − 0.02, ρ < 0.80, gain > 0.008; **and** per label MCL /
+   Lateral Meniscus vs v05a (0.795 / 0.818 for v05a alone; +0.03 each is the P-26 claim). Afterwards
+   regenerate the committed train notebook: `python src/nbgen.py src/kaggle_pipeline.py kaggle/rsna-knee-train/rsna-knee-train.ipynb`.
+2. **P-12 measurement (~0.5 h GPU), needs a kernel that mounts the caches AND the pins** —
+   `kaggle/rsna-knee-eval/kernel-metadata.json` exists (train's sources + the three ckpt pins; never pushed
+   yet): `sed -e 's/^FORCE_SMOKE = True/FORCE_SMOKE = False/' -e 's/^MODE = "auto"/MODE = "oof_eval"/' -e 's/^INFER_MEMBERS = \[.*\]/INFER_MEMBERS = ["v05a", "v05b", "v05g", "v06c"]/' -e 's/^INFER_OVERRIDES = {}/INFER_OVERRIDES = {v: {"tta_offsets": (-1, 0, 1), "tta_pool": "mean"} for v in ["v05a", "v05b", "v05g", "v06c"]}/' src/kaggle_pipeline.py > artifacts/eval.py`,
+   nbgen → push; a second push with `"tta_pool": "focal"`. Pull `*_tta_oof.csv`, run `blend_check.py` with
+   the four TTA files as `--base` vs the four originals; adopt TTA per member only if the 4-version blend
+   gains > 0.008 (then set `INFER_OVERRIDES` in the infer kernel). Do **not** push `oof_eval` on the
+   `rsna-knee-train` slug — it would repoint `v08w`'s mount.
+3. **RunPod (Tian executes; ~$ per hour):** pod with ≥ 24 GB (4090/A5000) or A100, ≥ 60 GB local disk, a
+   CUDA PyTorch image; `git clone`, `export KAGGLE_USERNAME KAGGLE_KEY`, `bash scripts/runpod_bootstrap.sh setup`
+   (~40 min: CSVs, labels, weights, four c02 shards — check the printed file counts/GB), then
+   `bash scripts/runpod_bootstrap.sh train v09h` (~4 h), `... ship v09h`; then `train v10c` (6–8 h; set
+   `grad_checkpoint` is already on) and `ship v10c`. Add each `rsna-knee-ckpt-<arm>` to
+   `kaggle/rsna-knee-infer/kernel-metadata.json`, pull the `_oof.csv`, `blend_check.py` as above.
+4. Only after a member passes the rule: infer push with the new `INFER_MEMBERS`, then submission on
+   Tian's explicit call.
+
+### Open decisions for Tian
+
+- Go-ahead for `v08w` fold 0 now (≈ 2 h of the ≈ 6 h left this week), and for the P-12 `oof_eval` pass (~0.5 h).
+- RunPod pod size/price; when to run `v09h` (probe) vs going straight to `v10c`.
+- Make `convnext-tiny-224-hf`, the `timm-*` and `rsna-knee-ckpt-*` datasets **public** before any *final*
+  submission relies on them (competition rule).
+- Browser items unchanged: rules text (data off-platform for the RunPod cache; winner licence),
+  radimagenet.com T&C, Kaggle output cap / Dataset size cap / max attached sources.
+- `crazy_good_rsna.ipynb` keep/delete (still untracked).
+
+### Things that will bite if forgotten
+
+- **Do not regenerate `kaggle/rsna-knee-cache-a/-b` notebooks** — `cache_pipeline.py` now defaults to c02
+  (traps 27; done and reverted once today). c02 kernels are `rsna-knee-cache2-{a,b,c,d}`.
+- `python src/cache_selftest.py` before any push touching preprocessing (traps 24); `window_head_test.py`
+  for the window/timm path.
+- The committed `rsna-knee-infer` notebook is the standard `["v05a","v05b"]` variant; the smoke pushed as
+  infer v11 used a sed'd copy — infer v10 remains the scored one.
+- `MODE="oof_eval"` needs the caches mounted; the infer kernel does not mount them (item 2 above).
+- `INFER_OVERRIDES` accepts MEMBER keys only; `eval_windows` must be equal in `oof_eval` and infer.
+- Kaggle `kernels output` of the c02 shards: verify by file count (17–19 blobs + csvs) and GB, never by exit
+  status (traps 14) — `runpod_bootstrap.sh setup` does this.
+- Local clock vs my notes: the docs' "12:20 / 12:45 / 13:15" stamps were written before checking the clock;
+  the real local times were ≈ 11:50 (cache push), ≈ 12:10 (caches done), ≈ 12:15 (train v16), ≈ 12:28 (infer v11).
+
 ## 2026-08-30 (10:45) — Session closed: docs reconciled through `8ca03ea`; P-24 (free compute) written; next GPU spend is P-23 #2a (K=12) on the ~6 h left
 
 Closes the overnight session. The 10:30 entry below holds the results narrative (`v06c` → LB 0.900,

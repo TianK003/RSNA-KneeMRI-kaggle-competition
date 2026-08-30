@@ -705,7 +705,7 @@ Depends on: P-26 (the c02 cache), P-01.
 
 ### P-26 Cache v2 (`c02`): band 2–98 %, ragged budgets 18/12/12/14/8/8, 336 px, 64-study blobs
 Status: 🔧 **built 2026-08-30** — four CPU kernels `rsna-knee-cache2-a..d` (`SHARD = 0..3` sed'd,
-`N_SHARDS = 4`) launched 12:20, all complete by 12:45: **4,407/4,407 studies, 70 blobs, 35.8 GB (8.5–9.5 GB
+`N_SHARDS = 4`) launched ~11:50, all complete by ~12:10: **4,407/4,407 studies, 70 blobs, 35.8 GB (8.5–9.5 GB
 per shard), 0 decode failures, 0 GPU h** (experiments.md "Cache v2 built"); effect pending. Code shipped in `src/cache_pipeline.py`
 (`SCHEME="c02"`, `SCHEME_DEFAULTS`, `build_study_flat`, `write_blob`, sidecars, manifest rebuilt from
 sidecars every run) and `src/kaggle_pipeline.py` (`cache_scheme`, `cache_geom()`, `cache_version_for()`,
