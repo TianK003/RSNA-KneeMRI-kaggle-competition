@@ -6,6 +6,80 @@ to read first after a break.
 
 ---
 
+## 2026-08-30 (10:45) — Session closed: docs reconciled through `8ca03ea`; P-24 (free compute) written; next GPU spend is P-23 #2a (K=12) on the ~6 h left
+
+Closes the overnight session. The 10:30 entry below holds the results narrative (`v06c` → LB 0.900,
+`v07s` dead); this one records the final `/update` pass and the decision state Tian left with.
+
+### ⏳ Still in flight — nothing
+
+`rsna-knee-train` v15, `rsna-knee-stack` v2, `rsna-knee-infer` v10 all `COMPLETE`; submission #8
+scored **0.900**. No kernels running, no background watchers, 4 submissions left today. Kaggle token
+valid until ~22:30 (`kaggle auth login --force` at 10:28).
+
+### Where things stand
+
+| | Status |
+|---|---|
+| Best LB / default blend | **0.900** — infer **v10**, by-version `v05a`+`v05b`+`v05g`+`v06c` (🔁 +0.004 over 0.896, under the 0.005 floor). Submit nothing else without a new member |
+| Backlog head | **P-23** multi-family fusion (#1 `v06c` done, #3 `v07s` ❌, **#2a K=12 next**, #2b 336–384 hybrid needs P-24 compute, #4 RadImageNet licence-gated) · **P-24** compute expansion 💡 (2×T4 + Colab-free runner) |
+| GPU quota | ≈ **6 h** left this week (resets ~2026-09-05) |
+| Pins | `v05a`/`v05b` → Dataset `rsna-knee-ckpt-v05`; `v05g` only in `rsna-knee-folds` v4; `v06c` only in `rsna-knee-train` v15 — **pin `v06c` before the next train push** |
+| Docs | experiments/proposals/traps/brainstorm/CLAUDE.md all reconciled and pushed (`8ca03ea`); `crazy_good_rsna.ipynb` untracked by design |
+
+### What we talked about and decided
+
+- Tian asked for off-Kaggle options; **will not pay for GPUs**; realistic supplement is **free Colab**.
+  Verified by web search: a Google One storage plan carries no Colab compute units; Colab Pro is a separate
+  $9.99/100-unit product; the free US-student Colab Pro is closed. → P-24 card, brainstorm open question.
+- Key design fact recorded in CLAUDE.md: **training needs only the 21 GB cache + CSVs + weights, never
+  the DICOMs**; inference stays a Kaggle notebook; checkpoints return as a private Dataset (proved by the
+  v05 pin). The pipeline already resumes per epoch, which is what makes Colab's disconnects survivable.
+- P-08's K sweep, previously downgraded, is **re-raised as P-23 candidate #2a**: after `v06c` (strong,
+  head-like) and `v07s` (different, weak), the missing diversity is in the *input*; K=12 from the existing
+  16-slice cache is the one input change that needs no rebuild and fits the remaining ~6 h.
+
+### What we figured out
+
+Nothing new was measured in this closing pass; the findings are in the 10:30 entry and experiments.md.
+One operational: Bash heredocs with long Markdown payloads fail to parse in this tool environment —
+write the patch to a `.py` file and run it (used for every docs patch today).
+
+### ⏭ Next action, in order
+
+1. **Pin `v06c`** (no GPU): `kaggle kernels output tiankljucanin/rsna-knee-train -p artifacts/kaggle_out/v15_ckpt --file-pattern "v06c_fold0_best"`,
+   copy into `artifacts/ckpt_pin/rsna-knee-ckpt-v06/` with a `dataset-metadata.json` (title ≤ 50 chars),
+   `cd` into it, `kaggle datasets create -p .` (traps 21), add `tiankljucanin/rsna-knee-ckpt-v06` to
+   `kaggle/rsna-knee-infer/kernel-metadata.json`. Then `rsna-knee-train` may be pushed again.
+2. **P-23 #2a — `v08k`** (~3.5 h of the ~6 h): in `src/kaggle_pipeline.py` set
+   `ARMS = [("v08k", {"slices_per_slot": 12, "cache_jitter": True, "epochs": 8})]`, `PRIMARY_ARM = "v08k"`;
+   `FORCE_SMOKE = True` push first, check `cache: 4407 studies indexed` and `slices/slot 12` in the log; then the
+   sed'd `FORCE_SMOKE = False` push. Read: `kaggle kernels output tiankljucanin/rsna-knee-train -p artifacts/kaggle_out/v16 --file-pattern "(oof|no_match)"`,
+   then `python src/blend_check.py --base v05a=artifacts/kaggle_out/v13/v05a_fold0_oof.csv v05b=artifacts/kaggle_out/v13/v05b_fold0_oof.csv v05g=artifacts/kaggle_out/folds_v4/v05g_fold0_oof.csv v06c=artifacts/kaggle_out/v15/v06c_fold0_oof.csv --cand v08k=artifacts/kaggle_out/v16/v08k_fold0_oof.csv`.
+   Accept on ρ < 0.80 vs the 4-version blend **and** gain > 0.008; expect ~0.38 s/study (2× the triplet count).
+3. **P-24, no GPU, whenever Tian picks the path**: (a) 2×T4 `DataParallel` over `batch_studies=2` — smoke,
+   then one fold-0 arm vs its single-T4 twin (same seed): adopt if ≥ 1.5× faster with OOF within 0.008;
+   (b) the Colab runner (env-var paths, CUDA requirements, `colab_bootstrap.ipynb`) after turning the two
+   cache outputs into one **private** Dataset in the browser.
+4. Log every result with `/update`; a member is submitted only if it passes the P-23 rule, or on Tian's
+   explicit call as with #8.
+
+### Open decisions for Tian
+
+- Compute path (P-24): Colab free + 2×T4, or Kaggle-only.
+- Spend the ~6 h on `v08k` now, or hold them until the compute question is settled.
+- Make `convnext-tiny-224-hf` and the `rsna-knee-ckpt-*` datasets public before any *final* submission.
+- Browser-only items unchanged (rules text, radimagenet.com T&C, public-checkpoint dataset licences,
+  `crazy_good_rsna.ipynb` keep/delete).
+
+### Things that will bite if forgotten
+
+- All items of the 10:30 entry (mount repointing, `--force` login, member weights in infer, Monitor vs
+  10-min Bash waits, committed `src/` is the smoke/`["v05a","v05b"]` configuration, never mount `v07s`).
+- `slices_per_slot` is a **geometry key**: a `v08k` member cannot share a decode-once blend with the K=6
+  members as the infer code stands (`INFER_GEOM_KEYS`); if `v08k` is accepted, the infer loop must apply
+  `slices_per_slot` per member the way it now applies `stack_mode` — the cached array is the same.
+
 ## 2026-08-30 (10:30) — Overnight P-23 read: `v06c` ConvNeXt-T → **LB 0.900** (#8, +0.004 🔁), `v07s` 16-channel dead; nothing running
 
 The overnight session died after launching both runs (the laptop went down), so the chain in the
