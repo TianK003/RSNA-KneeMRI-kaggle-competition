@@ -8,11 +8,18 @@ to read first after a break.
 
 ## 2026-08-30 (12:35) — 0.936 notebook diagnosed; cache v2 built (0 GPU h); window-attention head, timm hybrids, mixed-geometry inference, TTA/oof_eval and RunPod runner shipped and smoke-green; STOPPED for the go-ahead on `v08w` fold 0
 
-### ⏳ Still in flight as this was written (12:35) — nothing
+### ⏳ Still in flight as this was written (12:50, go-ahead given at 12:36)
 
-`rsna-knee-train` v16 (smoke), `rsna-knee-infer` v11 (smoke, not submitted) and `rsna-knee-cache2-a..d` v1
-are all `COMPLETE`. No background watchers. Kaggle token from 10:28 (`--force`), good until ~22:30.
-GPU spent this session: ≈ 0.1 h (two smokes). **≈ 6 h of quota left this week.**
+| In flight | What it is | Started | How to check | How to read it |
+|---|---|---|---|---|
+| **`rsna-knee-train` v17** — arm `v08w` | P-25 + P-26 first real arm: DINOv2-S @224 on the **c02** cache, `window_attn`, 24 train windows, eval all windows, 8 ep, `best_oof`, fold 0 (`v09h` line sed'd out) | 12:36 | `kaggle kernels status tiankljucanin/rsna-knee-train`; expect `COMPLETE` ~14:40–15:00 (≈ 2 h; guard 8.3 h). Then `kaggle kernels output tiankljucanin/rsna-knee-train -p artifacts/kaggle_out/v17 --file-pattern "(oof\|no_match)"` and `python src/kaggle_log.py artifacts/kaggle_out/v17/rsna-knee-train.log "s/study" "epoch" "EMA score"` | `s/study` on the blob loader (c01 members: 0.19; > 0.35 = FUSE-bound); epoch-0 OOF (v05a: ~0.78); then `python src/blend_check.py --base v05a=artifacts/kaggle_out/v13/v05a_fold0_oof.csv v05b=artifacts/kaggle_out/v13/v05b_fold0_oof.csv v05g=artifacts/kaggle_out/folds_v4/v05g_fold0_oof.csv v06c=artifacts/kaggle_out/v15/v06c_fold0_oof.csv --cand v08w=artifacts/kaggle_out/v17/v08w_fold0_oof.csv`. Accept: own ≥ 0.8574−0.02, ρ < 0.80, gain > 0.008; **P-26 claim = MCL / Lateral Meniscus each +0.03 vs v05a's 0.795 / 0.818**. Suspicious: OOF plateau < 0.80 (window head not learning), or `s/study` > 0.5 (loader) |
+| **`rsna-knee-eval` v2** — `oof_eval`, TTA `(-1,0,1)` / **mean** | P-12 measurement: v05a, v05b, v05g (fold 0), v06c re-scored on their 882 held-out studies with 3 slice-offset views | 12:47 | `kaggle kernels status tiankljucanin/rsna-knee-eval`; expect ~35–45 min. Then `kaggle kernels output tiankljucanin/rsna-knee-eval -p artifacts/kaggle_out/eval_v2 --file-pattern "(tta_oof\|no_match)"` | `python src/blend_check.py --base v05a=artifacts/kaggle_out/eval_v2/v05a_fold0_tta_oof.csv v05b=…/v05b_fold0_tta_oof.csv v05g=…/v05g_fold0_tta_oof.csv v06c=…/v06c_fold0_tta_oof.csv` vs the untouched base (0.8722 for the 4-version blend): TTA is adopted per member only if the 4-version blend gains > 0.008; each member's own OOF vs its original (v05a 0.8574, v05b 0.8471, v05g 0.8508, v06c 0.8562). **Then push `artifacts/eval_real_focal.py`** the same way (eval v3) and compare mean vs focal. Suspicious: a member *dropping* > 0.008 (offset views off the trained centres) |
+
+Smoke pushes done first: train v16, infer v11, eval v1 (new slug: mounts found at `/kaggle/input/notebooks/…`,
+both caches indexed) — all green. Kaggle token from 10:28 (`--force`), good until ~22:30. GPU spent so far
+≈ 0.15 h; the two runs above will use ≈ 2.7 h of the ≈ 6 h. Monitors armed in this session only.
+RunPod: the Claude Code plugin `runpod@runpod` 1.2.0 is installed and enabled; Tian is creating the account
+and must do `/reload-plugins` and `/mcp → runpod → Sign in` before pods can be driven from here.
 
 ### Where things stand
 
