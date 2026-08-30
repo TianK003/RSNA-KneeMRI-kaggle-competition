@@ -23,9 +23,7 @@
     "tiankljucanin/rsna-knee-ckpt-v09h",
     "tiankljucanin/rsna-knee-ckpt-v08w"
   ],
-  "kernel_sources": [
-    "tiankljucanin/rsna-knee-train"
-  ],
+  "kernel_sources": [],
   "competition_sources": [
     "rsna-knee-abnormality-detection"
   ],
