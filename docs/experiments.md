@@ -57,7 +57,7 @@ Judge label changes on **coverage** (does the rule fire at all, per language) an
 | 2026-08-30 | **P-23 six-version blend, submission #9 (infer v12)**: #8 set + v08w + v10c | fold-0 proxy **0.8795** | **0.909** | ✅ **KEEP: +0.009 over #8 = 1.8× the 0.005 LB floor**; OOF→LB offset +0.0295 (predicted 0.905–0.907, landed 0.909); the c02 band + window-attention recipe carries to the hidden test (Submissions #9) |
 | 2026-08-30 | **P-23 seven-version blend, submission #10 (infer v13)**: #9 set + v09h | fold-0 proxy **0.8820** | **0.912** | ✅ **best on the board and the default blend** (tie rule: more members); the `v09h` *increment* is **+0.003 vs #9 → 🔁 under the 0.005 floor** (OOF said +0.0024); +0.012 vs #8's 0.900 = 2.4× the floor for the c02 lane as a whole; offset +0.030 (Submissions #10) |
 | 2026-08-30 | **5-fold `v09h` (RunPod chain4, folds 1–4 added to fold 0; 3.4 h, ≈ $2.6)** | pooled OOF **0.8625** · gold-58 0.874 | — | ✅ the ensemble base: +0.016 over `v05g`'s pooled 0.8467; per-fold 0.8546–0.8683; infer v14 mounts all five (one vote) |
-| 2026-08-30 | **Submission #11 (infer v14)**: the #10 blend with `v09h` as **5 folds** (still one vote) | fold-0 proxy 0.8820 · `v09h` pooled 0.8625 | ⏳ | sent 21:55 (ref 55899052), scoring ≈ 2 h 40 min; expected 0.912–0.916 — folds are replicates, so ≤ +0.005 = 🔁 by design; ≥ 0.917 = real gain. Read next session if this one is closed |
+| 2026-08-30 | **Submission #11 (infer v14)**: the #10 blend with `v09h` as **5 folds** (still one vote) | fold-0 proxy 0.8820 · `v09h` pooled 0.8625 | **0.913** | 🔁 **as an increment, exactly as pre-registered** — +0.001 over #10 is 0.2× the 0.005 LB floor, and the rule written before sending was "0.912–0.916 = 🔁 by design, ≥ 0.917 = real". Folds are replicates inside one vote of seven, so this is confirmation, not disappointment. **Best on the board → the default blend** (it can only match or beat #10's members). Read 2026-09-03 (Submissions #11) |
 
 **External reference points** (not ours — for calibrating ambition):
 
@@ -1130,6 +1130,10 @@ skipped, `_best.pt` untouched). ≈ 50 min/fold at 0.09 s/study; chain4 16:03–
   folds alone is below the floor (folds are replicates: `v05g`'s five folds bought +0.009 as a *lone* version, and
   less inside a 7-vote blend), so no submission was spent on it; it firms up the best member for the private set
   and gives `v09h` a full-corpus OOF — the target P-17 self-training needs.
+- **MEASURED 2026-09-03 (a submission *was* spent on it that evening, Tian's call — #11):** LB **0.913**,
+  **+0.001** over #10's 0.912. The prediction above was right to 0.004 and the verdict is unchanged: 🔁 as an
+  increment, ✅ as the default blend. So the fold-count question is closed on the LB too — inside a seven-vote
+  blend, five folds of the best member are worth ~+0.001 (Submissions #11, and P-13's index row).
 
 ## Infrastructure
 
@@ -1474,6 +1478,17 @@ this recipe is the cheapest standing claim on part of it.
 > to the public top (0.952) is 0.056.
 
 
+> **EXTENDED 2026-09-03 — eighth point, submission #11, and the first one where the offset rule is
+> *expected* to break.** The #10 blend with `v09h` as five folds: fold-0 proxy **0.8820** → LB **0.913**,
+> offset **+0.031** — just outside the +0.020…+0.030 band that held for seven straight submissions. This is
+> the #6 mechanism, not a new one: the proxy OOF holds each study out once and therefore cannot see the
+> variance reduction of rank-meaning five folds, so **the offset rule does not apply to a blend whose member
+> count changed without its OOF changing** (`v05g` alone showed +0.039 for the same reason). Read the other
+> way round: the OOF was *unchanged* at 0.8820 while the LB moved +0.001, i.e. the folds bought a real but
+> sub-floor amount that the proxy could not price. Nothing to adopt or drop — the seven-version blend with
+> five `v09h` folds is the default, and the +0.02–0.03 offset stays usable only for blends compared at
+> equal fold counts.
+
 Log every submission here with the exact kernel version, config diff, OOF score,
 and public LB score, so a public/private divergence can be traced to a specific change.
 
@@ -1489,3 +1504,4 @@ and public LB score, so a public/private divergence can be traced to a specific 
 | 8 | 2026-08-30 | rsna-knee-infer v10 (mounts rsna-knee-train v15 = `v06c`, rsna-knee-folds v4 = `v05g`, Dataset `rsna-knee-ckpt-v05` = `v05a`/`v05b`, Dataset `convnext-tiny-224-hf`) | **P-23**: by-version blend `v05a` attn + `v05b` concat + `v05g` 5-fold + **`v06c` ConvNeXt-T** (first non-DINOv2 member; 8 checkpoints, 4 votes). infer v9 died on the missing ConvNeXt mount (traps 22) | fold-0 proxy 0.8722 (vs 0.8680 for #7; v06c fails the P-23 rule narrowly: ρ 0.848, +0.0043 on this base, 10/12 labels up) | **0.900** | **+0.004 vs 0.896 → 🔁 INCONCLUSIVE by the pre-registered rule** (0.8× the 0.005 LB floor), although it is the best number on the board and lands exactly where fold-0 OOF predicted (0.8722 + the usual +0.028 offset = 0.900; n=5 for the offset now). Read: ConvNeXt-T is a real but *head-like* member — it adds what a third head would, not what a new family should. Default blend going forward = this 4-version one (more members, same score band, safer on private). Next member must change the input geometry (P-23 #2), not the backbone alone |
 | 9 | 2026-08-30 | rsna-knee-infer v12 (Datasets `rsna-knee-ckpt-v05` = `v05a`/`v05b`, `-v05g`, `-v06` = `v06c`, `-v10c`, `timm-coatnet-rmlp-2-rw-384`, `convnext-tiny-224-hf`; `rsna-knee-train` v17 = `v08w`, pinned later that evening as `rsna-knee-ckpt-v08w`) | **P-23 #2 + P-25 + P-26**: #8's four versions + **`v08w`** (DINOv2-S @224 on the **c02** 2–98 % cache with the **window-attention head**) + **`v10c`** (CoAtNet-2 @384, c02, 42 eval windows); 10 checkpoints, 6 votes; the first mixed-geometry submission — two decode-once groups (c01 + c02) in one kernel | fold-0 proxy 0.8795 (+0.0073 vs #8) | **0.909** | **+0.009 vs 0.900 → ✅ KEEP (1.8× the 0.005 LB floor)**; offset +0.0295 (0.8795 + 0.028 predicted 0.9075). First LB evidence that the 0.936 notebook's mechanism — wide band + per-label window attention + hybrid backbone — carries to the hidden test. Rerun cost ≈ 1 h 50 min vs ≤ 65 min for #8 (Infrastructure 2026-08-30 "Rerun cost of the blend") |
 | 10 | 2026-08-30 | rsna-knee-infer v13 (#9's mounts + Dataset `rsna-knee-ckpt-v09h` = `v09h` fold 0, `timm-coatnet-rmlp-1-rw-224`) | **P-23 #2a**: #9's six versions + **`v09h`** (CoAtNet-1 @224 on c02, window-attention head, all windows at eval — the best single model, fold-0 OOF 0.8683); 11 checkpoints, 7 votes, three c02 members in one decode group | fold-0 proxy 0.8820 (+0.0024 vs #9) | **0.912** | **+0.003 vs #9 → 🔁 INCONCLUSIVE as an increment** (0.6× the 0.005 floor; the OOF predicted exactly this), **+0.012 vs #8 → ✅ for the c02 lane (2.4× the floor)**. Best number on the board → **default blend = these seven** (pre-registered tie rule: more members, more robust privately). Offset +0.030; seven calibration points now sit in +0.020…+0.030. Scoring took ≈ 2 h 10 min (17:37 → ≈ 19:45), as the cost table predicted. Next LB move needs a member with ρ < 0.80 vs this blend, i.e. a new input representation (P-23 #3/#4) or P-17 |
+| 11 | 2026-08-30 (read 2026-09-03) | rsna-knee-infer v14 (#10's mounts; `rsna-knee-ckpt-v09h` re-versioned to 5 folds + `rsna-knee-ckpt-v08w` pin) | **the #10 blend with `v09h` as 5 folds instead of 1** (15 checkpoints, still 7 votes — `INFER_BLEND="by_version"`); no config change to any other member, two decode groups as in #10 | fold-0 proxy 0.8820 (unchanged — pooled `v09h` OOF 0.8625) | **0.913** | **+0.001 vs #10 → 🔁 INCONCLUSIVE, and pre-registered as such** (the rule set before sending: 0.912–0.916 = 🔁 because folds are replicates; ≥ 0.917 = a real fold-ensemble gain). Consistent with #6/#7: `v05g`'s five folds bought +0.009 as a *lone* version and +0.000 inside a blend — here, inside one vote of seven, they buy +0.001. **Best number on the board, so it stays the default blend**; the value is robustness on private, not public LB. Offset vs the fold-0 proxy is **+0.031** (n=8), a touch above the +0.020–0.030 band — expected, since a pooled/fold-0 proxy cannot see the variance reduction of averaging five models (the #6 lesson). Ref 55899052; scored ≈ 2 h 40 min as the rerun-cost table predicted |

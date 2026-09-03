@@ -602,3 +602,39 @@ Five things that each cost one round trip on the first RunPod run:
   epoch's `N studies in` lines landed at once), so an empty log is not a hung run — check `nvidia-smi`, the
   per-epoch `{arm}_fold0_ep*_oof.csv` in `/kaggle/working`, or launch with `PYTHONUNBUFFERED=1`.
 - **Never overwrite a script a running bash is executing** (2026-08-30, chain4): replacing `scripts/runpod_bootstrap.sh` in place (`ssh … cat > file`) while its old copy was inside the `train` step made that bash re-read its next command from the shifted byte offset when `python` returned — the step exited non-zero and chain4 printed a spurious `!! train v09h FAILED` (training itself had completed, all five folds `"completed": true`). Harmless here only because `python | tee` was the last real command of the step. **Do:** write to a temp file and `mv` over the target — a rename keeps the running bash on the old inode; truncate-in-place does not.
+
+### 30. On a *new* machine the local smoke does not train — `MODE="auto"` resolves to `infer` and exits
+
+Found 2026-09-03 while bootstrapping Tian's new laptop. `python src/kaggle_pipeline.py` (the setup.md
+verification step, and the pre-push gate of hard constraint 5) never trained anything:
+
+```
+MODE=infer  mounted best: [0]  mounted last: [0]
+MODE=infer but no v05g_fold*_best.pt is mounted (INFER_MEMBERS=['v05a', ..., 'v09h']).
+```
+
+Locally `find_mounted_checkpoints` searches **`artifacts/kaggle_out`** (depth 4), and the migration
+checklist tells you to copy exactly that folder — which still holds `v01_fold0_best.pt`,
+`v8/v03_fold0_best.pt`, `v13/v05a_fold0_best.pt` and friends from pulled kernel outputs. `cfg.version` is
+`v03`, whose checkpoint is right there, so the `"auto"` rule (`infer` iff every configured fold has a
+checkpoint) picks **infer**, and the seven-member `INFER_MEMBERS` guard then aborts because the other six
+pins are not mounted locally.
+
+**This fails loudly, which is why it is Tier 3 and not Tier 1** — the guard is doing its job (traps 6d:
+the blend must never silently shrink). The cost is only confusion: it reads like a broken install on a
+machine where nothing is broken.
+
+**Do:** run the local smoke from a sed'd copy, the same pattern the infer kernel uses —
+
+```bash
+sed 's/^MODE = "auto"/MODE = "train"/' src/kaggle_pipeline.py > artifacts/smoke_train.py
+PYTHONUTF8=1 PYTHONPATH=src python artifacts/smoke_train.py
+```
+
+Green output to look for: `MODE=train`, both caches indexed (`cache: N studies indexed (c01_…)` **and**
+`(c02_…)`), an `arm v08w` and an `arm v09h` banner, `decode-once verified … identical`, and
+`wrote … submission.csv … constant labels 0`. Do **not** "fix" it by clearing `artifacts/kaggle_out` —
+those pulled OOF csvs and pod logs are the only copies (setup.md), and the pod is deleted. Deleting
+`artifacts/local_run/*.pt` (traps 19) is *not* sufficient either: `kaggle_out` alone triggers it.
+Related: 19 (a local smoke that resumes and trains nothing), 27 (`find_mounted_checkpoints` searches
+`WORK` only under an explicit `infer`/`oof_eval`), 12d (a real-mode default smoke mode cannot reveal).

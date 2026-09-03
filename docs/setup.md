@@ -31,6 +31,22 @@ pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
 pip install -r requirements.txt
 ```
 
+⚠️ **On Python 3.11 the pin list does not resolve, and the failure is at the end of a long backtrack.**
+`requirements.txt` was pinned on 3.13: `numpy==2.5.2` requires ≥ 3.12, so `pip install -r requirements.txt`
+ends in `No matching distribution found for numpy==2.5.2` — and pinning `pandas==3.0.5` while numpy is
+capped makes pip backtrack for many minutes before saying so. Verified 2026-09-03 on Tian's laptop
+(Python 3.11.6): install the rest at their exact pins and leave **two** off-pin —
+
+```bash
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu   # gives 2.14.0+cpu on cp311
+pip install kaggle==2.2.4 pandas pydicom==3.0.2 timm==1.0.28 transformers==5.16.1 \
+            langdetect==1.0.9 "scikit-learn>=1.5"                                # pandas resolves to 3.0.5
+```
+
+numpy lands at 2.4.6 and torch at 2.14.0+cpu instead of 2.5.2 / 2.13.0; everything else is the pinned
+version. **The deviation is verified harmless** — step 7's checks all pass, including the machine-independent
+0.8948. If you want the pins literally, install Python 3.13 and rebuild `.venv`.
+
 ## 3. Kaggle authentication
 
 ```bash
@@ -95,14 +111,30 @@ kaggle datasets download marwanmath/resnet-50-radimagenet-marwan \
   -p models/radimagenet_r50 --unzip
 ```
 
+**Also pull the three own-account weight Datasets** (~530 MB) — the default member recipe is a CoAtNet
+hybrid, so without these `window_head_test.py` skips three of four backbones and no local smoke of
+`v09h` / `v10c` / `v06c` can run. The destination directory names are what `BACKBONES` probes:
+
+```bash
+kaggle datasets download tiankljucanin/convnext-tiny-224-hf        -p models/convnext_tiny            --unzip -q
+kaggle datasets download tiankljucanin/timm-coatnet-rmlp-1-rw-224  -p models/coatnet_rmlp_1_rw_224    --unzip -q
+kaggle datasets download tiankljucanin/timm-coatnet-rmlp-2-rw-384  -p models/coatnet_rmlp_2_rw_384    --unzip -q
+```
+
 ## 7. Verify the install
 
 ```bash
 export PYTHONUTF8=1 PYTHONPATH=src
 python src/build_targets.py         # should print teacher gold macro-AUC 0.8948 (blend)
 python src/label_audit.py           # label audit -> artifacts/label_audit.md (langdetect optional)
-python src/kaggle_pipeline.py       # local CPU smoke run
+python src/cache_selftest.py        # builder vs on-the-fly, both schemes, bit for bit
+python src/window_head_test.py      # windows, WindowAttnHead, all four backbones offline
 python src/cache_pipeline.py        # local smoke of the cache kernel (serial on Windows)
+
+# the end-to-end smoke needs MODE="train" sed'd in on a machine that copied artifacts/kaggle_out,
+# or "auto" finds the pulled v03 checkpoint and exits in infer mode (traps 30)
+sed 's/^MODE = "auto"/MODE = "train"/' src/kaggle_pipeline.py > artifacts/smoke_train.py
+python artifacts/smoke_train.py
 ```
 
 `build_targets.py` is the strongest check: it must report **teacher gold macro-AUC 0.8948**
@@ -132,8 +164,13 @@ If you must re-download it, go sequential with backoff and **verify by file coun
 status** — the API returns exit code 0 on a 429:
 
 ```bash
-find data/sample_dicom -name '*.dcm' -size +0 | wc -l    # want 557
+find data/sample_dicom -name '*.dcm' -size +0 | wc -l    # want 557; we have 459 (see below)
 ```
+
+**What we actually have is 459 files / 525 MB, and that is the expected count, not a bad copy** (re-verified
+2026-09-03 on the new laptop): the 98 missing files are 3 whole series of study 3, left empty by the 429
+stall above. Both `cache_selftest.py` and the local smoke pass on the 3 studies regardless — study 3 simply
+comes out at 2 of 6 slots (mask `100100`). Only chase 557 if a check starts needing those three series.
 
 You can work without it: `build_targets.py`, all report/CSV analysis, and notebook authoring
 need no images at all. Only the local *smoke* run and `dicom_probe.py` do, and both are
