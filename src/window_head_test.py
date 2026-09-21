@@ -113,6 +113,31 @@ def main():
             f = model.encode(x)
             check(f.shape == (2, model.dim), f"{bb}: encode {tuple(x.shape)} -> {tuple(f.shape)}")
 
+    print("\n== train_all / swa (P-28)")
+    import pandas as pd
+    a = {"w": torch.tensor([0.0, 2.0]), "n": torch.tensor(3, dtype=torch.int64), "h": torch.tensor([1.0], dtype=torch.float16)}
+    b = {"w": torch.tensor([2.0, 4.0]), "n": torch.tensor(7, dtype=torch.int64), "h": torch.tensor([3.0], dtype=torch.float16)}
+    avg = K["average_state_dicts"]([a, b])
+    check(torch.equal(avg["w"], torch.tensor([1.0, 3.0])) and int(avg["n"]) == 7
+          and avg["h"].dtype == torch.float16 and float(avg["h"]) == 2.0,
+          f"average_state_dicts: floats averaged {avg['w'].tolist()}, int copied from last {int(avg['n'])}, fp16 kept")
+    fake = pd.DataFrame({"StudyInstanceUID": [f"s{i}" for i in range(10)],
+                         "fold": [0, 1, 2, 3, 4, 0, 1, 2, 3, 4],
+                         "is_gold": [1, 0, 0, 1, 0, 0, 0, 1, 0, 0]})
+    cfg_all = Config(train_all=True, ckpt_policy="last", swa_last=3)
+    tr, va = K["split_studies"](fake, 0, cfg_all)
+    check(len(tr) == 7 and set(va) == {"s0", "s3", "s7"} and not set(tr) & set(va) and set(tr) | set(va) == set(fake.StudyInstanceUID),
+          f"split_studies train_all: train {len(tr)} non-gold, val {sorted(va)} gold, disjoint, complete")
+    tr0, va0 = K["split_studies"](fake, 0, Config())
+    check(set(va0) == {"s0", "s5"} and len(tr0) == 8, "split_studies fold 0 keeps the old fold split")
+    check(cfg_all.folds == (0,) and cfg_all.swa_last == 1,
+          f"Config(train_all, swa_last=3) -> folds {cfg_all.folds}, swa_last clamped to epochs -> {cfg_all.swa_last} (smoke)")
+    try:
+        Config(train_all=True)
+        check(False, "Config(train_all=True) with best_oof must raise")
+    except SystemExit:
+        check(True, "Config(train_all=True) with ckpt_policy=best_oof raises SystemExit")
+
     print("\n== forward_windows on the local c02 blob")
     local = os.path.join("artifacts", "cache_local", K["cache_version_for"](c02))
     side = [f for f in sorted(os.listdir(local)) if f.endswith(".csv")] if os.path.isdir(local) else []

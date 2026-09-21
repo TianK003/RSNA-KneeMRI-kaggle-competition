@@ -78,6 +78,8 @@ result*, per unit of cost. "Depends on" lists hard blockers only.
 | P-23 | **Multi-family rank fusion — the ensemble is the product, not a member** | ✅ **LB 0.913 — submission #11 (read 2026-09-03): the #10 blend with `v09h` as 5 folds, +0.001 🔁 as pre-registered, now the default; before it, LB 0.912 — submission #10 (2026-08-30 ≈ 19:45): the seven-version blend (#8's four + `v08w` + `v10c` + `v09h`) is the default; #9 (six versions) = 0.909; +0.012 over 0.900 for the c02 lane (2.4× the floor), the `v09h` increment +0.003 🔁** (experiments.md Submissions #9/#10); **5-fold `v09h` done (pooled OOF 0.8625 = +0.016 over `v05g`; `rsna-knee-ckpt-v09h` = 5 folds; infer v14)** · ✅ **#2b `v10c` measured 2026-08-30 (RunPod, 2.9 h): OOF 0.8641 = parity with `v08w`, lowest ρ of any member (0.73–0.81), meniscus specialist (LatMen 0.858 / MedMen 0.922); 6-member blend 0.8795 = +0.0073 over the LB blend** (experiments.md 2026-08-30 `v10c`); **#2a `v09h` (CoAtNet-1 @224, 50 min) = 0.8683, the best single**; 7-member blend 0.8820 (+0.0024, 🔁) — the three c02/window-attn arms are one family (ρ 0.84); **next: 5-fold `v09h` (~4 h, ≈ $3 — 384 px bought nothing, so no 12-epoch `v10c`)**, then a new *input representation* (#3/#4) or P-17 self-training on the multi-family OOF; the ⭐ synthesis is experiments.md 2026-08-30 "What made the 0.936 notebook good" · earlier: two candidates measured 2026-08-30: `v06c` strong-but-head-like → **#8 LB 0.900 (+0.004, 🔁)**, `v07s` 16-ch ❌ dead as built; **raised to #1 on 2026-08-30** (research.md §2.7.1) · **afternoon: candidate #2 implemented** — `v09h` (`timm:coatnet_rmlp_1_rw_224` probe, RunPod ~4 h) and `v10c` (`timm:coatnet_rmlp_2_rw_384`, 64-slice c02 cache, per-label window attention, eval 42 windows, RunPod 6–8 h fold 0) — the 0.936 notebook's 0.924 recipe; #2a (K=12) withdrawn; mixed-geometry inference (c01 + c02 members in one blend) shipped | **very high — the only axis with evidence of +0.03**; per-member acceptance rule: own OOF ≥ best − 0.02, ρ < 0.80 vs the blend, blend gain > 0.008 | 1–2 h fold-0 arm per candidate (T4); hybrids on RunPod | P-25, P-26, P-24 |
 | P-24 | **Compute expansion: off-Kaggle runner (RunPod) + optional 2×T4 `DataParallel`** | 🚀 **running 2026-08-30 12:52 →** secure 4090 pod `2wend9j0lr7zf3` (EUR-IS-2, $0.74/h): `setup` → P-12 `oof_eval` mean + focal → `train v10c` → `ship` → `train v09h` → `ship` (see handoff); 🔧 runner built 2026-08-30 (`scripts/runpod_bootstrap.sh`, `requirements-gpu.txt`, `RSNA_ARM` / `RSNA_TRAIN_ONLY` / `RSNA_WORKERS` / `RSNA_RUNTIME_H`; Tian chose RunPod over Colab — paid per hour, no idle disconnects); 2×T4 half 💡 | **high** — the hybrids (P-23 #2b) run only there | (b) done · (a) 30 lines + 1 arm | P-26 (c02 blobs are what it pulls) |
 | P-25 | **Window-attention head + random-window training** (12 label queries over every (slot, window) token; no label-agnostic per-slot pool) | ✅ **measured 2026-08-30 (train v17)**: `v08w` fold-0 OOF **0.8648** = best single model (v05a 0.8574; 12/12 labels up); blend +0.0044 as a fifth member 🔁 (ρ 0.866 → REJECT as extra member, KEEP as the member recipe) — experiments.md 2026-08-30 `v08w` | **high** — the 0.936 notebook's strongest member pools this way (≈ +0.005 est.); also the natural home for TTA (all windows at eval) | ~2 h fold-0 arm | P-26 |
+| P-27 | **Public-stack fork + our arm** — the 0.942 notebook's graph verbatim (cells 0–49: 20 DINOv2, A5, RadImageNet + calibrator, Raptor ×4 @94 windows, CoAt family, per-label outer weights) with the unattached FineSpacing stage replaced by our c02 members rank-blended at β = 0.20 | 🔧 **built 2026-09-21** (`src/build_fork.py` → `kaggle/rsna-knee-fork/`, deterministic, self-tested); placeholder run + submission pending (see experiments.md ⏳) | **very high — 0.913 → ≈ 0.942 in one submission**; our arm's increment is the open question (read-out: ≥ 0.947 real, 0.940–0.946 🔁, < 0.940 hurts) | ~1.5 h engineering, ≈ 80 min of hidden-test runtime, 1 submission per β | P-23 (decided its zero-training alternative), the CC0 licences (read 2026-09-21) |
+| P-28 | **Production training regime: all 4,349 studies, 16 epochs, SWA of the last 3 EMA snapshots** (`train_all`, `swa_last`, `ARM_ONLY`; arms `v09a` CoAtNet-1 @224 c02 and `v08a` DINOv2-S c02) | 🔧 **implemented 2026-09-21**, local smoke green; Kaggle smokes `train v18` / `folds v5` → real runs tonight | **high** — the public 0.924 member's regime (their corpus growth 3,155 → 4,349 alone was +0.010 LB); no OOF for such members, gold-58 + LB only | 2 × one T4 session (v08a ≈ 2.6 h, v09a 4–8 h) | P-25/P-26 recipe; P-27 (the blend it joins) |
 | P-26 | **Cache v2 (`c02`): band 2–98 %, ragged budgets 18/12/12/14/8/8, 336 px, 64-study blobs** | 🔧 **built 2026-08-30 ~12:10** — 4,407/4,407 studies, 70 blobs, 35.8 GB, 0 decode failures, ~20 min wall, 0 GPU h (experiments.md "Cache v2 built"); **effect measured on `v08w` fold 0: MCL +0.028 vs v05a (claim holds), Lateral Meniscus +0.009 (does not); loader 0.12 s/study vs 0.19** — experiments.md 2026-08-30 `v08w` | **high** — MCL 0.836 / Lateral Meniscus 0.833 are our two weakest labels and the ones the discarded outer slices carry | 0 GPU h, ~1 h CPU wall | P-01 |
 
 ---
@@ -747,6 +749,67 @@ If it works: c02 is the default cache for every new member; c01 stays mounted fo
 (mixed-geometry inference shipped: one decode-once pass per geometry group).
 If it fails: (no per-label movement) keep c02 for the 336-px hybrids anyway; the band was not the lever.
 Depends on: P-01 (the c01 design it extends).
+
+### P-27 Public-stack fork + our arm (the 0.942 graph with our c02 members as one more vote)
+Status: 🔧 **built 2026-09-21** — `src/build_fork.py` writes `kaggle/rsna-knee-fork/` from
+`notebook_score_0.942.ipynb` + `src/kaggle_pipeline.py`: cells 0–49 of the public notebook byte-identical
+(asserted), cells 50–51 (FineSpacing) replaced by three cells (markdown, zlib+base64 payload of our
+`MODE="infer"` pipeline, the arm cell), credits kept; `--check` proves determinism; `selftest_blend` checks the
+rank identities. Placeholder run and submission: experiments.md ⏳ rows. Tian's decision 2026-09-21: mount the
+public checkpoints *and* keep training our own (brainstorm.md's open question, closed).
+Hypothesis: the public 0.942 stack is a ~35-checkpoint rank fusion whose members we cannot train this month
+(A6000/H100 trainers, ~6 families); mounting it verbatim reproduces 0.942, and our own members — trained on a
+different input representation (laterality-normalised, 130 mm, per-slot windows with slot embedding, our
+label blend, EMA + LLRD) — add a genuinely independent vote worth ≥ +0.005 at β = 0.20.
+Origin: cell-level read of the 0.942 notebook (2026-09-21; research.md §2.7.1 for its 0.936 ancestor) +
+`kaggle datasets metadata` for the licences: every Raptor / CoAt / A5 / DINOv2 / soft-label dataset is
+**CC0-1.0**; the three RadImageNet datasets are CC-BY-NC-SA-4.0 / "other" (the final submission must decide
+on the Rad stage; public-LB submissions are fine).
+Evidence: the notebook trains nothing and scored 0.942 with **17 sources, FineSpacing not attached** (its own
+log branch: "checkpoint not mounted; exact 0.942 anchor retained"), so cells 0–49 are the scored graph. Its
+header attributes 0.941 → 0.942 half to blend weights (a5_w 0.45→0.52, rad_alpha 0.50→0.55, rad_second
+0.15→0.20, k_eval 62/42→94) and half to the CoAt family. Our 7-member blend is 0.913 (#11); our members'
+ρ to a CoAtNet-2@384 stack is unknown — the arm cell writes it to `fork_diagnostics.json`.
+Measure: public LB of β = 0.20 vs the anchor's 0.942; per-finding Spearman ρ(ours, anchor) from the
+diagnostics; `submission_fork_beta010/030.csv` are written for a follow-up submission without a rerun.
+Noise floor: 0.005 LB. **Read-out, pre-registered:** ≥ 0.947 = our arm helps; 0.940–0.946 = 🔁 (β = 0.20
+stays the default — more diverse privately); < 0.940 = hurts → next submission β = 0.10 or the anchor.
+Cost: one placeholder run (~8 min GPU), ≈ 80 min of hidden-test runtime on one T4 after the anchor graph
+(gated: skipped when the anchor used > 7.0 h or the estimate crosses 8.4 h; their guard raises at 8.0 h).
+Fail-soft: any failure of our arm leaves `submission.csv` byte-identical to the anchor.
+If it works: every new production member (P-28) joins our arm via `build_fork.py --members …`; β stays
+fixed (never tuned on the LB); their inner weights are never touched.
+If it fails: (< 0.940) our members are redundant with the stack on the public split → keep the anchor for
+public submissions and spend GPU only on members that are *different* from the stack (input representation).
+Depends on: P-23 (its zero-training alternative), the licence table above, `INFER_BLEND="by_version"`.
+
+### P-28 Production training regime: all report-labelled studies, 16 epochs, SWA of the last 3 EMA snapshots
+Status: 🔧 **implemented 2026-09-21** (`Config.train_all`, `Config.swa_last`, `split_studies`,
+`average_state_dicts`, the SWA ring persisted in `_last.pt`, `_lastema.pt` beside `_best.pt`, `ARM_ONLY`
+build flag, per-arm resume copy — traps 31, `oof_eval` gold-only guard — traps 32; local smoke green, unit
+block in `src/window_head_test.py`). Arms `v09a` (CoAtNet-1 @224, c02, window_attn, lr 1e-4) and `v08a`
+(DINOv2-S @224, c02, window_attn), one per kernel (`rsna-knee-train` / `rsna-knee-folds`).
+Hypothesis: for a production member the 20 % held out per fold and the 8-epoch budget cost more than the OOF
+buys; training on all 4,349 studies for 16 epochs and averaging the last three EMA snapshots lifts a member
+by ≥ +0.005 on the LB over its fold-0 twin, with no epoch selection on the 58 gold rows.
+Origin: the public 0.924 member's training script (`dreaddevelopment/knee-mri-training-the-twelve-finding-model`,
+read 2026-09-21): all studies, gold-58 as validation, 16 epochs, bs 8 × 12 random windows, SWA of the top-3
+epochs; and our own `v09h` 5-fold (folds peaked at epochs 5–7, fold spread 0.0137 — replicates, not a
+selection signal).
+Evidence: their corpus growth 3,155 → 4,349 studies = +0.013 gold / +0.010 LB (notebook, stated); our
+`v10c` was still rising at epoch 7; P-13/#11: five folds inside one vote bought +0.001 — replicates are not
+where the LB is. Against: research.md's literature scan found SWA "no gain" in a card-only source; our
+`best_oof` bought +0.013 for the concat head (P-22) — irrelevant here because the window-attn head was ~0.
+Measure: gold-58 macro-AUC per epoch (reported, SE ≈ 0.04 — never a gate) and of the SWA vs the last EMA
+(`_best.pt` vs `_lastema.pt`); then LB via P-27 (β fixed) with and without the new member. **No OOF exists
+for these members**: `blend_check.py` cannot be used on them; `oof_eval` scores gold-58 only (traps 32).
+Noise floor: gold 0.05 macro; LB 0.005.
+Cost: `v08a` ≈ 2.6 h, `v09a` 4–8 h on one T4 (16 epochs × 4,349); `_last.pt` grows by 3 EMA snapshots
+(CoAtNet-1 ≈ 1.2 GB) so a guard-then-resume run averages the same epochs.
+If it works: every future member is trained this way; fold-0 arms remain the A/B instrument only.
+If it fails: (SWA ≪ last EMA on CoAtNet but not on DINOv2) BatchNorm statistics — switch to
+`swa_utils.update_bn`; (no LB gain over the fold-0 twin) the 20 % data was not the constraint.
+Depends on: P-25 / P-26 (the member recipe), P-27 (the blend that measures it).
 
 ---
 

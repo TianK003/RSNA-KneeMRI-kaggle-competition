@@ -58,12 +58,17 @@ Judge label changes on **coverage** (does the rule fire at all, per language) an
 | 2026-08-30 | **P-23 seven-version blend, submission #10 (infer v13)**: #9 set + v09h | fold-0 proxy **0.8820** | **0.912** | ✅ **best on the board and the default blend** (tie rule: more members); the `v09h` *increment* is **+0.003 vs #9 → 🔁 under the 0.005 floor** (OOF said +0.0024); +0.012 vs #8's 0.900 = 2.4× the floor for the c02 lane as a whole; offset +0.030 (Submissions #10) |
 | 2026-08-30 | **5-fold `v09h` (RunPod chain4, folds 1–4 added to fold 0; 3.4 h, ≈ $2.6)** | pooled OOF **0.8625** · gold-58 0.874 | — | ✅ the ensemble base: +0.016 over `v05g`'s pooled 0.8467; per-fold 0.8546–0.8683; infer v14 mounts all five (one vote) |
 | 2026-08-30 | **Submission #11 (infer v14)**: the #10 blend with `v09h` as **5 folds** (still one vote) | fold-0 proxy 0.8820 · `v09h` pooled 0.8625 | **0.913** | 🔁 **as an increment, exactly as pre-registered** — +0.001 over #10 is 0.2× the 0.005 LB floor, and the rule written before sending was "0.912–0.916 = 🔁 by design, ≥ 0.917 = real". Folds are replicates inside one vote of seven, so this is confirmation, not disappointment. **Best on the board → the default blend** (it can only match or beat #10's members). Read 2026-09-03 (Submissions #11) |
+| 2026-09-21 | **P-27 fork, submission #12 (`rsna-knee-fork`)**: the public 0.942 graph (cells 0–49 verbatim) + our arm (`v08w` + 5-fold `v09h`) at β = 0.20 | anchor's own public LB 0.942 · ours: fold-0 proxy of the two c02 members only | ⏳ | pre-registered: ≥ 0.947 = our arm helps; 0.940–0.946 🔁 (β 0.20 stays); < 0.940 = hurts → β 0.10 / anchor. Fail-soft: a failed arm submits the exact anchor |
+| 2026-09-21 | **`v09a` (P-28, kernel `rsna-knee-train`)**: CoAtNet-1 @224 on c02 + window_attn, **all 4,349 studies, 16 ep, SWA of the last 3 EMA snapshots** | gold-58 per epoch (reported only) | — | ⏳ no OOF exists for this member (traps 32); its measure is gold-58 direction + the LB via the fork |
+| 2026-09-21 | **`v08a` (P-28, kernel `rsna-knee-folds`)**: DINOv2-S @224 on c02 + window_attn, same regime | gold-58 per epoch (reported only) | — | ⏳ as above |
 
 **External reference points** (not ours — for calibrating ambition):
 
 | Score | What |
 |---|---|
+| 0.958 | Public LB #1 (2026-09-21); #2–#5 at 0.955–0.956 — the top moved +0.006 in three weeks |
 | 0.952 | Public LB #1 (2026-08-28); top 10 span 0.946–0.952 |
+| **0.942** | `notebook_score_0.942.ipynb` ("DINOsaur V5"), read cell by cell 2026-09-21 — trains nothing; ~35 public checkpoints rank-fused (entry below); forked as P-27 |
 | ~0.809 | Public DINOv2 baseline |
 | ~0.664 | Rule-weak labels + calibrated soft targets, EfficientNet-B0 |
 | ~0.613 | Rule-weak labels + EfficientNet-B0 |
@@ -1135,7 +1140,64 @@ skipped, `_best.pt` untouched). ≈ 50 min/fold at 0.09 s/study; chain4 16:03–
   increment, ✅ as the default blend. So the fold-count question is closed on the LB too — inside a seven-vote
   blend, five folds of the best member are worth ~+0.001 (Submissions #11, and P-13's index row).
 
+### 2026-09-21 — Anatomy of the public 0.942 notebook ("DINOsaur V5"): a 2×T4 inference graph over ~35 public checkpoints, nothing trained ✅ read in full · forked as P-27
+
+`notebook_score_0.942.ipynb` (53 cells, ~5,300 lines; Tian confirmed its 0.942). The successor of the 0.936
+notebook decomposed in research.md §2.7.1; same author lineage (BTKD / mattiaangeli / dreaddevelopment).
+**Every member is a mounted public checkpoint; several were trained on A6000/H100 boxes** (the resgated
+dataset ships `trainer_a6000_epochs01_06.py` / `trainer_h100_epochs07_10.py`).
+
+| Stage | Members | Fusion | Stated LB |
+|---|---|---|---|
+| 1 | `pilkwang/rsna-knee-weights`: **20 DINOv2-S** members, 336 px, 3 slices × 6 slots (SAG/COR/AX fluid-FS, SAG fluid-noFS, COR T1, SAG T1), overlapping windows, per-label pooling (max Fracture/Contusion/menisci/Baker's, top-2 ACL/MCL); shared 6-block prefix for speed | rank mean, 20/20 fingerprint gate | ≈ 0.899 alone |
+| 2 | `mattiaangeli/knee-mri-fold-weights`: **A5 = 5 folds of a 16-slice timm model** (`DepthCompress` gated stem or `SlotDepthMixer`, `xattn`/`xres`/`clsadd` readouts, 336 px, band 0.12–0.88) | rank blend at **w 0.52** (0.941 lineage: 0.45) | — |
+| 3 | RadImageNet R50 frozen GAP features + 3 head bundles (`v52` public, `E13`, E13-on-E11 layout) | α **0.55** (was 0.50) on 10 labels, second pass **0.20** (was 0.15), 88-feature calibrator at 0.40 on 7 labels | ≈ 0.920 cumulative (0.936 lineage) |
+| 4 | **Raptor CoAtNet-2@384** × 4 views: `v5 swa` (64 slices, 2–98 %, 336 source, w 0.60), `v10` native-384 dense (0.10), `v5 reverse` slice order (0.10), `v8` 44 slices 6–94 % (0.20) at **94 dense windows** (capacity-aware allocation over 96 slices; released arms carried 62/42); then a CoAt family — `resgated` epochs 4/6/8 (3 ckpts) + `D4` depth-zone SWA3 adapter on a rank-8 SWA2 parent — equal rank mix, blended into the Raptor arm at **0.40**; two child processes, each fail-soft | per-label outer weights CoAtNet vs transformer stack: default 0.60, ACL 0.75, MedMen 0.80, **LatMen 1.00**, LatOA 0.75, Fracture 0.75 | 0.924 alone (`v5`); 0.941–0.942 fused |
+| 5 | "FineSpacing v9" residual (80 slices / 78 windows, scale 0.10) | — | **not in the scored run**: its dataset was not attached (17 sources), the cell's own branch says "exact 0.942 anchor retained" |
+
+Its header states the 0.941 → 0.942 step was **half blend-weight tuning** (the four numbers above) and half
+the CoAt family. Its diagnostics cell itself warns that the per-finding outer weights (LatMen 1.00 discards
+three of four stages) are "the likeliest place to give back points privately".
+
+**The 0.924 member's training recipe** (`dreaddevelopment/knee-mri-training-the-twelve-finding-model`, read):
+CoAtNet-2@384 (`coatnet_rmlp_2_rw_384.sw_in12k_ft_in1k`, ImageNet-pretrained), **all 4,349 report-labelled
+studies, gold-58 as the only validation**, 16 epochs, bs 8 studies × 12 random 3-slice windows (eval 24),
+OneCycle (bb 3e-5 / head 1e-3, pct_start 0.15), AdamW wd 0.02, BCE with `pos_weight` (1−p)/p ∈ [1,10],
+bf16, clip 3.0, ±10 % intensity gain as the only augmentation, **no laterality normalisation**, 140 mm crop,
+2–98 % span, windows may straddle slot boundaries, no slot embedding; **best epoch by gold-58 AUC + SWA of the
+top-3 epochs**; ~3 h on a 4090; corpus 3,155 → 4,349 studies was +0.013 gold / +0.010 LB for them. Their soft
+labels are public (`dreaddevelopment/rsna-knee-labels`, CC0, `labels_llm_soft.csv`) — P-28 morning item B5.
+
+**Differences to our best recipe (`v09h`, OOF 0.8683 ≈ LB 0.895–0.90)** that could matter, in the order we
+now act on them: all-data + 16 epochs + SWA (P-28, tonight); bs 8 × 12 windows vs our 1 × 24 (BatchNorm in
+the CoAtNet conv stages sees one study per step — a fold-0 A/B); their soft labels as a 4th source; 384 px
+(measured −0.004 for us at 8 ep, and the stack already has 5+ of these). Not copied: no-laterality (P-05 is
++0.015 for us and is our diversity), slot-crossing windows, gold-58 epoch selection (rejected).
+
+**Licences** (`kaggle datasets metadata`, closes the brainstorm.md item): Raptor ×3 datasets, `rsna-knee-labels`,
+A5, resgated, D4, pilkwang weights = **CC0-1.0**; `resnet-50-radimagenet-marwan`, `e11-diverse-heads-v20`,
+`e9-radimagenet-heads-v15` = **CC-BY-NC-SA-4.0**; `v52-radimagenet-heads-20260812` = "other". The Rad stage is
+the only licence-encumbered part; decision deferred to the final submission.
+
+**Decision (Tian, 2026-09-21):** fork it verbatim and add our members as one more vote (P-27), keep training our
+own under the production regime (P-28). Verdict on the fork = ⏳ Scoreboard row (#12).
+
 ## Infrastructure
+
+### 2026-09-21 — P-27 fork builder + P-28 production regime shipped; local checks ✅ KEEP the code · Kaggle ⏳
+
+- `src/build_fork.py` → `kaggle/rsna-knee-fork/` (54 cells: 50 anchor + 3 fork + credits; 20 sources; 66 KB
+  payload; `--check` byte-identical rebuild; `selftest_blend` proves β=0 / β=1 rank identities, monotonicity
+  in β, and that the validator rejects a bad schema / UID set / NaN frame). The embedded payload decodes to
+  the sed'd pipeline (`FORCE_SMOKE = False`, `MODE = "infer"`, `INFER_MEMBERS = ["v08w", "v09h"]`, 2,953 lines,
+  sha-checked at run time).
+- `src/kaggle_pipeline.py`: `train_all`, `swa_last`, `split_studies`, `average_state_dicts`, SWA ring in
+  `_last.pt`, `_lastema.pt`, `ARM_ONLY`, per-arm resume copy (traps 31), `oof_eval` gold-only guard (traps 32);
+  `PROD` arms `v09a` / `v08a`; `SHIPPED_ARMS` hold `v08w` / `v09h`. `window_head_test.py` 37/37 green; local
+  `MODE="train"` smoke green for both arms (`SWA of last 1 EMA snapshot(s)`, `_best.pt` = SWA,
+  `_lastema.pt`, `_last.pt` with the ring, decode-once verified, inference on `v09a`).
+- `kaggle/rsna-knee-folds/kernel-metadata.json` now mounts the four c02 shards + the CoAtNet-1 weights, so
+  either training kernel can host either arm (and the other's resume).
 
 ### 2026-08-30 — Cache v2 (`c02`), window-attention path, timm hybrids and mixed-geometry inference shipped; local verification ✅ KEEP the code · Kaggle ⏳
 

@@ -32,6 +32,7 @@ import json
 import math
 import os
 import random
+import shutil
 import tempfile
 import time
 import traceback
@@ -216,24 +217,42 @@ INFER_OVERRIDES = {}
 # the hidden-test rerun stays inside the budget -- oof_eval must use the same value).
 C02 = {"cache_scheme": "c02", "window_mode": "random", "head_type": "window_attn",
        "train_windows": 24, "epochs": 8}
+# 2026-09-21 (P-28): the PRODUCTION regime, copied from the public 0.924 member's training script:
+# every report-labelled study is training data (no fold hold-out; the 58 gold rows are the only
+# validation and are REPORTED, never selected on), 16 epochs, and `_best.pt` is the average of the
+# EMA weights over the last three epochs (SWA) -- no epoch selection at all. Members trained this way
+# have no OOF, so blend_check.py cannot judge them; their measure is gold-58 + the LB (P-27 fork).
+PROD = {**C02, "epochs": 16, "train_all": True, "swa_last": 3, "ckpt_policy": "last"}
 ARMS = [
+    ("v09a", {**PROD, "backbone": "timm:coatnet_rmlp_1_rw_224", "img_size": 224, "lr_backbone": 1e-4}),
+    ("v08a", {**PROD, "backbone": "dinov2", "img_size": 224}),
+]
+# Shipped fold-0 / 5-fold members (Datasets rsna-knee-ckpt-*): selectable through ARM_ONLY /
+# RSNA_ARM for a rerun, but no longer run by default -- a forgotten sed would otherwise spend the
+# session on arms that already exist before the production arm starts.
+SHIPPED_ARMS = [
     ("v08w", {**C02, "backbone": "dinov2", "img_size": 224}),
     ("v09h", {**C02, "backbone": "timm:coatnet_rmlp_1_rw_224", "img_size": 224, "lr_backbone": 1e-4}),
 ]
 ARM_V10C = ("v10c", {**C02, "backbone": "timm:coatnet_rmlp_2_rw_384", "img_size": 384,
                      "lr_backbone": 1e-4, "eval_windows": 42, "grad_checkpoint": True})
-PRIMARY_ARM = "v08w"
+PRIMARY_ARM = "v09a"
 ARM_FOLDS = (0,)
-# Off-Kaggle runner (scripts/runpod_bootstrap.sh): RSNA_ARM=<version> runs exactly that arm
-# (from ARMS or ARM_V10C) and makes it PRIMARY_ARM; RSNA_WORKERS / RSNA_RUNTIME_H override the
-# loader worker count and the session guard. Unset on Kaggle, so nothing changes there.
-if os.environ.get("RSNA_ARM"):
-    _only = os.environ["RSNA_ARM"]
-    ARMS = [a for a in list(ARMS) + [ARM_V10C] if a[0] == _only]
+# Sed'd per kernel at build time (like FIVE_FOLD / STACK_RUN below, and mutually exclusive with
+# them): run exactly ONE arm and make it PRIMARY_ARM, so rsna-knee-train and rsna-knee-folds can
+# each take one production arm in the same sitting (two 16-epoch arms never fit one 9 h session):
+#   sed 's/^ARM_ONLY = ""/ARM_ONLY = "v08a"/' src/kaggle_pipeline.py > artifacts/train_v08a.py
+ARM_ONLY = ""
+# Off-Kaggle runner (scripts/runpod_bootstrap.sh): RSNA_ARM=<version> does the same through the
+# environment; RSNA_WORKERS / RSNA_RUNTIME_H override the loader worker count and the session
+# guard. One filter serves both; the environment wins when both are set.
+_only = os.environ.get("RSNA_ARM") or ARM_ONLY
+if _only:
+    ARMS = [a for a in list(ARMS) + list(SHIPPED_ARMS) + [ARM_V10C] if a[0] == _only]
     if not ARMS:
-        raise SystemExit(f"RSNA_ARM={_only!r} is not one of the defined arms")
+        raise SystemExit(f"arm {_only!r} is not one of the defined arms")
     PRIMARY_ARM = _only
-    print(f"RSNA_ARM: running only {_only}")
+    print(f"{'RSNA_ARM' if os.environ.get('RSNA_ARM') else 'ARM_ONLY'}: running only {_only}")
 
 # Refuse to silently train the v02 decode path when the cache is expected (traps 6f).
 ALLOW_DECODE_FALLBACK = False
@@ -378,6 +397,16 @@ class Config:
     # macro-AUC so far (P-22: +0.013 split-half for the concat head, ~0 for attn, gold flat).
     # "last": EMA weights after the last completed epoch (fixed-epoch, used through v05).
     ckpt_policy: str = "best_oof"
+    # Production regime (P-28, 2026-09-21; the public 0.924 member's recipe): train on EVERY
+    # report-labelled study and hold out nothing but the 58 gold rows, which are reported per epoch
+    # and never selected on. One "fold" named fold0, so `{version}_fold0_best.pt` is what
+    # rsna-knee-infer globs. Requires ckpt_policy="last": "best_oof" would pick the epoch on
+    # gold-58 (Hanley-McNeil SE ~0.04 macro), which stays banned.
+    train_all: bool = False
+    # > 0: keep the EMA state_dict of the last N COMPLETED epochs in host RAM (persisted in _last.pt,
+    # so a resumed session averages the same N) and write their element-wise mean as _best.pt;
+    # the final-epoch EMA is kept as `_lastema.pt` for the A/B. 0 = plain ckpt_policy.
+    swa_last: int = 0
     # Smoke only: cap the header scan so a verification run does not spend minutes
     # reading all ~24k series headers before it reaches the training loop.
     smoke_max_studies: int = 24
@@ -403,9 +432,20 @@ class Config:
                 self.img_size = 224
             self.runtime_limit_hours = 0.4
             self.ema_decay = 0.9      # 8 steps of smoke would leave a 0.998 EMA ~= init
+        # After the smoke block on purpose: smoke's epochs=1 clamps swa_last to 1, so the SWA
+        # save / load / evaluate path is still exercised (a mean of one snapshot is the identity).
+        if self.train_all:
+            self.folds = (0,)            # one pass, named fold0 (checkpoint glob + ARM_FOLDS agree)
+            if self.ckpt_policy != "last":
+                raise SystemExit("train_all=True needs ckpt_policy='last' (best_oof would pick the "
+                                 "epoch on the 58 gold rows)")
+        if self.swa_last > 0:
+            self.swa_last = min(int(self.swa_last), int(self.epochs))
+            if self.ema_decay <= 0:
+                raise SystemExit("swa_last averages EMA snapshots; set ema_decay > 0")
 
 
-CACHE_BAND = {"Sagittal": (0.08, 0.92), "Axial": (0.10, 0.90), "Coronal": (0.20, 0.80)}
+CACHE_BAND ={"Sagittal": (0.08, 0.92), "Axial": (0.10, 0.90), "Coronal": (0.20, 0.80)}
 PLANE_OF_SLOT = {"SAG_FLUID_FS": "Sagittal", "COR_FLUID_FS": "Coronal", "AX_FLUID_FS": "Axial",
                  "SAG_FLUID_NOFS": "Sagittal", "COR_T1": "Coronal", "SAG_T1": "Sagittal"}
 CACHE_PCT = (1.0, 99.0)      # per-series percentile window (the cache builder's pct_lo / pct_hi)
@@ -1863,18 +1903,37 @@ def check_worker_rng():
             print(f"    {label:<24} check failed: {type(e).__name__}: {e}")
 
 
+def split_studies(targets, fold, cfg):
+    """(train, val) StudyInstanceUIDs for one fold. train_all (P-28): every non-gold row of every
+    fold trains, the gold rows are the validation set -- there is no OOF for such a member."""
+    if getattr(cfg, "train_all", False):
+        tr = targets.loc[targets.is_gold == 0, "StudyInstanceUID"].tolist()
+        va = targets.loc[targets.is_gold == 1, "StudyInstanceUID"].tolist()
+    else:
+        tr = targets.loc[targets.fold != fold, "StudyInstanceUID"].tolist()
+        va = targets.loc[targets.fold == fold, "StudyInstanceUID"].tolist()
+    return tr, va
+
+
 def make_loaders(manifest, targets, image_root, cfg, fold):
-    tr_studies = targets.loc[targets.fold != fold, "StudyInstanceUID"].tolist()
-    va_studies = targets.loc[targets.fold == fold, "StudyInstanceUID"].tolist()
+    tr_studies, va_studies = split_studies(targets, fold, cfg)
     if cfg.smoke:
         avail = set(manifest.StudyInstanceUID)
         tr_studies = [s for s in tr_studies if s in avail][:4]
-        va_studies = [s for s in va_studies if s in avail][:4]
+        # train_all: a few gold rows, so the AUC has both classes on some labels
+        va_studies = [s for s in va_studies if s in avail][:(8 if cfg.train_all else 4)]
         if not tr_studies:      # local sample has no training studies at all
             tr_studies = va_studies = sorted(avail)[:3]
+        if not va_studies:
+            # train_all locally: the 3 placeholder rows are non-gold, so there is no gold row to
+            # hold out. Without this, evaluate() returns ({}, None), the score silently falls back
+            # to -loss, no _oof.csv is written and the SWA evaluation is never exercised.
+            print("  smoke/train_all: no gold study in the local sample -> val = train")
+            va_studies = tr_studies
     tr_ds = KneeStudyDataset(manifest, targets, image_root, cfg, True, tr_studies)
     va_ds = KneeStudyDataset(manifest, targets, image_root, cfg, False, va_studies)
-    print(f"  fold {fold}: train {len(tr_ds)} / val {len(va_ds)} studies")
+    print(f"  fold {fold}: train {len(tr_ds)} / val {len(va_ds)} studies"
+          + (" [train_all: val = gold rows]" if cfg.train_all else ""))
     nw = 0 if cfg.smoke else cfg.num_workers
     return (DataLoader(tr_ds, batch_size=cfg.batch_studies, shuffle=True,
                        num_workers=nw, drop_last=False, worker_init_fn=seed_worker),
@@ -2046,9 +2105,24 @@ class EMA:
                 e.copy_(m)
 
 
+def average_state_dicts(sds):
+    """Element-wise mean of N state_dicts (SWA, P-28): float tensors averaged in fp32 and cast
+    back to their dtype; everything else (BatchNorm num_batches_tracked, int buffers) copied from
+    the LAST one. Averaging BatchNorm running stats is an approximation; three adjacent EMA
+    snapshots are close enough that it holds, and the `_lastema.pt` vs `_best.pt` print is the check."""
+    out = {}
+    for k, v in sds[-1].items():
+        if v.dtype.is_floating_point:
+            out[k] = torch.stack([sd[k].float() for sd in sds]).mean(0).to(v.dtype)
+        else:
+            out[k] = v.clone()
+    return out
+
+
 def train_fold(fold, manifest, targets, image_root, cfg, device):
     ckpt_best = os.path.join(WORK, f"{cfg.version}_fold{fold}_best.pt")
     ckpt_last = os.path.join(WORK, f"{cfg.version}_fold{fold}_last.pt")
+    ckpt_lastema = os.path.join(WORK, f"{cfg.version}_fold{fold}_lastema.pt")
     oof_path = os.path.join(WORK, f"{cfg.version}_fold{fold}_oof.csv")
 
     model = build_model(cfg, device)
@@ -2071,6 +2145,7 @@ def train_fold(fold, manifest, targets, image_root, cfg, device):
     scaler = torch.amp.GradScaler("cuda", enabled=use_amp)
 
     start_epoch, best, best_epoch = 0, -1.0, -1
+    swa_ring = []           # EMA snapshots of the last `swa_last` completed epochs (CPU)
     # A smoke run never resumes: a stale `_last.pt` from an earlier local smoke made a
     # 1-epoch smoke "resume at epoch 1 of 1", skip training entirely and still finish
     # green -- the checkpoint code it was meant to exercise never ran (traps 19).
@@ -2087,12 +2162,19 @@ def train_fold(fold, manifest, targets, image_root, cfg, device):
         best = st.get("best", -1.0)
         best_epoch = st.get("best_epoch", st["epoch"])
         print(f"  resumed fold {fold} at epoch {start_epoch} (best {best:.4f} at epoch {best_epoch})")
+        if cfg.swa_last > 0:
+            swa_ring = [{k: v.detach().to("cpu") for k, v in sd.items()} for sd in st.get("swa_ring", [])]
+            if len(swa_ring) < min(cfg.swa_last, start_epoch):
+                print(f"  ! resumed with {len(swa_ring)} SWA snapshot(s) in _last.pt; the average "
+                      f"will cover fewer than swa_last={cfg.swa_last} epochs")
+        del st
 
     for epoch in range(start_epoch, cfg.epochs):
         model.train()
         running, nb = 0.0, 0
         t_epoch = time.time()
         n_studies = 0
+        guard_hit = False
         opt.zero_grad(set_to_none=True)
         for i, b in enumerate(tr_loader):
             with torch.amp.autocast("cuda", enabled=use_amp):
@@ -2122,10 +2204,15 @@ def train_fold(fold, manifest, targets, image_root, cfg, device):
                       f"{dt/n_studies*len(tr_loader.dataset)/60:.0f} min")
             if out_of_time():
                 print("  runtime guard hit mid-epoch")
+                guard_hit = True
                 break
         train_secs = time.time() - t_epoch
 
         eval_model = ema.module if ema is not None else model
+        if cfg.swa_last > 0 and ema is not None and not guard_hit:
+            # a partial epoch (guard fired mid-way) is not a converged point on the trajectory
+            swa_ring = (swa_ring + [{k: v.detach().to("cpu", copy=True)
+                                     for k, v in ema.module.state_dict().items()}])[-cfg.swa_last:]
         t_eval = time.time()
         metrics, oof = evaluate(eval_model, va_loader, device, cfg)
         per_label = metrics.pop("per_label", {})
@@ -2157,7 +2244,8 @@ def train_fold(fold, manifest, targets, image_root, cfg, device):
         torch.save({"model": model.state_dict(), "opt": opt.state_dict(),
                     "sched": sched.state_dict(), "epoch": epoch, "best": best,
                     "best_epoch": best_epoch,
-                    **({"ema": ema.module.state_dict()} if ema is not None else {})},
+                    **({"ema": ema.module.state_dict()} if ema is not None else {}),
+                    **({"swa_ring": swa_ring} if cfg.swa_last > 0 else {})},
                    ckpt_last)
         if oof is not None:
             oof.insert(1, "epoch", epoch)
@@ -2176,6 +2264,29 @@ def train_fold(fold, manifest, targets, image_root, cfg, device):
         if out_of_time():
             print("  stopping: runtime guard. Attach this output and re-run to resume.")
             return model, best, False
+
+    if cfg.swa_last > 0 and ema is not None and swa_ring:
+        # P-28: `_best.pt` becomes the average of the last N EMA snapshots; the final-epoch EMA
+        # (what policy "last" just wrote) is kept beside it for the A/B. Same keys as every other
+        # `_best.pt`, so member_settings() and the infer loader need no change.
+        shutil.copyfile(ckpt_best, ckpt_lastema)
+        swa_sd = average_state_dicts(swa_ring)
+        ema.module.load_state_dict(swa_sd)
+        t_eval = time.time()
+        metrics, oof = evaluate(ema.module, va_loader, device, cfg)
+        per_label = metrics.pop("per_label", {})
+        score = metrics.get("auc_soft", float("nan"))
+        print(f"  fold {fold} SWA of last {len(swa_ring)} EMA snapshot(s): {metrics}  "
+              f"(last-epoch EMA scored {best:.4f}; val {(time.time()-t_eval)/60:.1f} min)")
+        if per_label:
+            print_per_label(per_label)
+        torch.save({"model": swa_sd, "score": score, "epoch": cfg.epochs - 1, "ema": True,
+                    "swa_last": len(swa_ring), "config": asdict(cfg)}, ckpt_best)
+        if oof is not None:
+            oof.insert(1, "epoch", cfg.epochs - 1)
+            oof.to_csv(oof_path, index=False)
+        print(f"    -> {os.path.basename(ckpt_best)} = SWA, {os.path.basename(ckpt_lastema)} = last EMA")
+        del swa_ring
 
     return model, best, True
 
@@ -2314,6 +2425,7 @@ def apply_settings(target_cfg, settings, keys):
 
 infer_members = []          # [(version, fold, path)] -- the blend, in infer / oof_eval mode
 infer_settings = {}         # (version, fold) -> resolved CACHE + MEMBER settings
+infer_saved_cfg = {}        # (version, fold) -> the raw config dict saved in the checkpoint
 if mode in ("infer", "oof_eval"):
     # P-21: the submission is a rank-mean over every mounted fold checkpoint of every version in
     # INFER_MEMBERS. Each version must be present -- a blend that silently lost a member is not
@@ -2336,6 +2448,7 @@ if mode in ("infer", "oof_eval"):
         st0 = torch.load(p, map_location="cpu", weights_only=False)
         s = member_settings(st0.get("config", {}), v)
         infer_settings[(v, f)] = s
+        infer_saved_cfg[(v, f)] = dict(st0.get("config", {}))
         # Fail here, in seconds, if a member's backbone weights are not mounted -- not after
         # seven other members have already predicted (infer v9, 2026-08-30: the ConvNeXt
         # dataset was missing from the infer kernel's sources).
@@ -2357,7 +2470,9 @@ if mode in ("infer", "oof_eval"):
 else:
     # Resume: a previous session's output is mounted read-only; copy its checkpoints
     # into WORK so train_fold finds them (otherwise every fold restarts at epoch 0).
-    import shutil
+    # This block serves ARMS = None runs only -- it looks up the DEFAULT config's version. Arms
+    # get their own copy inside the arm loop (traps 31: until 2026-09-21 an arm's mounted
+    # `_last.pt` was never copied and every resumed arm silently restarted at epoch 0).
     for fold in cfg.folds:
         for kind, src_map in (("last", mounted_last), ("best", mounted_ckpts)):
             src = src_map.get(fold)
@@ -2485,6 +2600,16 @@ if mode == "train":
         cfg = replace(base_cfg, version=arm_version, **_ov)
         cfg.backbone_dir = resolve_backbone_dir(cfg.backbone)   # an arm may switch family (P-10)
         globals()["cfg"] = cfg
+        # Resume is PER ARM (traps 31): copy this arm's mounted `_last.pt` / `_best.pt` into WORK
+        # so train_fold continues at epoch+1. Shallow glob, seconds. Smoke never resumes (traps 19).
+        if not cfg.smoke:
+            for fold in cfg.folds:
+                for kind in ("last", "best"):
+                    src = find_mounted_checkpoints(cfg.version, kind).get(fold)
+                    dst = os.path.join(WORK, f"{cfg.version}_fold{fold}_{kind}.pt")
+                    if src and not os.path.exists(dst):
+                        shutil.copy(src, dst)
+                        print(f"  resume: copied {os.path.basename(src)} into WORK")
         # The cache and the manifest are per ARM: an arm may read a different cache scheme
         # than the default config (c02 arms next to c01 ones), so this cannot happen once
         # before the loop -- that would silently index the default config's cache for every arm.
@@ -2542,6 +2667,11 @@ elif mode == "oof_eval":
         mcfg = replace(base_cfg, version=v)
         apply_settings(mcfg, s, INFER_CACHE_KEYS + INFER_MEMBER_KEYS)   # exact member settings, no smoke clamps
         mcfg.backbone_dir = resolve_backbone_dir(mcfg.backbone)
+        # traps 32: a train_all member (P-28) trained on 871 of fold 0's 882 studies -- scoring them
+        # would print a flattering "OOF". Such a member is scored on the 58 gold rows only.
+        mcfg.train_all = bool(infer_saved_cfg.get((v, f), {}).get("train_all", False))
+        if mcfg.train_all:
+            print(f"  {v}: trained on every report-labelled study -> scoring the 58 gold rows only")
         globals()["cfg"] = mcfg
         cfg = mcfg
         print(f"\n=== oof_eval {v}/fold{f}: cache {cache_version_for(cfg)}, {s['window_mode']}, "

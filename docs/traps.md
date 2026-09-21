@@ -253,6 +253,17 @@ silently been preprocessed differently from the training cache the moment either
 modules for both schemes and exits non-zero on the first differing byte. A green selftest is the *only*
 evidence the two files agree; the comment is not.
 
+### 32. `oof_eval` / `blend_check.py` on a `train_all` member scores its own training data
+
+A P-28 production member (`train_all=True`: `v09a`, `v08a`, …) trained on **every** report-labelled study.
+Fold 0's 882 "held-out" studies are 871 of its training rows plus 11 gold. `MODE="oof_eval"` would have
+built fold 0's validation loader for it and printed a flattering "OOF"; `src/blend_check.py` would have read
+the resulting csv like any other OOF and accepted the member by a rule it cannot satisfy honestly.
+**Do:** the checkpoint's saved config carries `train_all`; `oof_eval` reads it (`infer_saved_cfg`) and scores
+**the 58 gold rows only**, printing `trained on every report-labelled study -> scoring the 58 gold rows only`.
+Never feed a `train_all` member's csv to `blend_check.py`; its validation is gold-58 (SE ≈ 0.04, direction
+only) and the LB through the P-27 fork. Related: 3 (gold copied into targets), P-28.
+
 ## Tier 2 — breaks the run, wastes a session
 
 ### 8. A fold finishing with no `best.pt`
@@ -458,6 +469,30 @@ discarded-but-referenced train loader from `make_loaders`, or the c01 per-study 
 (the RunPod pod has 503 GB and the same `/kaggle/input` layout — 2026-08-30 it runs mean and focal there).
 The infer kernel is on a different path (decode-once to disk, one geometry group) and has not shown this.
 Related: 26 (shared-memory sizing), experiments.md 2026-08-30 P-12 entry.
+
+### 31. An ARMS run never resumed: the mounted `_last.pt` was looked up under the *default* version
+
+Found 2026-09-21 while making P-28 resumable. The module-level resume block copies
+`{cfg.version}_fold*_last.pt` from the mounted input into WORK — but at that point `cfg` is the **default**
+Config (`version="v03"`), not the arm's. Every arm run since ARMS existed (`v05a` … `v09h`) would have
+restarted at epoch 0 after a runtime-guard stop, with no error: the only symptom is a missing
+`resume: copied …` line and `fold 0 epoch 0` in the log. It never bit because no arm has yet been resumed
+on Kaggle (the pod runs used `RSNA_RUNTIME_H=40`).
+**Do:** the arm loop now copies its own version's `_last.pt` / `_best.pt` right after `globals()["cfg"] = cfg`
+(shallow glob, seconds); the `mode = "infer" if …` rule stays keyed on the default version on purpose — a
+half-trained mounted `_best.pt` must not flip a resume kernel into infer. A Kaggle resume runs in the
+*sibling* slug (a kernel cannot mount its own output): add the other kernel's slug to `kernel_sources`,
+push the same `ARM_ONLY` notebook there, and check the log for `resume: copied <arm>_fold0_last.pt`.
+Related: 8b (resume that never resumed), 12d, 19.
+
+### 33. Inside the P-27 fork, our infer subprocess deletes the anchor's `submission.csv`
+
+`src/kaggle_pipeline.py` in `MODE="infer"` removes `/kaggle/working/submission.csv` before predicting (so a
+stale file can never be submitted — 12b). Run as the fork's last stage, that deletes the public graph's
+0.942 anchor. **Do:** the arm cell copies the anchor to `_anchor_0942.csv` (+ the published
+`submission_fork_anchor_0942.csv`) *before* launching the subprocess, renames our output to `_ours.csv`,
+and a `finally:` block restores the anchor byte-for-byte on any failure (`FINAL submission.csv = anchor`).
+`src/build_fork.py` owns that cell; never hand-edit the generated notebook (17).
 
 ## Tier 3 — tooling friction
 
