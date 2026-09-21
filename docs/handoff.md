@@ -6,6 +6,114 @@ to read first after a break.
 
 ---
 
+## 2026-09-21 (21:10) — The 0.942 notebook read and forked (P-27: its graph verbatim + our arm), the production training regime built (P-28: all-data, 16 ep, SWA); `v09a` training on Kaggle; fork v3 waiting for a GPU slot; nothing submitted yet
+
+Plan file: `~/.claude/plans/i-want-you-to-witty-kernighan.md` (the full enumerated / prioritised change list —
+A1…A5 blend-level, B1…B12 training-level, C1…C2 — with the tonight / morning split). Public LB top is now
+**0.958**; we are 0.913. Tian's three decisions this session: **mount the public checkpoints AND keep training
+our own**; **Kaggle only tonight, RunPod in the morning, attended**; **all-data + SWA for production members,
+fold-0 stays the A/B instrument**.
+
+### ⏳ Still in flight as this was written (21:10)
+
+| In flight | What it is | Started | How to check | How to read it |
+|---|---|---|---|---|
+| **`rsna-knee-train` v19 = `v09a` REAL** (CoAtNet-1 @224, c02, window_attn, `train_all`, 16 ep, `swa_last=3`) | first P-28 production member; ARM_ONLY sed'd, `FORCE_SMOKE=False` | 20:53 | `kaggle kernels status tiankljucanin/rsna-knee-train`; when COMPLETE: `kaggle kernels output tiankljucanin/rsna-knee-train -p artifacts/kaggle_out/train_v19 --file-pattern "no_match"` then `tr '\r' '\n' < …/rsna-knee-train.log \| grep -E "studies in\|epoch\|SWA\|-> v09a\|!!"` (the Kaggle log is one JSON line per stream — the `tr`/grep is how to read it) | expected **4–8 h** (T4; 0.21–0.45 s/study → 15–33 min/epoch × 16). Gold-58 `auc_gold` per epoch is *reported only* (SE ≈ 0.04). The last lines must show `SWA of last 3 EMA snapshot(s)` and `-> v09a_fold0_best.pt = SWA, v09a_fold0_lastema.pt = last EMA`. **Suspicious:** SWA more than ~0.01 below the last-EMA gold (BatchNorm averaging — P-28 "if it fails"); `stopping: runtime guard` = resume in the sibling slug (`rsna-knee-folds`, add `tiankljucanin/rsna-knee-train` to its `kernel_sources`, push the same `ARM_ONLY="v09a"` notebook; log must say `resume: copied v09a_fold0_last.pt`) |
+| **`rsna-knee-fork` v2** (the UNFIXED arm cell — pushed by mistake, will end `ERROR` like v1 after ~6 min) → **a background bash in the 21:00 session pushes the FIXED v3 the moment v2 ends** (`kaggle kernels push -p kaggle/rsna-knee-fork`) | placeholder run of the P-27 fork: 0.942 graph + our arm (`v08w` + 5-fold `v09h`, β 0.20) on the 3 placeholder studies | v2 ≈ 21:05; v3 = when v2 ends | `kaggle kernels status tiankljucanin/rsna-knee-fork`; **if the session died before the push, push v3 by hand** (`kaggle kernels list --user tiankljucanin` shows the last run time; the committed notebook IS v3 — `grep -c "outcome=_fork_status" kaggle/rsna-knee-fork/rsna-knee-fork.ipynb` = 1). Then `kaggle kernels output tiankljucanin/rsna-knee-fork -p artifacts/kaggle_out/fork_v3` (no pattern — **the kernel log comes back EMPTY for this notebook; read `diagnostics/current_phase.json`, `fork_diagnostics.json`, `btkd_v559_complete.json`, `ours_infer.log` instead**) | **Green = status `COMPLETE`**, `fork_diagnostics.json` → `"status": "beta0.20"`, `"returncode": 0`, `btkd_v559_complete.json` status COMPLETE with dino_members 20 / a5_folds 5 / raptor_views 4, `ours_infer.log` ends with `blend: by_version -> v08w (1 fold), v09h (5 folds)` and `wrote … submission.csv rows=3`. v1 reached all of that and died only on the `status=` keyword in `finally` (experiments.md Infrastructure 2026-09-21). **Then submit** — see Next action 1 |
+| `rsna-knee-folds` v6 = `v08a` REAL — **NOT pushed yet** (notebook generated and committed; the second GPU slot was taken by the fork) | DINOv2-S @224 c02 window_attn, same P-28 regime, ≈ 2.6 h | — | push when a slot is free: `kaggle kernels push -p kaggle/rsna-knee-folds` (its ipynb already carries `ARM_ONLY = "v08a"`, `FORCE_SMOKE = False`) | same reading as `v09a` |
+
+Kaggle: **5 submissions/day, 0 used today, reset 02:00**; GPU quota spent tonight ≈ 0.3 h (two smokes, two fork runs) + the running `v09a`. The Kaggle OAuth token was valid at 21:09.
+
+### Where things stand
+
+| | Status |
+|---|---|
+| Best LB | **0.913** (#11) — unchanged; the fork's anchor alone is 0.942 by its author |
+| `src/kaggle_pipeline.py` | P-28 shipped: `train_all`, `swa_last`, `split_studies`, `average_state_dicts`, SWA ring persisted in `_last.pt`, `_lastema.pt`, `ARM_ONLY`, `PROD` arms `v09a` / `v08a`, `SHIPPED_ARMS`, per-arm resume (traps 31), `oof_eval` gold-only (traps 32). `window_head_test.py` 37/37; local `MODE="train"` smoke green; Kaggle smokes green (train v18, folds v5) |
+| `src/build_fork.py` → `kaggle/rsna-knee-fork/` | P-27 shipped and deterministic (`--check`); 54 cells = 50 anchor (byte-identical, asserted) + 3 fork + credits; 20 sources accepted by Kaggle; fork v1 proved every stage runs on Kaggle (224 s anchor + 115 s ours on 3 studies); **v3 = the fixed arm cell** |
+| `kaggle/rsna-knee-folds/kernel-metadata.json` | now mounts the four c02 shards + the CoAtNet-1 weights (either kernel can host either arm / the other's resume) |
+| Docs | proposals P-27 / P-28 cards + index rows; experiments Scoreboard ⏳ rows (#12 fork, `v09a`, `v08a`), "Anatomy of the public 0.942 notebook" entry, Infrastructure entry; traps 31 / 32 / 33; brainstorm: fork decision + licences closed; CLAUDE.md layout / production-arm recipe / State line |
+| Licences | every Raptor / CoAt / A5 / DINOv2 / soft-label dataset **CC0**; the three RadImageNet datasets CC-BY-NC-SA-4.0 / "other" — decision only for the *final* submission |
+| Repo | pushed through `4b5362c` + this handoff; `notebook_score_0.942.ipynb` now tracked (the builder's input) |
+
+### What we talked about and decided
+
+- **Why fork instead of only training:** the 0.942 notebook trains nothing — ~35 public checkpoints across ~6
+  families, several trained on A6000/H100; its 0.924 single member alone is ~0.025 above our best single. Reaching
+  0.942 with own models is months. Tian chose fork + keep training (the P-23 zero-training alternative,
+  open in brainstorm.md since 2026-08-30). We become a fork of the shared ensemble; our arm is the part that is
+  *not* in everyone else's fork.
+- **Our arm inside the fork = c02 members only** (`v08w` + 5-fold `v09h`): drops `v10c` (a third of our rerun) and
+  the c01 decode pass; the arm costs ≈ 80 min of hidden-test time after the anchor graph, fail-soft (anchor
+  retained on any failure or past 7.0 h / an 8.4 h projection). β = 0.20 fixed, never tuned on the LB; the
+  FineSpacing stage was dropped because the scored 0.942 run never had its dataset attached.
+- **Production regime** copies the 0.924 member's training (all data, 16 ep, SWA) but **not** its gold-58 epoch
+  selection (we average the *last* three EMA snapshots; the docs' ban on selecting on 58 rows stands) and not its
+  no-laterality / slot-crossing input (P-05 is +0.015 for us and is our diversity).
+- **Kaggle only tonight** (Tian will not leave a pod running unattended); RunPod in the morning for B6 (ConvNeXt-T
+  c02 PROD) / B7 (CoAtNet-2@384 PROD, bs 8) if wanted.
+- **Not tuning their inner weights** (LatMen 1.00 etc.) — their own diagnostics cell warns they are the likeliest
+  place to give back points privately.
+
+### What we figured out
+
+1. **Cells 0–49 of the 0.942 notebook are the scored graph**: its `dataSources` has 17 entries and the FineSpacing
+   dataset is not among them (experiments.md "Anatomy of the public 0.942 notebook"). 0.941 → 0.942 was half
+   blend-weight tuning, half the CoAt family, by its own header.
+2. **Per-arm resume never worked** (traps 31): the mounted `_last.pt` was looked up under the default version
+   `v03`, so any resumed arm restarted at epoch 0. Fixed inside the arm loop; the `mode = "infer" if …` rule stays
+   on `v03` on purpose.
+3. **A `train_all` member has no OOF** (traps 32): `oof_eval` would have scored 871 of its training studies as
+   "OOF"; it now scores gold-58 only, and `blend_check.py` must not see such members.
+4. **The fork works end to end on Kaggle** (fork v1 outputs: 20/20 DINO gate, A5, Rad, 4 Raptor views, both CoAt
+   children rc 0, our 6 members, blend); the only failure was a keyword collision in the arm cell's `finally`
+   (`rsna_phase` takes `status` positionally). **The Kaggle log of this notebook downloads as 0 bytes** — read the
+   `diagnostics/` folder instead (Infrastructure 2026-09-21).
+5. With 3 placeholder studies a β = 0.2 blend is identical to the anchor (a 1/3 rank step cannot be overturned by
+   0.2 × 2/3) — the placeholder proves plumbing, not the blend.
+
+### ⏭ Next action, in order
+
+1. **Fork v3 → submit #12.** When `kaggle kernels status tiankljucanin/rsna-knee-fork` is `COMPLETE` and the outputs
+   read green (table above):
+   `kaggle competitions submit rsna-knee-abnormality-detection -k tiankljucanin/rsna-knee-fork -v 3 -f submission.csv -m "P-27: public 0.942 graph (cells 0-49 verbatim) + our c02 arm (v08w + 5-fold v09h) at beta=0.20; anchor copy and beta 0.10/0.30 variants in the outputs"`.
+   Scoring ≈ 5–7 h. **Read-out (pre-registered, P-27):** ≥ 0.947 = our arm helps; 0.940–0.946 = 🔁 (β 0.20 stays);
+   < 0.940 = hurts → next submission β = 0.10 (`build_fork.py --beta 0.10`, re-push, submit) or the anchor.
+   If v3 is `ERROR`: `kaggle kernels output … -p artifacts/kaggle_out/fork_v3` and read `diagnostics/current_phase.json`.
+2. **Push `v08a`** as soon as a GPU slot is free (after fork v3 ends): `kaggle kernels push -p kaggle/rsna-knee-folds`.
+3. **Morning: ship the production members.** For each of `v09a` (train v19) and `v08a` (folds v6) when COMPLETE:
+   `kaggle kernels output tiankljucanin/rsna-knee-train -p artifacts/kaggle_out/train_v19 --file-pattern "v09a_fold0_best"`
+   (+ `_lastema`, `_oof.csv`), then a Dataset `tiankljucanin/rsna-knee-ckpt-v09a` with `v09a_fold0_best.pt` +
+   `v09a_fold0_oof.csv` (verify by `kaggle datasets files`, never exit status — traps 20/21); same for `v08a`. Then
+   `python src/build_fork.py --members v08w v09h v09a v08a --member v09a=tiankljucanin/rsna-knee-ckpt-v09a:tiankljucanin/timm-coatnet-rmlp-1-rw-224 --member v08a=tiankljucanin/rsna-knee-ckpt-v08a`
+   → push → placeholder green → submit #13. Read: vs #12 by the 0.005 floor.
+4. **Morning, CPU:** B5 — `kaggle datasets download dreaddevelopment/rsna-knee-labels -p data/llm_labels/dread --unzip`,
+   add `labels_llm_soft.csv` as a 4th source in `src/build_targets.py` behind a flag, read its gold-58 macro-AUC
+   in the scoring block; adopt for *future* arms only if ≥ 0.893 (hans_v4).
+5. **Morning, RunPod (attended):** B6 ConvNeXt-T c02 window_attn PROD (`("v06a", {**PROD, "backbone": "convnext_tiny", "img_size": 224, "lr_backbone": 1e-4})` — add to `ARMS`, smoke locally, `RSNA_ARM=v06a`), then B7 only if time remains. Pod `setup` ≈ 40 min (traps 29).
+6. `/update` after every number (#12 score, per-epoch gold curves, SWA vs last-EMA), then `/handoff`.
+
+### Open decisions for Tian
+
+- Submit #12 as soon as v3 is green (tonight, 5 slots) or wait for the morning's members and submit once.
+- The RadImageNet stage (CC-BY-NC-SA / "other") in the *final* submission — keep, or drop the Rad stage from the fork.
+- RunPod budget for the morning (B6 ≈ 1 h 4090 ≈ $1; B7 ≈ 3 h ≈ $2.5).
+- Whether `v10c` / the c01 members ever return to our arm (runtime vs. the +0.00x they might add).
+
+### Things that will bite if forgotten
+
+- **The Kaggle log of the fork notebook downloads as 0 bytes** even when it ran — the `diagnostics/` folder and
+  `fork_diagnostics.json` are the record. Do not conclude "never started" from an empty log.
+- **`kaggle kernels push` refuses a third GPU session** ("Maximum batch GPU session count of 2 reached") — the fork
+  placeholder and one training run fill both slots; sequence the pushes.
+- A PowerShell `[IO.File]::WriteAllText("p", $s -replace 'a','b')` is parsed as three arguments — wrap the
+  replace in parentheses, or the file is not written and a stale copy runs (bit twice tonight).
+- The builder's own guard fired on its explanatory comment and the unrebuilt notebook was pushed as v2; check the
+  build's exit status before any push (`if ($LASTEXITCODE -ne 0)`).
+- `ARM_ONLY` must be sed'd into every training push; grep the generated `.py` for `ARM_ONLY = "v0` first. The
+  committed `rsna-knee-train.ipynb` / `rsna-knee-folds.ipynb` are the real-run variants (`FORCE_SMOKE = False`).
+- Background bash jobs (the v3 pusher) die with the session that started them.
+
 ## 2026-08-30 (22:40) — Submission #11 sent (infer v14, the 0.912 blend with `v09h` as 5 folds); Tian moves to a new laptop — migration notes below
 
 Delta on the 22:00 entry (read that one for the day's full state). Tian's call: submit v14 tonight.

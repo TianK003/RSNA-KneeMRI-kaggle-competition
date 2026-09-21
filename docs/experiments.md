@@ -1204,6 +1204,17 @@ own under the production regime (P-28). Verdict on the fork = ⏳ Scoreboard row
   decode-once verified, inference on the arm, `constant labels 0`, no `!!`. Real runs: `rsna-knee-train`
   v19 (`v09a`, pushed 2026-09-21 evening), `rsna-knee-folds` v6 (`v08a`, pushed after the fork's placeholder
   run freed the second GPU slot). Fork `rsna-knee-fork` v1 = placeholder run (20 sources accepted by the push).
+- **Fork v1 placeholder run (3 studies): the whole graph ran, then the arm cell's `finally` crashed.** Kaggle
+  status `ERROR` with an **empty kernel log** (0 bytes — the outputs folder is the evidence, not the log:
+  `diagnostics/current_phase.json` holds the error). `btkd_v559_complete.json`: status COMPLETE, 20 DINO
+  members, 5 A5 folds, 4 Raptor views, both CoAt children `rc=0`, **224 s** for the anchor graph; our
+  subprocess `rc=0` in **115 s** (6 members, one geometry group, decode-once verified, `blend: by_version ->
+  v08w (1 fold), v09h (5 folds)`), `fork_diagnostics.json` status `beta0.20`, Spearman(ours, anchor) written
+  per finding (meaningless at n=3). The crash: `rsna_phase('fork_ours', 'COMPLETE', status=…)` — the anchor's
+  logger takes `status` positionally → `TypeError: multiple values for argument 'status'`, raised *after*
+  `submission.csv` was written. Fixed in `build_fork.py` (`outcome=`) with a builder guard; v2 was pushed by
+  mistake before the rebuild (the guard fired on its own comment), v3 carries the fix. With 3 studies the
+  β = 0.2 blend is identical to the anchor (a 1/3 rank step cannot be overturned by 0.2 × 2/3), as expected.
 
 ### 2026-08-30 — Cache v2 (`c02`), window-attention path, timm hybrids and mixed-geometry inference shipped; local verification ✅ KEEP the code · Kaggle ⏳
 
