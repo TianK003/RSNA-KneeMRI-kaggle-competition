@@ -1198,6 +1198,12 @@ own under the production regime (P-28). Verdict on the fork = ⏳ Scoreboard row
   `_lastema.pt`, `_last.pt` with the ring, decode-once verified, inference on `v09a`).
 - `kaggle/rsna-knee-folds/kernel-metadata.json` now mounts the four c02 shards + the CoAtNet-1 weights, so
   either training kernel can host either arm (and the other's resume).
+- **Kaggle smokes green** (`rsna-knee-train` v18 = `v09a`, `rsna-knee-folds` v5 = `v08a`, ~1.5 min each after
+  boot): `ARM_ONLY: running only …`, both caches indexed (4,407 studies), `fold 0: train 4 / val 8 studies
+  [train_all: val = gold rows]`, `auc_gold` on 8 rows with its CI, `SWA of last 1 EMA snapshot(s)`,
+  decode-once verified, inference on the arm, `constant labels 0`, no `!!`. Real runs: `rsna-knee-train`
+  v19 (`v09a`, pushed 2026-09-21 evening), `rsna-knee-folds` v6 (`v08a`, pushed after the fork's placeholder
+  run freed the second GPU slot). Fork `rsna-knee-fork` v1 = placeholder run (20 sources accepted by the push).
 
 ### 2026-08-30 — Cache v2 (`c02`), window-attention path, timm hybrids and mixed-geometry inference shipped; local verification ✅ KEEP the code · Kaggle ⏳
 

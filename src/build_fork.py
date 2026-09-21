@@ -358,7 +358,9 @@ finally:
     _fork_diag.update(status=_fork_status, reason=_fork_reason, anchor_sha256=_fork_anchor_sha,
                       submission_sha256=_fork_final_sha, elapsed_h=(_fork_time.time() - T0) / 3600)
     rsna_json(_FORK_DIAG, _fork_diag)
-    rsna_phase('fork_ours', 'COMPLETE', status=_fork_status)
+    # The anchor's phase logger takes the status as its second positional argument, so the outcome
+    # travels under another keyword (fork v1 died here with "multiple values for 'status'").
+    rsna_phase('fork_ours', 'COMPLETE', outcome=_fork_status)
     _fork_log(f'FINAL submission.csv = {_fork_status} sha256={_fork_final_sha}')
 """
 
@@ -392,6 +394,10 @@ def render_fork_cells(payload, payload_sha, pipeline_sha, params):
            "source": _fill(FORK_ARM_TEMPLATE, params)}
     compile(cell_text(pay), "fork-payload", "exec")
     compile(cell_text(arm), "fork-arm", "exec")
+    # The anchor's phase logger takes (stage, status, **extra); a `status=` keyword collides with the
+    # positional name and raises TypeError inside `finally` -- the one place that must not fail.
+    if re.search(r"rsna_phase\([^)]*\bstatus\s*=", cell_text(arm)):
+        raise SystemExit("arm cell passes status= to rsna_phase (positional collision, fork v1 failure)")
     return [md, pay, arm]
 
 
