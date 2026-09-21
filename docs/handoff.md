@@ -6,6 +6,18 @@ to read first after a break.
 
 ---
 
+## 2026-09-21 (21:30) — Delta on the 21:10 entry: fork v3 green, **submission #12 sent**, `v08a` pushed
+
+Read the 21:10 entry for the session's full state; only the in-flight table changed:
+
+| In flight | What it is | Started | How to check | How to read it |
+|---|---|---|---|---|
+| **Submission #12** — `rsna-knee-fork` v3, ref **56442019** | P-27: the public 0.942 graph + our c02 arm at β = 0.20 (placeholder run green: anchor graph 184 s, ours rc 0, `fork_diagnostics.json` `beta0.20`) | 21:24 | `kaggle competitions submissions rsna-knee-abnormality-detection --csv \| head -3` | scoring ≈ 5–7 h → **≈ 02:30–04:30**. **≥ 0.947** = our arm helps (P-27 ✅); **0.940–0.946** = 🔁, β 0.20 stays; **< 0.940** = our arm hurts → `python src/build_fork.py --beta 0.10`, push, submit; `ERROR` = read the rerun via the fork's outputs (the kernel log is empty for this notebook) — most likely the 8 h guard, then the fail-soft anchor should still have been written. Fill the Scoreboard ⏳ row + P-27 status via `/update` |
+| **`rsna-knee-train` v19 = `v09a`** | P-28 CoAtNet-1 all-data 16 ep SWA | 20:53 | as in the 21:10 table | 4–8 h → ≈ 01:00–05:00 |
+| **`rsna-knee-folds` v6 = `v08a`** | P-28 DINOv2-S all-data 16 ep SWA | 21:26 | `kaggle kernels status tiankljucanin/rsna-knee-folds`; output as for `v09a` (`--file-pattern "no_match"` for the log) | ≈ 2.6 h → ≈ 00:00; same green lines (`SWA of last 3 EMA snapshot(s)`, `-> v08a_fold0_best.pt = SWA`) |
+
+4 submissions left today (reset 02:00). Both GPU slots are busy until `v08a` finishes; no background watchers survive this session. Next action list = the 21:10 entry's, starting at step 3 (ship the members in the morning) — step 1 (submit) and step 2 (push `v08a`) are done.
+
 ## 2026-09-21 (21:10) — The 0.942 notebook read and forked (P-27: its graph verbatim + our arm), the production training regime built (P-28: all-data, 16 ep, SWA); `v09a` training on Kaggle; fork v3 waiting for a GPU slot; nothing submitted yet
 
 Plan file: `~/.claude/plans/i-want-you-to-witty-kernighan.md` (the full enumerated / prioritised change list —
