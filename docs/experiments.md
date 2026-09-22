@@ -58,9 +58,9 @@ Judge label changes on **coverage** (does the rule fire at all, per language) an
 | 2026-08-30 | **P-23 seven-version blend, submission #10 (infer v13)**: #9 set + v09h | fold-0 proxy **0.8820** | **0.912** | ✅ **best on the board and the default blend** (tie rule: more members); the `v09h` *increment* is **+0.003 vs #9 → 🔁 under the 0.005 floor** (OOF said +0.0024); +0.012 vs #8's 0.900 = 2.4× the floor for the c02 lane as a whole; offset +0.030 (Submissions #10) |
 | 2026-08-30 | **5-fold `v09h` (RunPod chain4, folds 1–4 added to fold 0; 3.4 h, ≈ $2.6)** | pooled OOF **0.8625** · gold-58 0.874 | — | ✅ the ensemble base: +0.016 over `v05g`'s pooled 0.8467; per-fold 0.8546–0.8683; infer v14 mounts all five (one vote) |
 | 2026-08-30 | **Submission #11 (infer v14)**: the #10 blend with `v09h` as **5 folds** (still one vote) | fold-0 proxy 0.8820 · `v09h` pooled 0.8625 | **0.913** | 🔁 **as an increment, exactly as pre-registered** — +0.001 over #10 is 0.2× the 0.005 LB floor, and the rule written before sending was "0.912–0.916 = 🔁 by design, ≥ 0.917 = real". Folds are replicates inside one vote of seven, so this is confirmation, not disappointment. **Best on the board → the default blend** (it can only match or beat #10's members). Read 2026-09-03 (Submissions #11) |
-| 2026-09-21 | **P-27 fork, submission #12 (`rsna-knee-fork` v3, sent 21:24, ref 56442019)**: the public 0.942 graph (cells 0–49 verbatim) + our arm (`v08w` + 5-fold `v09h`) at β = 0.20; placeholder run green (anchor graph 184 s, ours rc 0, `beta0.20`) | anchor's own public LB 0.942 · ours: fold-0 proxy of the two c02 members only | ⏳ scoring ≈ 5–7 h | pre-registered: ≥ 0.947 = our arm helps; 0.940–0.946 🔁 (β 0.20 stays); < 0.940 = hurts → β 0.10 / anchor. Fail-soft: a failed arm submits the exact anchor |
-| 2026-09-21 | **`v09a` (P-28, kernel `rsna-knee-train`)**: CoAtNet-1 @224 on c02 + window_attn, **all 4,349 studies, 16 ep, SWA of the last 3 EMA snapshots** | gold-58 per epoch (reported only) | — | ⏳ no OOF exists for this member (traps 32); its measure is gold-58 direction + the LB via the fork |
-| 2026-09-21 | **`v08a` (P-28, kernel `rsna-knee-folds` v6, pushed 21:26)**: DINOv2-S @224 on c02 + window_attn, same regime | gold-58 per epoch (reported only) | — | ⏳ as above; ≈ 2.6 h |
+| 2026-09-21 | **P-27 fork, submission #12 (`rsna-knee-fork` v3, sent 21:24, ref 56442019)**: the public 0.942 graph (cells 0–49 verbatim) + our arm (`v08w` + 5-fold `v09h`) at β = 0.20; placeholder run green (anchor graph 184 s, ours rc 0, `beta0.20`) | anchor's own public LB 0.942 · ours: fold-0 proxy of the two c02 members only | **0.939** (read 2026-09-22 07:50) | **below the pre-registered 0.940 line → the action rule fires (next: β 0.10, then the anchor alone)**; as *evidence* it is 🔁: −0.003 vs the author's 0.942 is 0.6× the 0.005 floor, and the anchor was never scored from our account (sources are unpinned Datasets; the arm is fail-soft, so a silently skipped arm would also read 0.942 — an anchor-only submission is the control). **Best number on the board** (Submissions #12) |
+| 2026-09-21 | **`v09a` (P-28, kernel `rsna-knee-train`)**: CoAtNet-1 @224 on c02 + window_attn, **all 4,349 studies, 16 ep, SWA of the last 3 EMA snapshots** | gold-58 (all 58, reported only): **SWA 0.8768**, last EMA 0.8762, peak epoch 5 0.8925 | — | ✅ ran to completion (16 ep, 5.12 h, 0.25 s/study); SWA vs last EMA +0.0006 = 🔁 (no BatchNorm penalty, P-28 "if it fails" not triggered); gold peaks at epoch 5 and drifts −0.016 to epoch 15 — inside the gold SE, see the 2026-09-22 entry; LB via the fork ⏳ (#14) |
+| 2026-09-21 | **`v08a` (P-28, kernel `rsna-knee-folds` v6, pushed 21:26)**: DINOv2-S @224 on c02 + window_attn, same regime | gold-58: **SWA 0.8816**, last EMA 0.8802, peak epoch 6 0.8944 | — | ✅ ran to completion (16 ep, 2.38 h); SWA vs last EMA +0.0014 = 🔁; same peak-then-drift shape as `v09a` (−0.014 from epoch 6 to 15); LB via the fork ⏳ (#14) |
 
 **External reference points** (not ours — for calibrating ambition):
 
@@ -1182,6 +1182,47 @@ the only licence-encumbered part; decision deferred to the final submission.
 **Decision (Tian, 2026-09-21):** fork it verbatim and add our members as one more vote (P-27), keep training our
 own under the production regime (P-28). Verdict on the fork = ⏳ Scoreboard row (#12).
 
+### 2026-09-22 — P-28 production arms `v09a` (CoAtNet-1) and `v08a` (DINOv2-S) trained on all 4,349 studies, 16 ep, SWA of the last 3 EMA snapshots (kernels `rsna-knee-train` v19 / `rsna-knee-folds` v6) ✅ the regime runs end to end · SWA vs last EMA 🔁 · gold peaks at epoch 5–6 ⏳ (a question, not a finding) · LB ⏳
+
+Both kernels ran to `all folds complete: True` with the two P-28 lines the handoff asked for (`SWA of last 3 EMA
+snapshot(s)`, `-> <arm>_fold0_best.pt = SWA, <arm>_fold0_lastema.pt = last EMA`); `train 4349 / val 58 studies
+[train_all: val = gold rows]`. No resume was needed: `v09a` 5.12 h (0.25 s/study, 18 min/epoch on the T4 — the
+CoAtNet-1 arm is only 2× the DINOv2 arm), `v08a` 2.38 h. The `_last.pt` of `v09a` is 1.15 GB (the SWA ring), as
+the card predicted. **These members have no OOF** (traps 32): every number below is gold-58, SE ≈ 0.04 macro.
+
+| arm | backbone | epoch 0 | peak (epoch) | epoch 15 (last EMA) | **SWA of 13–15 = `_best.pt`** | SWA − last EMA | hours |
+|---|---|---|---|---|---|---|---|
+| `v09a` | `timm:coatnet_rmlp_1_rw_224`, c02, window_attn, lr 1e-4 | 0.746 | **0.8925 (5)** | 0.8762 | **0.8768** (CI 0.841–0.910) | +0.0006 | 5.12 |
+| `v08a` | DINOv2-S @224, c02, window_attn | 0.733 | **0.8944 (6)** | 0.8802 | **0.8816** (CI 0.846–0.913) | +0.0014 | 2.38 |
+
+Per-label gold of the SWA checkpoints (both arms; the 7 labels the log prints in the table): ACL 0.941 / 0.898,
+MCL 0.921 / 0.914, Medial Meniscus 0.935 / 0.930, Lateral Meniscus 0.819 / 0.848, Medial OA 0.986 / 0.963,
+Lateral OA 0.739 / 0.812, PF OA 0.825 / 0.821 (`v09a` / `v08a`). Lateral OA is the weakest label for the
+CoAtNet arm and Lateral Meniscus for both — the same two labels that were weakest for the fold-0 members.
+
+Readings:
+
+1. **SWA of the last three EMA snapshots ≈ the last EMA** (+0.0006 / +0.0014, far inside any floor) — SWA neither
+   helps nor hurts on gold; in particular the CoAtNet arm shows **no BatchNorm-averaging penalty**, so the P-28
+   "if it fails → `update_bn`" branch is not triggered. 🔁 as a gain; ✅ as a safe default (it can only smooth).
+2. **Both gold curves peak at epoch 5–6 and drift down by ≈ 0.015 to epoch 15** (0.8925 → 0.8762; 0.8944 →
+   0.8802) while the training loss keeps falling (0.45 → 0.32). Each drift alone is well inside the 58-row SE
+   (≈ 0.04), so this is **not evidence that 16 epochs over-train** — but the *same sign on two independent
+   arms* is the pattern the noise-floor rule says to watch, and it is exactly what the public 0.924 member's
+   author saw (they select the best gold epoch + SWA the top 3, which the docs reject). It is a **question for a
+   proper measurement**, not a finding: a fold-0 16-epoch twin of `v09h` (OOF on 871 studies, floor 0.008) would
+   say whether the OneCycle tail over-fits the soft targets. Logged as an open question; the epoch budget stays 16
+   until that number exists (P-28 hypothesis unchanged: the LB is the measure).
+3. Compared with their fold-0 twins on gold (`v09h` fold 0 gold 0.923 on n=11; 5-fold pooled gold-58 0.874,
+   `v08w` 0.927 on n=11) nothing can be read — different n, and gold-58 was *inside* the twins' training folds'
+   validation only 11 at a time. The only admissible comparison is the LB via P-27 with and without these members.
+
+**Verdict: ✅ the regime works as built (both arms, no resume, SWA written); 🔁 SWA vs last EMA; ⏳ the LB value
+(fork v5 = `v08w` + `v09h` + `v09a` + `v08a`).** Checkpoints: `artifacts/kaggle_out/train_v19/` (`v09a_fold0_best.pt`
+164 MB, `_lastema.pt`, `_last.pt` 1.15 GB, 16 per-epoch `_ep*_oof.csv` = gold-58 predictions) and, once the Kaggle
+token is renewed, `folds_v6/` for `v08a`; Datasets `rsna-knee-ckpt-v09a` / `-v08a` (traps 20 hit at 07:55 — the
+pull of `v08a` failed with the "wrong slug" message).
+
 ## Infrastructure
 
 ### 2026-09-21 — P-27 fork builder + P-28 production regime shipped; local checks ✅ KEEP the code · Kaggle ⏳
@@ -1584,3 +1625,4 @@ and public LB score, so a public/private divergence can be traced to a specific 
 | 9 | 2026-08-30 | rsna-knee-infer v12 (Datasets `rsna-knee-ckpt-v05` = `v05a`/`v05b`, `-v05g`, `-v06` = `v06c`, `-v10c`, `timm-coatnet-rmlp-2-rw-384`, `convnext-tiny-224-hf`; `rsna-knee-train` v17 = `v08w`, pinned later that evening as `rsna-knee-ckpt-v08w`) | **P-23 #2 + P-25 + P-26**: #8's four versions + **`v08w`** (DINOv2-S @224 on the **c02** 2–98 % cache with the **window-attention head**) + **`v10c`** (CoAtNet-2 @384, c02, 42 eval windows); 10 checkpoints, 6 votes; the first mixed-geometry submission — two decode-once groups (c01 + c02) in one kernel | fold-0 proxy 0.8795 (+0.0073 vs #8) | **0.909** | **+0.009 vs 0.900 → ✅ KEEP (1.8× the 0.005 LB floor)**; offset +0.0295 (0.8795 + 0.028 predicted 0.9075). First LB evidence that the 0.936 notebook's mechanism — wide band + per-label window attention + hybrid backbone — carries to the hidden test. Rerun cost ≈ 1 h 50 min vs ≤ 65 min for #8 (Infrastructure 2026-08-30 "Rerun cost of the blend") |
 | 10 | 2026-08-30 | rsna-knee-infer v13 (#9's mounts + Dataset `rsna-knee-ckpt-v09h` = `v09h` fold 0, `timm-coatnet-rmlp-1-rw-224`) | **P-23 #2a**: #9's six versions + **`v09h`** (CoAtNet-1 @224 on c02, window-attention head, all windows at eval — the best single model, fold-0 OOF 0.8683); 11 checkpoints, 7 votes, three c02 members in one decode group | fold-0 proxy 0.8820 (+0.0024 vs #9) | **0.912** | **+0.003 vs #9 → 🔁 INCONCLUSIVE as an increment** (0.6× the 0.005 floor; the OOF predicted exactly this), **+0.012 vs #8 → ✅ for the c02 lane (2.4× the floor)**. Best number on the board → **default blend = these seven** (pre-registered tie rule: more members, more robust privately). Offset +0.030; seven calibration points now sit in +0.020…+0.030. Scoring took ≈ 2 h 10 min (17:37 → ≈ 19:45), as the cost table predicted. Next LB move needs a member with ρ < 0.80 vs this blend, i.e. a new input representation (P-23 #3/#4) or P-17 |
 | 11 | 2026-08-30 (read 2026-09-03) | rsna-knee-infer v14 (#10's mounts; `rsna-knee-ckpt-v09h` re-versioned to 5 folds + `rsna-knee-ckpt-v08w` pin) | **the #10 blend with `v09h` as 5 folds instead of 1** (15 checkpoints, still 7 votes — `INFER_BLEND="by_version"`); no config change to any other member, two decode groups as in #10 | fold-0 proxy 0.8820 (unchanged — pooled `v09h` OOF 0.8625) | **0.913** | **+0.001 vs #10 → 🔁 INCONCLUSIVE, and pre-registered as such** (the rule set before sending: 0.912–0.916 = 🔁 because folds are replicates; ≥ 0.917 = a real fold-ensemble gain). Consistent with #6/#7: `v05g`'s five folds bought +0.009 as a *lone* version and +0.000 inside a blend — here, inside one vote of seven, they buy +0.001. **Best number on the board, so it stays the default blend**; the value is robustness on private, not public LB. Offset vs the fold-0 proxy is **+0.031** (n=8), a touch above the +0.020–0.030 band — expected, since a pooled/fold-0 proxy cannot see the variance reduction of averaging five models (the #6 lesson). Ref 55899052; scored ≈ 2 h 40 min as the rerun-cost table predicted |
+| 12 | 2026-09-21 (read 2026-09-22) | rsna-knee-fork v3 (17 public sources of the 0.942 notebook + Datasets `rsna-knee-ckpt-v08w`, `-v09h` 5-fold, `timm-coatnet-rmlp-1-rw-224`) | **P-27**: the public 0.942 notebook's cells 0–49 byte-identical (20 DINOv2 + A5 + RadImageNet/calibrator + Raptor ×4 @94 windows + CoAt family, its LB-tuned weights untouched), FineSpacing stage dropped, **our c02 arm (`v08w` 1 fold + `v09h` 5 folds, one vote each) rank-blended at β = 0.20** on top; fail-soft to the exact anchor | none for the fork (our arm's fold-0 proxy ≈ 0.87; no OOF for the anchor) | **0.939** | **−0.003 vs the author's 0.942 → the pre-registered action rule (< 0.940) fires, but as evidence it is 🔁 INCONCLUSIVE** (0.6× the 0.005 floor). Two confounds neither the log nor the outputs can resolve for a hidden-test rerun: (a) the anchor has never been scored from our account (all 17 sources are unpinned Datasets — a re-versioned source moves the anchor), and (b) the arm is fail-soft, so a skipped arm would have submitted the anchor unchanged. The offset rule does not apply (no OOF). Next: β 0.10 with the same members (fork v4), the anchor alone as the control (β 0), then β 0.10 with the P-28 members. Ref 56442019; scored ≈ 10 h (21:24 → before 07:50) |
