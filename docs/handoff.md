@@ -6,71 +6,38 @@ to read first after a break.
 
 ---
 
-## 2026-09-22 (09:45) — Delta on the 08:50 entry: **fork v6 = the anchor-only control is built, pushed, placeholder-verified and ready to submit** (not sent); CLAUDE.md state stack collapsed
+## 2026-09-22 (10:00) — #12 read **0.939** (β 0.20, 0.003 under the anchor's 0.942); P-28 arms `v09a` / `v08a` shipped; **#13 (β 0.10) and #14 (β 0.10 + `v09a` + `v08a`) sent**; **fork v6 = anchor-only control built, verified, NOT submitted**; CLAUDE.md state stack collapsed
 
-Read the 08:50 entry for the session's state; this delta adds one prepared submission and one docs cleanup.
+This entry consolidates the session's 08:50 and 09:45 entries (same session, superseded in place; nothing older was touched).
 
-| Ready / in flight | What it is | How to check | How to read it |
-|---|---|---|---|
-| **Fork v6 — anchor-only control, NOT submitted** (Tian's go needed) | `build_fork.py --beta 0.0 --members v08w v09h`: the 0.942 graph verbatim, **our arm is not launched** (new `_ForkControl` branch, `status: anchor_control`), `submission.csv` byte-identical to the anchor; same 20 sources as v3/v4. Placeholder run 09:33–09:40: `fork_diagnostics.json` `status anchor_control`, `subprocess: null`, anchor sha = submission sha (verified on the downloaded file), anchor graph 204 s with 20/20 DINO + 5 A5 folds | **Submit:** `kaggle competitions submit rsna-knee-abnormality-detection -k tiankljucanin/rsna-knee-fork -v 6 -f submission.csv -m "anchor-only control: the public 0.942 graph (cells 0-49 verbatim) from our account, our arm not run (beta 0)"` — 3 slots left today | The baseline every β read is relative to. **0.942** = the anchor reproduces → #12's −0.003 is our arm's doing (small, 🔁 by the floor, but the sign is real-ish); **≠ 0.942** = the anchor itself moved (unpinned sources / rerun variance) and #12–#14 must be read against *this* number, not 0.942. Fill the Scoreboard + Submissions rows via `/update` |
-| Submissions #13 / #14 | unchanged from the 08:50 table (refs 56458837 / 56459131, sent 08:30 / 08:41) | `kaggle competitions submissions rsna-knee-abnormality-detection --csv \| head -4` | rules in the 08:50 table |
-
-**Committed tree = fork v6** (`kaggle/rsna-knee-fork/` is the β 0 build). Rebuild v5 (the four-member β 0.10 submission #14) with
-`--beta 0.10 --members v08w v09h v09a v08a --member v09a=tiankljucanin/rsna-knee-ckpt-v09a:tiankljucanin/timm-coatnet-rmlp-1-rw-224 --member v08a=tiankljucanin/rsna-knee-ckpt-v08a`
-(the new builder reproduces it: `artifacts/fork_v5b/`). Placeholder outputs of v4/v5/v6 are in `artifacts/kaggle_out/fork_v4..6/`.
-
-### What changed since 08:50
-
-- **`src/build_fork.py`:** β ≤ 0 is now a real control — the arm cell raises `_ForkControl` before the runtime gate, the
-  `except` sets `anchor_control`, the `finally` enforces the anchor sha for that status too; markdown cell + docstring
-  updated (experiments.md Infrastructure 2026-09-22). Before, β 0 would have run the 80-minute arm and written a
-  rank-transformed copy of the anchor.
-- **CLAUDE.md:** the fifteen stacked "State as of" paragraphs (2026-08-29 → 2026-09-22) — a duplicate of this file's
-  session entries — are replaced by one current-state paragraph that points here and to the Scoreboard. The doc-map row
-  for proposals now says P-00…P-28. Nothing else in the docs was removed: experiments.md is append-only, and no older
-  handoff entry was touched.
-- proposals.md P-27 card/index, brainstorm.md control row and experiments.md (new Infrastructure entry) record the control.
-
-### ⏭ Next action, in order
-
-1. **Tian: submit fork v6** (command above) or decline. If declined, the anchor number stays unknown and #13/#14 are read
-   against the author's 0.942 as in the 08:50 table.
-2. Read #13 / #14 (≈ 15:00–19:00) and, if sent, the control (≈ +6–10 h) → `/update` → decide B6/B7 (08:50 entry, step 2).
-3. Everything else as in the 08:50 entry (B5 soft labels, the epoch-5–6 question).
-
-### Things that will bite if forgotten
-
-- The committed fork tree is v6 (β 0). **Do not push it again thinking it is the four-member blend** — rebuild v5 first
-  (flags above; the log line `members ['v08w', 'v09h', 'v09a', 'v08a'] beta 0.1` confirms).
-- Kaggle token expiry 11:02 local (traps 20); Bash-tool PATH loss this session (08:50 entry).
-
-## 2026-09-22 (08:50) — #12 read **0.939** (β 0.20, under the anchor's 0.942); both P-28 arms shipped as Datasets; **#13 (β 0.10) and #14 (β 0.10 + `v09a` + `v08a`) sent**
-
-### ⏳ Still in flight as this was written (08:50)
+### ⏳ Still in flight as this was written (10:00)
 
 | In flight | What it is | Started | How to check | How to read it |
 |---|---|---|---|---|
-| **Submission #13** — `rsna-knee-fork` v4, ref **56458837** | #12's exact graph and members (`v08w` + 5-fold `v09h`), **β 0.20 → 0.10** — the action the P-27 card pre-registered for a < 0.940 read | 08:30 | `kaggle competitions submissions rsna-knee-abnormality-detection --csv \| head -3` | ≈ 6–10 h (#12 took ≈ 10 h) → **≈ 15:00–19:00**. vs #12 0.939 and the anchor 0.942: **≥ 0.945** = our arm helps at low β; **0.940–0.944** = 🔁; **≤ 0.939** = β is not the lever — then only the anchor-only control (below) separates "arm hurts" from "anchor drifted". `ERROR` = read the fork's outputs, not the log (the log is 0 bytes for this notebook); the fail-soft anchor should still have been written |
-| **Submission #14** — `rsna-knee-fork` v5, ref **56459131** | #13 + the two all-data SWA production members in our arm (`v08w`, `v09h` ×5, **`v09a`, `v08a`**, one vote each), β 0.10 | 08:41 | same command | same window. **Read vs #13** (same β, two members): **≥ +0.005** = the P-28 members earn their place (P-28 ✅ on the LB → every future member trains this way); **±0.004** = 🔁; **a drop** = the new members are redundant with the stack (P-28 fails on the LB although gold-58 was fine — the stack, not the members, is the reason). Fill both Scoreboard ⏳ rows + Submissions rows 13/14 via `/update` |
+| **Submission #13** — `rsna-knee-fork` v4, ref **56458837** | #12's exact graph and members (`v08w` + 5-fold `v09h`), **β 0.20 → 0.10** — the action the P-27 card pre-registered for a < 0.940 read | 08:30 | `kaggle competitions submissions rsna-knee-abnormality-detection --csv \| head -4` | ≈ 6–10 h (#12 took ≈ 10 h) → **≈ 15:00–19:00**. vs #12 0.939 and the anchor 0.942: **≥ 0.945** = our arm helps at low β; **0.940–0.944** = 🔁; **≤ 0.939** = β is not the lever — then only the control (fork v6) separates "arm hurts" from "anchor drifted". `ERROR` = read the fork's outputs, not the log (the log downloads as 0 bytes for this notebook); the fail-soft anchor should still have been written |
+| **Submission #14** — `rsna-knee-fork` v5, ref **56459131** | #13 + the two all-data SWA production members in our arm (`v08w`, `v09h` ×5, **`v09a`, `v08a`**, one vote each), β 0.10 | 08:41 | same command | same window. **Read vs #13** (same β, two members): **≥ +0.005** = the P-28 members earn their place (P-28 ✅ on the LB → every future member trains this way); **±0.004** = 🔁; **a drop** = the new members are redundant with the stack (their gold-58 was fine, so the stack, not the members, is the reason). Fill both Scoreboard ⏳ rows + Submissions rows 13/14 via `/update` |
+| **Fork v6 — anchor-only control, READY, not submitted** (Tian's go) | `build_fork.py --beta 0.0 --members v08w v09h`: the 0.942 graph verbatim, **our arm is not launched** (new `_ForkControl` branch → `status: anchor_control`), `submission.csv` byte-identical to the anchor; same 20 sources as v3/v4. Placeholder 09:33–09:40 green: `subprocess: null`, anchor sha = submission sha (verified on the downloaded file), anchor graph 204 s, 20/20 DINO + 5 A5 folds | pushed 09:33 | **Submit:** `kaggle competitions submit rsna-knee-abnormality-detection -k tiankljucanin/rsna-knee-fork -v 6 -f submission.csv -m "anchor-only control: the public 0.942 graph (cells 0-49 verbatim) from our account, our arm not run (beta 0)"` | The baseline every β read is relative to. **0.942** = the anchor reproduces → #12's −0.003 is our arm's (small, 🔁 by the floor, but the sign is ours); **≠ 0.942** = the anchor itself moved (unpinned sources / rerun variance) and #12–#14 must be read against *this* number. Fill Scoreboard + Submissions rows via `/update` |
 
-Kaggle: **3 submissions left today** (reset 02:00); no kernel running (both GPU slots free; quota this week ≈ 7.5 h spent: `v09a` 5.1 h + `v08a` 2.4 h + three fork placeholders); no pods; no background watchers survive this session. **The Kaggle OAuth token expires 11:02 local** (`access_token_expiration` in `~/.kaggle/credentials.json`; re-login = `kaggle auth login --force`, traps 20).
+Kaggle: **3 submissions left today** (reset 02:00); no kernel running (both GPU slots free; quota this week ≈ 7.7 h: `v09a` 5.1 h + `v08a` 2.4 h + four fork placeholders); no pods; no background watchers survive this session. The Kaggle OAuth token self-refreshed during the session and is valid until **23:42 local** (`access_token_expiration` in `~/.kaggle/credentials.json`; after that `kaggle auth login --force`, traps 20).
 
 ### Where things stand
 
 | | Status |
 |---|---|
 | Best LB | **0.939** — #12, the P-27 fork at β 0.20 (our own blend alone is 0.913, #11). 0.003 *under* the anchor's author-stated 0.942, so the fork has not yet shown a gain from our arm (experiments.md Submissions #12) |
-| P-27 fork | `src/build_fork.py` deterministic; **committed tree = fork v5** (four members, β 0.10; `--check` passes with `--beta 0.10 --members v08w v09h v09a v08a --member v09a=tiankljucanin/rsna-knee-ckpt-v09a:tiankljucanin/timm-coatnet-rmlp-1-rw-224 --member v08a=tiankljucanin/rsna-knee-ckpt-v08a`). v4 = two members β 0.10 (`git show 9974600:kaggle/rsna-knee-fork/rsna-knee-fork.ipynb`). Placeholder outputs in `artifacts/kaggle_out/fork_v4/`, `fork_v5/` |
-| P-28 members | ✅ **`v09a`** (CoAtNet-1, 5.12 h, gold-58 SWA 0.8768) and **`v08a`** (DINOv2-S, 2.38 h, 0.8816) trained; SWA ≈ last EMA; gold peaks at epoch 5–6 then drifts ≈ −0.015 (experiments.md 2026-09-22 entry; brainstorm question). Datasets **`tiankljucanin/rsna-knee-ckpt-v09a`** / **`-v08a`** (`_best.pt` + gold-58 `_oof.csv`, verified with `kaggle datasets files`). Local: `artifacts/kaggle_out/train_v19/` (incl. `_lastema.pt`, `_last.pt` 1.15 GB, 16 per-epoch csvs), `folds_v6/`, staging dirs `artifacts/ship_v09a/`, `ship_v08a/` |
-| Docs | experiments: #12 verdict, Scoreboard rows (#12, `v09a`, `v08a` filled; #13/#14 ⏳), Submissions rows 12–14, the P-28 arms entry; proposals: P-27 📊 measured / P-28 ✅ trained (cards + index); brainstorm: anchor-control + epoch-budget questions; CLAUDE.md state line 08:10 |
-| Repo | pushed through `1a76e02` + this handoff (`9974600` docs, `1a76e02` fork v5) |
+| P-27 fork | `src/build_fork.py` deterministic; β ≤ 0 is now a real anchor-only control (experiments.md Infrastructure 2026-09-22). **Committed tree = fork v6 (β 0)**. v4 = two members β 0.10 (#13); v5 = four members β 0.10 (#14), reproducible with `--beta 0.10 --members v08w v09h v09a v08a --member v09a=tiankljucanin/rsna-knee-ckpt-v09a:tiankljucanin/timm-coatnet-rmlp-1-rw-224 --member v08a=tiankljucanin/rsna-knee-ckpt-v08a` (checked: `artifacts/fork_v5b/`). Placeholder outputs in `artifacts/kaggle_out/fork_v4..6/` |
+| P-28 members | ✅ **`v09a`** (CoAtNet-1, 5.12 h, gold-58 SWA 0.8768) and **`v08a`** (DINOv2-S, 2.38 h, 0.8816) trained on all 4,349 studies; SWA ≈ last EMA; gold peaks at epoch 5–6 then drifts ≈ −0.015 (experiments.md 2026-09-22 entry; brainstorm question). Datasets **`tiankljucanin/rsna-knee-ckpt-v09a`** / **`-v08a`** (`_best.pt` + gold-58 `_oof.csv`, verified with `kaggle datasets files`). Local: `artifacts/kaggle_out/train_v19/` (incl. `_lastema.pt`, `_last.pt` 1.15 GB, 16 per-epoch csvs), `folds_v6/`, staging dirs `artifacts/ship_v09a/`, `ship_v08a/` |
+| Docs | experiments: #12 verdict, Scoreboard rows (#12, `v09a`, `v08a` filled; #13/#14 ⏳), Submissions rows 12–14, the P-28 arms entry, the control-mode Infrastructure entry; proposals: P-27 📊 measured / P-28 ✅ trained (cards + index); brainstorm: anchor-control (→ fork v6) + epoch-budget questions; **CLAUDE.md: the fifteen stacked "State as of" paragraphs (a duplicate of this file) replaced by one current-state paragraph**, doc-map row P-00…P-28 |
+| Repo | pushed through `eee6686` + this handoff (`9974600` docs, `1a76e02` fork v5, `5962234` handoff, `eee6686` builder control + CLAUDE.md cleanup) |
 
 ### What we talked about and decided
 
 - **Two submissions, not one, on the 0.939 read** (Claude's call under "run what you planned"): the plan held both "β 0.10 on < 0.940" and "ship the members → next submission", so they went out as a chain at the *same* β — #13 isolates β, #14 vs #13 isolates the P-28 members. Members at β 0.20 would have confounded the two.
-- **Both at β 0.10, never tuned further on the LB** — the P-27 card's rule. If #13 and #14 both land ≤ 0.942 the next step is the anchor-only control, not a β sweep.
-- The anchor-only (β 0) submission was **recommended but not sent** — Tian has not answered; it stays an open decision (below). Cost: 1 of 5 daily slots, ~6–10 h scoring, no GPU.
-- `/update` was run *before* the login unblocked (docs first, so a dead session would still leave the numbers logged).
+- **Both at β 0.10, never tuned further on the LB** — the P-27 card's rule. If #13 and #14 both land ≤ 0.942 the next step is the control's number, not a β sweep.
+- **The anchor-only control** was recommended by Claude, and Tian asked for it to be *built and prepared*, not sent; it is fork v6, one command from submission. Cost: 1 of 5 daily slots, ~6–10 h scoring, no GPU.
+- **Control = arm not run at all** (not β 0 through the blend): Tian's ask was a control, and a control that still runs the 80-minute arm carries every failure mode of the arm and none of its signal. The builder change is 8 lines and keeps `--check` determinism and the v5 build byte-for-byte except the new branch.
+- **Docs cleanup scope** (Tian: "remove redundant information if needed"): only CLAUDE.md's state stack qualified — it duplicated this file. experiments.md (append-only) and older handoff entries were left alone by convention; this session's own two entries were consolidated into this one.
+- `/update` was run *before* the Kaggle login unblocked (docs first, so a dead session would still leave the numbers logged).
 
 ### What we figured out
 
@@ -78,29 +45,33 @@ Kaggle: **3 submissions left today** (reset 02:00); no kernel running (both GPU 
 2. **The P-28 regime runs end to end and SWA is harmless**: SWA − last EMA = +0.0006 / +0.0014 on gold-58; no BatchNorm penalty on the CoAtNet arm, so the card's `update_bn` fallback is not needed (experiments.md 2026-09-22).
 3. **Both gold curves peak at epoch 5–6 and drift ≈ −0.015 to epoch 15** while the loss keeps falling — inside the 58-row SE, but the same sign on two arms; logged as a question, not a finding (the settling measurement: a fold-0 16-epoch twin of `v09h` with per-epoch OOF, floor 0.008). 16 epochs stays until then.
 4. The CoAtNet-1 all-data arm costs **0.25 s/study on a T4** (18 min/epoch, 5.1 h for 16) — only ~2× the DINOv2 arm; both fit one 9 h session without a resume.
-5. **#12 took ≈ 10 h to score** (21:24 → before 07:50), not the 5–7 h estimated; #13/#14 carry a similar or slightly longer arm.
+5. **#12 took ≈ 10 h to score** (21:24 → before 07:50), not the 5–7 h estimated; #13/#14 carry a similar or slightly longer arm. The control (no arm) should score in ≈ 6 h.
+6. **β 0 through the blend was not a control** — it would have run the arm and written `rank_pct(rank_pct(anchor))` (AUC-identical, different bytes, every arm failure mode attached). Now `_FORK_BETA <= 0` skips the arm before the runtime gate (experiments.md Infrastructure 2026-09-22).
 
 ### ⏭ Next action, in order
 
-1. **Read #13 and #14** (≈ 15:00–19:00): `kaggle competitions submissions rsna-knee-abnormality-detection --csv | head -3`. Verdicts by the in-flight table; then `/update` (Scoreboard ⏳ rows, Submissions rows 13/14, P-27/P-28 card status, CLAUDE.md state).
-2. **If #14 ≥ #13 + 0.005:** P-28 is the production recipe → next members under `PROD`: B6 ConvNeXt-T c02 (`("v06a", {**PROD, "backbone": "convnext_tiny", "img_size": 224, "lr_backbone": 1e-4})` in `ARMS`; local smoke with `MODE="train"` sed'd in; Kaggle `ARM_ONLY="v06a"` ≈ 3–4 h, or RunPod attended) and B7 CoAtNet-2@384 PROD (RunPod, bs 8, ≈ 3 h). Each new member joins via `build_fork.py --members … --member v06a=tiankljucanin/rsna-knee-ckpt-v06a:tiankljucanin/convnext-tiny-224-hf`.
-3. **If #13 and #14 both ≤ 0.942:** send the anchor-only control — `python src/build_fork.py --beta 0.0 --members v08w v09h` (check `_FORK_BETA = 0.00` in the ipynb; if the builder's selftest rejects β 0, use `--beta 0.001`), push, placeholder green, submit. Read: 0.942 = our arm hurts (P-27 "if it fails": spend GPU only on members *different* from the stack); ≠ 0.942 = the anchor itself moved, and every β read so far is relative to *that* number.
-4. **CPU item B5 (unchanged):** `kaggle datasets download dreaddevelopment/rsna-knee-labels -p data/llm_labels/dread --unzip`, add `labels_llm_soft.csv` as a 4th source in `src/build_targets.py` behind a flag; adopt for future arms only if gold-58 macro-AUC ≥ 0.893.
-5. Optional measurement for the epoch question: fold-0 `v09h` twin at 16 epochs (`("v09p", {**C02, "backbone": "timm:coatnet_rmlp_1_rw_224", "img_size": 224, "lr_backbone": 1e-4, "epochs": 16})`, `ARM_FOLDS=(0,)`), read the OOF peak epoch from the per-epoch csvs with `src/oof_epoch_analysis.py`.
+1. **Tian: submit fork v6** (command in the in-flight table) or decline. If declined, the anchor number stays unknown and #13/#14 are read against the author's 0.942.
+2. **Read #13 / #14** (≈ 15:00–19:00) and, if sent, the control (+≈ 6 h): `kaggle competitions submissions rsna-knee-abnormality-detection --csv | head -5`. Verdicts by the in-flight table; then `/update` (Scoreboard ⏳ rows, Submissions rows, P-27/P-28 card status, CLAUDE.md state paragraph).
+3. **If #14 ≥ #13 + 0.005:** P-28 is the production recipe → next members under `PROD`: B6 ConvNeXt-T c02 (`("v06a", {**PROD, "backbone": "convnext_tiny", "img_size": 224, "lr_backbone": 1e-4})` in `ARMS`; local smoke with `MODE="train"` sed'd in; Kaggle `ARM_ONLY="v06a"` ≈ 3–4 h, or RunPod attended) and B7 CoAtNet-2@384 PROD (RunPod, bs 8, ≈ 3 h). Each new member joins via `build_fork.py --members … --member v06a=tiankljucanin/rsna-knee-ckpt-v06a:tiankljucanin/convnext-tiny-224-hf`. **Rebuild v5's flags first** — the committed fork tree is the β 0 control.
+4. **If #13 and #14 both ≤ the control's number:** P-27 "if it fails" — our members are redundant with the stack on the public split; spend GPU only on members *different* from the stack (input representation: P-23 #3/#4, P-17), keep the anchor for public submissions.
+5. **CPU item B5 (unchanged):** `kaggle datasets download dreaddevelopment/rsna-knee-labels -p data/llm_labels/dread --unzip`, add `labels_llm_soft.csv` as a 4th source in `src/build_targets.py` behind a flag; adopt for future arms only if gold-58 macro-AUC ≥ 0.893.
+6. Optional measurement for the epoch question: fold-0 `v09h` twin at 16 epochs (`("v09p", {**C02, "backbone": "timm:coatnet_rmlp_1_rw_224", "img_size": 224, "lr_backbone": 1e-4, "epochs": 16})`, `ARM_FOLDS=(0,)`), read the OOF peak epoch from the per-epoch csvs with `src/oof_epoch_analysis.py`.
 
 ### Open decisions for Tian
 
-- **Anchor-only control (β 0)** — spend one submission to fix the baseline from our account? Recommended (figured-out #1); only #13/#14 landing clearly *above* 0.942 makes it unnecessary.
+- **Submit the anchor-only control (fork v6)?** Recommended; only #13/#14 landing clearly *above* 0.942 makes it unnecessary.
 - RunPod budget for B6/B7 (≈ $1 / $2.5) once #14 is read.
 - The RadImageNet stage (CC-BY-NC-SA / "other") in the *final* submission — unchanged.
-- Whether to act on the epoch-5–6 gold peak (item 5) before training more 16-epoch members.
+- Whether to act on the epoch-5–6 gold peak (step 6) before training more 16-epoch members.
 
 ### Things that will bite if forgotten
 
-- **The Claude Code Bash tool lost the Git Bash PATH entries mid-session** (after a context reset): `git`, `grep`, `date`, `seq`, `ls` all "command not found" while `kaggle` via `.venv/Scripts` still ran. Fix: `export PATH="/usr/bin:/bin:$PATH"` at the top of every Bash call, and run `git` through the PowerShell tool. A background poll loop that used `seq` died silently with exit 0 and "timeout:" — read a monitor's output file, never assume it waited.
-- **`kaggle auth login` tokens last ~3 h** (this one 08:02 → 11:02); the expiry error blames the slug (traps 20). `kaggle kernels output` with a broad `--file-pattern` (`v09a_fold0`) also pulls the 1.15 GB `_last.pt` — use `v09a_fold0_best*` etc.
+- **The committed fork tree is v6 (β 0, arm not run).** Pushing it again is *not* the four-member blend — rebuild v5 first (flags in "Where things stand"); the build log line `members ['v08w', 'v09h', 'v09a', 'v08a'] beta 0.1` confirms.
+- **The Claude Code Bash tool lost the Git Bash PATH entries mid-session** (after a context reset): `git`, `grep`, `date`, `seq`, `ls` all "command not found" while `kaggle` via `.venv/Scripts` still ran. Fix: `export PATH="/usr/bin:/bin:$PATH"` at the top of every Bash call and run `git` through the PowerShell tool. A background poll loop that used `seq` died silently with exit 0 and "timeout:" — read a monitor's output file, never assume it waited.
+- **`kaggle auth login` tokens last ~3 h but the CLI sometimes self-refreshes** (08:02 → 11:02, then refreshed to 23:42 during the session); the expiry error blames the slug (traps 20). `kaggle kernels output` with a broad `--file-pattern` (`v09a_fold0`) also pulls the 1.15 GB `_last.pt` — use `v09a_fold0_best*` etc.
 - Parallel Bash calls share the working directory: a `cd artifacts/ship_v09a` in one call moved the other's cwd (the fork push failed once on relative paths). Use absolute paths or `cd` at the start of every call.
-- The fork placeholder's `submission.csv` is byte-identical to the anchor at any β ≤ 0.3 with 3 studies — the placeholder proves plumbing only; read `fork_diagnostics.json` (`status`, `subprocess.returncode`, `members`) and `ours_infer.log` (`blend: by_version -> …`).
+- The fork placeholder's `submission.csv` is byte-identical to the anchor at any β ≤ 0.3 with 3 studies — the placeholder proves plumbing only; read `fork_diagnostics.json` (`status`, `subprocess`, `members`) and `ours_infer.log` (`blend: by_version -> …`).
+- A raw-string template (`r"""…"""`) cannot hold a triple-quoted docstring — the first control build died on a `SyntaxError` inside the arm cell; comments only inside `FORK_ARM_TEMPLATE`.
 - Push the next version of a kernel slug only after the previous one leaves RUNNING (one GPU slot each; a mid-run push was not tested).
 
 ## 2026-09-21 (21:30) — Delta on the 21:10 entry: fork v3 green, **submission #12 sent**, `v08a` pushed
