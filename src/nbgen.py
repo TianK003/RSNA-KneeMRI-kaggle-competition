@@ -12,9 +12,38 @@ Usage:  python src/nbgen.py src/kaggle_pipeline.py kaggle/rsna-knee-train/rsna-k
 
 from __future__ import annotations
 
+import base64
+import hashlib
 import json
 import os
+import re
 import sys
+import zlib
+
+# P-31: the pipeline declares these two lines; when its PARALLEL_ARMS is a non-empty tuple, the generated
+# notebook carries the whole .py as a zlib + base64 payload (chunked literals) plus its sha256, so the
+# notebook can hand its own source to the per-GPU child processes. Files without the marker (the cache
+# pipeline) and pipelines with PARALLEL_ARMS = () are left untouched, so the committed single-arm
+# notebooks never churn a 50 KB blob.
+_MARKER = re.compile(r"^SELF_SOURCE_B64 = None  # nbgen: filled at build$", re.M)
+_SHA_LINE = re.compile(r"^SELF_SOURCE_SHA256 = None$", re.M)
+_PARALLEL = re.compile(r"^PARALLEL_ARMS = \((?!\s*\)).*\)\s*$", re.M)
+
+
+def embed_self_source(text: str) -> str:
+    if not _MARKER.search(text) or not _PARALLEL.search(text):
+        return text
+    if len(_MARKER.findall(text)) != 1 or len(_SHA_LINE.findall(text)) != 1:
+        raise SystemExit("nbgen: SELF_SOURCE_B64 / SELF_SOURCE_SHA256 markers must each appear exactly once")
+    compile(text, "pipeline", "exec")
+    payload = base64.b64encode(zlib.compress(text.encode("utf-8"), 9)).decode("ascii")
+    sha = hashlib.sha256(text.encode("utf-8")).hexdigest()
+    chunks = [payload[i:i + 120] for i in range(0, len(payload), 120)]
+    literal = "(\n" + "\n".join(f"    '{c}'" for c in chunks) + "\n)"
+    text = _SHA_LINE.sub(lambda m: f"SELF_SOURCE_SHA256 = '{sha}'", text)
+    text = _MARKER.sub(lambda m: "SELF_SOURCE_B64 = " + literal, text)
+    print(f"embedded self-source payload: {len(payload) / 1024:.0f} KB, sha256 {sha[:12]}…")
+    return text
 
 
 def split_cells(text: str) -> list[tuple[str, list[str]]]:
@@ -58,6 +87,7 @@ def clean(kind: str, lines: list[str]) -> list[str]:
 def build(src: str, dst: str) -> None:
     with open(src, encoding="utf-8") as fh:
         text = fh.read()
+    text = embed_self_source(text)
 
     cells = []
     for kind, lines in split_cells(text):

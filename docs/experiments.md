@@ -1318,6 +1318,42 @@ Files: `artifacts/kaggle_out/train_v21/` (16 per-epoch csvs, `v09p_fold0_oof.csv
 
 **Verdict: 🔁 on every increment (all < 0.005); ✅ the control (anchor = 0.942). Best on the board: 0.942 (#13 and #15, tied).**
 
+### 2026-09-22 (night) — The public frontier re-read: our anchor is a *superset* of the best public notebook; "0.957" is a gold-58 number; 690 teams sit at 0.941–0.942
+
+**Verdict: ✅ FINDING (read-only, no run).** 12 public notebooks pulled with `kaggle kernels pull` and dumped cell by cell,
+the full public LB csv (4,183 teams, 17:33 UTC) and Kaggle's score-sorted kernel listing.
+
+- **LB distribution:** 0.958 ×1, 0.956 ×1, 0.955 ×8, 0.954 ×7, 0.953 ×7, 0.952 ×10 … 0.945 ×29, 0.944 ×28, **0.943 ×98,
+  0.942 ×270 (us, rank 246), 0.941 ×420**, 0.940 ×184. 119 teams ≥ 0.945, 49 ≥ 0.950, 10 ≥ 0.955. Everything above ~0.945
+  is private work on top of the shared stack.
+- **Score-sorted public notebooks** (`kaggle kernels list --competition … --sort-by scoreDescending`): 1 `mattiaangeli/
+  bend-the-knee-to-speedy-raptors-the-original` (0.943 by the DINOsaur V5 author's note), 2 `evgendvorkin/rsna-baseline`,
+  3 `maverickss26/rsna-knee-0942-restructured`, 4 `jiweiliu/rsna-knee-fast-2xt4-inference` (0.942), 5 `romantamrazov/
+  rsna-knee-dinosaur-v5` (our anchor's source). **Cell-level diff:** Speedy Raptors, DINOsaur V5 and the 2×T4 notebook share
+  every member and weight our anchor has — 20 DINO, A5 0.52, Rad 0.55 / 0.20 + calibrator 0.40, the four Raptor views
+  0.60 / 0.10 / 0.10 / 0.20 at 94 capacity-aware windows, the resgated + Global96 + D4 CoAt family at 0.40, the probe22
+  outer map (LatMen 1.00). Our anchor is a superset (it also carries the repair-v1 child when pinned). **→ re-anchoring
+  the fork is worth ≤ +0.001 — not a lever.**
+- **"RSNA Fast Parent 0.957"** (kminsher / mekduy, published today): the *0.941* recipe (A5 0.45, Rad 0.50 / 0.15, 62/42
+  windows, resgated only, flat outer 0.60). Its own config cell states `"parent" … (0.939 public)` and `"probe22" … (0.941
+  public)`; the 0.957385 is its "local diagnostic" on the 58 gold studies. Nothing in it is missing from our anchor
+  (traps 35).
+- **"Why public forks stop at 0.941"** (starkhushi): ladder 0.937 (sources silently dropped) → 0.940 → 0.941 (0.55/0.15
+  view weights); "injecting my own 2.5D members (ResNet34 / ConvNeXt / RadImageNet, holdout 0.85–0.87) at 15 %: **0.936**.
+  Below ~0.90 solo, a member costs more than its diversity buys" — the same reading as our P-27 ±0.000 with 0.86–0.87 OOF
+  members. It recommends a flat-0.60 outer-map build as the second final pick ("LatMen 1.00 discards three of four stages
+  for that column") — built as the hedge (`build_fork.py --anchor-preset parent`).
+- **Public training recipes** (the 0.957 notebook's fallback trainer cell; the 0.924 script; the DINOsaur V5 "train"
+  notebook): DINO members — 10 epochs, **batch 8 studies**, OneCycle (head 1e-3 / backbone 8e-6), augmentation rot ±8° /
+  scale +0–8 % / shift ±5 % / intensity ±10 %, gold weight 3.0, best epoch on an md5-report holdout; Raptor CoAtNet — 16
+  epochs, **8 studies × 12 windows**, OneCycle 3e-5 / 1e-3, pos_weight [1, 10], intensity ±10 %, best gold epoch + top-3
+  SWA. The DINOsaur V5 "train" notebook trains a ConvNeXt-T *guarded arm* (β ≤ 0.12), not a DINO member. Ours: 1 study ×
+  24 windows, cosine, Gaussian noise only.
+- **Consequence:** the public increment of any member of ours stays ≈ 0 until it is a ≥ 0.90-solo member; the recipe
+  differences never A/B'd are the batch composition (P-32), train-time augmentation (P-33) and the backbone LR (round 2).
+  A 16-channel retry and a RadImageNet member are already stages of the anchor (A5, stage 3). And the machine we train on
+  has had a second, idle T4 all along (traps 34, P-31).
+
 ## Infrastructure
 
 ### 2026-09-21 — P-27 fork builder + P-28 production regime shipped; local checks ✅ KEEP the code · Kaggle ⏳

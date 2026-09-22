@@ -222,24 +222,31 @@ C02 = {"cache_scheme": "c02", "window_mode": "random", "head_type": "window_attn
 # validation and are REPORTED, never selected on), 16 epochs, and `_best.pt` is the average of the
 # EMA weights over the last three epochs (SWA) -- no epoch selection at all. Members trained this way
 # have no OOF, so blend_check.py cannot judge them; their measure is gold-58 + the LB (P-27 fork).
-PROD = {**C02, "epochs": 16, "train_all": True, "swa_last": 3, "ckpt_policy": "last"}
+# 2026-09-22 (P-29): 16 epochs over-train -- the fold-0 twin `v09p` peaked at epoch 8 (OOF 0.8731) and ended at 0.8607
+# (11/12 labels down); SWA over the tail did not rescue it. Production members therefore train 8 epochs, SWA over 5-7.
+PROD = {**C02, "epochs": 8, "train_all": True, "swa_last": 3, "ckpt_policy": "last"}
 ARMS = [
     ("v09a", {**PROD, "backbone": "timm:coatnet_rmlp_1_rw_224", "img_size": 224, "lr_backbone": 1e-4}),
     ("v08a", {**PROD, "backbone": "dinov2", "img_size": 224}),
-    # 2026-09-22 (P-29): the epoch-budget probe. Both production arms' gold-58 curves peaked at epoch 5-6 and
-    # drifted ~0.015 lower by epoch 15; gold-58 (SE ~0.04) cannot say whether that is real. This is the
-    # `v09h` recipe on fold 0 with the production schedule's 16 epochs (OneCycle stretched to 16, everything
-    # else identical to v09h) and per-epoch OOF csvs on the 871 held-out studies (floor 0.008). Not a
-    # production member: `train_all` off, `best_oof` checkpoint policy as for every fold-0 arm.
-    ("v09p", {**C02, "epochs": 16, "backbone": "timm:coatnet_rmlp_1_rw_224", "img_size": 224,
-              "lr_backbone": 1e-4}),
+    # 2026-09-22 (P-32 / P-33): the S1 A/B on fold 0, one arm per GPU (P-31). `v09b` = the v09h recipe with TWO
+    # studies per BatchNorm batch (48 windows; grad_accum 2 keeps 4 studies per optimiser step, so windows/epoch and
+    # the schedule are v09h's -- only the BN batch changes; timm CoAtNet's MBConv stages are BatchNorm and today see
+    # 24 windows of ONE study). `v09c` = v09b + light train-time augmentation (affine + gamma/gain, no flips).
+    # Read against v09h fold 0 (0.8683), floor 0.008: >= 0.876 KEEP, 0.860-0.876 inconclusive, < 0.860 harmful.
+    ("v09b", {**C02, "backbone": "timm:coatnet_rmlp_1_rw_224", "img_size": 224, "lr_backbone": 1e-4,
+              "batch_studies": 2, "grad_accum": 2}),
+    ("v09c", {**C02, "backbone": "timm:coatnet_rmlp_1_rw_224", "img_size": 224, "lr_backbone": 1e-4,
+              "batch_studies": 2, "grad_accum": 2, "aug": "light"}),
 ]
-# Shipped fold-0 / 5-fold members (Datasets rsna-knee-ckpt-*): selectable through ARM_ONLY /
+# Shipped fold-0 / 5-fold members (Datasets rsna-knee-ckpt-*) and finished probes: selectable through ARM_ONLY /
 # RSNA_ARM for a rerun, but no longer run by default -- a forgotten sed would otherwise spend the
 # session on arms that already exist before the production arm starts.
 SHIPPED_ARMS = [
     ("v08w", {**C02, "backbone": "dinov2", "img_size": 224}),
     ("v09h", {**C02, "backbone": "timm:coatnet_rmlp_1_rw_224", "img_size": 224, "lr_backbone": 1e-4}),
+    # P-29 epoch-budget probe (done 2026-09-22, train v21): the v09h recipe for 16 epochs, per-epoch OOF csvs.
+    ("v09p", {**C02, "epochs": 16, "backbone": "timm:coatnet_rmlp_1_rw_224", "img_size": 224,
+              "lr_backbone": 1e-4}),
 ]
 ARM_V10C = ("v10c", {**C02, "backbone": "timm:coatnet_rmlp_2_rw_384", "img_size": 384,
                      "lr_backbone": 1e-4, "eval_windows": 42, "grad_checkpoint": True})
@@ -282,6 +289,31 @@ if STACK_RUN:
     ARMS = [("v07s", {"stack_mode": "channels", "cache_jitter": True,
                       "folds": (0, 1, 2, 3, 4), "epochs": 8})]
     PRIMARY_ARM = "v07s"
+
+# ┌──────────────────────────────────────────────────────────────────────────┐
+# │ PARALLEL_ARMS (P-31, 2026-09-22): Kaggle's "NvidiaTeslaT4" machine is    │
+# │ GPU T4 x2 (a single T4 is not offered; kaggle-cli docs PR #1198) and the │
+# │ weekly quota charges session hours -- every training session so far     │
+# │ trained on cuda:0 with the second T4 idle. Sed'd at build like ARM_ONLY: │
+# │   sed 's/^PARALLEL_ARMS = ()/PARALLEL_ARMS = ("v09b", "v09c")/' ...      │
+# │ Section 8 then runs one CHILD PROCESS per arm, one GPU each, this very   │
+# │ file as the child's script (RSNA_CHILD=1, RSNA_ARM=<arm>,                │
+# │ CUDA_VISIBLE_DEVICES=<i>, RSNA_TRAIN_ONLY=1), each writing <arm>.log.    │
+# │ nbgen embeds the pipeline text below (zlib + base64 + sha256) so the     │
+# │ notebook can hand itself to the children; a .py run uses __file__.       │
+# │ Exclusive with ARM_ONLY / FIVE_FOLD / STACK_RUN. () = sequential loop.   │
+# └──────────────────────────────────────────────────────────────────────────┘
+PARALLEL_ARMS = ()
+SELF_SOURCE_SHA256 = None
+SELF_SOURCE_B64 = None  # nbgen: filled at build
+if PARALLEL_ARMS and not os.environ.get("RSNA_CHILD"):
+    if ARM_ONLY or FIVE_FOLD or STACK_RUN:
+        raise SystemExit("PARALLEL_ARMS is exclusive with ARM_ONLY / FIVE_FOLD / STACK_RUN")
+    _known = {a[0] for a in list(ARMS) + list(SHIPPED_ARMS) + [ARM_V10C]}
+    _bad = [a for a in PARALLEL_ARMS if a not in _known]
+    if _bad:
+        raise SystemExit(f"PARALLEL_ARMS {_bad} not among the defined arms {sorted(_known)}")
+    print(f"PARALLEL_ARMS: {list(PARALLEL_ARMS)} (one child process per GPU; this process only launches and waits)")
 
 
 @dataclass
@@ -344,6 +376,13 @@ class Config:
     window_mode: str = "fixed"
     train_windows: int = 24
     eval_windows: int = 0
+    # P-33 (2026-09-22). Train-time augmentation of the gathered windows, on the GPU, window mode only.
+    # "none" = today's path bit for bit (the Gaussian noise at sigma 0.01, p 0.5 stays and draws the same
+    # RNG). "light" = per window at p 0.8: affine (rotation +-8 deg, zoom-in 1.00-1.08, shift +-5 %, zero
+    # padding), then gamma 0.8-1.25 and gain 0.9-1.1, clamped to [0, 1], all before the ImageNet
+    # normalisation. No flips: medial != lateral (P-05). Training-only -- deliberately NOT an
+    # INFER_MEMBER_KEY, so a checkpoint's saved `aug` never reaches inference.
+    aug: str = "none"
     # Slice-offset TTA for fixed-window members (P-12): the K centres are shifted by each offset
     # (clipped to the stack), one forward per offset, probabilities pooled per label.
     # tta_pool "mean" = average; "focal" = the 0.936 notebook's rule: max over views for
@@ -386,7 +425,13 @@ class Config:
     # EMA of the weights is what gets validated and saved (robust to label noise,
     # and makes fixed-epoch selection safe). 0 disables.
     ema_decay: float = 0.998
-    batch_studies: int = 1           # one study = up to 6 slots x 6 slices of ViT work
+    # Studies per DataLoader batch. Fixed-window members: one study = up to 6 slots x 6 slices of ViT work.
+    # Window mode (P-32, 2026-09-22): > 1 concatenates the studies' sampled windows into ONE encoder pass
+    # (collate_windows), so a BatchNorm backbone (timm CoAtNet's MBConv stages) normalises over several
+    # studies instead of 24 windows of one; the loss stays per-study normalised. Evaluation and inference
+    # always run one study per batch (not an INFER_MEMBER_KEY). Pair with grad_accum so studies per
+    # optimiser step stay comparable across arms (v09h: 1 x 4; v09b: 2 x 2).
+    batch_studies: int = 1
     grad_accum: int = 4
     warmup_frac: float = 0.1
     max_grad_norm: float = 1.0
@@ -428,11 +473,21 @@ class Config:
                 raise SystemExit("stack_mode='channels' and lat_undo are c01-only (v07s is dead, "
                                  "P-05 is closed); they were not ported to the flat c02 layout")
         self.tta_offsets = tuple(self.tta_offsets)
+        if self.aug not in ("none", "light"):
+            raise SystemExit(f"unknown aug {self.aug!r} (none | light)")
+        if self.aug != "none" and self.window_mode != "random":
+            raise SystemExit("aug runs inside forward_windows only: set window_mode='random' (a fixed-window arm "
+                             "would otherwise claim an augmentation that never runs)")
+        if self.batch_studies > 1 and self.window_mode == "random" and self.cache_scheme != "c02":
+            raise SystemExit("batch_studies > 1 in window mode needs the flat c02 cache (no c01 window member exists)")
         if self.smoke:
             self.folds = (0,)
             self.epochs = 1
             self.slices_per_slot = 2
-            self.train_windows = 4
+            if not os.environ.get("RSNA_SMOKE_FULL_WINDOWS"):
+                # RSNA_SMOKE_FULL_WINDOWS=1 keeps the real window count so a Kaggle smoke exercises the
+                # batch_studies x train_windows memory path (P-32) on a handful of studies
+                self.train_windows = 4
             if not str(self.backbone).startswith("timm:"):
                 # a fixed-resolution timm hybrid (coatnet_rmlp_2_rw_384) crashes at 224; DINOv2
                 # and ConvNeXt take any size, and 224 keeps a CPU smoke fast
@@ -779,7 +834,8 @@ def build_targets(train_csv: str):
 
 
 targets = build_targets(os.path.join(COMP, "train.csv"))
-targets.to_csv(os.path.join(WORK, "targets.csv"), index=False)
+if not os.environ.get("RSNA_CHILD"):      # P-31 children would be two concurrent writers of the same bytes
+    targets.to_csv(os.path.join(WORK, "targets.csv"), index=False)
 targets.head(3)
 
 # %% [markdown]
@@ -1657,6 +1713,50 @@ class WindowAttnHead(nn.Module):
         return (ctx * self.w.unsqueeze(0)).sum(-1) + self.b
 
 
+def affine_theta(rot_deg, zoom, dx, dy):
+    """(N,) tensors -> (N, 2, 3) theta for F.affine_grid (output -> input coordinates, align_corners=False).
+
+    zoom z > 1 zooms IN: the grid samples a source patch 1/z the size of the input, so the scale entries
+    are 1/z (a scale of z would zoom out and pad). dx / dy are the shift as a fraction of the width /
+    height; normalised coordinates span 2, so a 5 % shift is 0.10. Built in fp32 so it never meets
+    autocast's fp16 (affine_grid raises on a dtype mismatch)."""
+    rot = torch.deg2rad(rot_deg.float())
+    c, s = torch.cos(rot), torch.sin(rot)
+    inv = 1.0 / zoom.float()
+    return torch.stack([torch.stack([c * inv, -s * inv, 2.0 * dx.float()], -1),
+                        torch.stack([s * inv, c * inv, 2.0 * dy.float()], -1)], 1)
+
+
+def augment_light(x, p=0.8):
+    """P-33: per-window train-time augmentation of gathered windows. x (W, C, H, W) floats in [0, 1], any
+    float dtype; returns the same dtype and shape. Each window is augmented with probability p: an affine
+    warp (rotation U(-8, 8) deg, zoom-in U(1.00, 1.08), shift U(-5, 5) %, zero padding -- MRI background
+    is black), then gamma U(0.8, 1.25) and gain U(0.9, 1.1), clamped to [0, 1]. No flips (P-05: medial and
+    lateral are different labels). Draws torch's global RNG, so seed_all() reproduces it; p = 0 returns x."""
+    n_win = x.shape[0]
+    if n_win == 0 or p <= 0:
+        return x
+    pick = torch.rand(n_win, device=x.device) < p
+    if not bool(pick.any()):
+        return x
+    n = int(pick.sum())
+    dev = x.device
+    with torch.autocast(device_type="cuda" if dev.type == "cuda" else "cpu", enabled=False):
+        xs = x[pick].float()
+        rot = (torch.rand(n, device=dev) * 2 - 1) * 8.0
+        zoom = 1.0 + torch.rand(n, device=dev) * 0.08
+        dx = (torch.rand(n, device=dev) * 2 - 1) * 0.05
+        dy = (torch.rand(n, device=dev) * 2 - 1) * 0.05
+        grid = F.affine_grid(affine_theta(rot, zoom, dx, dy), list(xs.shape), align_corners=False)
+        xs = F.grid_sample(xs, grid, mode="bilinear", padding_mode="zeros", align_corners=False)
+        gamma = 0.8 + torch.rand(n, 1, 1, 1, device=dev) * 0.45
+        gain = 0.9 + torch.rand(n, 1, 1, 1, device=dev) * 0.2
+        xs = (xs.clamp_min(0.0) ** gamma * gain).clamp(0.0, 1.0)
+    out = x.clone()
+    out[pick] = xs.to(x.dtype)
+    return out
+
+
 def load_timm_backbone(arch, backbone_dir, grad_checkpoint=False):
     """timm model built offline from <backbone_dir>/model.safetensors (the HF timm repo files,
     mounted as a Kaggle Dataset). Loads strictly except for the classifier head, and REFUSES a
@@ -1685,11 +1785,12 @@ def load_timm_backbone(arch, backbone_dir, grad_checkpoint=False):
 class KneeNet(nn.Module):
     def __init__(self, backbone_dir: str, n_labels=len(LABELS), dropout=0.1,
                  head_type="concat", slot_dropout=0.0, backbone="dinov2", in_chans=3,
-                 slot_embed=True, grad_checkpoint=False, img_size=224):
+                 slot_embed=True, grad_checkpoint=False, img_size=224, aug="none"):
         super().__init__()
         self.backbone = backbone
         self.in_chans = in_chans
         self.img_size = img_size
+        self.aug = aug                    # P-33: train-time only, applied inside forward_windows
         if backbone == "convnext_tiny":
             from transformers import ConvNextModel
             self.enc = ConvNextModel.from_pretrained(backbone_dir)
@@ -1752,41 +1853,61 @@ class KneeNet(nn.Module):
         x = torch.cat([pooled.reshape(B, -1), mask], dim=1)
         return self.head(self.drop(x))
 
-    def forward_windows(self, arr, centres, slot_id, slot_starts):
-        """P-25 window mode, one study per call. arr (T, P, P) uint8 on the device (c02 flat)
-        or (6, S, P, P) (c01); centres / slot_id (W,) long index the slot's own stack. Gathers
-        [c-1, c, c+1] triplets, scales, resizes to img_size and ImageNet-normalises ON THE GPU,
-        then runs the encoder and the window head."""
-        if arr.ndim == 4:                                   # c01 dense: flatten to (6*S, P, P)
-            S = arr.shape[1]
-            starts = torch.arange(arr.shape[0], device=arr.device) * S
-            arr = arr.reshape(-1, *arr.shape[2:])
+    def forward_windows(self, arr, centres, slot_id, study_ix, pos, slot_starts):
+        """P-25 window mode, B studies per call (P-32). arr (B, T, P, P) uint8 on the device (c02 flat) or
+        (1, 6, S, P, P) (c01 dense, one study only); centres / slot_id / study_ix / pos are flat (W_total,)
+        long tensors: each window's centre inside its slot's stack, its slot, the study it belongs to and
+        its index within that study (collate_windows). Gathers [c-1, c, c+1] triplets, scales, resizes to
+        img_size, augments (training, `aug`), ImageNet-normalises ON THE GPU, runs the encoder over EVERY
+        window of the batch in one pass (the BatchNorm batch), then scatters the features into a
+        (B, W_max, dim) tensor with a validity mask for the window head."""
+        if arr.ndim == 5:                                   # c01 dense (B, 6, S, P, P)
+            if arr.shape[0] != 1:
+                raise SystemExit("c01 dense arrays support batch_studies=1 only (no c01 window member exists)")
+            S = arr.shape[2]
+            starts = torch.arange(arr.shape[1], device=arr.device) * S
+            arr = arr.reshape(arr.shape[0], -1, *arr.shape[3:])   # (1, 6*S, P, P)
         else:
             starts = torch.as_tensor(slot_starts, device=arr.device, dtype=torch.long)
-        base = starts[slot_id] + centres                    # (W,) row of each centre in `arr`
+        B = arr.shape[0]
+        base = starts[slot_id] + centres                    # (W,) row of each centre in its study's array
         idx = torch.stack([base - 1, base, base + 1], dim=1)  # (W, 3)
-        x = arr[idx].float() / 255.0                        # (W, 3, P, P)
+        x = arr[study_ix.unsqueeze(1), idx].float() / 255.0  # (W, 3, P, P)
         if x.shape[-1] != self.img_size:
             x = F.interpolate(x, size=(self.img_size, self.img_size), mode="bilinear",
                               align_corners=False)
+        if self.training and self.aug != "none":            # P-33: draws nothing when aug == "none"
+            x = augment_light(x)
         x = (x - IMAGENET_MEAN.to(x.device)) / IMAGENET_STD.to(x.device)
         if self.training and torch.rand(()) < 0.5:
             x = x + torch.randn_like(x) * 0.01              # the Dataset's noise aug, moved here
-        feats = self.encode(x).unsqueeze(0)                 # (1, W, dim)
+        feats = self.encode(x)                              # (W, dim) -- one pass over every study's windows
         if self.head_type != "window_attn":
             raise SystemExit("window_mode='random' needs head_type='window_attn'")
-        return self.window_head(self.drop(feats), slot_id.unsqueeze(0))
+        n_per = torch.bincount(study_ix, minlength=B)
+        w_max = max(int(n_per.max()) if n_per.numel() else 0, 1)
+        padded = feats.new_zeros(B, w_max, feats.shape[-1])
+        valid = torch.zeros(B, w_max, dtype=torch.bool, device=feats.device)
+        sid_p = torch.zeros(B, w_max, dtype=torch.long, device=feats.device)   # 0, never -1: masked anyway
+        padded[study_ix, pos] = feats
+        valid[study_ix, pos] = True
+        sid_p[study_ix, pos] = slot_id
+        return self.window_head(self.drop(padded), sid_p, valid)
 
 
 def weighted_bce(logits, y, w):
-    """Confidence-weighted soft-target BCE.
+    """Confidence-weighted soft-target BCE, normalised PER STUDY then averaged over the batch.
 
+    Per study on purpose (P-32): with batch_studies > 1 a single `Σ w·bce / Σ w` over the batch would let
+    a gold study (weight 8) swallow its partner's gradient; normalising each row first keeps every
+    study's contribution what it was at batch 1 (identical to the old formula for B = 1).
     No `pos_weight`: with soft targets it inflates every prediction and the metric
     reads only rank order, so there is nothing to gain and a collapse to overprediction
     to lose.
     """
     loss = F.binary_cross_entropy_with_logits(logits, y, reduction="none")
-    return (loss * w).sum() / w.sum().clamp_min(1e-6)
+    per_study = (loss * w).sum(1) / w.sum(1).clamp_min(1e-6)
+    return per_study.mean()
 
 
 def build_model(c, device):
@@ -1798,21 +1919,42 @@ def build_model(c, device):
     m = KneeNet(resolve_backbone_dir(backbone), dropout=float(g("dropout", 0.1)),
                 head_type=g("head_type", "concat"), slot_dropout=float(g("slot_dropout", 0.0)),
                 backbone=backbone, in_chans=in_ch, slot_embed=bool(g("slot_embed", True)),
-                grad_checkpoint=bool(g("grad_checkpoint", False)), img_size=int(g("img_size", 224)))
+                grad_checkpoint=bool(g("grad_checkpoint", False)), img_size=int(g("img_size", 224)),
+                aug=str(g("aug", "none")))          # old checkpoints predate the field -> "none"
     return m.to(device)
+
+
+def collate_windows(items):
+    """P-32 collate for window-mode studies (batch_studies >= 1). Stacks the fixed-shape uint8 arrays to
+    (B, T, P, P), concatenates every study's (centre, slot) windows into flat tensors with `study_ix`
+    (which study each window belongs to) and `pos` (its index within that study), stacks mask / y / w /
+    is_gold and keeps the study list. One code path serves B = 1 (evaluation, inference) and B > 1."""
+    out = {"study": [it["study"] for it in items],
+           "arr": torch.stack([it["arr"] for it in items]),
+           "centres": torch.cat([it["centres"] for it in items]),
+           "slot_id": torch.cat([it["slot_id"] for it in items]),
+           "study_ix": torch.cat([torch.full((len(it["centres"]),), i, dtype=torch.long)
+                                  for i, it in enumerate(items)]),
+           "pos": torch.cat([torch.arange(len(it["centres"]), dtype=torch.long) for it in items]),
+           "mask": torch.stack([it["mask"] for it in items])}
+    for k in ("y", "w", "is_gold"):
+        if k in items[0]:
+            out[k] = torch.stack([it[k] for it in items])
+    return out
 
 
 def forward_batch(model, b, device, cfg):
     """Logits for one batch, whichever representation the Dataset produced: fixed windows
-    (`imgs`, one view) or random/all windows (`arr` + indices). TTA views are NOT handled here
-    (training only); predict_probs() does the multi-view pooling."""
+    (`imgs`, one view) or random/all windows (`arr` + indices through collate_windows). TTA views are
+    NOT handled here (training only); predict_probs() does the multi-view pooling."""
     if "arr" in b:
-        if b["arr"].shape[0] != 1:
-            raise SystemExit("window_mode='random' runs one study per step (batch_studies=1)")
+        if "study_ix" not in b or "pos" not in b or b["centres"].ndim != 1:
+            raise SystemExit("window batches must come through collate_windows (flat centres + study_ix / pos); "
+                             "a default-collated window batch would be misread -- attach collate_fn=collate_windows")
         _, _, slot_slices, _ = cache_geom(cfg)
         starts, _ = slot_offsets(slot_slices)
-        return model.forward_windows(b["arr"][0].to(device), b["centres"][0].to(device),
-                                     b["slot_id"][0].to(device), starts)
+        return model.forward_windows(b["arr"].to(device), b["centres"].to(device), b["slot_id"].to(device),
+                                     b["study_ix"].to(device), b["pos"].to(device), starts)
     imgs = b["imgs"]
     if imgs.ndim == 7:                                   # (B, n_views, 6, K, 3, H, W): view 0 only
         imgs = imgs[:, 0]
@@ -1942,10 +2084,13 @@ def make_loaders(manifest, targets, image_root, cfg, fold):
     print(f"  fold {fold}: train {len(tr_ds)} / val {len(va_ds)} studies"
           + (" [train_all: val = gold rows]" if cfg.train_all else ""))
     nw = 0 if cfg.smoke else cfg.num_workers
+    # Window-mode items travel through collate_windows (P-32) at any batch size; evaluation is always ONE
+    # study per batch, so the OOF path is bit-identical whatever batch_studies the arm trains with.
+    collate = collate_windows if getattr(cfg, "window_mode", "fixed") == "random" else None
     return (DataLoader(tr_ds, batch_size=cfg.batch_studies, shuffle=True,
-                       num_workers=nw, drop_last=False, worker_init_fn=seed_worker),
-            DataLoader(va_ds, batch_size=cfg.batch_studies, shuffle=False,
-                       num_workers=nw))
+                       num_workers=nw, drop_last=False, worker_init_fn=seed_worker, collate_fn=collate),
+            DataLoader(va_ds, batch_size=1, shuffle=False,
+                       num_workers=nw, collate_fn=collate))
 
 
 def bootstrap_macro_ci(Y_hard, P, n_boot=2000, seed=0):
@@ -2197,6 +2342,11 @@ def train_fold(fold, manifest, targets, image_root, cfg, device):
                 sched.step()
                 if ema is not None:
                     ema.update(model)
+                if epoch == start_epoch and (i + 1) == cfg.grad_accum and device.type == "cuda":
+                    # P-32: batch_studies x train_windows memory is unmeasured on a 15 GB T4; say it early
+                    print(f"    peak GPU memory after the first optimiser step: "
+                          f"{torch.cuda.max_memory_allocated() / 2**30:.2f} GiB "
+                          f"(batch {cfg.batch_studies} x {cfg.train_windows} windows, accum {cfg.grad_accum})")
             running += float(loss.detach())
             nb += 1
             n_studies += int(b["mask"].shape[0])
@@ -2591,8 +2741,138 @@ def training_manifest(cache_manifest):
     return manifest
 
 
+def _self_source():
+    """The text of this pipeline for the P-31 children: the nbgen-embedded payload inside a notebook, the
+    file itself when run as a script (locally / RunPod)."""
+    import base64
+    import zlib
+    if SELF_SOURCE_B64:
+        raw = zlib.decompress(base64.b64decode(SELF_SOURCE_B64)).decode("utf-8")
+        if hashlib.sha256(raw.encode("utf-8")).hexdigest() != SELF_SOURCE_SHA256:
+            raise SystemExit("SELF_SOURCE_B64 sha256 mismatch -- the embedded pipeline payload is corrupt")
+        return raw
+    path = globals().get("__file__")          # undefined inside a notebook
+    if path and os.path.isfile(path):
+        with open(path, encoding="utf-8") as f:
+            return f.read()
+    raise SystemExit("PARALLEL_ARMS needs the pipeline source: build the notebook with src/nbgen.py "
+                     "(SELF_SOURCE_B64 is filled when PARALLEL_ARMS is set) or run the .py directly")
+
+
+def _killpg(proc):
+    import signal
+    for sig, wait in ((signal.SIGTERM, 30), (signal.SIGKILL, 10)):
+        try:
+            os.killpg(proc.pid, sig)
+            proc.wait(timeout=wait)
+            return
+        except Exception:
+            pass
+
+
+def _shell(cmd):
+    import subprocess
+    try:
+        return subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=20).stdout.strip()
+    except Exception as e:
+        return f"({type(e).__name__})"
+
+
+def run_parallel_arms(arms, results):
+    """P-31: one child process per arm, one GPU each, this file as the child's script (RSNA_CHILD=1,
+    RSNA_ARM=<arm>, CUDA_VISIBLE_DEVICES=<i>, RSNA_TRAIN_ONLY=1). Each child's stdout+stderr goes to
+    WORK/<arm>.log -- ipykernel captures Python-level stdout only, so an inherited fd would never reach
+    the Kaggle log -- and the parent prints a heartbeat with each log's tail, GPU memory / utilisation
+    and host RAM, kills the process groups at the session deadline, and judges each child by its
+    ARTEFACTS (`{arm}_fold0_best.pt`), not its exit code (traps 14). Returns True when the children ran
+    (the parent then trains and infers nothing), False to fall through to the sequential loop."""
+    import subprocess
+    import sys
+    n_gpu = torch.cuda.device_count()           # NVML-backed: creates no CUDA context in this process
+    if not ON_KAGGLE or n_gpu < 2:
+        print(f"PARALLEL_ARMS {list(arms)}: {n_gpu} GPU(s) visible, ON_KAGGLE={ON_KAGGLE} -> sequential arm loop")
+        return False
+    if len(arms) > n_gpu:
+        raise SystemExit(f"PARALLEL_ARMS has {len(arms)} arms for {n_gpu} GPUs (two arms on one T4 would OOM)")
+    src = _self_source()
+    child_py = os.path.join(WORK, "_child.py")
+    compile(src, child_py, "exec")
+    with open(child_py, "w", encoding="utf-8") as f:
+        f.write(src)
+    # The children's own runtime guard counts from THEIR start; hand them the remaining budget minus ten
+    # minutes for this process to collect and report, and keep a hard deadline of our own behind theirs.
+    budget_h = max(0.1, cfg.runtime_limit_hours - elapsed_h() - 0.17)
+    deadline = T_START + (cfg.runtime_limit_hours + 0.35) * 3600
+    procs = {}
+    for i, arm in enumerate(arms):
+        env = dict(os.environ)
+        env.update(RSNA_CHILD="1", RSNA_ARM=arm, CUDA_VISIBLE_DEVICES=str(i),
+                   RSNA_WORKERS=str(max(1, int(cfg.num_workers))), RSNA_TRAIN_ONLY="1",
+                   RSNA_RUNTIME_H=f"{budget_h:.2f}", PYTHONUNBUFFERED="1", PYTHONUTF8="1")
+        if cfg.smoke:
+            # a smoke of the parallel path must exercise the real batch_studies x train_windows memory
+            # (P-32) on its handful of studies -- the one thing a 4-window smoke could never reveal
+            env["RSNA_SMOKE_FULL_WINDOWS"] = "1"
+        log = open(os.path.join(WORK, f"{arm}.log"), "w", encoding="utf-8")
+        p = subprocess.Popen([sys.executable, child_py], cwd=WORK, env=env, stdout=log,
+                             stderr=subprocess.STDOUT, start_new_session=True)
+        procs[arm] = (p, log)
+        print(f"  [{arm}] pid {p.pid} on cuda:{i} -> {arm}.log  (child RSNA_RUNTIME_H {budget_h:.2f} h, "
+              f"workers {env['RSNA_WORKERS']})", flush=True)
+
+    def tail(arm, n=3):
+        try:
+            with open(os.path.join(WORK, f"{arm}.log"), encoding="utf-8", errors="replace") as f:
+                return f.read().splitlines()[-n:]
+        except OSError:
+            return []
+
+    t_beat = 0.0
+    while any(p.poll() is None for p, _ in procs.values()):
+        if time.time() > deadline:
+            print(f"  !! parent deadline ({(deadline - T_START) / 3600:.2f} h) -- killing the children; their "
+                  f"_last.pt checkpoints survive for a sibling-slug resume (traps 31)", flush=True)
+            for p, _ in procs.values():
+                if p.poll() is None:
+                    _killpg(p)
+            break
+        if time.time() - t_beat >= 180:
+            t_beat = time.time()
+            for arm in procs:
+                for ln in tail(arm):
+                    print(f"  [{arm}] {ln[:220]}")
+            gpu = _shell("nvidia-smi --query-gpu=index,memory.used,utilization.gpu --format=csv,noheader")
+            mem = _shell("free -g | awk '/Mem/{print $3\"/\"$2\" GB\"}'")
+            print(f"  -- heartbeat {elapsed_h():.2f} h | GPU {gpu.replace(chr(10), ' ; ')} | host RAM used/total "
+                  f"{mem}", flush=True)
+        time.sleep(15)
+
+    import re as _re
+    for arm, (p, log) in procs.items():
+        log.close()
+        rc = p.poll()
+        best = os.path.exists(os.path.join(WORK, f"{arm}_fold0_best.pt"))
+        last = os.path.exists(os.path.join(WORK, f"{arm}_fold0_last.pt"))
+        ep_lines = [ln for ln in tail(arm, 400)
+                    if _re.search(r"epoch \d+ EMA score|stopping: runtime guard|FAILED|Error|SWA of last", ln)]
+        results[f"{arm}/0"] = {"best": float("nan"), "completed": bool(best and rc == 0)}
+        tag = "ok  " if (rc == 0 and best) else "!!  "
+        print(f"  {tag}arm {arm}: rc={rc}, _best.pt {'written' if best else 'MISSING'}, _last.pt "
+              f"{'present' if last else 'missing'}; last lines: {[ln.strip()[:120] for ln in ep_lines[-2:]]}")
+        if not best:
+            print(f"      -> {arm} did not finish: resume it in the sibling slug with this output in kernel_sources "
+                  f"(traps 31); {arm}.log has the cause")
+    print("PARALLEL_ARMS done:", json.dumps(results, indent=1), flush=True)
+    return True
+
+
 results = {}
-if mode == "train":
+_parallel_done = False
+if mode == "train" and PARALLEL_ARMS and not os.environ.get("RSNA_CHILD"):
+    _parallel_done = run_parallel_arms(PARALLEL_ARMS, results)   # P-31: the children train; this process reports
+if mode == "train" and _parallel_done:
+    ckpt_members = []                 # nothing to infer here: each child stops before Section 9 (RSNA_TRAIN_ONLY)
+elif mode == "train":
     # Kaggle only: this script has no `if __name__ == "__main__"` guard, and Windows spawns
     # workers (re-importing __main__) instead of forking. The bug it tests is fork-specific.
     if ON_KAGGLE:
@@ -2627,7 +2907,9 @@ if mode == "train":
             print(f"  cache {cache_version_for(cfg)} | window_mode {cfg.window_mode}"
                   + (f" (train {cfg.train_windows}, eval {cfg.eval_windows or 'all'})"
                      if cfg.window_mode == "random" else f" (K {cfg.slices_per_slot})")
-                  + f" | head {cfg.head_type} | backbone {cfg.backbone} | img {cfg.img_size}")
+                  + f" | head {cfg.head_type} | backbone {cfg.backbone} | img {cfg.img_size}"
+                  + f" | batch {cfg.batch_studies} x accum {cfg.grad_accum} | aug {cfg.aug}"
+                  + (f" | train_all, swa_last {cfg.swa_last}" if cfg.train_all else ""))
             if cfg.lat_undo:
                 n_r = int((manifest["side"].astype(str) == "R").sum())                     if "side" in manifest.columns else 0
                 print(f"  lat_undo: {n_r} of {len(manifest)} studies "
@@ -2726,6 +3008,8 @@ else:
     done_keys = ([k for k in results if str(k).startswith(f"{PRIMARY_ARM}/")]
                  if ARMS else list(results))
     all_done = len(done_keys) == len(cfg.folds) and all(results[k]["completed"] for k in done_keys)
+    if _parallel_done:
+        all_done = False              # P-31 parent: the children hold the checkpoints; no inference here
 print(f"all folds complete: {all_done}  elapsed {elapsed_h():.2f} h")
 
 # %% [markdown]
@@ -2743,8 +3027,11 @@ print(f"all folds complete: {all_done}  elapsed {elapsed_h():.2f} h")
 # ── Section 9: inference ──────────────────────────────────────────────────────
 def predict(model, manifest, image_root, cfg, studies, device):
     ds = KneeStudyDataset(manifest, None, image_root, cfg, False, studies)
-    dl = DataLoader(ds, batch_size=cfg.batch_studies, shuffle=False,
-                    num_workers=0 if cfg.smoke else cfg.num_workers)
+    # one study per batch always (a training arm's batch_studies must not leak into inference);
+    # window-mode items need the collate even at batch 1 (forward_batch's contract)
+    dl = DataLoader(ds, batch_size=1, shuffle=False,
+                    num_workers=0 if cfg.smoke else cfg.num_workers,
+                    collate_fn=collate_windows if getattr(cfg, "window_mode", "fixed") == "random" else None)
     ids, preds = [], []
     model.eval()
     with torch.no_grad():

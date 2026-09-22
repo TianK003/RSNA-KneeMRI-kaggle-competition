@@ -494,6 +494,24 @@ stale file can never be submitted — 12b). Run as the fork's last stage, that d
 and a `finally:` block restores the anchor byte-for-byte on any failure (`FINAL submission.csv = anchor`).
 `src/build_fork.py` owns that cell; never hand-edit the generated notebook (17).
 
+### 34. Every training session so far used ONE of the machine's two T4s
+
+`"machine_shape": "NvidiaTeslaT4"` is Kaggle's **GPU T4 ×2** option — a single T4 is not offered (kaggle-cli
+docs PR #1198) — and the weekly quota charges *session hours*, however many GPUs the session used.
+`torch.device("cuda")` is `cuda:0`. From the first real run (2026-08-28) to `v09p` (2026-09-22) every
+training log printed `device: cuda` and the second T4 sat idle: ~30 session-hours bought half the compute
+they could have. Nothing in the log looks wrong — s/study is exactly what one T4 gives.
+
+Evidence: `artifacts/kaggle_out/probe_rsna-knee-e11-train/…log` prints `devices: ['cuda:0', 'cuda:1']`, both
+`Tesla T4 sm_75, 15 GiB`; the P-27 fork's anchor graph balances its Raptor views over both GPUs in the
+same slug; Kaggle product-feedback 361104 states one hour of 2×T4 runtime is one hour of quota.
+
+**Do:** `PARALLEL_ARMS` (P-31, 2026-09-22): one child process per GPU, sed'd at build like `ARM_ONLY`.
+Green = the parent's `[arm] pid … on cuda:i` line per arm, both GPUs busy in the heartbeat's `nvidia-smi`
+column, and one `_best.pt` per arm at the end. Two arms on one T4 would OOM, so the launcher refuses
+`len(PARALLEL_ARMS) > device_count()`. Each child's log is `/kaggle/working/<arm>.log` (pull with
+`--file-pattern "\.log$"`); the Kaggle log shows the parent's heartbeat only.
+
 ## Tier 3 — tooling friction
 
 ### 14. Kaggle rate-limits file downloads, and reports success anyway
@@ -673,3 +691,16 @@ those pulled OOF csvs and pod logs are the only copies (setup.md), and the pod i
 `artifacts/local_run/*.pt` (traps 19) is *not* sufficient either: `kaggle_out` alone triggers it.
 Related: 19 (a local smoke that resumes and trains nothing), 27 (`find_mounted_checkpoints` searches
 `WORK` only under an explicit `infer`/`oof_eval`), 12d (a real-mode default smoke mode cannot reveal).
+
+### 35. A score in a public notebook's *title* is not its public score
+
+"RSNA Fast Parent 0.957" (2026-09-22) mounts a *subset* of our 0.942 anchor's members and states its own
+public scores as 0.939 / 0.941 in its config cell; the "0.957385" it advertises is a **gold-58 diagnostic**
+(58 studies its members were trained or selected on). Two hours were nearly spent re-anchoring the fork on
+it. Kaggle's own score ordering is available without the numbers:
+`kaggle kernels list --competition rsna-knee-abnormality-detection --sort-by scoreDescending` — Speedy Raptors
+leads it, and a cell-level diff shows our anchor is a superset of Speedy Raptors.
+
+**Do:** before believing a title, read the config / markdown cells for the *stated public* number, diff the
+notebook's `dataSources` against our anchor (`notebook_score_0.942.ipynb` metadata), and check the
+score-sorted listing. Titles, "local diagnostic" numbers and gold-58 gates are not public LB scores.

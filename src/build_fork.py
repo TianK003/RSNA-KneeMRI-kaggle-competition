@@ -20,6 +20,12 @@ Deterministic: the same inputs give byte-identical .ipynb and kernel-metadata.js
     .venv/Scripts/python.exe src/build_fork.py --beta 0.0             # anchor-only control: our arm is NOT run
     .venv/Scripts/python.exe src/build_fork.py --members v08w v09h v09a \
         --member v09a=tiankljucanin/rsna-knee-ckpt-v09a:tiankljucanin/timm-coatnet-rmlp-1-rw-224
+    .venv/Scripts/python.exe src/build_fork.py --anchor-preset parent --beta 0.0   # the flat-0.60 hedge (2026-09-22)
+
+--anchor-preset patches ONE token of the anchor's config cell: its `PRESET = os.environ.get("RSNA_PRESET", "speedy")`
+default. "parent" flattens the per-label outer CoAtNet map (LatMen 1.00, ACL / LatOA / Fracture 0.75, MedMen 0.80) to
+0.60 -- the anchor author's own hedge preset, the map being "the likeliest place to give back points privately". With
+"parent" the kept cells are no longer byte-identical to the 0.942 run (provenance records the preset).
 """
 import argparse
 import base64
@@ -44,6 +50,9 @@ REPLACED_CELLS = (50, 51)          # FineSpacing markdown + code
 TAIL_CELLS = (52,)                 # credits
 EXPECTED_ANCHOR_COUNTS = (13, 2, 1)   # datasets, kernels, models -- the scored run's 17 minus the competition
 COMPETITION = "rsna-knee-abnormality-detection"
+ANCHOR_PRESETS = ("speedy", "parent", "halfway", "sparse")   # the anchor's own RSNA_PRESET values; speedy = the 0.942 run
+ANCHOR_PRESET_CELL = 2
+_PRESET_LINE_RX = re.compile(r'^PRESET = os\.environ\.get\("RSNA_PRESET", "speedy"\)$', re.M)
 DINOV2_MODEL = "metaresearch/dinov2/PyTorch/small/1"   # the spelling rsna-knee-infer already mounts
 
 LABELS = ["ACL", "MCL", "Medial Meniscus", "Lateral Meniscus", "Medial OA", "Lateral OA", "PF OA",
@@ -65,6 +74,7 @@ MEMBER_SOURCES = {
 class ForkParams:
     members: tuple = ("v08w", "v09h")
     beta: float = 0.20
+    anchor_preset: str = "speedy"   # "parent" = the flat-0.60 outer map (hedge build, 2026-09-22)
     betas_diag: tuple = (0.10, 0.30)
     gate_h: float = 7.0            # skip our arm if the anchor graph alone used more than this
     hard_stop_h: float = 8.4       # our subprocess is killed here (their guard raises at 8.0 h from T0)
@@ -99,6 +109,25 @@ def load_notebook(path):
 def cell_text(cell):
     src = cell.get("source", "")
     return src if isinstance(src, str) else "".join(src)
+
+
+def apply_anchor_preset(nb, preset):
+    """Patch the anchor's `PRESET` default (cell 2) to one of its own presets. "speedy" leaves the notebook
+    untouched. The regex must match exactly once, so a drifted anchor fails loudly instead of running the
+    0.942 map under a hedge label."""
+    if preset not in ANCHOR_PRESETS:
+        raise SystemExit(f"--anchor-preset {preset!r}: choose from {ANCHOR_PRESETS}")
+    if preset == "speedy":
+        return nb
+    cell = nb["cells"][ANCHOR_PRESET_CELL]
+    text = cell_text(cell)
+    new_text, n = _PRESET_LINE_RX.subn(f'PRESET = os.environ.get("RSNA_PRESET", "{preset}")', text)
+    if n != 1:
+        raise SystemExit(f"anchor cell {ANCHOR_PRESET_CELL}: the PRESET default line matched {n} times (expected 1)")
+    if f'if PRESET == "{preset}":' not in text and preset != "sparse":
+        raise SystemExit(f"anchor cell {ANCHOR_PRESET_CELL} has no branch for preset {preset!r}")
+    cell["source"] = new_text.splitlines(keepends=True)
+    return nb
 
 
 def assert_finespacing_absent(nb):
@@ -186,6 +215,7 @@ Outputs: `submission.csv` (β = __BETA__) · `submission_fork_anchor_0942.csv` (
 
 Fail-soft: if the anchor graph used more than __GATE_H__ h, or our subprocess fails, times out or
 writes an invalid CSV, `submission.csv` stays byte-identical to the anchor and the log says so.
+__PRESET_NOTE__
 **β = 0 is the anchor-only control**: our arm is not launched at all and `submission.csv` is the exact
 anchor (`fork_diagnostics.json` → `status: anchor_control`) -- it measures what the 0.942 graph scores
 from this account, which every β read is relative to.
@@ -386,6 +416,12 @@ def _fill(template, params, extra=None):
         "__GATE_H__": f"{params.gate_h:.1f}",
         "__HARD_STOP_H__": f"{params.hard_stop_h:.1f}",
         "__SEC_PER_STUDY__": f"{params.sec_per_study:.1f}",
+        "__PRESET_NOTE__": ("" if params.anchor_preset == "speedy" else
+                            f"**Anchor preset `{params.anchor_preset}`** (2026-09-22 hedge build): the anchor's own "
+                            f"`PRESET` default is patched from `speedy` to `{params.anchor_preset}` in its config cell, "
+                            "which flattens the per-label outer CoAtNet map (LatMen 1.00, ACL / LatOA / Fracture 0.75, "
+                            "MedMen 0.80) to 0.60 -- its author's hedge against the map having been tuned on the public "
+                            "split. This is therefore NOT the 0.942 graph; it is the candidate for the second final slot."),
     }
     rep.update(extra or {})
     out = template
@@ -512,7 +548,7 @@ def dump_json(obj):
 
 
 def build(params, notebook=ANCHOR_NOTEBOOK, pipeline=PIPELINE):
-    nb = load_notebook(notebook)
+    nb = apply_anchor_preset(load_notebook(notebook), params.anchor_preset)
     assert_finespacing_absent(nb)
     anchor = derive_anchor_sources(nb)
     text, pipeline_sha = prepare_pipeline(pipeline, params.members)
@@ -527,6 +563,7 @@ def build(params, notebook=ANCHOR_NOTEBOOK, pipeline=PIPELINE):
         "payload_sha256": sha256_text(text),
         "members": list(params.members),
         "beta": params.beta,
+        "anchor_preset": params.anchor_preset,
         "betas_diag": list(params.betas_diag),
         "gate_h": params.gate_h,
         "hard_stop_h": params.hard_stop_h,
@@ -548,6 +585,8 @@ def main(argv=None):
     ap.add_argument("--member", action="append", default=[],
                     help="version=<ckpt-dataset>[:<backbone-dataset>] for a member not in MEMBER_SOURCES")
     ap.add_argument("--beta", type=float, default=ForkParams.beta)
+    ap.add_argument("--anchor-preset", choices=ANCHOR_PRESETS, default=ForkParams.anchor_preset,
+                    help="the anchor's RSNA_PRESET default; 'parent' = flat 0.60 outer map (hedge build)")
     ap.add_argument("--betas-diag", nargs="+", type=float, default=list(ForkParams.betas_diag))
     ap.add_argument("--gate-hours", type=float, default=ForkParams.gate_h)
     ap.add_argument("--hard-stop-hours", type=float, default=ForkParams.hard_stop_h)
@@ -563,8 +602,8 @@ def main(argv=None):
         if not v or not ckpt:
             raise SystemExit(f"--member expects version=<ckpt-dataset>[:<backbone-dataset>], got {spec!r}")
         extra[v] = (ckpt, bb or None)
-    params = ForkParams(members=tuple(a.members), beta=a.beta, betas_diag=tuple(a.betas_diag),
-                        gate_h=a.gate_hours, hard_stop_h=a.hard_stop_hours,
+    params = ForkParams(members=tuple(a.members), beta=a.beta, anchor_preset=a.anchor_preset,
+                        betas_diag=tuple(a.betas_diag), gate_h=a.gate_hours, hard_stop_h=a.hard_stop_hours,
                         sec_per_study=a.sec_per_study, extra_member_sources=extra)
     out_nb, meta, payload = build(params, a.notebook, a.pipeline)
     nb_text, meta_text = dump_json(out_nb), dump_json(meta)
@@ -573,7 +612,7 @@ def main(argv=None):
     n_src = len(meta["dataset_sources"]) + len(meta["kernel_sources"]) + len(meta["model_sources"]) + 1
     summary = (f"{nb_path}: {len(out_nb['cells'])} cells ({len(KEEP_CELLS)} anchor + 3 fork + {len(TAIL_CELLS)} credits); "
                f"{n_src} sources ({len(meta['dataset_sources'])} datasets); payload {len(payload) / 1024:.0f} KB; "
-               f"members {list(params.members)} beta {params.beta}")
+               f"members {list(params.members)} beta {params.beta} anchor_preset {params.anchor_preset}")
     if a.check:
         ok = True
         for path, text in ((nb_path, nb_text), (meta_path, meta_text)):

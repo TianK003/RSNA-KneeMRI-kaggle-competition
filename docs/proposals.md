@@ -83,6 +83,9 @@ result*, per unit of cost. "Depends on" lists hard blockers only.
 | P-29 | **Epoch-budget probe for the production regime**: fold-0 twin of `v09h` trained for 16 epochs (`v09p`) with per-epoch OOF | ❌ **measured 2026-09-22 (train v21)**: OOF peak 0.8731 at **epoch 8**, epoch 15 0.8607 (−0.0124, 11/12 labels down) → the 16-epoch schedule over-trains; P-28 `epochs` → 8 (experiments.md 2026-09-22 P-29) | delivered | 5.6 h T4, spent | P-28 |
 | P-30 | **Public soft labels (`dreaddevelopment/rsna-knee-labels`, CC0) as a 4th target source** behind `build_targets.py --sources` | ❌ **DEAD END 2026-09-22 (as measurable)**: the file covers the 4,349 report-only studies and **no gold row**, so it cannot be scored on gold-58; agreement with hans_v4 ρ 0.81 (our own best two sources: 0.83); not adopted (experiments.md Label sources 2026-09-22). `--sources` flag kept | **medium → none** without a neutral judge | 1 h CPU, spent | none (a *future*-arm change; shipped arms keep their teacher) |
 | P-26 | **Cache v2 (`c02`): band 2–98 %, ragged budgets 18/12/12/14/8/8, 336 px, 64-study blobs** | 🔧 **built 2026-08-30 ~12:10** — 4,407/4,407 studies, 70 blobs, 35.8 GB, 0 decode failures, ~20 min wall, 0 GPU h (experiments.md "Cache v2 built"); **effect measured on `v08w` fold 0: MCL +0.028 vs v05a (claim holds), Lateral Meniscus +0.009 (does not); loader 0.12 s/study vs 0.19** — experiments.md 2026-08-30 `v08w` | **high** — MCL 0.836 / Lateral Meniscus 0.833 are our two weakest labels and the ones the discarded outer slices carry | 0 GPU h, ~1 h CPU wall | P-01 |
+| P-31 | **Second GPU: two arms per session** — Kaggle's `NvidiaTeslaT4` shape IS "GPU T4 ×2"; every training session so far used one of them | 🔧 **implemented, effect pending — Kaggle smoke `rsna-knee-train` v22 green 2026-09-22 20:24**: children on `cuda:0` / `cuda:1`, both `_best.pt` written, rc 0, 0.03 h wall (`PARALLEL_ARMS` launcher, one child process per GPU; nbgen embeds the source) | **high — 2× arms per quota hour, forever, at zero score risk** | ~60 lines + 0.3 h smoke | — |
+| P-32 | **Multi-study BatchNorm batches for the CoAtNet member** (`batch_studies=2, grad_accum=2`: 48 windows from two studies per BN batch, same 4 studies per optimiser step) | 🔧 **implemented, effect pending** — arm `v09b` (fold 0, 8 ep); local smoke + Kaggle smoke v22 green (2 × 24 windows on a T4); real run needs Tian's go | **medium-high** — the one structural difference to the public 0.928 recipe (8 studies × 12 windows) never A/B'd; timm CoAtNet MBConv stages are BatchNorm | ≈ 3 h T4 (beside `v09c`, P-31) | P-25/P-26, P-31 |
+| P-33 | **Light train-time augmentation** (per-window affine rot ±8° / zoom-in 1.00–1.08 / shift ±5 %, gamma 0.8–1.25, gain ±10 %; no flips) | 🔧 **implemented, effect pending** — arm `v09c` = `v09b` + `aug="light"`; local smoke + Kaggle smoke v22 green; real run needs Tian's go | **medium** — every public training recipe has it, ours has Gaussian noise only; P-29's over-fit signature | ≈ 3 h T4 (beside `v09b`) | P-32 (its control), P-31 |
 
 ---
 
@@ -795,7 +798,8 @@ Depends on: P-23 (its zero-training alternative), the licence table above, `INFE
 ### P-28 Production training regime: all report-labelled studies, 16 epochs, SWA of the last 3 EMA snapshots
 Status: 🔁 **2026-09-22 (evening)**: #14 (with `v09a` + `v08a`) = 0.941 vs #13 0.942 → the two members add nothing on the LB;
 P-29 measured the 16-epoch schedule over-training by ≈ 0.012 OOF (peak epoch 8) → **`PROD["epochs"]` should be 8** (with
-`swa_last=3` = epochs 5–7) before any further production member. Earlier: ✅ **both arms trained 2026-09-22** (`rsna-knee-train` v19 = `v09a` 5.12 h, gold-58 SWA 0.8768; `rsna-knee-folds`
+`swa_last=3` = epochs 5–7) before any further production member. **Edited in `src/` 2026-09-22 (night): `PROD["epochs"] = 8`
+(SWA over epochs 5–7); the S2 retrain of `v09a` / `v08a` carries whichever P-32 / P-33 knobs the S1 A/B keeps.** Earlier: ✅ **both arms trained 2026-09-22** (`rsna-knee-train` v19 = `v09a` 5.12 h, gold-58 SWA 0.8768; `rsna-knee-folds`
 v6 = `v08a` 2.38 h, 0.8816; SWA − last EMA +0.0006 / +0.0014 → 🔁, no BatchNorm penalty; both gold curves peak at
 epoch 5–6 and drift ≈ −0.015 to epoch 15 — an open question, inside the gold SE; experiments.md 2026-09-22). LB
 value ⏳ via P-27 fork v5. Implemented 2026-09-21 (`Config.train_all`, `Config.swa_last`, `split_studies`,
@@ -879,6 +883,80 @@ If it works:  the 4-source teacher becomes the default for *future* arms (P-28 m
 retrain anyway); shipped members keep their checkpoints and their teacher.
 If it fails:  keep the 3-source teacher; note the number in experiments.md so the question is not reopened.
 Depends on:   nothing (CPU only).
+
+### P-31 Second GPU: two arms per Kaggle session (`PARALLEL_ARMS`)
+Status:       🔧 **implementing 2026-09-22** — `PARALLEL_ARMS = ()` in the config cell (sed'd at build like `ARM_ONLY`); when
+set on Kaggle with ≥ 2 GPUs, Section 8 spawns one child process per arm (`RSNA_CHILD=1`, `RSNA_ARM=<arm>`,
+`CUDA_VISIBLE_DEVICES=<i>`, `RSNA_TRAIN_ONLY=1`), each writing `/kaggle/working/<arm>.log`; `src/nbgen.py` embeds the
+pipeline source (zlib + base64 + sha256) so the notebook can hand itself to the children. Smoke (S0) pending.
+Hypothesis:   Kaggle's `NvidiaTeslaT4` machine has **two** T4s (15 GiB each) and the weekly quota charges session hours, so two
+arms run as concurrent children finish in ≤ 1.3× the wall time of one arm alone — ≥ 1.5× arms per quota hour with
+per-arm results identical to a solo run (same code path, same seed, own device).
+Origin:       kaggle-cli docs PR #1198 ("NvidiaTeslaT4 is GPU T4 x2; a single T4 is not offered"); our own probe logs
+(`artifacts/kaggle_out/probe_*/…log`: `devices: ['cuda:0', 'cuda:1']`, `gpu1: Tesla T4 sm_75, 15 GiB`); Kaggle
+product-feedback 361104 (1 h of 2×T4 runtime = 1 h of quota); the P-24(a) card (a `DataParallel` variant, never run).
+Evidence:     for: every training log to date prints `device: cuda` and trains on `cuda:0` only, while the P-27 fork's anchor
+graph balances its Raptor views over both T4s **in the same kernel slug**; the c02 window loader ships uint8 + indices and
+the CoAtNet arm is GPU-bound (0.25 s/study, 18 min/epoch). Against: 4 vCPUs and ~30 GB host RAM are shared by two trainers
+with 2 loader workers each (traps 28); the DINOv2-S arm (0.12 s/study) may be loader-bound.
+Measure:      S0 smoke: both children green, both `_best.pt` written. S1: each child's `s/study` line vs its solo figure
+(CoAtNet-1 0.25, DINOv2-S 0.12) and the session wall time vs the sum of the two arms' solo times.
+Noise floor:  n/a (throughput). Each arm's OOF is what it would be alone by construction; the A/B numbers (P-32/P-33) are
+read against `v09h`, not against each other's runtime.
+Cost:         ~60 lines (launcher + guards) + ~15 lines in `nbgen.py`; 0.3 h of smoke; 0 submissions.
+If it works:  every fold-0 A/B runs two arms per session; S2 trains the two production arms concurrently (≈ 2.7 h wall
+instead of 3.8 h); the `rsna-knee-folds` second slot is freed for fork placeholder runs.
+If it fails:  s/study > 1.3× solo (loader-bound) → `RSNA_WORKERS` 1 + 1 or one arm per GPU with the DINOv2 arm alone;
+host-RAM OOM → back to `ARM_ONLY` single-arm sessions; children that never write `_best.pt` → the parent says so and the
+sibling-slug resume (traps 31) applies per arm.
+Depends on:   nothing (infrastructure).
+
+### P-32 Multi-study BatchNorm batches for the CoAtNet member (`batch_studies=2`)
+Status:       🔧 **implementing 2026-09-22** — arm `v09b` = the `v09h` recipe (CoAtNet-1 @224, c02, window_attn, 8 ep,
+`best_oof`, fold 0) with `batch_studies=2, train_windows=24, grad_accum=2`: the same 4 studies per optimiser step, the same
+windows per epoch and the same schedule, only the BatchNorm batch changes (48 windows from two studies). Smoke pending.
+Hypothesis:   the fold-0 OOF-vs-teacher of the CoAtNet member rises by ≥ 0.008 over `v09h` (0.8683) because timm's CoAtNet
+MBConv stages use BatchNorm (`maxxvit.py:147`, `norm_layer='batchnorm2d'`) and a training batch of 24 windows from ONE study
+gives homogeneous per-study statistics that the eval-time running statistics never see.
+Origin:       the public 0.928 member trains **8 studies × 12 windows per batch** (experiments.md "Anatomy of the public 0.942
+notebook", recipe of the 0.924 member) — listed there as the one recipe difference to `v09h` never A/B'd; Wu & He 2018
+(GroupNorm) on BatchNorm error growth at small / homogeneous batches; the plan file B4 ("plausibly +0.00–0.01 for hybrids").
+Evidence:     for: the DINOv2 recipe (LayerNorm) is at parity with the public DINO members while our CoAtNet is ≈ 0.03 LB below
+the public CoAtNet — a CoAtNet-specific gap is what a BN artefact would look like. Against: 24 windows of one study is not
+"batch 1"; per-series normalisation already removes most per-study intensity shift; one seed each side of the A/B (0.008
+floor, Fracture moved 0.028 on seed alone).
+Measure:      `v09b_fold0_oof.csv` (the `best_oof` epoch) → macro OOF-vs-teacher on the 871 fold-0 studies via
+`src/blend_check.py` / `src/oof_epoch_analysis.py`; per-label table vs `v09h`; `torch.cuda.max_memory_allocated()` after the
+first optimiser step (the 2× memory path is unmeasured on a 15 GB T4).
+Noise floor:  0.008 macro, ~0.03 per label. **≥ 0.876 = ✅ KEEP; 0.860–0.876 = 🔁; < 0.860 = harmful.** Support: ≥ 9/12
+labels up (seed changes scatter signs).
+Cost:         ≈ 3 h of one T4 for fold 0 (runs beside `v09c` under P-31); ~80 lines (`collate_windows`, batched
+`forward_windows` with a scatter-padded head input, per-study `weighted_bce`, loader collate). 0 submissions.
+If it works:  `batch_studies=2, grad_accum=2` joins the CoAtNet PROD recipe for the S2 `v09a` retrain; round 2 tries the
+public shape (4 × 12) and OneCycle 3e-5.
+If it fails:  1 × 24 stays; BatchNorm is not the CoAtNet gap → round 2 tests the backbone LR (3e-5 vs 1e-4) instead.
+Depends on:   P-25 / P-26 (the c02 window recipe), P-31 (to run beside `v09c` in one session).
+
+### P-33 Light train-time augmentation (`aug="light"`: affine + intensity, no flips)
+Status:       🔧 **implementing 2026-09-22** — arm `v09c` = `v09b` + `aug="light"`, same session (S1). Smoke pending.
+Hypothesis:   per-window affine (rotation ±8°, zoom-in 1.00–1.08, shift ±5 %, zeros padding) plus gamma 0.8–1.25 and gain
+±10 %, applied on the GPU after the window gather and before ImageNet normalisation, lifts fold-0 OOF by ≥ 0.008 over `v09b`
+by reducing the over-fitting P-29 measured (train loss 0.45 → 0.31 while OOF falls from epoch 8 on).
+Origin:       research.md §3 recipe (rot ±8°, zoom 1.00–1.08, shift 5 %, gain ±10 %, gamma 0.8–1.25, **no flips**) and §2.2
+("heavy geometric + photometric augmentation was universal" among RSNA winners); the public DINO members' trainer (rot ±8°,
+scale +0–8 %, shift ±5 %, intensity ±10 %); the public 0.928 CoAtNet (intensity ±10 %). Ours: Gaussian noise σ 0.01 and
+random window sampling only.
+Evidence:     for: every public recipe carries it; P-29's over-fit signature; c02 stores 336 px so a 1.08 zoom-in resamples
+real pixels. Against: geometric **TTA** degraded 11/12 MedMNIST pairs — a different operation (test-time), and it stays
+rejected; flips stay banned (laterality is signal, medial ≠ lateral); one seed.
+Measure:      `v09c_fold0_oof.csv` vs `v09b_fold0_oof.csv` (same session, same recipe otherwise) and vs `v09h` 0.8683;
+per-label table.
+Noise floor:  0.008. The `v09c − v09b` difference reads augmentation alone; `v09c − v09h` reads P-32 + P-33 together.
+Cost:         ≈ 3 h of one T4 concurrent with `v09b`; the GPU-side ops (grid_sample on 48 × 3 × 224²) are negligible.
+~50 lines (`affine_theta`, `augment_light`, the `aug` Config field and its `__post_init__` guard).
+If it works:  `aug="light"` joins the CoAtNet PROD recipe (S2); round 2 tries it on the DINOv2-S arm.
+If it fails:  `aug` stays `"none"`; over-fitting is handled by the epoch budget alone (P-29).
+Depends on:   P-32's arm as the control (same session), P-31.
 
 ## Rejected without testing
 
