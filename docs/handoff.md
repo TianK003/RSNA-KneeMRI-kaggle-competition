@@ -6,6 +6,74 @@ to read first after a break.
 
 ---
 
+## 2026-09-22 (19:40) — Evening read-out: **best LB 0.942** (#13 β 0.10 and #15 anchor-only, tied); the anchor reproduces, our arm is ≈ 0 publicly; **P-29: the 16-epoch production schedule over-trains** (OOF peak at epoch 8) → future members train 8 epochs
+
+Closes everything the 10:00 entry had in flight. Findings are logged in experiments.md (2026-09-22 "P-29 epoch-budget
+probe" and "P-27 read-out with the control", Scoreboard, Submissions rows 13–15), proposals (P-27/P-28/P-29 cards + index),
+brainstorm (two questions answered, final-selection question opened), CLAUDE.md state paragraph.
+
+### ⏳ Still in flight — nothing
+
+No kernel running (both GPU slots free; this week's quota ≈ 13.3 h spent: `v09a` 5.1 + `v08a` 2.4 + `v09p` 5.6 + fork
+placeholders), no pods, no watchers. Submissions: all five of today scored; the daily count resets 02:00.
+
+### Where things stand
+
+| | Status |
+|---|---|
+| Best LB | **0.942** — #13 (fork v4: anchor + `v08w` + 5-fold `v09h` at β 0.10) and #15 (fork v6: anchor only). #14 (β 0.10 + `v09a`/`v08a`) 0.941, #12 (β 0.20) 0.939. Top of the LB 0.958 |
+| P-27 fork | ✅ delivered 0.913 → 0.942; our arm's increment is ±0.000 at β 0.10 and negative at β 0.20 (sub-floor). **Committed fork tree = v6 (β 0)** — rebuild before any re-push (flags in the 10:00 entry) |
+| P-28 production regime | 🔁 `v09a`/`v08a` add −0.001 on the LB; their 16-epoch schedule is ≈ 0.012 OOF past its peak (P-29) → **`PROD["epochs"]` should become 8** — *not yet edited in `src/`* |
+| P-29 | ❌ hypothesis failed / ✅ finding kept: `v09p` OOF 0.743 → **0.8731 at epoch 8** → 0.8607 at epoch 15, 11/12 labels down; SWA-of-13–15 proxy 0.8611. `artifacts/kaggle_out/train_v21/` |
+| P-30 | ❌ public soft labels have no gold rows → not adoptable (morning) |
+| `src/` | unchanged since `9b0f728` (`v09p` arm in `ARMS`, `--sources` in `build_targets.py`) |
+| Repo | pushed through `7398a3a` (+ this handoff) |
+
+### What we talked about and decided
+
+- Tian asked for a read of all results and the docs; no new training or submissions this evening.
+- **β 0.10 stays the default fork**, not β 0: it scores the same as the anchor publicly and carries the one vote in the
+  submission that was never tuned on the public LB. Whether that matters privately is unmeasurable — opened as the
+  final-selection question for Tian rather than decided.
+- The epoch finding changes the P-28 recipe but I did **not** edit `PROD` or retrain anything — that is a new run and
+  needs Tian's go.
+
+### What we figured out
+
+1. **The anchor reproduces 0.942 from our account** (#15), so every fork read is now against a number we own
+   (experiments.md P-27 read-out).
+2. **Our current members add nothing to the public stack**: ±0.000 at β 0.10, −0.001 with two more members, −0.003 at
+   β 0.20. The c02 lane is redundant with the stack's own CoAtNet views; more members of the same kind are not worth GPU.
+3. **16 epochs over-trains**: peak − epoch 15 = 0.0124 (1.6× the floor), 11/12 labels down, and SWA of the tail does not
+   rescue it; 16 epochs also does not beat 8 at the peak (+0.0048, sub-floor). Our production members were built past
+   their best (experiments.md P-29).
+
+### ⏭ Next action, in order
+
+1. **Fix the production budget in `src/kaggle_pipeline.py`**: `PROD = {**C02, "epochs": 8, "train_all": True, "swa_last": 3, "ckpt_policy": "last"}` (SWA over epochs 5–7). One-line change + a note in the P-28 card; via `/try-out` (smoke) before any real run.
+2. **Decide what the next GPU goes to** (Tian): the read-out says *not* more c02 members. Candidates, in P-23's order: a
+   different input representation (P-23 #3 gated-stem 16-slice model — the public stack's second family, our first
+   try `v07s` died as built; P-23 #4 RadImageNet — licence gate), or P-17 self-training. Each is a card + multi-session
+   build; the fork is where it would be measured (β 0.10, vs #15's 0.942, floor 0.005).
+3. Optional, cheap: retrain `v09a` under the 8-epoch budget (≈ 2.6 h T4, `ARM_ONLY="v09a"` after step 1) and submit it
+   in the fork at β 0.10 vs #13 — tells whether a *correctly trained* production member helps. Expect ≤ +0.005 (🔁) given
+   finding 2.
+4. Before 2026-10-22: select the two final submissions (open decision below).
+
+### Open decisions for Tian
+
+- **Final selection** (two slots): #13 (anchor + our untuned vote) and #15 (pure anchor) tie publicly; selecting both
+  hedges the anchor's public-LB tuning. Revisit if a better candidate appears.
+- Next GPU direction (step 2); RunPod budget if a new representation needs a bigger card.
+- RadImageNet stage licence (CC-BY-NC-SA / "other") in the final submission — unchanged.
+
+### Things that will bite if forgotten
+
+- **The committed fork tree is v6 (β 0)**. #13 is v4 (`--beta 0.10 --members v08w v09h`); rebuild with the builder before pushing.
+- **Long heredocs in the Bash tool fail** ("unexpected EOF while looking for matching `'`") even with a quoted delimiter;
+  write the script with the Write tool to the scratchpad and run it. Bash-tool PATH still needs `export PATH="/usr/bin:/bin:$PATH"`; use PowerShell for `git`.
+- `PROD` still says 16 epochs in `src/` — a production push before step 1 repeats the over-training.
+
 ## 2026-09-22 (10:00) — #12 read **0.939** (β 0.20, 0.003 under the anchor's 0.942); P-28 arms `v09a` / `v08a` shipped; **#13 (β 0.10) and #14 (β 0.10 + `v09a` + `v08a`) sent**; **fork v6 = anchor-only control sent as #15**; CLAUDE.md state stack collapsed
 
 This entry consolidates the session's 08:50 and 09:45 entries (same session, superseded in place; nothing older was touched).
