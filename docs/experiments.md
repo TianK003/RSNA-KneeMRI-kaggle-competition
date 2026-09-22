@@ -201,6 +201,35 @@ without recomputation and 0.81 with. Kept as P-07 (card only).
 
 ---
 
+### 2026-09-22 — P-30: the public 0.924 member's soft labels (`dreaddevelopment/rsna-knee-labels`) as a 4th source ❌ DEAD END as a measurable idea — the file has no gold rows, so it cannot be validated; NOT adopted
+
+`labels_llm_soft.csv` (CC0, 4,349 rows × 12 labels, a coarse probability grid 0.05 / 0.15–0.2 / 0.45 / 0.8 / 0.95)
+covers **exactly the 4,349 report-only studies and none of the 58 gold ones** — its author used gold-58 as validation
+and published the training labels only. `python src/build_targets.py --sources hans_v4,pilkwang,sol56,dread`
+(the new flag; the default teacher is byte-identical, md5 `29f641ed…`, 0.8948) therefore prints `dread nan` for the
+source and an **unchanged BLEND 0.8948** — on gold rows the 4th source is NaN and `nanmean` ignores it. The
+pre-registered measure (source alone ≥ 0.893 on gold-58) is impossible, not failed.
+
+What can be measured (agreement on the 4,349 common studies, Spearman per label, mean over 12):
+
+| pair | mean ρ | note |
+|---|---|---|
+| dread vs hans_v4 | **0.811** | worst Synovitis 0.52, Fracture 0.61; best PF OA 0.95, Medial OA 0.93 |
+| dread vs our 3-source teacher | 0.817 | |
+| hans_v4 vs pilkwang (our own two best sources, same studies) | 0.834 | the reference for "how much do good sources agree" |
+
+Threshold agreement at 0.5 with hans_v4 is 0.87 on average, but dread is systematically **less positive** (Effusion 26 %
+vs 59 %, MCL 5 % vs 15 %, Medial OA 25 % vs 37 %) — a different operating point, not a different reading; only Synovitis
+is read *more* often (25 % vs 12 %). So it is a fourth reading of the same reports at pilkwang-level agreement with
+hans_v4, with no way to know whether its disagreements are right.
+
+**Verdict: ❌ DEAD END for adoption by the P-30 rule** — the only measurement that could validate it is a training A/B
+(an arm on the 4-source teacher vs its twin), and that A/B has no neutral judge: OOF-vs-teacher is circular and gold-58
+cannot see ±0.02. The `--sources` flag stays (it costs nothing and keeps the default teacher byte-identical); the
+`data/llm_labels/dread/` file stays for a possible P-16/P-17 use as *extra soft votes on the report-only rows*, where no
+gold validation is needed. **CORRECTION to the P-28 "morning item B5" plan**: "adopt if ≥ 0.893 on gold" was written
+without knowing the file excludes gold.
+
 ## Folds and validation
 
 ### 2026-08-28 — Group folds by report text ✅ KEEP

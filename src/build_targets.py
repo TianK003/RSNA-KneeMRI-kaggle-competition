@@ -37,11 +37,16 @@ LABELS = [
 # Measured gold macro-AUC of each source (n=58, so differences under ~0.02 are noise).
 # Ordered best-first. Targets are the MEAN OF PROBABILITIES (P-00); ranks are used only
 # to score and to ensemble predictions, never to build a BCE target.
-SOURCES = [
-    ("hans_v4", "rsna-knee-llm-report-labels/llm_labels_v4_blend.csv"),      # 0.893
-    ("pilkwang", "rsna-knee-llm-labels/report_labels_v2.csv"),               # 0.870
-    ("sol56", "rsna-knee-llm-report-labels-sol56/labels_llm_gpt56sol.csv"),  # 0.835
-]
+KNOWN_SOURCES = {
+    "hans_v4": "rsna-knee-llm-report-labels/llm_labels_v4_blend.csv",       # 0.893
+    "pilkwang": "rsna-knee-llm-labels/report_labels_v2.csv",                # 0.870
+    "sol56": "rsna-knee-llm-report-labels-sol56/labels_llm_gpt56sol.csv",   # 0.835
+    # 2026-09-22 (P-30): the public 0.924 member's own training labels (dreaddevelopment/rsna-knee-labels,
+    # CC0; soft probabilities 0.05-0.95, 4,407 rows). NOT in the default blend -- pass
+    # `--sources hans_v4,pilkwang,sol56,dread` to measure it; adopt only by the P-30 rule.
+    "dread": "dread/labels_llm_soft.csv",
+}
+DEFAULT_SOURCES = ["hans_v4", "pilkwang", "sol56"]   # the 0.8948 teacher every shipped arm trained on
 
 GOLD_WEIGHT = 8.0        # official labels are worth many weak ones
 WEAK_WEIGHT_FLOOR = 0.15  # a study whose report says nothing still pulls a little
@@ -74,9 +79,12 @@ def auc_se(a: float, npos: int, nneg: int) -> float:
 
 # ----------------------------------------------------------------- label load
 
-def load_sources(root: str, index: pd.Index) -> dict[str, pd.DataFrame]:
+def load_sources(root: str, index: pd.Index, names: list[str] | None = None) -> dict[str, pd.DataFrame]:
     out = {}
-    for name, rel in SOURCES:
+    for name in (names or DEFAULT_SOURCES):
+        if name not in KNOWN_SOURCES:
+            raise SystemExit(f"unknown label source {name!r}; known: {sorted(KNOWN_SOURCES)}")
+        rel = KNOWN_SOURCES[name]
         path = os.path.join(root, rel)
         if not os.path.exists(path):
             print(f"  ! missing {rel}, skipping")
@@ -86,7 +94,8 @@ def load_sources(root: str, index: pd.Index) -> dict[str, pd.DataFrame]:
             print(f"  ! {rel} lacks label columns, skipping")
             continue
         out[name] = d.reindex(index)
-        print(f"  loaded {name:<9} {d.shape[0]} rows")
+        covered = int(out[name][LABELS].notna().all(axis=1).sum())
+        print(f"  loaded {name:<9} {d.shape[0]} rows; {covered}/{len(index)} train studies with all 12 labels")
     if not out:
         raise SystemExit("no LLM label sources found under " + root)
     return out
@@ -229,7 +238,10 @@ def main() -> None:
     ap.add_argument("--out-dir", default="artifacts")
     ap.add_argument("--folds", type=int, default=5)
     ap.add_argument("--seed", type=int, default=42)
+    ap.add_argument("--sources", default=",".join(DEFAULT_SOURCES),
+                    help="comma-separated label sources to blend (P-30: add `dread` to measure the public soft labels)")
     args = ap.parse_args()
+    source_names = [x.strip() for x in args.sources.split(",") if x.strip()]
 
     os.makedirs(args.out_dir, exist_ok=True)
     lines: list[str] = []
@@ -243,8 +255,9 @@ def main() -> None:
     is_gold = tr[LABELS].notna().all(axis=1)
     log(f"train.csv: {len(tr)} studies, {int(is_gold.sum())} with official labels")
 
-    log("\nloading LLM report-label sources:")
-    sources = load_sources(args.llm_root, idx)
+    log(f"\nloading LLM report-label sources: {source_names}"
+        + ("" if source_names == DEFAULT_SOURCES else "   ! NON-DEFAULT teacher -- do not overwrite artifacts/targets.csv"))
+    sources = load_sources(args.llm_root, idx, source_names)
 
     soft = prob_blend(sources, idx)          # training target (P-00)
     soft_rank = rank_blend(sources, idx)     # diagnostic only

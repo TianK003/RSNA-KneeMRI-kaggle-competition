@@ -226,6 +226,13 @@ PROD = {**C02, "epochs": 16, "train_all": True, "swa_last": 3, "ckpt_policy": "l
 ARMS = [
     ("v09a", {**PROD, "backbone": "timm:coatnet_rmlp_1_rw_224", "img_size": 224, "lr_backbone": 1e-4}),
     ("v08a", {**PROD, "backbone": "dinov2", "img_size": 224}),
+    # 2026-09-22 (P-29): the epoch-budget probe. Both production arms' gold-58 curves peaked at epoch 5-6 and
+    # drifted ~0.015 lower by epoch 15; gold-58 (SE ~0.04) cannot say whether that is real. This is the
+    # `v09h` recipe on fold 0 with the production schedule's 16 epochs (OneCycle stretched to 16, everything
+    # else identical to v09h) and per-epoch OOF csvs on the 871 held-out studies (floor 0.008). Not a
+    # production member: `train_all` off, `best_oof` checkpoint policy as for every fold-0 arm.
+    ("v09p", {**C02, "epochs": 16, "backbone": "timm:coatnet_rmlp_1_rw_224", "img_size": 224,
+              "lr_backbone": 1e-4}),
 ]
 # Shipped fold-0 / 5-fold members (Datasets rsna-knee-ckpt-*): selectable through ARM_ONLY /
 # RSNA_ARM for a rerun, but no longer run by default -- a forgotten sed would otherwise spend the
