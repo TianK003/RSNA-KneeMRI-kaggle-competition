@@ -6,21 +6,24 @@ to read first after a break.
 
 ---
 
-## 2026-09-22 (20:45) — Night session: the public frontier re-read (our anchor is a *superset* of the best public notebook; "0.957" was a gold-58 number), **the machine's second T4 found idle and put to work (P-31)**, the P-32/P-33 A/B arms built and smoke-green, `PROD` → 8 epochs, the flat-0.60 hedge submitted as **#16**; **the S1 real run is staged and waits for Tian's go**
+## 2026-09-22 (20:58) — Night session: the public frontier re-read (our anchor is a *superset* of the best public notebook; "0.957" was a gold-58 number), **the machine's second T4 found idle and put to work (P-31)**, the P-32/P-33 A/B arms built, smoke-green and **running as train v23**, `PROD` → 8 epochs, the flat-0.60 hedge submitted as **#16**
 
+This entry supersedes this session's 20:45 entry in place (same session; the only change is that Tian gave the S1 go at 20:54).
 Plan file (approved): `~/.claude/plans/i-want-you-to-mossy-prism.md`. Tian's ask: read the handoff, pick the one or two biggest
 improvements for the remaining ~16 h of quota on evidence (public notebooks, what the field runs, research), ask rather than
 assume. Tian chose **path A** (recipe A/B on both GPUs → production → fork) over B (production only) and C (Raptor-distillation
-targets), and **build + submit the hedge**.
+targets), **build + submit the hedge**, and then **"yes, push it"** for S1.
 
-### ⏳ Still in flight as this was written (20:45)
+### ⏳ Still in flight as this was written (20:58)
 
 | In flight | What it is | Started | How to check | How to read it |
 |---|---|---|---|---|
+| **`rsna-knee-train` v23 = S1 A/B, `v09b` ‖ `v09c`** (P-31 / P-32 / P-33) | the first real two-arm session: parent launches one child per GPU; `v09b` = `v09h` recipe + `batch_studies=2, grad_accum=2` (cuda:0); `v09c` = `v09b` + `aug="light"` (cuda:1); fold 0, 8 ep, `best_oof`. Built from `artifacts/train_ab_real.py` (FORCE_SMOKE False, PARALLEL_ARMS set, ARM_ONLY ""); smoke v22 green first | 20:54 | `kaggle kernels status tiankljucanin/rsna-knee-train`; the Kaggle log shows only the parent's heartbeat (every 3 min: `[arm]` log tails, `nvidia-smi`, host RAM). When COMPLETE: `kaggle kernels output tiankljucanin/rsna-knee-train -p artifacts/kaggle_out/train_v23 --file-pattern "\.log$"` then `--file-pattern "v09[bc]_fold0.*oof"` (+ `--file-pattern "v09[bc]_fold0_best"`) | **≈ 3 h → ≈ 00:00** (CoAtNet-1 fold 0: 14.5 min train + 6.4 min val per epoch × 8, both arms concurrently). Green: parent lines `ok  arm v09b` / `ok  arm v09c` (rc 0, `_best.pt` written); in each child log the `peak GPU memory` line (expect ≈ 6.8 GiB) and `s/study` ≤ 0.33 (1.3× the 0.25 solo — P-31 ✅; higher = loader-bound, note it). **Read-out (P-32/P-33 cards):** `v09b_fold0_oof.csv` / `v09c_fold0_oof.csv` (best_oof epoch) → macro OOF-vs-teacher on the 871 fold-0 studies (`python src/blend_check.py` / `src/oof_epoch_analysis.py`) vs **`v09h` 0.8683**, floor 0.008: **≥ 0.876 ✅ KEEP / 0.860–0.876 🔁 / < 0.860 harmful**; ≥ 9/12 labels up as support; `v09c − v09b` = augmentation alone. `!!  arm` with only `_last.pt` = guard-stopped → resume that arm in `rsna-knee-folds` (`ARM_ONLY`, `kernel_sources` + this output; traps 31). Fill the two ⏳ Scoreboard rows + card statuses via `/update` |
 | **Submission #16 — `rsna-knee-fork` v7, ref 56471784** | the hedge: the 0.942 graph with its own `PRESET = "parent"` (per-label outer CoAtNet map LatMen 1.00 / ACL, LatOA, Fracture 0.75 / MedMen 0.80 → flat 0.60), our arm not run (β 0). Placeholder green 20:29: fork log `preset=parent … outer CoAtNet weight per finding: flat 0.60`; `btkd_v559_complete.json` diff vs v6 = every weight 0.6; `status: anchor_control`, submission sha = anchor sha | 20:37 | `kaggle competitions submissions rsna-knee-abnormality-detection --csv \| head -3` | ≈ 6 h (no arm) → **≈ 02:30**. Expected **0.939–0.941** (the 0.941 analysis' ladder: the tuned map is worth +0.001–0.002 publicly). Any value is fine — this is the validated flat-weights candidate for the *second final slot*; fill the Scoreboard / Submissions ⏳ rows via `/update` |
 
-No GPU kernel running. Quota this week ≈ 13.4 h spent (tonight: S0 smoke 0.03 h + fork placeholder ≈ 0.1 h). **1 submission
-left today** (reset 02:00). Kaggle token valid at 20:37.
+One GPU session running (train v23, both T4s busy); the second slot is free. Quota this week ≈ 13.4 h spent before v23
+(tonight: S0 smoke 0.03 h + fork placeholder ≈ 0.1 h) → ≈ 16.4 h after v23's ≈ 3 h. **1 submission left today** (reset 02:00).
+Kaggle token valid at 20:54. No background watchers survive this session.
 
 ### Where things stand
 
@@ -32,7 +35,7 @@ left today** (reset 02:00). Kaggle token valid at 20:37.
 | `src/nbgen.py` | embeds the pipeline (zlib + base64 + sha256, 120-char chunks) only when the sed'd text has a non-empty `PARALLEL_ARMS` |
 | `src/build_fork.py` | `--anchor-preset {speedy,parent,halfway,sparse}`: one-token patch of the anchor's `PRESET` default, asserted once; provenance + markdown note |
 | Kaggle smoke S0 | ✅ `rsna-knee-train` **v22** (20:21 → 20:24): children on `cuda:0` / `cuda:1`, both `_best.pt`, rc 0; **2 × 24 windows CoAtNet-1 @224 = 6.84 GiB peak** (no grad-checkpoint needed); `aug light` vs `none` diverge (loss 0.6834 vs 0.7001). Outputs `artifacts/kaggle_out/train_v22/` (`v09b.log`, `v09c.log`) |
-| **`kaggle/rsna-knee-train/rsna-knee-train.ipynb`** | **= the S1 REAL run (FORCE_SMOKE False, PARALLEL_ARMS v09b ‖ v09c), generated from `artifacts/train_ab_real.py`, committed, NOT pushed** |
+| **`kaggle/rsna-knee-train/rsna-knee-train.ipynb`** | = the S1 REAL run (FORCE_SMOKE False, PARALLEL_ARMS v09b ‖ v09c), generated from `artifacts/train_ab_real.py`, committed, **pushed as v23 at 20:54 (running)** |
 | `kaggle/rsna-knee-fork/` | **= the hedge v7 (β 0, preset parent)**; outputs `artifacts/kaggle_out/fork_v7/` |
 | Docs | proposals: cards **P-31 / P-32 / P-33** + index rows (🔧 implemented, effect pending), P-28 note; experiments: night entry (public frontier), Scoreboard ⏳ rows (#16, S0 smoke), Submissions row 16; traps **34** (idle second GPU) / **35** (title scores); CLAUDE.md state + "Two arms per session" recipe |
 | Repo | `0b90438` (code + docs, smoke green) + this handoff's commit |
@@ -66,13 +69,9 @@ left today** (reset 02:00). Kaggle token valid at 20:37.
 
 ### ⏭ Next action, in order
 
-1. **Tian's go → push S1** (nothing else needed): `grep -E '^(FORCE_SMOKE|PARALLEL_ARMS|ARM_ONLY) = ' artifacts/train_ab_real.py`
-   must read `False` / `("v09b", "v09c")` / `""`; then `kaggle kernels push -p kaggle/rsna-knee-train` (v23). ≈ 3 h wall
-   (CoAtNet-1 fold 0, 8 ep, ≈ 21 min/epoch each, concurrently). Read: `kaggle kernels output tiankljucanin/rsna-knee-train -p
-   artifacts/kaggle_out/train_v23 --file-pattern "\.log$"` then `--file-pattern "v09[bc]_fold0.*oof"` (+ `_best.pt`); each child's
-   `s/study` vs 0.25 solo (≤ 1.3× = P-31 ✅), the `peak GPU memory` line; **OOF (best_oof epoch) vs `v09h` 0.8683, floor 0.008:
-   ≥ 0.876 ✅ / 0.860–0.876 🔁 / < 0.860 harmful; `v09c − v09b` = augmentation alone**; ≥ 9/12 labels up as support
-   (`src/blend_check.py`, `src/oof_epoch_analysis.py`). `/update` (Scoreboard ⏳ rows for v09b / v09c, card statuses).
+1. **Read train v23 (≈ 00:00)** exactly as the in-flight table says: logs → `s/study` and `peak GPU memory` per child (P-31),
+   then `v09b` / `v09c` OOF vs `v09h` 0.8683 by the 0.008 floor (P-32 / P-33), `v09c − v09b` for augmentation alone.
+   `/update` (the two ⏳ Scoreboard rows, P-31/P-32/P-33 card statuses + index rows).
 2. **Read #16** (≈ 02:30) → Scoreboard / Submissions rows; note it as the second-final-slot candidate in brainstorm's
    final-selection question.
 3. **S2 production**: set the `v09a` arm's knobs to the S1 winner (`batch_studies` / `grad_accum` / `aug` in `ARMS`), keep
@@ -86,15 +85,17 @@ left today** (reset 02:00). Kaggle token valid at 20:37.
 
 ### Open decisions for Tian
 
-- **S1 go** (step 1) — the only thing blocking the GPU plan.
+- **S2's knobs** once S1 is read: which of `batch_studies=2` / `aug="light"` the production `v09a` retrain carries (rule: a ✅ knob
+  goes in, a 🔁 knob stays out unless both A/B arms beat `v09h` in the same direction).
 - **Final selection**: #13 / #15 (0.942, tuned map) vs #16 (flat map) once it scores; selecting one of each hedges the
   public-tuned weights.
 - RadImageNet licence in the final submission — unchanged.
 
 ### Things that will bite if forgotten
 
-- **The committed `kaggle/rsna-knee-train/rsna-knee-train.ipynb` is the REAL S1 variant** (FORCE_SMOKE False): pushing it starts
-  a ≈ 3 h run. **The committed `kaggle/rsna-knee-fork/` is the hedge v7 (β 0, preset parent)** — `build_fork.py --beta 0.10
+- **The committed `kaggle/rsna-knee-train/rsna-knee-train.ipynb` is the REAL S1 variant** (FORCE_SMOKE False) and is already
+  running as v23 — pushing it again would start a second ≈ 3 h run (and a third GPU session is refused while v23 runs). **The
+  committed `kaggle/rsna-knee-fork/` is the hedge v7 (β 0, preset parent)** — `build_fork.py --beta 0.10
   --members …` (default preset speedy) before any member submission.
 - `PARALLEL_ARMS` is exclusive with `ARM_ONLY` / `FIVE_FOLD` / `STACK_RUN` (the config cell refuses); it needs the nbgen payload
   (a notebook without it fails loudly). Children's logs are `<arm>.log` in the kernel output; the Kaggle log shows the parent's
