@@ -6,6 +6,106 @@ to read first after a break.
 
 ---
 
+## 2026-09-22 (20:45) — Night session: the public frontier re-read (our anchor is a *superset* of the best public notebook; "0.957" was a gold-58 number), **the machine's second T4 found idle and put to work (P-31)**, the P-32/P-33 A/B arms built and smoke-green, `PROD` → 8 epochs, the flat-0.60 hedge submitted as **#16**; **the S1 real run is staged and waits for Tian's go**
+
+Plan file (approved): `~/.claude/plans/i-want-you-to-mossy-prism.md`. Tian's ask: read the handoff, pick the one or two biggest
+improvements for the remaining ~16 h of quota on evidence (public notebooks, what the field runs, research), ask rather than
+assume. Tian chose **path A** (recipe A/B on both GPUs → production → fork) over B (production only) and C (Raptor-distillation
+targets), and **build + submit the hedge**.
+
+### ⏳ Still in flight as this was written (20:45)
+
+| In flight | What it is | Started | How to check | How to read it |
+|---|---|---|---|---|
+| **Submission #16 — `rsna-knee-fork` v7, ref 56471784** | the hedge: the 0.942 graph with its own `PRESET = "parent"` (per-label outer CoAtNet map LatMen 1.00 / ACL, LatOA, Fracture 0.75 / MedMen 0.80 → flat 0.60), our arm not run (β 0). Placeholder green 20:29: fork log `preset=parent … outer CoAtNet weight per finding: flat 0.60`; `btkd_v559_complete.json` diff vs v6 = every weight 0.6; `status: anchor_control`, submission sha = anchor sha | 20:37 | `kaggle competitions submissions rsna-knee-abnormality-detection --csv \| head -3` | ≈ 6 h (no arm) → **≈ 02:30**. Expected **0.939–0.941** (the 0.941 analysis' ladder: the tuned map is worth +0.001–0.002 publicly). Any value is fine — this is the validated flat-weights candidate for the *second final slot*; fill the Scoreboard / Submissions ⏳ rows via `/update` |
+
+No GPU kernel running. Quota this week ≈ 13.4 h spent (tonight: S0 smoke 0.03 h + fork placeholder ≈ 0.1 h). **1 submission
+left today** (reset 02:00). Kaggle token valid at 20:37.
+
+### Where things stand
+
+| | Status |
+|---|---|
+| Best LB | **0.942** (#13 / #15). Field: 0.958 ×1, 0.955 ×8, 119 teams ≥ 0.945, **270 at 0.942 (us, rank 246), 420 at 0.941** |
+| The anchor question | **closed** — Speedy Raptors (top of the score-sorted listing, 0.943) has the same members and weights as our 0.942 graph; "Fast Parent 0.957" is a *subset* whose 0.957 is a gold-58 diagnostic (experiments.md 2026-09-22 night entry, traps 35). Re-anchoring ≤ +0.001 |
+| `src/kaggle_pipeline.py` | **P-31** `PARALLEL_ARMS` launcher (one child per GPU, `<arm>.log`, heartbeat, artefact-judged) + `SELF_SOURCE_*` markers; **P-32** `collate_windows`, batched `forward_windows` (scatter-padded head), per-study `weighted_bce`, val/infer at batch 1; **P-33** `Config.aug` (`"light"`: affine + gamma/gain, no flips, training only); `RSNA_SMOKE_FULL_WINDOWS`; **`PROD["epochs"] = 8`**; arms `v09b` (batch 2 × accum 2) / `v09c` (+ aug); `v09p` moved to `SHIPPED_ARMS`. `window_head_test.py` 60+ checks green (incl. batched == single in eval, bce per study, aug geometry, nbgen payload); `cache_selftest.py` green; local smoke of `v09c` green |
+| `src/nbgen.py` | embeds the pipeline (zlib + base64 + sha256, 120-char chunks) only when the sed'd text has a non-empty `PARALLEL_ARMS` |
+| `src/build_fork.py` | `--anchor-preset {speedy,parent,halfway,sparse}`: one-token patch of the anchor's `PRESET` default, asserted once; provenance + markdown note |
+| Kaggle smoke S0 | ✅ `rsna-knee-train` **v22** (20:21 → 20:24): children on `cuda:0` / `cuda:1`, both `_best.pt`, rc 0; **2 × 24 windows CoAtNet-1 @224 = 6.84 GiB peak** (no grad-checkpoint needed); `aug light` vs `none` diverge (loss 0.6834 vs 0.7001). Outputs `artifacts/kaggle_out/train_v22/` (`v09b.log`, `v09c.log`) |
+| **`kaggle/rsna-knee-train/rsna-knee-train.ipynb`** | **= the S1 REAL run (FORCE_SMOKE False, PARALLEL_ARMS v09b ‖ v09c), generated from `artifacts/train_ab_real.py`, committed, NOT pushed** |
+| `kaggle/rsna-knee-fork/` | **= the hedge v7 (β 0, preset parent)**; outputs `artifacts/kaggle_out/fork_v7/` |
+| Docs | proposals: cards **P-31 / P-32 / P-33** + index rows (🔧 implemented, effect pending), P-28 note; experiments: night entry (public frontier), Scoreboard ⏳ rows (#16, S0 smoke), Submissions row 16; traps **34** (idle second GPU) / **35** (title scores); CLAUDE.md state + "Two arms per session" recipe |
+| Repo | `0b90438` (code + docs, smoke green) + this handoff's commit |
+
+### What we talked about and decided
+
+- **What to spend the 16 h on.** Claude's evidence read: re-anchoring is not a lever (superset); our members add ±0 because
+  they are ~0.87 OOF while the stack's best single is 0.928 LB (the 0.941 analysis: "below ~0.90 solo a member costs more
+  than its diversity buys"); the recipe differences never A/B'd are batch composition (timm CoAtNet MBConv = BatchNorm; ours
+  sees 24 windows of one study, the public 0.928 member 8 studies × 12), augmentation (every public recipe has it) and the
+  backbone LR. Tian chose **A**: S1 A/B `v09b` ‖ `v09c` on fold 0 (≈ 3 h, both GPUs) → S2 production retrain under the
+  winner → fork at β 0.10. C (distil from the public Raptor's predictions on the 4,407 training studies) is parked as a card
+  idea; a 16-ch / RadImageNet member and a CoAtNet-2@384 retry were dropped (inside the anchor already / 3.5× the cost).
+- **Hedge:** Tian said build **and** submit → #16.
+- **Review before coding** (a Plan agent stress-tested the design) caught two real bugs before they ran: a `SystemExit` in a
+  notebook cell would have marked the Kaggle version failed (the launcher now returns into the normal flow), and a batched
+  `Σ w·bce / Σ w` would have let a gold study (w 8) swallow its partner's gradient (now normalised per study).
+- Managed policy: commits carry no AI attribution.
+
+### What we figured out
+
+1. **`"machine_shape": "NvidiaTeslaT4"` is GPU T4 ×2** (kaggle-cli docs PR #1198; probe logs `devices: ['cuda:0','cuda:1']`);
+   quota is per session hour (Kaggle product-feedback 361104). Every training session to date used one GPU → traps 34; P-31
+   doubles arms per quota hour, verified by the S0 smoke.
+2. **Our anchor ⊇ the best public notebook**; the 0.955+ cluster is private work; "0.957" in a title is a gold-58 number
+   (traps 35). 690 teams at 0.941–0.942.
+3. **Memory:** 2 studies × 24 windows through CoAtNet-1 @224 (AMP) = 6.84 GiB on a 15 GiB T4 → 4 × 24 would be borderline,
+   2 × 24 is safe.
+4. The fork kernel's log downloaded **non-empty** (27 KB) this time and printed `preset=parent`; the earlier "0 bytes" note
+   holds for some runs, not all — check before concluding.
+
+### ⏭ Next action, in order
+
+1. **Tian's go → push S1** (nothing else needed): `grep -E '^(FORCE_SMOKE|PARALLEL_ARMS|ARM_ONLY) = ' artifacts/train_ab_real.py`
+   must read `False` / `("v09b", "v09c")` / `""`; then `kaggle kernels push -p kaggle/rsna-knee-train` (v23). ≈ 3 h wall
+   (CoAtNet-1 fold 0, 8 ep, ≈ 21 min/epoch each, concurrently). Read: `kaggle kernels output tiankljucanin/rsna-knee-train -p
+   artifacts/kaggle_out/train_v23 --file-pattern "\.log$"` then `--file-pattern "v09[bc]_fold0.*oof"` (+ `_best.pt`); each child's
+   `s/study` vs 0.25 solo (≤ 1.3× = P-31 ✅), the `peak GPU memory` line; **OOF (best_oof epoch) vs `v09h` 0.8683, floor 0.008:
+   ≥ 0.876 ✅ / 0.860–0.876 🔁 / < 0.860 harmful; `v09c − v09b` = augmentation alone**; ≥ 9/12 labels up as support
+   (`src/blend_check.py`, `src/oof_epoch_analysis.py`). `/update` (Scoreboard ⏳ rows for v09b / v09c, card statuses).
+2. **Read #16** (≈ 02:30) → Scoreboard / Submissions rows; note it as the second-final-slot candidate in brainstorm's
+   final-selection question.
+3. **S2 production**: set the `v09a` arm's knobs to the S1 winner (`batch_studies` / `grad_accum` / `aug` in `ARMS`), keep
+   `v08a` as is (8 ep), `PARALLEL_ARMS = ("v09a", "v08a")` → smoke (FORCE_SMOKE True) → real (≈ 2.7 h) → ship Datasets
+   `rsna-knee-ckpt-v09a` / `-v08a` (new versions; verify with `kaggle datasets files`) → `build_fork.py --beta 0.10 --members
+   v08w v09h v09a v08a --member v09a=…:tiankljucanin/timm-coatnet-rmlp-1-rw-224 --member v08a=…` → placeholder → submit vs
+   0.942 (floor 0.005; ≥ 0.947 = our arm finally counts).
+4. **Round 2** with the remaining ≈ 9 h, chosen on S1: CoAtNet backbone LR 3e-5 vs 1e-4; `aug="light"` on the DINOv2 arm;
+   or a 5-fold of the winner (both GPUs, ≈ 7 h) as the P-17 base.
+5. `/update` after every number, `/handoff` at the end.
+
+### Open decisions for Tian
+
+- **S1 go** (step 1) — the only thing blocking the GPU plan.
+- **Final selection**: #13 / #15 (0.942, tuned map) vs #16 (flat map) once it scores; selecting one of each hedges the
+  public-tuned weights.
+- RadImageNet licence in the final submission — unchanged.
+
+### Things that will bite if forgotten
+
+- **The committed `kaggle/rsna-knee-train/rsna-knee-train.ipynb` is the REAL S1 variant** (FORCE_SMOKE False): pushing it starts
+  a ≈ 3 h run. **The committed `kaggle/rsna-knee-fork/` is the hedge v7 (β 0, preset parent)** — `build_fork.py --beta 0.10
+  --members …` (default preset speedy) before any member submission.
+- `PARALLEL_ARMS` is exclusive with `ARM_ONLY` / `FIVE_FOLD` / `STACK_RUN` (the config cell refuses); it needs the nbgen payload
+  (a notebook without it fails loudly). Children's logs are `<arm>.log` in the kernel output; the Kaggle log shows the parent's
+  heartbeat only (every 3 min; the first one shows 0 % GPU while the children import — not a failure).
+- A child that exits 0 with only `_last.pt` was guard-stopped → sibling-slug resume with `RSNA_ARM`/`ARM_ONLY` of that arm
+  (traps 31). Judge by `_best.pt`, never by rc (the parent prints `ok  arm` / `!!  arm`).
+- `weighted_bce` is now per-study normalised — identical at batch 1, so no shipped member changes; `aug` and `batch_studies`
+  are training-only and never reach inference (not INFER_MEMBER_KEYS).
+- `sed` of `PARALLEL_ARMS` must go into a *copy*; `src/kaggle_pipeline.py` stays `PARALLEL_ARMS = ()` (else nbgen embeds a 75 KB
+  payload into every notebook).
+
 ## 2026-09-22 (19:40) — Evening read-out: **best LB 0.942** (#13 β 0.10 and #15 anchor-only, tied); the anchor reproduces, our arm is ≈ 0 publicly; **P-29: the 16-epoch production schedule over-trains** (OOF peak at epoch 8) → future members train 8 epochs
 
 Closes everything the 10:00 entry had in flight. Findings are logged in experiments.md (2026-09-22 "P-29 epoch-budget

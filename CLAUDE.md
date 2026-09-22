@@ -10,7 +10,7 @@ by **macro ROC-AUC** (unweighted mean of 12 per-label AUCs).
 
 Competition: https://www.kaggle.com/competitions/rsna-knee-abnormality-detection
 
-**State as of 2026-09-22 (19:30).** Best public LB **0.942** — tied by #13 (the P-27 fork: the public 0.942 notebook's inference graph verbatim + our c02 members at β 0.10) and #15 (the anchor alone, our arm not run). **The anchor reproduces 0.942 from our account; our arm is worth ±0.000 at β 0.10, −0.003 at β 0.20 (#12, 0.939), and −0.001 with the P-28 production members `v09a`/`v08a` added (#14, 0.941)** — all under the 0.005 floor (experiments.md 2026-09-22 P-27 read-out). **P-29 measured that the 16-epoch production schedule over-trains**: fold-0 OOF peaks at epoch 8 (0.8731) and ends at 0.8607 (−0.012, 11/12 labels down), so future production members use 8 epochs. Our own blend alone is 0.913 (#11). Public LB top is **0.958**. Kaggle: 2 GPU sessions, 5 submissions/day, OAuth tokens last ~3 h (traps 20). Session history, in-flight items and next actions: [docs/handoff.md](docs/handoff.md); the LB progression 0.500 → … → 0.913 → 0.939 → 0.942 is the Scoreboard in [docs/experiments.md](docs/experiments.md).
+**State as of 2026-09-22 (20:40).** Best public LB **0.942** — tied by #13 (the P-27 fork: the public 0.942 notebook's inference graph verbatim + our c02 members at β 0.10) and #15 (the anchor alone, our arm not run). **The anchor reproduces 0.942 from our account; our arm is worth ±0.000 at β 0.10, −0.003 at β 0.20 (#12, 0.939), and −0.001 with the P-28 production members `v09a`/`v08a` added (#14, 0.941)** — all under the 0.005 floor (experiments.md 2026-09-22 P-27 read-out). **Our anchor is already a superset of the best-scoring public notebook** (Speedy Raptors, 0.943; the "0.957" in a public title is a gold-58 number — traps 35), so re-anchoring is not a lever; 690 teams sit at 0.941–0.942 and everything ≥ 0.945 is private work. **P-29 measured that the 16-epoch production schedule over-trains** (fold-0 OOF peaks at epoch 8, 0.8731 → 0.8607), so `PROD` now trains 8 epochs. **Kaggle's `NvidiaTeslaT4` machine is two T4s and every session so far used one** (traps 34): `PARALLEL_ARMS` (P-31) runs two arms per session, smoke-verified 2026-09-22 (train v22). Next GPU work is the S1 A/B `v09b` (two-study BatchNorm batches, P-32) ‖ `v09c` (+ light augmentation, P-33) on fold 0 vs `v09h` 0.8683, staged in `kaggle/rsna-knee-train/`, **not yet pushed (needs Tian's go)**; the flat-0.60 hedge (`build_fork.py --anchor-preset parent`) is submission **#16 (ref 56471784, scoring)**. Our own blend alone is 0.913 (#11). Public LB top is **0.958**. Kaggle: 2 GPU sessions, 5 submissions/day, OAuth tokens last ~3 h (traps 20). Session history, in-flight items and next actions: [docs/handoff.md](docs/handoff.md); the LB progression 0.500 → … → 0.913 → 0.939 → 0.942 is the Scoreboard in [docs/experiments.md](docs/experiments.md).
 
 ## 📚 Documentation map — read the relevant one before acting
 
@@ -19,7 +19,7 @@ Competition: https://www.kaggle.com/competitions/rsna-knee-abnormality-detection
 | [docs/handoff.md](docs/handoff.md) | Session state, what changed last, next action | **First, always** |
 | [docs/traps.md](docs/traps.md) | Bugs and **silent** failure modes, tiered by damage | Before writing pipeline code |
 | [docs/experiments.md](docs/experiments.md) | Every measurement, with a verdict | Before proposing an experiment |
-| [docs/proposals.md](docs/proposals.md) | **Ranked backlog as testable cards P-00…P-30** (hypothesis, evidence, measure, noise floor, cost) | When choosing what to do next |
+| [docs/proposals.md](docs/proposals.md) | **Ranked backlog as testable cards P-00…P-33** (hypothesis, evidence, measure, noise floor, cost) | When choosing what to do next |
 | [docs/research.md](docs/research.md) | Literature + prior-competition research behind the cards (18-agent workflow, critic-fixed) | Before changing a training parameter or model |
 | [docs/brainstorm.md](docs/brainstorm.md) | Open questions and strategy notes only | When a question needs a browser |
 | [docs/setup.md](docs/setup.md) | Bootstrapping a new machine | New clone / new laptop |
@@ -166,10 +166,10 @@ without it a real-mode run inherits `folds=(0,1,2,3,4)` and smoke mode cannot re
 (traps 12d).
 
 **Production arms (P-28, 2026-09-21)** are the `PROD` preset — `train_all=True` (every non-gold study
-trains, the 58 gold rows are the validation, reported only), 16 epochs, `swa_last=3` (`_best.pt` = the mean
+trains, the 58 gold rows are the validation, reported only), **8 epochs** (P-29: 16 over-trained), `swa_last=3` (`_best.pt` = the mean
 of the last three EMA snapshots, `_lastema.pt` beside it), `ckpt_policy="last"` — and **one arm per kernel**
-through the `ARM_ONLY` build flag (two 16-epoch arms never fit one 9 h session; `rsna-knee-train` and
-`rsna-knee-folds` each take one). Such members have **no OOF**: never run `blend_check.py` on them,
+through the `ARM_ONLY` build flag (historically one per slug; since P-31 two arms fit one session through
+`PARALLEL_ARMS`, one per GPU — see below). Such members have **no OOF**: never run `blend_check.py` on them,
 `oof_eval` scores gold-58 only (traps 32). A resume runs in the *sibling* slug with the other kernel's slug in
 `kernel_sources` (traps 31). Build/push (smoke first, then `FORCE_SMOKE = False`):
 
@@ -178,6 +178,26 @@ sed -e 's/^ARM_ONLY = ""/ARM_ONLY = "v09a"/' src/kaggle_pipeline.py > artifacts/
 python src/nbgen.py artifacts/train_v09a.py kaggle/rsna-knee-train/rsna-knee-train.ipynb
 kaggle kernels push -p kaggle/rsna-knee-train        # grep the .py for 'ARM_ONLY = "v0' before a real push
 ```
+
+**Two arms per session (P-31, 2026-09-22).** The `NvidiaTeslaT4` machine has **two** T4s (traps 34). `PARALLEL_ARMS`
+(sed'd at build like `ARM_ONLY`, exclusive with it) makes Section 8 spawn one child process per arm on its own GPU —
+this very file as the child's script (`RSNA_CHILD=1`, `RSNA_ARM=<arm>`, `CUDA_VISIBLE_DEVICES=<i>`, `RSNA_TRAIN_ONLY=1`),
+each writing `/kaggle/working/<arm>.log`; `nbgen` embeds the pipeline text (zlib + base64 + sha256) only when
+`PARALLEL_ARMS` is non-empty. The parent prints a heartbeat (log tails, `nvidia-smi`, host RAM) and judges each child by
+its `_best.pt`, never by its exit code. Read the children's logs with `--file-pattern "\.log$"`.
+
+```bash
+sed -e 's/^PARALLEL_ARMS = ()/PARALLEL_ARMS = ("v09b", "v09c")/' -e 's/^FORCE_SMOKE = True/FORCE_SMOKE = False/' \
+    src/kaggle_pipeline.py > artifacts/train_ab_real.py       # smoke first: leave FORCE_SMOKE = True
+python src/nbgen.py artifacts/train_ab_real.py kaggle/rsna-knee-train/rsna-knee-train.ipynb
+grep -E '^(FORCE_SMOKE|PARALLEL_ARMS|ARM_ONLY) = ' artifacts/train_ab_real.py    # before every push
+kaggle kernels push -p kaggle/rsna-knee-train
+```
+
+Window-mode arms may train several studies per step (`batch_studies`, P-32: one encoder pass over all their windows,
+the BatchNorm batch; loss normalised per study; evaluation and inference stay at one study) and augment on the GPU
+(`aug="light"`, P-33: affine + gamma/gain, no flips; never at inference). `src/window_head_test.py` checks both.
+The fork builder's `--anchor-preset parent` builds the flat-0.60 hedge (submission #16).
 
 The legacy **5-fold** run is a sed'd copy into the second kernel:
 
