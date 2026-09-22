@@ -6,6 +6,44 @@ to read first after a break.
 
 ---
 
+## 2026-09-22 (09:45) — Delta on the 08:50 entry: **fork v6 = the anchor-only control is built, pushed, placeholder-verified and ready to submit** (not sent); CLAUDE.md state stack collapsed
+
+Read the 08:50 entry for the session's state; this delta adds one prepared submission and one docs cleanup.
+
+| Ready / in flight | What it is | How to check | How to read it |
+|---|---|---|---|
+| **Fork v6 — anchor-only control, NOT submitted** (Tian's go needed) | `build_fork.py --beta 0.0 --members v08w v09h`: the 0.942 graph verbatim, **our arm is not launched** (new `_ForkControl` branch, `status: anchor_control`), `submission.csv` byte-identical to the anchor; same 20 sources as v3/v4. Placeholder run 09:33–09:40: `fork_diagnostics.json` `status anchor_control`, `subprocess: null`, anchor sha = submission sha (verified on the downloaded file), anchor graph 204 s with 20/20 DINO + 5 A5 folds | **Submit:** `kaggle competitions submit rsna-knee-abnormality-detection -k tiankljucanin/rsna-knee-fork -v 6 -f submission.csv -m "anchor-only control: the public 0.942 graph (cells 0-49 verbatim) from our account, our arm not run (beta 0)"` — 3 slots left today | The baseline every β read is relative to. **0.942** = the anchor reproduces → #12's −0.003 is our arm's doing (small, 🔁 by the floor, but the sign is real-ish); **≠ 0.942** = the anchor itself moved (unpinned sources / rerun variance) and #12–#14 must be read against *this* number, not 0.942. Fill the Scoreboard + Submissions rows via `/update` |
+| Submissions #13 / #14 | unchanged from the 08:50 table (refs 56458837 / 56459131, sent 08:30 / 08:41) | `kaggle competitions submissions rsna-knee-abnormality-detection --csv \| head -4` | rules in the 08:50 table |
+
+**Committed tree = fork v6** (`kaggle/rsna-knee-fork/` is the β 0 build). Rebuild v5 (the four-member β 0.10 submission #14) with
+`--beta 0.10 --members v08w v09h v09a v08a --member v09a=tiankljucanin/rsna-knee-ckpt-v09a:tiankljucanin/timm-coatnet-rmlp-1-rw-224 --member v08a=tiankljucanin/rsna-knee-ckpt-v08a`
+(the new builder reproduces it: `artifacts/fork_v5b/`). Placeholder outputs of v4/v5/v6 are in `artifacts/kaggle_out/fork_v4..6/`.
+
+### What changed since 08:50
+
+- **`src/build_fork.py`:** β ≤ 0 is now a real control — the arm cell raises `_ForkControl` before the runtime gate, the
+  `except` sets `anchor_control`, the `finally` enforces the anchor sha for that status too; markdown cell + docstring
+  updated (experiments.md Infrastructure 2026-09-22). Before, β 0 would have run the 80-minute arm and written a
+  rank-transformed copy of the anchor.
+- **CLAUDE.md:** the fifteen stacked "State as of" paragraphs (2026-08-29 → 2026-09-22) — a duplicate of this file's
+  session entries — are replaced by one current-state paragraph that points here and to the Scoreboard. The doc-map row
+  for proposals now says P-00…P-28. Nothing else in the docs was removed: experiments.md is append-only, and no older
+  handoff entry was touched.
+- proposals.md P-27 card/index, brainstorm.md control row and experiments.md (new Infrastructure entry) record the control.
+
+### ⏭ Next action, in order
+
+1. **Tian: submit fork v6** (command above) or decline. If declined, the anchor number stays unknown and #13/#14 are read
+   against the author's 0.942 as in the 08:50 table.
+2. Read #13 / #14 (≈ 15:00–19:00) and, if sent, the control (≈ +6–10 h) → `/update` → decide B6/B7 (08:50 entry, step 2).
+3. Everything else as in the 08:50 entry (B5 soft labels, the epoch-5–6 question).
+
+### Things that will bite if forgotten
+
+- The committed fork tree is v6 (β 0). **Do not push it again thinking it is the four-member blend** — rebuild v5 first
+  (flags above; the log line `members ['v08w', 'v09h', 'v09a', 'v08a'] beta 0.1` confirms).
+- Kaggle token expiry 11:02 local (traps 20); Bash-tool PATH loss this session (08:50 entry).
+
 ## 2026-09-22 (08:50) — #12 read **0.939** (β 0.20, under the anchor's 0.942); both P-28 arms shipped as Datasets; **#13 (β 0.10) and #14 (β 0.10 + `v09a` + `v08a`) sent**
 
 ### ⏳ Still in flight as this was written (08:50)

@@ -1225,6 +1225,19 @@ Readings:
 token is renewed, `folds_v6/` for `v08a`; Datasets `rsna-knee-ckpt-v09a` / `-v08a` (traps 20 hit at 07:55 — the
 pull of `v08a` failed with the "wrong slug" message).
 
+### 2026-09-22 — `build_fork.py --beta 0.0` is now a true anchor-only control (our arm is not launched) ✅ KEEP the code · fork v6 pushed as the control · LB ⏳ on Tian's go
+
+Before this change β 0 would still have run our ~80-minute arm on the hidden test and then written
+`rank_pct(rank_pct(anchor))` — AUC-identical to the anchor but with every failure mode of the arm attached and a
+different byte content. Now the arm cell raises a `_ForkControl` before the runtime gate when `_FORK_BETA <= 0`,
+the `except` branch sets `status = "anchor_control"`, and the `finally` block enforces `sha256(submission.csv) ==
+sha256(anchor)` for that status exactly as it does for a failed arm. The markdown cell documents it; the builder's
+`--check` determinism, the `selftest_blend` rank identities and the fork-v5 build are unchanged (v5 rebuilt to
+`artifacts/fork_v5b/` with the new builder: same members/sources, the only diff is the new branch). Kernel version
+**6** = `--beta 0.0 --members v08w v09h` (the same 20 sources as v3/v4 — the `v08w` / `v09h` Datasets stay mounted
+although the arm never runs, so the anchor graph's inputs are exactly #12's/#13's). Verdict: ✅ the code; the control's LB read is ⏳
+(brainstorm.md "Does the 0.942 anchor reproduce 0.942 from our account?").
+
 ## Infrastructure
 
 ### 2026-09-21 — P-27 fork builder + P-28 production regime shipped; local checks ✅ KEEP the code · Kaggle ⏳

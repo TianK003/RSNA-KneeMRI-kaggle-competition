@@ -17,6 +17,7 @@ Deterministic: the same inputs give byte-identical .ipynb and kernel-metadata.js
     export PYTHONUTF8=1
     .venv/Scripts/python.exe src/build_fork.py                       # v08w + v09h, beta 0.20
     .venv/Scripts/python.exe src/build_fork.py --check               # rebuild in memory, diff vs disk
+    .venv/Scripts/python.exe src/build_fork.py --beta 0.0             # anchor-only control: our arm is NOT run
     .venv/Scripts/python.exe src/build_fork.py --members v08w v09h v09a \
         --member v09a=tiankljucanin/rsna-knee-ckpt-v09a:tiankljucanin/timm-coatnet-rmlp-1-rw-224
 """
@@ -185,6 +186,9 @@ Outputs: `submission.csv` (β = __BETA__) · `submission_fork_anchor_0942.csv` (
 
 Fail-soft: if the anchor graph used more than __GATE_H__ h, or our subprocess fails, times out or
 writes an invalid CSV, `submission.csv` stays byte-identical to the anchor and the log says so.
+**β = 0 is the anchor-only control**: our arm is not launched at all and `submission.csv` is the exact
+anchor (`fork_diagnostics.json` → `status: anchor_control`) -- it measures what the 0.942 graph scores
+from this account, which every β read is relative to.
 No DINO / A5 / RadImageNet / Raptor / CoAt arithmetic above is touched.
 """
 
@@ -217,6 +221,10 @@ _FORK_BETAS_DIAG = __BETAS_DIAG__
 _FORK_GATE_H = __GATE_H__
 _FORK_HARD_STOP_H = __HARD_STOP_H__
 _FORK_SEC_PER_STUDY = __SEC_PER_STUDY__
+
+
+class _ForkControl(Exception):   # beta 0: the anchor-only control -- our arm is deliberately not run
+    pass
 
 
 def _fork_log(msg):
@@ -313,6 +321,8 @@ _fork_shutil.copyfile(_FORK_FINAL, _FORK_ANCHOR_PUB)
 _fork_anchor_sha = rsna_sha(_FORK_ANCHOR)
 _fork_log(f'anchor saved -> {_FORK_ANCHOR.name} rows={len(_fork_anchor)} sha256={_fork_anchor_sha}')
 try:
+    if _FORK_BETA <= 0.0:
+        raise _ForkControl('beta 0: anchor-only control -- our arm is not run, submission.csv = the exact anchor')
     _fork_elapsed = _fork_time.time() - T0
     _fork_est = len(_fork_anchor) * _FORK_SEC_PER_STUDY + 600
     if _fork_elapsed > _FORK_GATE_H * 3600:
@@ -343,6 +353,9 @@ try:
                             _RSNA_TEST_IDS, _RSNA_LABELS, 'fork blend')
     _fork_write_csv(_fork_main, _FORK_FINAL)
     _fork_status = f'beta{_FORK_BETA:.2f}'
+except _ForkControl as _fork_exc:
+    _fork_status, _fork_reason = 'anchor_control', str(_fork_exc)
+    _fork_log('ANCHOR-ONLY CONTROL -> ' + _fork_reason)
 except BaseException as _fork_exc:
     _fork_reason = f'{type(_fork_exc).__name__}: {str(_fork_exc)[:800]}'
     _fork_log('OUR ARM FAILED/SKIPPED -> anchor retained: ' + _fork_reason)
@@ -352,7 +365,7 @@ finally:
         _fork_shutil.copyfile(_FORK_ANCHOR, _FORK_FINAL)
         _fork_status = 'anchor'
     _fork_final_sha = rsna_sha(_FORK_FINAL)
-    if _fork_status == 'anchor' and _fork_final_sha != _fork_anchor_sha:
+    if _fork_status in ('anchor', 'anchor_control') and _fork_final_sha != _fork_anchor_sha:
         _fork_shutil.copyfile(_FORK_ANCHOR, _FORK_FINAL)
         _fork_final_sha = rsna_sha(_FORK_FINAL)
     _fork_diag.update(status=_fork_status, reason=_fork_reason, anchor_sha256=_fork_anchor_sha,
