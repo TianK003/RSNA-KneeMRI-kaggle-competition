@@ -6,6 +6,114 @@ to read first after a break.
 
 ---
 
+## 2026-09-23 (12:00) — Day session: S1 read (P-31 ✅, P-32 / P-33 🔁 but same-direction → both knobs into production), #16 read **0.940**, **S2 production retrain on both T4s** (`v09a` 8 ep + knobs gold-58 SWA 0.8922, `v08a` 0.8850) shipped and **submitted as #17** (fork v8, β 0.10); round 2 (P-34 / P-35) smoke-green and staged for a go; "why nothing of ours moves 0.942" written down
+
+Tian's opening message (the go-ahead list for this unattended session): read v23 and `/update`; read #16; S2 = production
+`v09a` with the winning knobs beside `v08a` at 8 epochs on both GPUs, ship, submit in the fork at β 0.10 vs 0.942; ≈ 9 h of
+quota for a second round; and "figure out why we didn't go over 0.942 and hit 0.940". Everything named there ran; round 2 stopped
+at smoke (not named → the `/try-out` rule). Nine commits `5a1a559` … `f91b4b2` + this handoff.
+
+### ⏳ Still in flight as this was written (12:00)
+
+| In flight | What it is | Started | How to check | How to read it |
+|---|---|---|---|---|
+| **Submission #17 — `rsna-knee-fork` v8, ref 56489906** | #14's graph and blend with the **S2 production members**: `v08w` + 5-fold `v09h` + `v09a` (8 ep, `batch_studies 2, grad_accum 2, aug light`; gold-58 SWA 0.8922) + `v08a` (8 ep; 0.8850), one vote each, β 0.10, the 20 public sources + Datasets `rsna-knee-ckpt-v09a` / `-v08a` (re-versioned 11:44). Placeholder green 11:45 → 11:53: `status beta0.10`, `members [v08w, v09h, v09a, v08a]`, subprocess rc 0 in 190 s, `v09a/fold0 … score 0.8922` / `v08a/fold0 … score 0.885` (the S2 checkpoints), anchor sha = submission sha on 3 studies (expected). Outputs `artifacts/kaggle_out/fork_v8/` | 11:54 | `.venv\Scripts\kaggle.exe competitions submissions rsna-knee-abnormality-detection --csv \| head -3` | ≈ 10 h with the arm → **≈ 22:00**. **vs #13 / #15 (0.942): ≥ 0.947 = our arm finally counts (a correctly trained production member helps → more of them); 0.940–0.946 = 🔁; ≤ 0.939 = the arm hurts.** vs #14 (0.941, the 16-ep members) = the epoch budget + S1 knobs. Honest expectation **0.942 ± 0.001** (experiments.md 2026-09-23 "#16 … why nothing of ours moves 0.942"). `ERROR` = read `fork_diagnostics.json` from the rerun's outputs (the fail-soft anchor should still have been written). Fill the Scoreboard ⏳ row + Submissions row 17 via `/update` |
+
+No kernel running (`rsna-knee-train` v26, `rsna-knee-folds` v7, `rsna-knee-fork` v8 all COMPLETE; both GPU slots free). Quota this
+week ≈ **19.5 h spent** (13.4 before v23 + v23 3.22 + smokes v24/v25 0.1 + v26 2.64 + folds v7 0.04 + fork v8 0.12) → **≈ 10.5 h
+left**; round 2 needs ≈ 3.3 h. **4 submissions left today** (reset 02:00). Kaggle token valid until **20:37 local** (then
+`kaggle auth login --force`, traps 20). No monitors or background tasks survive this session.
+
+### Where things stand
+
+| | Status |
+|---|---|
+| Best LB | **0.942** (#13 / #15, unchanged). #16 (flat-0.60 outer map, arm not run) = **0.940** → −0.002, 🔁, inside the pre-registered 0.939–0.941 band = the public price of the LB-tuned per-label map; the validated flat-weights hedge for the second final slot (experiments.md 2026-09-23 "#16 …"; brainstorm final-selection row) |
+| **Why we do not pass 0.942** | written down (experiments.md 2026-09-23 "#16 … why nothing of ours moves 0.942", ✅ FINDING; CLAUDE.md state): the anchor is a superset of the best public notebook; our members are 0.86–0.87 OOF ≈ 0.89–0.90 solo on the LB while the stack's are 0.90–0.928 solo, and a weaker *correlated* vote (ρ ≈ 0.9) at β 0.10 can only perturb the ranks — every non-zero reading is negative and grows with β; 690 teams sit at 0.941–0.942; ≥ 0.945 is private members trained to ≥ 0.92 solo. A public gain needs a member the stack does not hold (new representation / self-training), not another c02 CoAtNet |
+| S1 (P-31 / P-32 / P-33, train v23) | ✅ **P-31**: two arms in 3.22 h wall, 0.25 / 0.28 s/study (1.00× / 1.12× solo), 6.84 GiB each. 🔁 **P-32** `v09b` 0.8690 vs `v09h` 0.8683 (+0.0008, 7/12 up — BN batch composition is not the CoAtNet gap). 🔁 **P-33** `v09c` 0.8730 (+0.0039 over `v09b`, 8/12 up; +0.0047 over `v09h`). Monotone `v09h` < `v09b` < `v09c` → **both knobs into the production `v09a`** by the pre-registered same-direction rule. Honest split-half best-epoch − last ≈ 0 → 8 epochs + `ckpt_policy="last"` loses nothing (experiments.md 2026-09-23 "S1 A/B on both T4s") |
+| S2 (P-28 under 8 epochs, train v26) | ✅ **2.64 h for both arms** on the two T4s: `v09a` gold-58 SWA **0.8922** (16-ep: 0.8768), `v08a` **0.8850** (0.8816), both still rising at epoch 7 (no peak-and-drift → P-29 confirmed on production data); gold deltas direction only (floor 0.05). Shipped 11:44 as new versions of `tiankljucanin/rsna-knee-ckpt-v09a` / `-v08a` (`datasets status` ready; `_best.pt` = SWA + gold-58 `_oof.csv`) → #17 (experiments.md 2026-09-23 "S2 production retrain") |
+| Round 2 (P-34 / P-35) | 🔧 **implemented, smoke green (`rsna-knee-folds` v7, 09:07 → 09:10), real run awaits Tian's go**: `v09d` = the `v09c` recipe with `lr_backbone=3e-5` (the public 0.928 member's LR; the last never-A/B'd recipe difference) ‖ `v08c` = `v08w` + `aug="light"`. Real file staged: `artifacts/folds_r2_real.py` (FORCE_SMOKE False, `PARALLEL_ARMS = ("v09d", "v08c")`) — cards P-34 / P-35 hold the read-out rules |
+| `src/kaggle_pipeline.py` | `ARMS` = [`v09a` (PROD + `batch_studies 2, grad_accum 2, aug light`), `v08a` (PROD), `v09d`, `v08c`]; `v09b` / `v09c` moved to `SHIPPED_ARMS` (finished probes). No pipeline-logic change this session |
+| Committed notebooks | `kaggle/rsna-knee-train/rsna-knee-train.ipynb` = **the S2 REAL run** (FORCE_SMOKE False, `PARALLEL_ARMS ("v09a","v08a")`) — re-pushing it starts another 2.6 h session; `kaggle/rsna-knee-folds/rsna-knee-folds.ipynb` = the **round-2 SMOKE** (FORCE_SMOKE True); `kaggle/rsna-knee-fork/` = **v8 (β 0.10, four members, preset speedy)** = #17 |
+| Docs | experiments: S1 entry, "#16 … why" entry, S2 entry, Scoreboard rows (#16, `v09b`, `v09c`, S2 smoke, S2, #17), Submissions rows 16–17; proposals: P-31 ✅ / P-32 🔁 / P-33 🔁 / P-28 ✅ (S2) / **P-34, P-35 new cards** + index; traps **36** (`kaggle kernels push` JSON error after the version was created; CLI hangs); brainstorm final-selection row (#16); CLAUDE.md state paragraph (2026-09-23 08:50, S2 done, #17, round 2 staged) |
+| Repo | pushed through `f91b4b2` + this handoff |
+
+### What we talked about and decided
+
+- **Knobs for S2 by the rule written last night**, not by taste: a 🔁 knob goes in only if both A/B arms beat `v09h` in the same
+  direction — they did (0.8690 and 0.8730 vs 0.8683, monotone), so `v09a` carries both `batch_studies=2` (free) and `aug="light"`
+  (+12 % time). Per-label support was weak (7/12), which the entry says plainly.
+- **Round 2 was prepared but not launched.** Tian's message named S2's real run and submission explicitly and only *budgeted* quota
+  for a second round, so P-34 / P-35 got cards, code, a Kaggle smoke and a staged real file — the real push is one command below,
+  for Tian.
+- **Round-2 content chosen on S1:** BN batch ≈ 0 and augmentation +0.004 leave the backbone LR (public 3e-5 vs our 1e-4) as the
+  last recipe difference to the public 0.928 CoAtNet (P-32's "if it fails" branch), and augmentation on the DINOv2 arm is P-33's
+  "if it works" branch. A 5-fold of `v09c` was passed over: it buys private robustness, not a public read, and our arm does not
+  count publicly yet.
+- **Tian's question ("why we didn't go over 0.942 and hit 0.940")** is answered in experiments.md as a ✅ FINDING rather than in
+  chat only: 0.940 is the flat map's public price (−0.002, sub-floor, pre-registered), and the 0.942 ceiling is a member-quality
+  wall (our ≈ 0.90-solo members vs the stack's 0.90–0.928), not a blend-weight problem.
+- Managed policy: no AI attribution in commits.
+
+### What we figured out
+
+1. **S1:** neither knob clears the floor — `v09b` +0.0008 (P-32 ❌ as a hypothesis, 🔁 as a knob), `v09c` +0.0039 over its
+   control (P-33 🔁); ρ(`v09c`, `v09h`) 0.898 = the same member with another seed (experiments.md "S1 A/B on both T4s").
+2. **P-31 in production**: the two production arms that took 7.5 session-hours in two sessions took **2.64 h in one**.
+3. **The 8-epoch regime does what P-29 predicted on the production data**: both gold curves still rise at epoch 7; the
+   16-epoch members were built ≈ 0.015 past their peak (experiments.md "S2 production retrain"). Direction only (floor 0.05).
+4. **#16 = 0.940** — the LB-tuned per-label outer map is worth +0.002 publicly; whether it gives it back privately is exactly
+   what the hedge is for (experiments.md "#16 …").
+5. **Kaggle CLI:** a `kernels push` that dies with `Expecting value: line 1 column 1` had already created the version (v24 ran
+   beside my retry v25); a mid-run push of the same slug does not cancel the running version; the CLI can hang > 5 min on
+   `kernels status` while the site answers — wrap every call in a timeout (traps 36).
+
+### ⏭ Next action, in order
+
+1. **Read #17 (≈ 22:00):** `.venv\Scripts\kaggle.exe competitions submissions rsna-knee-abnormality-detection --csv | head -3`.
+   Rule (in-flight table): ≥ 0.947 ✅ our arm counts → more production members this way; 0.940–0.946 🔁 → the c02 lane is
+   closed as a public lever (P-27 "if it fails" stands); ≤ 0.939 → the arm hurts, keep #13/#15/#16 for the final. Then `/update`
+   (Scoreboard row, Submissions row 17, P-27/P-28 status, CLAUDE.md state).
+2. **Round 2, on Tian's go only** (≈ 3.3 h, both T4s, second slot; token must be valid):
+   ```powershell
+   $env:PYTHONUTF8 = "1"
+   Select-String -Path artifacts/folds_r2_real.py -Pattern '^(FORCE_SMOKE|PARALLEL_ARMS|ARM_ONLY|FIVE_FOLD) = '   # False / ("v09d", "v08c") / "" / False
+   .venv\Scripts\python.exe src/nbgen.py artifacts/folds_r2_real.py kaggle/rsna-knee-folds/rsna-knee-folds.ipynb
+   .venv\Scripts\kaggle.exe kernels push -p kaggle/rsna-knee-folds        # then `kernels status` before ANY retry (traps 36)
+   ```
+   Read-out (cards P-34 / P-35): logs `--file-pattern "\.log$"`, OOF csvs `--file-pattern "v0(9d|8c)_fold0.*oof"` into
+   `artifacts/kaggle_out/folds_v8/`; per-label table with the S1 script pattern (`v09d` vs `v09c` 0.8730: **≥ 0.881 ✅ / 0.865–0.881
+   🔁 / < 0.865 harmful**; `v08c` vs `v08w` 0.8648: **≥ 0.873 ✅ / 0.857–0.873 🔁 / < 0.857 harmful**; ≥ 9/12 labels up as support).
+   ✅ on either → that knob into the matching PROD arm and one more S2-style retrain (≈ 2.7 h) → fork β 0.10. Both 🔁/❌ → the c02
+   recipe is exhausted as a lever; GPU goes to a new representation (P-23 #3 / #4) or P-17.
+3. **Final selection** (before 2026-10-22): #13 or #15 (0.942, tuned map) + #16 (0.940, flat map) hedges the public-tuned weights;
+   #17 displaces #13 only if it reads ≥ 0.943.
+4. `/update` after every number, `/handoff` at the end.
+
+### Open decisions for Tian
+
+- **Round 2 go** (step 2): ≈ 3.3 h of the ≈ 10.5 h left this week, both arms 🔁-likely by the S1 pattern; the alternative is to
+  keep the quota for a member of a *different* kind (P-23 #3 / #4, P-17 — multi-session builds).
+- **Final selection**: #13 / #15 (tuned map) vs #16 (flat map) vs #17 (once read).
+- RadImageNet licence in the final submission — unchanged.
+
+### Things that will bite if forgotten
+
+- **`kaggle kernels push` may error and still create the version; the CLI may hang.** `kernels status` before any retry; wrap calls in
+  `timeout 60 …` (Git Bash) or `Start-Process … WaitForExit` (PowerShell) (traps 36). `kernels status` reports only the *latest*
+  version of a slug — a new push hides the running one, so concurrent work goes to the other slug (`rsna-knee-folds`).
+- **The committed `rsna-knee-train` notebook is the S2 REAL run** (2.6 h if re-pushed); the committed `rsna-knee-folds` notebook is
+  the round-2 smoke; the committed fork tree is v8 (β 0.10, four members) — rebuild with `build_fork.py` flags before any other
+  fork push (`--anchor-preset parent --beta 0.0` = the #16 hedge; `--beta 0.0 --members v08w v09h` = the #15 control).
+- **`artifacts/ship_v09a/` and `ship_v08a/` now hold the S2 checkpoints** (the 16-epoch ones survive only in
+  `artifacts/kaggle_out/train_v19/` and `folds_v6/`); the Datasets' latest versions are the S2 members — any fork rebuild mounts them.
+- Local smoke needs `MODE = "train"` sed'd into a scratch copy (traps 30) — `MODE="auto"` resolves to infer on this laptop.
+- **Scripted doc edits must match CRLF**: `docs/*.md`, `CLAUDE.md` and `src/kaggle_pipeline.py` are CRLF (multi-line `\n` patterns
+  match nothing); `docs/traps.md` is LF. The Bash tool still needs `export PATH="/usr/bin:/bin:$PATH"` (no `sed`/`grep` otherwise; no
+  `curl` at all — use PowerShell `Invoke-WebRequest`); `git` via PowerShell.
+- Read-out script for fold-0 arms: `s1_readout.py` in this session's scratchpad reproduced the kernel macros exactly (all 882 rows,
+  hard = y > 0.5); it is not in the repo — `src/blend_check.py` / `src/oof_epoch_analysis.py` cover the same numbers.
+
 ## 2026-09-22 (20:58) — Night session: the public frontier re-read (our anchor is a *superset* of the best public notebook; "0.957" was a gold-58 number), **the machine's second T4 found idle and put to work (P-31)**, the P-32/P-33 A/B arms built, smoke-green and **running as train v23**, `PROD` → 8 epochs, the flat-0.60 hedge submitted as **#16**
 
 This entry supersedes this session's 20:45 entry in place (same session; the only change is that Tian gave the S1 go at 20:54).
