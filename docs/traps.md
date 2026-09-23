@@ -704,3 +704,17 @@ leads it, and a cell-level diff shows our anchor is a superset of Speedy Raptors
 **Do:** before believing a title, read the config / markdown cells for the *stated public* number, diff the
 notebook's `dataSources` against our anchor (`notebook_score_0.942.ipynb` metadata), and check the
 score-sorted listing. Titles, "local diagnostic" numbers and gold-58 gates are not public LB scores.
+
+### 36. `kaggle kernels push` can report `Expecting value: line 1 column 1 (char 0)` *after* creating the version
+
+2026-09-23, pushing the S2 smoke of `rsna-knee-train`: the CLI died with that JSON-decode error (the API answered with a
+non-JSON body), so the push was retried — and the retry printed `Kernel version 25 successfully pushed`. Version **24**
+had been created by the "failed" push: two identical smoke sessions ran, ≈ 0.1 h of GPU quota and one of the two GPU
+slots for five minutes. On a *real* push the same reflex would start two 3 h sessions (and a mid-run push of the same
+slug does **not** cancel the running version — v24 and v25 ran side by side). The same CLI also hung for > 5 min on a
+plain `kernels status` right afterwards while the site itself answered in < 1 s.
+
+**Do:** after any push error that is not a clear 4xx, run `kaggle kernels status <slug>` first — `QUEUED` / `RUNNING`
+means the version exists and the retry would be a duplicate. Wrap CLI calls in a timeout (`timeout 60 kaggle …` in Git
+Bash, or `Start-Process … WaitForExit` in PowerShell) so a hang cannot eat a turn. Related: 20 (token expiry blames the
+slug), 21 (`datasets create` silent failures), handoff 2026-08-30 (`datasets version` exits 0 on an expired token).
