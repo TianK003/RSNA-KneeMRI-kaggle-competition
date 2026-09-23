@@ -234,25 +234,6 @@ ARMS = [
     ("v09a", {**PROD, "backbone": "timm:coatnet_rmlp_1_rw_224", "img_size": 224, "lr_backbone": 1e-4,
               "batch_studies": 2, "grad_accum": 2, "aug": "light"}),
     ("v08a", {**PROD, "backbone": "dinov2", "img_size": 224}),
-    # 2026-09-23 (P-34 / P-35): round-2 fold-0 A/B, one arm per GPU (P-31), built for the rsna-knee-folds slug so it can run
-    # beside the S2 production session. `v09d` = the v09c recipe (batch 2 x accum 2, aug light; fold-0 OOF 0.8730) with the
-    # public 0.928 member's backbone LR 3e-5 instead of our 1e-4 -- the last never-A/B'd recipe difference to it. `v08c` = the
-    # v08w recipe (DINOv2-S, 0.8648) + aug light: the ViT has no BatchNorm, so augmentation is its only untested knob.
-    # Read against v09c 0.8730 / v08w 0.8648, floor 0.008 (>= 0.881 / >= 0.873 KEEP).
-    ("v09d", {**C02, "backbone": "timm:coatnet_rmlp_1_rw_224", "img_size": 224, "lr_backbone": 3e-5,
-              "batch_studies": 2, "grad_accum": 2, "aug": "light"}),
-    ("v08c", {**C02, "backbone": "dinov2", "img_size": 224, "aug": "light"}),
-    # 2026-09-23 (P-36 / P-37 / P-38, spec docs/superpowers/specs/2026-09-23-member-strength-design.md): fold-0
-    # arms vs v09c 0.8730, floor 0.008, run on RunPod (~1 h each on a 4090). v09e = the public schedule length at
-    # the public backbone LR (P-29 over-trained 16 epochs at 1e-4); v09f = the public member's pos_weight [1, 10];
-    # v09s = v09c on the self-distilled targets -- run with TEACHER_TABLES=("selfdistill_v1",) sed'd in (the arm
-    # dict cannot carry it: targets are built once per session).
-    ("v09e", {**C02, "backbone": "timm:coatnet_rmlp_1_rw_224", "img_size": 224, "lr_backbone": 3e-5,
-              "batch_studies": 2, "grad_accum": 2, "aug": "light", "epochs": 16}),
-    ("v09f", {**C02, "backbone": "timm:coatnet_rmlp_1_rw_224", "img_size": 224, "lr_backbone": 1e-4,
-              "batch_studies": 2, "grad_accum": 2, "aug": "light", "pos_weight_max": 10.0}),
-    ("v09s", {**C02, "backbone": "timm:coatnet_rmlp_1_rw_224", "img_size": 224, "lr_backbone": 1e-4,
-              "batch_studies": 2, "grad_accum": 2, "aug": "light"}),
 ]
 # Shipped fold-0 / 5-fold members (Datasets rsna-knee-ckpt-*) and finished probes: selectable through ARM_ONLY /
 # RSNA_ARM for a rerun, but no longer run by default -- a forgotten sed would otherwise spend the
@@ -269,6 +250,27 @@ SHIPPED_ARMS = [
     ("v09b", {**C02, "backbone": "timm:coatnet_rmlp_1_rw_224", "img_size": 224, "lr_backbone": 1e-4,
               "batch_studies": 2, "grad_accum": 2}),
     ("v09c", {**C02, "backbone": "timm:coatnet_rmlp_1_rw_224", "img_size": 224, "lr_backbone": 1e-4,
+              "batch_studies": 2, "grad_accum": 2, "aug": "light"}),
+    # Round 2 (done 2026-09-23, rsna-knee-folds v8, one arm per T4 -- P-34 / P-35; experiments.md 2026-09-23 "Round 2").
+    # `v09d` = the v09c recipe (batch 2 x accum 2, aug light; fold-0 OOF 0.8730) with the public 0.928 member's backbone LR
+    # 3e-5 -> 0.8596 = HARMFUL (P-34 dead: -0.0134, 10/12 labels down). `v08c` = the v08w recipe (DINOv2-S, 0.8648) + aug
+    # light -> 0.8650 = INCONCLUSIVE (P-35).
+    ("v09d", {**C02, "backbone": "timm:coatnet_rmlp_1_rw_224", "img_size": 224, "lr_backbone": 3e-5,
+              "batch_studies": 2, "grad_accum": 2, "aug": "light"}),
+    ("v08c", {**C02, "backbone": "dinov2", "img_size": 224, "aug": "light"}),
+    # Member-strength arms (2026-09-23, spec docs/superpowers/specs/2026-09-23-member-strength-design.md): fold 0 vs v09c
+    # 0.8730, floor 0.008, run on a RunPod 4090 (~34 min each; experiments.md 2026-09-23 "RunPod arms on a 4090").
+    # `v09e` = the public schedule length at the public backbone LR -- DROPPED by the pre-registered rule (v09d < 0.865),
+    # never ran. `v09f` = the public member's pos_weight [1, 10] (P-37) -> 0.8717 INCONCLUSIVE. `v09s` = v09c on the
+    # self-distilled targets (P-38) -> 0.8839 KEEP (+0.0109, 12/12 labels up); run it with TEACHER_TABLES=("selfdistill_v1",)
+    # sed'd in (the arm dict cannot carry it: targets are built once per session) -- the guard beside TEACHER_PATHS refuses
+    # v09s without a table. Moved out of ARMS after the branch's final review (2026-09-23): a real run with neither ARM_ONLY
+    # nor PARALLEL_ARMS set would otherwise work through all of them -- and train v09s on the plain teacher under its name.
+    ("v09e", {**C02, "backbone": "timm:coatnet_rmlp_1_rw_224", "img_size": 224, "lr_backbone": 3e-5,
+              "batch_studies": 2, "grad_accum": 2, "aug": "light", "epochs": 16}),
+    ("v09f", {**C02, "backbone": "timm:coatnet_rmlp_1_rw_224", "img_size": 224, "lr_backbone": 1e-4,
+              "batch_studies": 2, "grad_accum": 2, "aug": "light", "pos_weight_max": 10.0}),
+    ("v09s", {**C02, "backbone": "timm:coatnet_rmlp_1_rw_224", "img_size": 224, "lr_backbone": 1e-4,
               "batch_studies": 2, "grad_accum": 2, "aug": "light"}),
 ]
 ARM_V10C = ("v10c", {**C02, "backbone": "timm:coatnet_rmlp_2_rw_384", "img_size": 384,
