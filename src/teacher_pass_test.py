@@ -152,6 +152,28 @@ with tempfile.TemporaryDirectory() as d:
     except SystemExit:
         check(True, "merge: no input carrying view_weights is rejected")
 
+    # --- R18: two full inputs with different view_weights -> fatal
+    np.savez_compressed(os.path.join(d, "raptor_teacher_shard3.npz"), study_uids=np.asarray(["w0"]), raw_probabilities=rng.uniform(0, 1, (4, 1, 12)).astype(np.float32),
+                        view_names=np.asarray(["a", "b", "c", "d"]), view_weights=np.asarray([.6, .1, .1, .2]))
+    np.savez_compressed(os.path.join(d, "raptor_teacher_shard4.npz"), study_uids=np.asarray(["w1"]), raw_probabilities=rng.uniform(0, 1, (4, 1, 12)).astype(np.float32),
+                        view_names=np.asarray(["a", "b", "c", "d"]), view_weights=np.asarray([.25, .25, .25, .25]))
+    try:
+        mt.merge_teacher([os.path.join(d, "raptor_teacher_shard3.npz"), os.path.join(d, "raptor_teacher_shard4.npz")], os.path.join(d, "t5.csv"), expect_n=2)
+        check(False, "merge: mismatched view_weights across inputs rejected")
+    except SystemExit:
+        check(True, "merge: mismatched view_weights across inputs rejected")
+
+    # --- R18: two full inputs with matching view_weights but different view_names -> fatal
+    np.savez_compressed(os.path.join(d, "raptor_teacher_shard5.npz"), study_uids=np.asarray(["n0"]), raw_probabilities=rng.uniform(0, 1, (4, 1, 12)).astype(np.float32),
+                        view_names=np.asarray(["a", "b", "c", "d"]), view_weights=np.asarray([.6, .1, .1, .2]))
+    np.savez_compressed(os.path.join(d, "raptor_teacher_shard6.npz"), study_uids=np.asarray(["n1"]), raw_probabilities=rng.uniform(0, 1, (4, 1, 12)).astype(np.float32),
+                        view_names=np.asarray(["a", "b", "c", "x"]), view_weights=np.asarray([.6, .1, .1, .2]))
+    try:
+        mt.merge_teacher([os.path.join(d, "raptor_teacher_shard5.npz"), os.path.join(d, "raptor_teacher_shard6.npz")], os.path.join(d, "t6.csv"), expect_n=2)
+        check(False, "merge: mismatched view_names across inputs rejected")
+    except SystemExit:
+        check(True, "merge: mismatched view_names across inputs rejected")
+
 # --- fix round 2 (teacher smoke v1 red): the mounted image tree is train_series/, not train_images/
 pre = cells[0]
 check("find_competition_root(" in pre and "train_series" in pre and 'for _link in ("test_series", "test_images"):' in pre
