@@ -6,6 +6,90 @@ to read first after a break.
 
 ---
 
+## 2026-09-23 (13:15) — Afternoon: **round 2 pushed** (P-34 ‖ P-35, `rsna-knee-folds` v8), the **member-strength programme designed and planned** (spec + 12-task plan, approved by Tian) — **the next session executes the plan subagent-driven**; #17 still scoring
+
+Tian's ask this afternoon: "figure out how to improve individual models — they are dragging us down"; research, then implement,
+asking rather than assuming. Brainstormed (superpowers), four rounds of questions answered, design approved in full, spec and
+plan written and committed. Tian then asked for the plan + this handoff so the session can be cleared (context). **Nothing of
+the plan is implemented yet.** Commits `17a827e` (round-2 push), `bfd97f4` (spec), `849f7f5` (plan) + this handoff.
+
+### ⏳ Still in flight as this was written (13:15)
+
+| In flight | What it is | Started | How to check | How to read it |
+|---|---|---|---|---|
+| **`rsna-knee-folds` v8 = round 2, `v09d` ‖ `v08c`** (P-34 / P-35) | fold 0, 8 ep, `best_oof`, one arm per T4: `v09d` = the `v09c` recipe (batch 2 × accum 2, aug light) with **`lr_backbone` 3e-5** (public LR) on `cuda:0`; `v08c` = the `v08w` recipe (DINOv2-S) + **`aug="light"`** on `cuda:1`. Smoke v7 green (6.84 / 1.56 GiB) | 12:45 | `.venv\Scripts\kaggle.exe kernels status tiankljucanin/rsna-knee-folds`; when COMPLETE: `kernels output tiankljucanin/rsna-knee-folds -p artifacts/kaggle_out/folds_v8 --file-pattern "\.log$"` then `--file-pattern "v0(9d|8c)_fold0.*oof"` | ≈ 3.3 h → **≈ 16:00**. Green: `ok  arm v09d` / `ok  arm v08c`. Read (cards P-34 / P-35): per-label table on all 882 rows, hard = `y__ > 0.5` (the S1 script pattern; `src/blend_check.py` gives the same macros) — **`v09d` vs `v09c` 0.8730: ≥ 0.881 ✅ / 0.865–0.881 🔁 / < 0.865 harmful; `v08c` vs `v08w` 0.8648: ≥ 0.873 ✅ / 0.857–0.873 🔁 / < 0.857 harmful**; ≥ 9/12 labels up as support. `v09d < 0.865` → drop `v09e` (plan Task 10). `/update` afterwards (Scoreboard ⏳ rows exist for neither yet — add them) |
+| **Submission #17 — `rsna-knee-fork` v8, ref 56489906** | the S2 production members in the fork at β 0.10 (see the 12:00 entry's table) | 11:54 | `.venv\Scripts\kaggle.exe competitions submissions rsna-knee-abnormality-detection --csv \| head -3` | ≈ 22:00. vs 0.942: ≥ 0.947 ✅ our arm counts; 0.940–0.946 🔁; ≤ 0.939 ❌. Honest expectation 0.942 ± 0.001. Fill Scoreboard + Submissions row 17 via `/update` |
+
+One GPU session running (folds v8, both T4s); the second slot is free. Quota this week ≈ **22.8 h spent** after round 2 (19.5 + 3.3) →
+**≈ 7 h left**, reset Saturday 2026-09-26 (weekly). **4 submissions left today** (reset 02:00). Kaggle token valid until **20:37 local**
+(`kaggle auth login --force` after that, traps 20). A status monitor on folds v8 was running in this session and **does not survive it**.
+
+### Where things stand
+
+| | Status |
+|---|---|
+| Best LB | **0.942** (#13 / #15); #16 0.940; #17 ⏳ |
+| **Member-strength programme** | **Designed, planned, approved — not started.** Spec `docs/superpowers/specs/2026-09-23-member-strength-design.md`; plan `docs/superpowers/plans/2026-09-23-member-strength.md` (12 tasks, each with code + checks + commit). Tian's decisions (in the spec header): compute = Kaggle + **RunPod (Tian creates the pod, gives SSH)**; recipe knobs judged by fold-0 OOF vs the *unchanged* teacher, the distilled member by gold-58 direction + **one solo LB read vs a baseline solo submission of the S2 `v09a`**; levers = recipe, label source, distillation (no bigger inputs); the Raptor predictions **blend 0.5/0.5** with the LLM teacher; no CoAt-family children in the teacher; execution **subagent-driven** |
+| Track A (teacher) | `src/build_teacher_pass.py` (to write, plan Task 7): the 0.942 notebook's Raptor branch verbatim (cell 45 `_KE_SRC` + runner, cell 16 helpers, cell 12 asset finder, cell 14 dense sampler; two token patches; `RSNA_COMP_ROOT` → a chunk of training studies; raw per-view probabilities; partial flush; resume) → `kaggle/rsna-knee-teacher/`; `src/merge_teacher.py` (Task 8); smoke LIMIT 6 + spike LIMIT 100 (Task 9, ≈ 1 h of this week's quota), the full pass after Saturday (10–12 GPU-h estimate, corrected by the spike) |
+| Track B (recipe, RunPod) | arms `v09e` (16 ep × 3e-5), `v09f` (`pos_weight_max` 10), `v09s` (self-distill `TEACHER_TABLES=("selfdistill_v1",)`) — plan Tasks 4, 5, 10; cards P-36 … P-38 to be written in Task 5, P-39 in Task 9 |
+| Shared mechanism | prediction-table teachers: `quantile_match`, `mix_teacher`, `load_teacher_tables` in `src/build_targets.py` (Task 1) and the kernel (Task 3: `TEACHER_TABLES` / `TEACHER_MIX` / `TEACHER_PATHS` constants, `yt__*` training targets, `y__*` evaluation targets unchanged, `b["yt"]` through Dataset / collate / loss); `src/build_distill_table.py` → `artifacts/teacher/selfdistill_v1.csv` (Task 2); Dataset `tiankljucanin/rsna-knee-teacher-tables` (Task 6) |
+| Code | unchanged since `17a827e` apart from docs; `src/kaggle_pipeline.py` `ARMS` = [`v09a` (PROD + S1 knobs), `v08a`, `v09d`, `v08c`]; `PARALLEL_ARMS = ()`, `FORCE_SMOKE = True` |
+| Committed notebooks | `rsna-knee-train` = the S2 **real** run (re-push = 2.6 h); `rsna-knee-folds` = the round-2 **real** run (re-push = 3.3 h); fork = v8 (#17) |
+| Docs | proposals: P-34 / P-35 ⏳ running rows + statuses; spec + plan under `docs/superpowers/`; experiments unchanged since 12:00 (the round-2 Scoreboard rows are still to add) |
+
+### What we talked about and decided
+
+- **Why individual models:** the 12:00 finding (member-quality wall at ≈ 0.90 solo vs the stack's 0.90–0.928) — Tian wants the
+  members themselves stronger. Diagnosis in the spec: our LLM teacher caps at gold 0.8948; every recipe knob moved ≤ 0.005; the
+  Raptor member's predictions (gold-58 0.905–0.917 held out) are the one available *better* teacher for our 4,349 studies.
+- **Approach chosen (Tian):** two tracks — teacher upgrade (Kaggle, DICOM mount) + recipe knobs (RunPod) — over "teacher only"
+  or "recipe only"; Raptor predictions *blended* with the LLM teacher, not replacing it; baseline solo submission kept; CoAt
+  family children excluded from the teacher.
+- **Round 2 pushed now** (Tian: "push it now") rather than folded into the plan; its `v09d` read decides whether `v09e` runs.
+- **Execution:** Tian chose subagent-driven and asked for plan + handoff so this session can be cleared.
+
+### What we figured out (design-time facts, all read from the committed anchor notebook)
+
+1. The Raptor branch reads its inputs from **`RSNA_COMP_ROOT`** (`test.csv`, `test_series.csv`, `test_images/`), needs **exactly
+   two GPUs**, and already saves **raw per-view probabilities** (`raptor_raw.npz`, shape 4 × N × 12) before ranking — the
+   teacher pass can reuse it verbatim with two token patches (plan Task 7).
+2. `train_series.csv` and `test_series.csv` share the schema; `train_images/<study>/<series>/*.dcm` is what their reader walks.
+3. The kernel builds targets at runtime from mounted label tables (`LLM_SOURCES`, `build_targets` ~line 739) — a teacher table
+   is the same schema, so one mechanism serves self-distillation and the Raptor teacher; `evaluate()` reads `b["y"]`, so the
+   training target must be a separate `yt`.
+4. Both 5-fold OOF sets on disk (`pod_v09h_5fold`, `folds_v4/v05g`) cover all 4,407 studies once each.
+5. No RunPod API key locally and no `runpodctl`: the pod is Tian's to create; `scripts/runpod_bootstrap.sh` does the rest.
+
+### ⏭ Next action, in order
+
+1. **Execute the plan, subagent-driven:** invoke `superpowers:subagent-driven-development` on
+   `docs/superpowers/plans/2026-09-23-member-strength.md` from Task 1 (spec beside it). Tasks 1–8 need no GPU and no go; Task 6
+   step 2 and Task 9 (smoke LIMIT 6, spike LIMIT 100) use the free GPU slot and are covered by Tian's design approval; Task 9
+   step 3 (full pass) waits for Saturday's quota; Task 10 waits for **Tian's pod + SSH**; Tasks 11–12 (solo submissions) are
+   covered by the approval.
+2. **Read round 2 (≈ 16:00)** by the in-flight table; `/update` (Scoreboard rows, P-34 / P-35 → measured, index).
+3. **Read #17 (≈ 22:00)**; `/update`.
+4. `/handoff` at the end of the next session.
+
+### Open decisions for Tian
+
+- **Create the RunPod pod** (4090 or A5000, ≥ 60 GB NVMe) and give SSH access — plan Task 10 cannot start without it.
+- Final selection (#13 / #15 vs #16 vs #17) — unchanged.
+- RadImageNet licence in the final submission — unchanged.
+
+### Things that will bite if forgotten
+
+- **The plan's Global Constraints** repeat the traps that bit today: CRLF doc files (multi-line `\n` patterns match nothing),
+  `kernels status` before any push retry (traps 36), `timeout 60` around every Kaggle CLI call, `export PATH="/usr/bin:/bin:$PATH"`
+  in the Bash tool, `git` via PowerShell, local smoke needs `MODE = "train"` sed'd (traps 30).
+- **Both committed training notebooks are REAL runs** (train = S2 2.6 h, folds = round 2 3.3 h); the first push after any edit is
+  a smoke from a sed'd copy.
+- `kernels status` shows only a slug's **latest** version — round 2 is on `rsna-knee-folds`; the teacher smoke/spike must use the
+  new `rsna-knee-teacher` slug (plan Task 7), never `rsna-knee-folds` while v8 runs.
+- The teacher kernel symlinks `chunk/test_images → train_images`; the plan's final cell deletes the chunk dir so the symlink is never
+  published as an output.
+- Quota: ≈ 7 h left this week; the teacher smoke + spike ≈ 1.2 h; leave the rest for a round-2 resume if it guard-stops.
+
 ## 2026-09-23 (12:00) — Day session: S1 read (P-31 ✅, P-32 / P-33 🔁 but same-direction → both knobs into production), #16 read **0.940**, **S2 production retrain on both T4s** (`v09a` 8 ep + knobs gold-58 SWA 0.8922, `v08a` 0.8850) shipped and **submitted as #17** (fork v8, β 0.10); round 2 (P-34 / P-35) smoke-green and staged for a go; "why nothing of ours moves 0.942" written down
 
 Tian's opening message (the go-ahead list for this unattended session): read v23 and `/update`; read #16; S2 = production
