@@ -86,6 +86,8 @@ result*, per unit of cost. "Depends on" lists hard blockers only.
 | P-31 | **Second GPU: two arms per session** — Kaggle's `NvidiaTeslaT4` shape IS "GPU T4 ×2"; every training session so far used one of them | ✅ **measured 2026-09-23 (train v23) → experiments.md "S1 A/B on both T4s"**: two arms in **3.22 h wall**, children at 0.25 / 0.28 s/study (1.00× / 1.12× solo), 6.84 GiB peak each, both `_best.pt`, rc 0 — the default for every session from S2 on | **high — 2× arms per quota hour, forever, at zero score risk** | ~60 lines + 0.3 h smoke | — |
 | P-32 | **Multi-study BatchNorm batches for the CoAtNet member** (`batch_studies=2, grad_accum=2`: 48 windows from two studies per BN batch, same 4 studies per optimiser step) | 🔁 **measured 2026-09-23 → experiments.md "S1 A/B on both T4s"**: `v09b` **0.8690** vs `v09h` 0.8683 (+0.0008 = 0.1× the floor, 7/12 up, seed-scatter signs) — BatchNorm batch composition is *not* the CoAtNet gap; rides into the S2 `v09a` only by the same-direction rule (free at 0.25 s/study) | **medium-high** — the one structural difference to the public 0.928 recipe (8 studies × 12 windows) never A/B'd; timm CoAtNet MBConv stages are BatchNorm | ≈ 3 h T4 (beside `v09c`, P-31) | P-25/P-26, P-31 |
 | P-33 | **Light train-time augmentation** (per-window affine rot ±8° / zoom-in 1.00–1.08 / shift ±5 %, gamma 0.8–1.25, gain ±10 %; no flips) | 🔁 **measured 2026-09-23 → experiments.md "S1 A/B on both T4s"**: `v09c` **0.8730** = +0.0039 over `v09b` (augmentation alone, 0.5× the floor, 8/12 up), +0.0047 over `v09h`; into the S2 `v09a` (same-direction rule); round 2 = `aug="light"` on the DINOv2 arm | **medium** — every public training recipe has it, ours has Gaussian noise only; P-29's over-fit signature | ≈ 3 h T4 (beside `v09b`) | P-32 (its control), P-31 |
+| P-34 | **CoAtNet backbone LR 3e-5 instead of 1e-4** (`v09d` = the `v09c` recipe with the public 0.928 member's backbone LR) | 🔧 **implemented 2026-09-23, smoke pending** — arm `v09d` in `ARMS`; the last never-A/B'd recipe difference to the public CoAtNet (research: OneCycle 3e-5 / 1e-3); runs in `rsna-knee-folds` beside `v08c` (P-31) once Tian gives the go | **medium** — the P-32 "if it fails" branch; a hybrid's pretrained features may be over-written at 1e-4 (loss falls faster than OOF rises, P-29) | ≈ 3 h T4 (beside `v08c`) | P-32 / P-33 (`v09c` is the control), P-31 |
+| P-35 | **Light augmentation on the DINOv2 arm** (`v08c` = the `v08w` recipe + `aug="light"`) | 🔧 **implemented 2026-09-23, smoke pending** — arm `v08c` in `ARMS`; the P-33 "if it works" branch run on the second family; control `v08w` 0.8648 | **medium** — P-33 read +0.004 on the CoAtNet (🔁); the public DINO members train with the same rot ±8° / scale / shift / intensity recipe | ≈ 1.5 h T4 (beside `v09d`) | P-33, P-25 / P-26, P-31 |
 
 ---
 
@@ -975,6 +977,49 @@ Cost:         ≈ 3 h of one T4 concurrent with `v09b`; the GPU-side ops (grid_s
 If it works:  `aug="light"` joins the CoAtNet PROD recipe (S2); round 2 tries it on the DINOv2-S arm.
 If it fails:  `aug` stays `"none"`; over-fitting is handled by the epoch budget alone (P-29).
 Depends on:   P-32's arm as the control (same session), P-31.
+
+### P-34 CoAtNet backbone LR 3e-5 instead of 1e-4 (`v09d`)
+Status:       🔧 **implemented 2026-09-23, smoke pending** — arm `v09d` in `ARMS` = the `v09c` recipe (CoAtNet-1 @224, c02,
+window_attn, 24 random train windows, 8 ep, `best_oof`, `batch_studies=2, grad_accum=2, aug="light"`) with `lr_backbone=3e-5`
+(head LR 1e-3, LLRD 0.75, cosine + 10 % warm-up unchanged). Built for the `rsna-knee-folds` slug beside `v08c` (P-31); the real
+run needs Tian's go.
+Hypothesis:   the fold-0 OOF-vs-teacher of the c02 CoAtNet member rises by ≥ 0.008 over `v09c` (0.8730) at a backbone LR of 3e-5,
+because at 1e-4 the ImageNet-pretrained hybrid features are over-written faster than the 3,525 soft-labelled studies can
+re-teach them (train loss 0.40 at epoch 7 while OOF has plateaued; P-29's over-fit past epoch 8).
+Origin:       the public 0.924 / 0.928 CoAtNet member trains OneCycle 3e-5 (backbone) / 1e-3 (head) (experiments.md 2026-09-22
+night, "public training recipes"); our 1e-4 came from the P-10 card for an ImageNet-supervised CNN ("tolerates 5× the LR that
+DINOv2's SSL features need") and was never A/B'd on the hybrid.
+Evidence:     for: it is the last recipe difference to the public CoAtNet not yet measured (batch composition P-32 ≈ 0, augmentation
+P-33 +0.004, 16 epochs harmful P-29); the public member reaches 0.928 solo on the LB where ours is ≈ 0.90. Against: LLRD already
+puts the lower blocks at 1e-4 × 0.75^k; DINOv2 at 2e-5 vs 1e-4 was chosen, not measured, for the hybrid; one seed each side
+(floor 0.008, per label 0.03).
+Measure:      `v09d_fold0_oof.csv` (best_oof epoch) → macro OOF-vs-teacher on the 882 fold-0 studies (`s1_readout.py` pattern /
+`src/blend_check.py`) vs `v09c` 0.8730; per-label table; the per-epoch curve (does 3e-5 still climb at epoch 7 → a 12-epoch follow-up).
+Noise floor:  0.008 macro. **≥ 0.881 = ✅ KEEP; 0.865–0.881 = 🔁; < 0.865 = harmful.** Support: ≥ 9/12 labels up.
+Cost:         ≈ 3 h of one T4 (0.28 s/study × 3,525 × 8 + val), in the second GPU session beside `v08c`; 2 config lines; 0 submissions.
+If it works:  `lr_backbone=3e-5` joins the CoAtNet PROD recipe (a third `v09a` retrain, ≈ 2.8 h) and the OneCycle shape becomes a card.
+If it fails:  the c02 CoAtNet recipe is exhausted as a lever (batch, aug, epochs, LR all ≈ 0) — the member-quality wall is in
+the input representation / targets, and GPU goes to P-23 #3 / #4 or P-17, not to more c02 CoAtNet arms.
+Depends on:   P-32 / P-33 (`v09c` = the control, same code path), P-31 (second session while S2 runs).
+
+### P-35 Light augmentation on the DINOv2 arm (`v08c`)
+Status:       🔧 **implemented 2026-09-23, smoke pending** — arm `v08c` in `ARMS` = the `v08w` recipe (DINOv2-S @224, c02,
+window_attn, 24 random train windows, 8 ep, `best_oof`, `lr_backbone` 2e-5, `batch_studies=1`) + `aug="light"`. Runs beside
+`v09d` (P-31) in `rsna-knee-folds`; the real run needs Tian's go.
+Hypothesis:   `aug="light"` lifts the DINOv2-S member's fold-0 OOF by ≥ 0.008 over `v08w` (0.8648): the ViT has no BatchNorm, so
+the only untested public-recipe difference on this arm is augmentation, and the DINO members of the public stack train with the
+same rot ±8° / scale +0–8 % / shift ±5 % / intensity ±10 %.
+Origin:       P-33's "if it works" branch (read 🔁 +0.004 on the CoAtNet — same direction as hypothesised, half the floor); the
+public DINOsaur trainer cell (experiments.md 2026-09-22 night).
+Evidence:     for: P-33's +0.004 with 8/12 labels up; research.md §2.2 (augmentation universal among RSNA winners); the DINOv2 arm
+is the cheaper half of every production pair, so a gain is cheap to productionise. Against: one seed; P-33 did not clear the
+floor on the CoAtNet; `v08w` was trained 2026-08-30 on a T4 (same seed 42, same code path — a valid but not same-session control).
+Measure:      `v08c_fold0_oof.csv` (best_oof epoch) → macro OOF-vs-teacher on the 882 fold-0 studies vs `v08w` 0.8648; per-label table.
+Noise floor:  0.008. **≥ 0.873 = ✅ KEEP; 0.857–0.873 = 🔁; < 0.857 = harmful.** Support: ≥ 9/12 labels up.
+Cost:         ≈ 1.5 h of one T4 (0.12–0.14 s/study × 3,525 × 8 + val) beside `v09d`; 1 config line; 0 submissions.
+If it works:  `aug="light"` joins the DINOv2 PROD recipe (`v08a` retrain) and both production members carry it.
+If it fails:  augmentation is a no-op for this data at this label noise; `aug` stays out of `v08a`, and P-33's CoAtNet 🔁 reads as noise.
+Depends on:   P-33 (the `aug` code path), P-25 / P-26 (c02 window recipe), P-31.
 
 ## Rejected without testing
 

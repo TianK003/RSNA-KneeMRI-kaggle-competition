@@ -233,6 +233,14 @@ ARMS = [
     ("v09a", {**PROD, "backbone": "timm:coatnet_rmlp_1_rw_224", "img_size": 224, "lr_backbone": 1e-4,
               "batch_studies": 2, "grad_accum": 2, "aug": "light"}),
     ("v08a", {**PROD, "backbone": "dinov2", "img_size": 224}),
+    # 2026-09-23 (P-34 / P-35): round-2 fold-0 A/B, one arm per GPU (P-31), built for the rsna-knee-folds slug so it can run
+    # beside the S2 production session. `v09d` = the v09c recipe (batch 2 x accum 2, aug light; fold-0 OOF 0.8730) with the
+    # public 0.928 member's backbone LR 3e-5 instead of our 1e-4 -- the last never-A/B'd recipe difference to it. `v08c` = the
+    # v08w recipe (DINOv2-S, 0.8648) + aug light: the ViT has no BatchNorm, so augmentation is its only untested knob.
+    # Read against v09c 0.8730 / v08w 0.8648, floor 0.008 (>= 0.881 / >= 0.873 KEEP).
+    ("v09d", {**C02, "backbone": "timm:coatnet_rmlp_1_rw_224", "img_size": 224, "lr_backbone": 3e-5,
+              "batch_studies": 2, "grad_accum": 2, "aug": "light"}),
+    ("v08c", {**C02, "backbone": "dinov2", "img_size": 224, "aug": "light"}),
 ]
 # Shipped fold-0 / 5-fold members (Datasets rsna-knee-ckpt-*) and finished probes: selectable through ARM_ONLY /
 # RSNA_ARM for a rerun, but no longer run by default -- a forgotten sed would otherwise spend the
