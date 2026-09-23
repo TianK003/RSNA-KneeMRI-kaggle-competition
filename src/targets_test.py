@@ -121,6 +121,17 @@ def test_distill_table_builder():
             check(False, "distill table: an OOF set that does not cover every study of another set is rejected")
         except SystemExit:
             check(True, "distill table: partial coverage rejected")
+        dup_rows = [ids[0:3], ids[2:5]]
+        for k, rows in enumerate(dup_rows):
+            df = pd.DataFrame({"StudyInstanceUID": rows, "epoch": 7, "is_gold": 0})
+            for l in bt.LABELS:
+                df[f"pred__{l}"] = rng.uniform(0, 1, 3); df[f"y__{l}"] = 0.5; df[f"w__{l}"] = 1.0
+            df.to_csv(os.path.join(d, f"c_fold{k}_oof.csv"), index=False)
+        try:
+            bd.build_distill_table([os.path.join(d, "c_fold*_oof.csv")], os.path.join(d, "t3.csv"))
+            check(False, "distill table: duplicate study within a set rejected")
+        except SystemExit:
+            check(True, "distill table: duplicate study within a set rejected")
 
 
 if __name__ == "__main__":
