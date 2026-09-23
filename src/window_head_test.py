@@ -14,6 +14,9 @@ Executes src/kaggle_pipeline.py up to its run section (RSNA_DEFS_ONLY=1) and exe
     refuses a default-collated window batch; weighted_bce normalises per study; c01 + batch > 1 refuses
   * P-33: Config.aug guard, affine_theta geometry (zoom-in = 1/z, 5 % shift = 0.10), augment_light range
   * P-31: nbgen embeds the pipeline source (zlib + base64 + sha256) only when PARALLEL_ARMS is set
+  * teacher tables (2026-09-23): kernel quantile_match / mix_teacher; yt through both Dataset target
+    blocks and collate_windows; build_targets fatal on an unknown or unmounted TEACHER_TABLES name and,
+    with selfdistill_v1 mounted, yt__ appended while every plain column stays identical
 Exit status is the verdict.
 
     export PYTHONUTF8=1
@@ -313,6 +316,115 @@ def main():
         else:
             check("SELF_SOURCE_B64 = None" in code and "SELF_SOURCE_SHA256 = None" in code,
                   "nbgen leaves the markers as None when PARALLEL_ARMS is empty")
+
+    print("\n== teacher tables (2026-09-23)")
+    # ---- teacher tables (2026-09-23, spec section 2) ------------------------------------------------
+    qm = K["quantile_match"]
+    pred = np.array([0.9, 0.1, np.nan, 0.5]); ref = np.r_[np.zeros(80), np.ones(20)]
+    out = qm(pred, ref)
+    check(np.isnan(out[2]) and np.isfinite(out[[0, 1, 3]]).all() and out[0] >= out[3] >= out[1],
+          "kernel quantile_match: rank-preserving, NaN passthrough")
+    import pandas as pd
+    idx = pd.Index([f"s{i}" for i in range(6)])
+    soft = pd.DataFrame({l: np.linspace(0.1, 0.9, 6) for l in LABELS}, index=idx)
+    table = pd.DataFrame({l: np.linspace(0.9, 0.1, 6) for l in LABELS}, index=idx)     # reversed ranks
+    yt = K["mix_teacher"](soft, {"t": table}, 0.5, np.array([True] + [False] * 5))
+    check(np.allclose(yt.iloc[0].to_numpy(), soft.iloc[0].to_numpy()), "kernel mix_teacher: gold row keeps the LLM value")
+    check(not np.allclose(yt.iloc[1:].to_numpy(), soft.iloc[1:].to_numpy()), "kernel mix_teacher: covered rows move")
+    # collate carries yt when present, and the loss reads it
+    items = [{"study": "a", "arr": torch.zeros(2, 4, 4, dtype=torch.uint8), "centres": torch.zeros(3, dtype=torch.long),
+              "slot_id": torch.zeros(3, dtype=torch.long), "mask": torch.ones(6, dtype=torch.bool),
+              "y": torch.full((12,), 0.2), "yt": torch.full((12,), 0.8), "w": torch.ones(12), "is_gold": torch.tensor(0.)}]
+    b = K["collate_windows"](items)
+    check("yt" in b and b["yt"].shape == (1, 12), "collate_windows: stacks yt")
+    logits = torch.zeros(1, 12)
+    l_y = K["weighted_bce"](logits, b["y"], b["w"]); l_yt = K["weighted_bce"](logits, b["yt"], b["w"])
+    check(abs(float(l_y) - float(l_yt)) < 1e-6, "weighted_bce at logit 0 is symmetric in the target (sanity)")
+    check(K["TEACHER_TABLES"] == () and K["Config"]().teacher_tables == (), "TEACHER_TABLES default () (no teacher mixing unless sed'd)")
+    check("selfdistill_v1" in K["TEACHER_PATHS"] and "raptor_teacher" in K["TEACHER_PATHS"], "TEACHER_PATHS lists both tables")
+
+    # Dataset: both target blocks ship `yt` only when the targets frame carries yt__ columns; `y` is untouched
+    tgt = pd.DataFrame({"StudyInstanceUID": ["a"], "is_gold": [0], **{l: [0.2] for l in LABELS},
+                        **{f"w__{l}": [1.0] for l in LABELS}})
+    tgt_t = tgt.assign(**{f"yt__{l}": [0.8] for l in LABELS})
+    y02, y08 = torch.full((12,), 0.2), torch.full((12,), 0.8)
+    man = pd.DataFrame({"StudyInstanceUID": ["a"], **{s: [""] for s in SLOTS}})
+    cfg_fx = Config(use_cache=False)                     # fixed path, no series on disk -> zero slots
+    it0 = K["KneeStudyDataset"](man, tgt, "nowhere", cfg_fx, False)[0]
+    it1 = K["KneeStudyDataset"](man, tgt_t, "nowhere", cfg_fx, False)[0]
+    check("yt" not in it0 and torch.allclose(it1["yt"], y08) and torch.allclose(it1["y"], y02)
+          and torch.allclose(it0["y"], y02), "Dataset (fixed path): yt from yt__ columns only when present, y unchanged")
+    blob_dir = os.path.join("artifacts", "cache_local", K["cache_version_for"](c02))
+    blob_csv = [f for f in sorted(os.listdir(blob_dir)) if f.endswith(".csv")] if os.path.isdir(blob_dir) else []
+    if not blob_csv:
+        check(False, f"no local c02 blob under {blob_dir} (Dataset window-path yt check)")
+    else:
+        rw = pd.read_csv(os.path.join(blob_dir, blob_csv[0]), dtype={"mask": str}).query("cached == 1").iloc[0]
+        man_w = pd.DataFrame({"StudyInstanceUID": ["a"], "mask": [rw["mask"]], "side": ["L"]})
+        cfg_w = Config(cache_scheme="c02", window_mode="random", head_type="window_attn")
+        ver = K["cache_version_for"](cfg_w)
+        saved_index = K["CACHE_INDEX"].get(ver)
+        K["CACHE_INDEX"][ver] = {"a": (os.path.join(blob_dir, rw.blob), int(rw.row))}
+        try:
+            iw0 = K["KneeStudyDataset"](man_w, tgt, "nowhere", cfg_w, True)[0]
+            iw1 = K["KneeStudyDataset"](man_w, tgt_t, "nowhere", cfg_w, True)[0]
+        finally:
+            if saved_index is None:
+                K["CACHE_INDEX"].pop(ver, None)
+            else:
+                K["CACHE_INDEX"][ver] = saved_index
+        bw = K["collate_windows"]([iw1, iw1])
+        check("arr" in iw1 and "yt" not in iw0 and torch.allclose(iw1["yt"], y08) and torch.allclose(iw1["y"], y02)
+              and "yt" not in K["collate_windows"]([iw0]) and tuple(bw["yt"].shape) == (2, 12),
+              "Dataset (window path): yt from yt__ columns only when present; collate_windows stacks it")
+
+    # build_targets: a listed table that is unknown or not mounted is FATAL; a mounted one appends yt__ only
+    import contextlib
+    import io
+    train_csv = os.path.join(K["COMP"], "train.csv")
+    plain = K["targets"]
+    check(not any(c.startswith("yt__") for c in plain.columns), "plain targets (TEACHER_TABLES = ()) carry no yt__ columns")
+    paths0 = dict(K["TEACHER_PATHS"])
+    ghost = os.path.join(tempfile.gettempdir(), "rsna_no_such_teacher_table.csv")
+    for names, want, label in ((("no_such_table",), "unknown teacher table", "unknown teacher table is fatal"),
+                               (("ghost",), "not mounted", "unmounted teacher table is fatal")):
+        K["TEACHER_TABLES"] = names
+        if names == ("ghost",):
+            K["TEACHER_PATHS"]["ghost"] = [ghost]         # a known name whose CSV is not on disk
+        msg = None
+        try:
+            with contextlib.redirect_stdout(io.StringIO()):
+                K["build_targets"](train_csv)
+        except SystemExit as e:
+            msg = str(e)
+        finally:
+            K["TEACHER_TABLES"] = ()
+            K["TEACHER_PATHS"].clear()
+            K["TEACHER_PATHS"].update(paths0)
+        check(msg is not None and want in msg, f"{label} (SystemExit: {msg})")
+    sd_path = K["first_existing"](K["TEACHER_PATHS"]["selfdistill_v1"])
+    if sd_path is None:
+        print("  skip teacher build_targets end-to-end: selfdistill_v1.csv not present (src/build_distill_table.py)")
+    else:
+        K["TEACHER_TABLES"] = ("selfdistill_v1",)
+        buf = io.StringIO()
+        try:
+            with contextlib.redirect_stdout(buf):
+                mixed = K["build_targets"](train_csv)
+        finally:
+            K["TEACHER_TABLES"] = ()
+        ytc = [f"yt__{l}" for l in LABELS]
+        g = (mixed.is_gold == 1).to_numpy()
+        ytv = mixed[ytc].to_numpy()
+        check(list(mixed.columns) == list(plain.columns) + ytc and mixed[list(plain.columns)].equals(plain),
+              "teacher build_targets: every plain column (y, w__, is_gold, fold) identical, yt__ appended")
+        check(np.isfinite(ytv).all() and ytv.min() >= 0 and ytv.max() <= 1, "teacher build_targets: yt__ finite, in [0, 1]")
+        check(np.array_equal(ytv[g], mixed.loc[g, LABELS].to_numpy()) and set(np.unique(ytv[g])) <= {0.0, 1.0},
+              f"teacher build_targets: the {int(g.sum())} gold rows keep hard 0/1 in yt__")
+        moved = float((ytv[~g] != mixed.loc[~g, LABELS].to_numpy()).mean())
+        check(moved > 0.5, f"teacher build_targets: {moved:.0%} of report-only yt__ cells differ from y")
+        check("teacher table selfdistill_v1:" in buf.getvalue() and "training targets = (1 - 0.5)" in buf.getvalue(),
+              "teacher build_targets logs the table and the mix")
 
     print("\n" + ("UNIT CHECKS PASSED" if not fails else f"UNIT CHECKS FAILED ({len(fails)}):\n  - " + "\n  - ".join(fails)))
     sys.exit(1 if fails else 0)

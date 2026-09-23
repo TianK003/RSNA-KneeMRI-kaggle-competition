@@ -36,6 +36,7 @@ import shutil
 import tempfile
 import time
 import traceback
+import warnings
 from dataclasses import dataclass, field, asdict, replace
 
 import numpy as np
@@ -326,6 +327,27 @@ if PARALLEL_ARMS and not os.environ.get("RSNA_CHILD"):
         raise SystemExit(f"PARALLEL_ARMS {_bad} not among the defined arms {sorted(_known)}")
     print(f"PARALLEL_ARMS: {list(PARALLEL_ARMS)} (one child process per GPU; this process only launches and waits)")
 
+# ┌──────────────────────────────────────────────────────────────────────────┐
+# │ TEACHER_TABLES (2026-09-23, spec docs/superpowers/specs/2026-09-23-      │
+# │ member-strength-design.md, section 2): prediction tables                 │
+# │ (StudyInstanceUID + 12 label columns in [0, 1]) mixed into the TRAINING  │
+# │ targets `yt__*` after per-label quantile matching onto the LLM blend:    │
+# │ yt = (1 - MIX) * llm + MIX * matched on the report-only rows a table     │
+# │ covers; gold rows stay hard 0/1. The bare label columns (the `y` of      │
+# │ evaluate() and the OOF csv) stay the 3-source LLM teacher, so            │
+# │ OOF-vs-teacher remains comparable. Sed'd per kernel session like         │
+# │ ARM_ONLY, e.g.                                                           │
+# │   sed 's/^TEACHER_TABLES = ()/TEACHER_TABLES = ("selfdistill_v1",)/' ... │
+# │ A listed table that is not mounted is FATAL (never silently train on the │
+# │ plain teacher under a distilled version name).                           │
+# └──────────────────────────────────────────────────────────────────────────┘
+TEACHER_TABLES = ()
+TEACHER_MIX = 0.5
+TEACHER_PATHS = {
+    "selfdistill_v1": ["/kaggle/input/rsna-knee-teacher-tables/selfdistill_v1.csv", "artifacts/teacher/selfdistill_v1.csv"],
+    "raptor_teacher": ["/kaggle/input/rsna-knee-teacher-tables/raptor_teacher.csv", "artifacts/teacher/raptor_teacher.csv"],
+}
+
 
 @dataclass
 class Config:
@@ -451,6 +473,8 @@ class Config:
     # supervision
     gold_weight: float = 8.0
     weak_weight_floor: float = 0.15
+    teacher_tables: tuple = TEACHER_TABLES   # recorded in the checkpoint; training-only (not an INFER_MEMBER_KEY)
+    teacher_mix: float = TEACHER_MIX
 
     # runtime
     runtime_limit_hours: float = float(os.environ.get("RSNA_RUNTIME_H", 8.3))   # headroom under Kaggle's 9 h
@@ -736,6 +760,53 @@ def auc_score(y, s) -> float:
     return float((r[y == 1].sum() - npos * (npos + 1) / 2) / (npos * nneg))
 
 
+# Prediction-table teachers (TEACHER_TABLES, 2026-09-23): the same rules as src/build_targets.py,
+# copied rather than imported because the kernel is a single file.
+def quantile_match(pred: np.ndarray, ref: np.ndarray) -> np.ndarray:
+    """Map `pred` onto the value distribution of `ref`, keeping `pred`'s ranks.
+
+    Mid-rank quantiles (rank - 0.5) / n so ties and constant columns land on the reference median
+    rather than its extremes; NaN in `pred` stays NaN. The result lives on the LLM blend's scale, so
+    the 0.5-centred confidence weights keep their meaning when the two are averaged."""
+    pred = np.asarray(pred, dtype=float)
+    out = np.full(pred.shape, np.nan)
+    m = np.isfinite(pred)
+    ref = np.asarray(ref, dtype=float)
+    ref = ref[np.isfinite(ref)]
+    if m.sum() == 0 or len(ref) == 0:
+        return out
+    r = pd.Series(pred[m]).rank(method="average").to_numpy()
+    q = (r - 0.5) / m.sum()
+    out[m] = np.quantile(ref, np.clip(q, 0.0, 1.0))
+    return out
+
+
+def mix_teacher(soft: pd.DataFrame, tables: dict[str, pd.DataFrame], mix: float,
+                is_gold: np.ndarray) -> pd.DataFrame:
+    """Training target = (1 - mix) * LLM blend + mix * mean of the quantile-matched tables, on the
+    report-only rows a table covers; every other row (uncovered, gold) keeps the LLM value. Called
+    BEFORE the gold override, which then applies to this frame exactly as to `soft`."""
+    if not 0.0 <= mix <= 1.0:
+        raise SystemExit(f"teacher mix must be in [0, 1], got {mix}")
+    yt = soft.copy()
+    weak = ~np.asarray(is_gold, dtype=bool)
+    for lab in LABELS:
+        ref = soft[lab].to_numpy(dtype=float)[weak]
+        matched = []
+        for d in tables.values():
+            col = d[lab].to_numpy(dtype=float)
+            col = np.where(weak, col, np.nan)          # never let a table speak on a gold row
+            matched.append(quantile_match(col, ref))
+        stack = np.vstack(matched)
+        with np.errstate(invalid="ignore"), warnings.catch_warnings():
+            warnings.filterwarnings("ignore", message="Mean of empty slice")
+            mean_matched = np.nanmean(stack, axis=0)
+        covered = np.isfinite(mean_matched)
+        base = soft[lab].to_numpy(dtype=float)
+        yt[lab] = np.where(covered, (1.0 - mix) * base + mix * mean_matched, base)
+    return yt
+
+
 def build_targets(train_csv: str):
     tr = pd.read_csv(train_csv)
     idx = pd.Index(tr.StudyInstanceUID)
@@ -778,6 +849,26 @@ def build_targets(train_csv: str):
             soft[lab] = 0.5
             wt[lab] = cfg.weak_weight_floor
 
+    # Teacher tables (TEACHER_TABLES): a second, TRAINING-only target frame. `soft` stays the LLM blend,
+    # so the bare label columns (evaluate(), the OOF csv, the teacher AUC below) do not move.
+    yt = None
+    if TEACHER_TABLES:
+        tables = {}
+        for name in TEACHER_TABLES:
+            if name not in TEACHER_PATHS:
+                raise SystemExit(f"unknown teacher table {name!r}; known: {sorted(TEACHER_PATHS)}")
+            p = first_existing(TEACHER_PATHS[name])
+            if p is None:
+                raise SystemExit(f"teacher table {name!r} is listed but not mounted -- refusing to train on the plain teacher")
+            d = pd.read_csv(p, dtype={"StudyInstanceUID": str})
+            if any(l not in d.columns for l in LABELS) or d.StudyInstanceUID.duplicated().any():
+                raise SystemExit(f"teacher table {name!r}: bad schema or duplicate UID ({p})")
+            tables[name] = d.set_index("StudyInstanceUID")[LABELS].reindex(idx)
+            print(f"  teacher table {name}: {int(tables[name][LABELS[0]].notna().sum())} studies from {p}")
+        yt = mix_teacher(soft, tables, TEACHER_MIX, is_gold.to_numpy())
+        print(f"  training targets = (1 - {TEACHER_MIX}) * LLM + {TEACHER_MIX} * quantile-matched "
+              f"{list(TEACHER_TABLES)}; evaluation targets unchanged")
+
     gold = tr.set_index("StudyInstanceUID")[LABELS]
 
     # Score the teacher BEFORE the gold override, otherwise we are grading the gold
@@ -797,12 +888,16 @@ def build_targets(train_csv: str):
         have = g.notna().to_numpy()
         soft.loc[have, lab] = g[have].to_numpy()
         wt.loc[have, lab] = cfg.gold_weight
+        if yt is not None:
+            yt.loc[have, lab] = g[have].to_numpy()
 
     for lab in LABELS:
         m = soft[lab].isna()
         if m.any():
             soft.loc[m, lab] = float(soft[lab].mean())
             wt.loc[m, lab] = cfg.weak_weight_floor
+            if yt is not None:
+                yt.loc[m, lab] = soft.loc[m, lab]
 
     # ---- folds: group studies that share a report text -------------------
     # 49 report texts are shared by 183 studies (largest group 37). Studies sharing
@@ -836,6 +931,10 @@ def build_targets(train_csv: str):
     wdf = wt.reset_index(drop=True)
     wdf.columns = [f"w__{c}" for c in LABELS]
     out = pd.concat([meta.reset_index(drop=True), tgt, wdf], axis=1)
+    if yt is not None:
+        ytdf = yt.reset_index(drop=True)
+        ytdf.columns = [f"yt__{c}" for c in LABELS]
+        out = pd.concat([out, ytdf], axis=1)
 
     print(f"  targets: {out.shape[0]} studies, {int((out.is_gold == 1).sum())} gold")
     print("  fold sizes:",
@@ -1540,6 +1639,8 @@ class KneeStudyDataset(Dataset):
                     out["y"] = torch.tensor([float(r[l]) for l in LABELS])
                     out["w"] = torch.tensor([float(r[f"w__{l}"]) for l in LABELS])
                     out["is_gold"] = torch.tensor(float(r["is_gold"]))
+                    if f"yt__{LABELS[0]}" in self.t.columns:
+                        out["yt"] = torch.tensor([float(r[f"yt__{l}"]) for l in LABELS])
                 return out
             offsets = (0,) if self.train else tuple(getattr(self.cfg, "tta_offsets", (0,)))
             views = [array_to_tensor(arr, mask_np, self.cfg, self.train, centre_offset=o)
@@ -1575,6 +1676,8 @@ class KneeStudyDataset(Dataset):
             out["y"] = torch.tensor([float(r[l]) for l in LABELS])
             out["w"] = torch.tensor([float(r[f"w__{l}"]) for l in LABELS])
             out["is_gold"] = torch.tensor(float(r["is_gold"]))
+            if f"yt__{LABELS[0]}" in self.t.columns:
+                out["yt"] = torch.tensor([float(r[f"yt__{l}"]) for l in LABELS])
         return out
 
 # %% [markdown]
@@ -1938,7 +2041,7 @@ def build_model(c, device):
 def collate_windows(items):
     """P-32 collate for window-mode studies (batch_studies >= 1). Stacks the fixed-shape uint8 arrays to
     (B, T, P, P), concatenates every study's (centre, slot) windows into flat tensors with `study_ix`
-    (which study each window belongs to) and `pos` (its index within that study), stacks mask / y / w /
+    (which study each window belongs to) and `pos` (its index within that study), stacks mask / y / yt / w /
     is_gold and keeps the study list. One code path serves B = 1 (evaluation, inference) and B > 1."""
     out = {"study": [it["study"] for it in items],
            "arr": torch.stack([it["arr"] for it in items]),
@@ -1948,7 +2051,7 @@ def collate_windows(items):
                                   for i, it in enumerate(items)]),
            "pos": torch.cat([torch.arange(len(it["centres"]), dtype=torch.long) for it in items]),
            "mask": torch.stack([it["mask"] for it in items])}
-    for k in ("y", "w", "is_gold"):
+    for k in ("y", "yt", "w", "is_gold"):
         if k in items[0]:
             out[k] = torch.stack([it[k] for it in items])
     return out
@@ -2342,7 +2445,8 @@ def train_fold(fold, manifest, targets, image_root, cfg, device):
         for i, b in enumerate(tr_loader):
             with torch.amp.autocast("cuda", enabled=use_amp):
                 logits = forward_batch(model, b, device, cfg)
-                loss = weighted_bce(logits, b["y"].to(device), b["w"].to(device))
+                y_train = b["yt"] if "yt" in b else b["y"]           # teacher-mixed targets train; y stays the OOF target
+                loss = weighted_bce(logits, y_train.to(device), b["w"].to(device))
             scaler.scale(loss / cfg.grad_accum).backward()
             if (i + 1) % cfg.grad_accum == 0:
                 scaler.unscale_(opt)
@@ -2748,6 +2852,9 @@ def training_manifest(cache_manifest):
             add[l] = 0.5
         for l in LABELS:
             add[f"w__{l}"] = cfg.weak_weight_floor
+        if f"yt__{LABELS[0]}" in targets.columns:      # TEACHER_TABLES on: a NaN yt would make the loss NaN
+            for l in LABELS:
+                add[f"yt__{l}"] = 0.5
         targets = pd.concat([targets, add], ignore_index=True)
     return manifest
 
