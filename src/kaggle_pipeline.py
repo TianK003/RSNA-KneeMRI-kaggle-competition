@@ -466,6 +466,11 @@ class Config:
     # optimiser step stay comparable across arms (v09h: 1 x 4; v09b: 2 x 2).
     batch_studies: int = 1
     grad_accum: int = 4
+    # P-37 (2026-09-23): per-label pos_weight = clip((1 - p) / p, 1, pos_weight_max), p = positive rate of the
+    # training targets (yt if present, else y) at the 0.5 cut, computed once per fold. 0 = off (byte-identical loss).
+    # The public 0.924 member trains with [1, 10]. Rejected earlier as "AUC ignores calibration" -- this measures
+    # its effect on training dynamics, not on calibration.
+    pos_weight_max: float = 0.0
     warmup_frac: float = 0.1
     max_grad_norm: float = 1.0
     amp: bool = True
@@ -2009,17 +2014,17 @@ class KneeNet(nn.Module):
         return self.window_head(self.drop(padded), sid_p, valid)
 
 
-def weighted_bce(logits, y, w):
+def weighted_bce(logits, y, w, pos_weight=None):
     """Confidence-weighted soft-target BCE, normalised PER STUDY then averaged over the batch.
 
     Per study on purpose (P-32): with batch_studies > 1 a single `Σ w·bce / Σ w` over the batch would let
     a gold study (weight 8) swallow its partner's gradient; normalising each row first keeps every
     study's contribution what it was at batch 1 (identical to the old formula for B = 1).
-    No `pos_weight`: with soft targets it inflates every prediction and the metric
-    reads only rank order, so there is nothing to gain and a collapse to overprediction
-    to lose.
+    `pos_weight` (P-37): per-label multiplier of the positive term, or None (the loss through 2026-09-22,
+    byte-identical). Earlier rejected as "AUC ignores calibration" -- Config.pos_weight_max tests its
+    effect on training dynamics, not on calibration; the default stays off.
     """
-    loss = F.binary_cross_entropy_with_logits(logits, y, reduction="none")
+    loss = F.binary_cross_entropy_with_logits(logits, y, reduction="none", pos_weight=pos_weight)
     per_study = (loss * w).sum(1) / w.sum(1).clamp_min(1e-6)
     return per_study.mean()
 
@@ -2176,6 +2181,15 @@ def split_studies(targets, fold, cfg):
         tr = targets.loc[targets.fold != fold, "StudyInstanceUID"].tolist()
         va = targets.loc[targets.fold == fold, "StudyInstanceUID"].tolist()
     return tr, va
+
+
+def label_pos_weight(targets, study_ids, max_w):
+    """P-37: clip((1 - p) / p, 1, max_w) per label from the training rows' hard targets (yt if present)."""
+    t = targets.set_index("StudyInstanceUID").loc[study_ids]
+    cols = [f"yt__{l}" if f"yt__{l}" in t.columns else l for l in LABELS]
+    p = (t[cols].to_numpy(dtype=float) > 0.5).mean(0)
+    p = np.clip(p, 1e-6, 1 - 1e-6)
+    return np.clip((1.0 - p) / p, 1.0, float(max_w))
 
 
 def make_loaders(manifest, targets, image_root, cfg, fold):
@@ -2396,6 +2410,12 @@ def train_fold(fold, manifest, targets, image_root, cfg, device):
     ema = EMA(model, cfg.ema_decay) if cfg.ema_decay > 0 else None
 
     tr_loader, va_loader = make_loaders(manifest, targets, image_root, cfg, fold)
+    pos_w = None
+    if cfg.pos_weight_max > 0:
+        tr_ids, _ = split_studies(targets, fold, cfg)
+        pw = label_pos_weight(targets, [s for s in tr_ids if s in set(tr_loader.dataset.studies)], cfg.pos_weight_max)
+        pos_w = torch.tensor(pw, dtype=torch.float32, device=device)
+        print("    pos_weight [1, %g]: " % cfg.pos_weight_max + ", ".join(f"{l} {v:.1f}" for l, v in zip(LABELS, pw)))
     steps_per_epoch = max(1, len(tr_loader) // cfg.grad_accum)
     total = steps_per_epoch * cfg.epochs
     warm = max(1, int(total * cfg.warmup_frac))
@@ -2446,7 +2466,7 @@ def train_fold(fold, manifest, targets, image_root, cfg, device):
             with torch.amp.autocast("cuda", enabled=use_amp):
                 logits = forward_batch(model, b, device, cfg)
                 y_train = b["yt"] if "yt" in b else b["y"]           # teacher-mixed targets train; y stays the OOF target
-                loss = weighted_bce(logits, y_train.to(device), b["w"].to(device))
+                loss = weighted_bce(logits, y_train.to(device), b["w"].to(device), pos_weight=pos_w)
             scaler.scale(loss / cfg.grad_accum).backward()
             if (i + 1) % cfg.grad_accum == 0:
                 scaler.unscale_(opt)

@@ -439,6 +439,23 @@ def main():
         check("teacher table selfdistill_v1:" in buf.getvalue() and "training targets = (1 - 0.5)" in buf.getvalue(),
               "teacher build_targets logs the table and the mix")
 
+    # ---- pos_weight (P-37) --------------------------------------------------------------------------
+    lpw = K["label_pos_weight"]
+    tg = pd.DataFrame({"StudyInstanceUID": [f"s{i}" for i in range(10)]})
+    for l in LABELS:
+        tg[l] = 0.0
+    tg.loc[:0, "ACL"] = 1.0            # 10 % positive -> (1-p)/p = 9
+    tg["MCL"] = 1.0                    # all positive -> clip to 1
+    tg["Fracture"] = 0.0               # no positive -> clip to max
+    pw = lpw(tg, tg.StudyInstanceUID.tolist(), 10.0)
+    check(pw.shape == (12,) and np.isfinite(pw).all(), "label_pos_weight: 12 finite weights")
+    check(abs(pw[LABELS.index("ACL")] - 9.0) < 1e-6, "label_pos_weight: 10 % positive -> 9")
+    check(pw[LABELS.index("MCL")] == 1.0 and pw[LABELS.index("Fracture")] == 10.0, "pos_weight extremes clip to [1, max]")
+    lg = torch.randn(2, 12); yy = torch.rand(2, 12); ww = torch.ones(2, 12)
+    check(torch.allclose(K["weighted_bce"](lg, yy, ww), K["weighted_bce"](lg, yy, ww, pos_weight=None)), "weighted_bce: pos_weight=None is the old loss")
+    check(float(K["weighted_bce"](lg, yy, ww, pos_weight=torch.full((12,), 3.0))) > float(K["weighted_bce"](lg, yy, ww)), "weighted_bce: pos_weight > 1 raises the loss")
+    check(K["Config"]().pos_weight_max == 0.0, "Config.pos_weight_max defaults to 0 (off)")
+
     print("\n" + ("UNIT CHECKS PASSED" if not fails else f"UNIT CHECKS FAILED ({len(fails)}):\n  - " + "\n  - ".join(fails)))
     sys.exit(1 if fails else 0)
 
