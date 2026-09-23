@@ -745,3 +745,17 @@ it had already written — **the truncated blob included**. `np.load` on that fi
 before re-pulling**, and verify every blob after a pull: `np.load(npy, mmap_mode="r").shape[0] == len(pd.read_csv(csv))`
 for each `blob*.npy` / `.csv` pair (71 blobs, 4,407 studies in total for c02). Four shards pull in parallel at ≈ 30 MB/s
 each; sequentially the bootstrap's loop takes 4× longer.
+
+### 39. OOF against the LLM targets cannot judge a change of *target source* — it rewards agreement with the teacher (Tier 1: a wrong ✅, 2026-09-24)
+
+`v09s` (the `v09c` recipe on the self-distilled targets, P-38) read **+0.0109 fold-0 OOF, 12/12 labels up** — the only recipe change that
+ever cleared the 0.008 floor — and the production twin `v09t` read +0.0087 on gold-58. On the public LB the production member scored
+**0.917 vs 0.918** for the same recipe on the LLM targets (#19 vs #18). The OOF metric scores predictions against `y__*` = the LLM
+teacher's soft labels; the self-distillation table is the rank-mean of two models trained on those same labels, so the student learned
+a smoothed copy of the LLM signal and *agreed with the teacher better* without moving toward the truth. Sign consistency across labels
+(the noise-floor rule's tie-breaker) is produced by the same artefact, so it is no defence.
+
+**Do:** any change of the *training targets* (a new teacher table, a mix, a different label source) is read by **held-out truth only** —
+gold-58 direction (floor 0.05, 58 studies) and the solo public LB (floor 0.005) — never by OOF against the teacher it was distilled from
+or against the teacher that produced its inputs. Recipe changes (LR, augmentation, batch composition, epochs) may still use OOF vs the
+unchanged teacher. Related: 32 (production members have no OOF), experiments.md 2026-09-24 "Submission #19", P-38 / P-39.
