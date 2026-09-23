@@ -25,6 +25,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import os
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -186,6 +187,82 @@ def confidence_weights(sources: dict[str, pd.DataFrame], index: pd.Index) -> pd.
     return w
 
 
+# ------------------------------------------------ prediction-table teachers (2026-09-23)
+
+TEACHER_ROOT = "artifacts/teacher"     # <name>.csv: StudyInstanceUID + the 12 label columns in [0, 1]
+
+
+def load_teacher_tables(root: str, index: pd.Index, names: list[str]) -> dict[str, pd.DataFrame]:
+    """Model-prediction tables (self-distillation OOF, the public Raptor pass) as extra *teachers*.
+
+    Same schema as an LLM table. A table may cover a subset of studies (the Raptor pass excludes the 58
+    gold rows); absent studies are NaN after reindexing. Anything malformed is fatal: a duplicate UID
+    would silently pick one row, a missing label would silently teach the LLM value under a distilled
+    version name, a value outside [0, 1] is not a probability."""
+    out = {}
+    for name in names:
+        p = os.path.join(root, f"{name}.csv")
+        if not os.path.exists(p):
+            raise SystemExit(f"teacher table {name!r} not found at {p}")
+        d = pd.read_csv(p, dtype={"StudyInstanceUID": str})
+        missing = [l for l in LABELS if l not in d.columns]
+        if missing:
+            raise SystemExit(f"teacher table {name!r}: missing label columns {missing}")
+        if d.StudyInstanceUID.duplicated().any():
+            raise SystemExit(f"teacher table {name!r}: duplicate StudyInstanceUID")
+        vals = d[LABELS].to_numpy(dtype=float)
+        if np.nanmin(vals) < 0 or np.nanmax(vals) > 1:
+            raise SystemExit(f"teacher table {name!r}: values outside [0, 1]")
+        out[name] = d.set_index("StudyInstanceUID")[LABELS].reindex(index)
+        print(f"  teacher table {name}: {int(np.isfinite(vals[:, 0]).sum())} studies covered, from {p}")
+    return out
+
+
+def quantile_match(pred: np.ndarray, ref: np.ndarray) -> np.ndarray:
+    """Map `pred` onto the value distribution of `ref`, keeping `pred`'s ranks.
+
+    Mid-rank quantiles (rank - 0.5) / n so ties and constant columns land on the reference median
+    rather than its extremes; NaN in `pred` stays NaN. The result lives on the LLM blend's scale, so
+    the 0.5-centred confidence weights keep their meaning when the two are averaged."""
+    pred = np.asarray(pred, dtype=float)
+    out = np.full(pred.shape, np.nan)
+    m = np.isfinite(pred)
+    ref = np.asarray(ref, dtype=float)
+    ref = ref[np.isfinite(ref)]
+    if m.sum() == 0 or len(ref) == 0:
+        return out
+    r = pd.Series(pred[m]).rank(method="average").to_numpy()
+    q = (r - 0.5) / m.sum()
+    out[m] = np.quantile(ref, np.clip(q, 0.0, 1.0))
+    return out
+
+
+def mix_teacher(soft: pd.DataFrame, tables: dict[str, pd.DataFrame], mix: float,
+                is_gold: np.ndarray) -> pd.DataFrame:
+    """Training target = (1 - mix) * LLM blend + mix * mean of the quantile-matched tables, on the
+    report-only rows a table covers; every other row (uncovered, gold) keeps the LLM value. Called
+    BEFORE the gold override, which then applies to this frame exactly as to `soft`."""
+    if not 0.0 <= mix <= 1.0:
+        raise SystemExit(f"teacher mix must be in [0, 1], got {mix}")
+    yt = soft.copy()
+    weak = ~np.asarray(is_gold, dtype=bool)
+    for lab in LABELS:
+        ref = soft[lab].to_numpy(dtype=float)[weak]
+        matched = []
+        for d in tables.values():
+            col = d[lab].to_numpy(dtype=float)
+            col = np.where(weak, col, np.nan)          # never let a table speak on a gold row
+            matched.append(quantile_match(col, ref))
+        stack = np.vstack(matched)
+        with np.errstate(invalid="ignore"), warnings.catch_warnings():
+            warnings.filterwarnings("ignore", message="Mean of empty slice")
+            mean_matched = np.nanmean(stack, axis=0)
+        covered = np.isfinite(mean_matched)
+        base = soft[lab].to_numpy(dtype=float)
+        yt[lab] = np.where(covered, (1.0 - mix) * base + mix * mean_matched, base)
+    return yt
+
+
 # ------------------------------------------------------------------- folds
 
 def report_group(reports: pd.Series) -> pd.Series:
@@ -240,6 +317,11 @@ def main() -> None:
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--sources", default=",".join(DEFAULT_SOURCES),
                     help="comma-separated label sources to blend (P-30: add `dread` to measure the public soft labels)")
+    ap.add_argument("--teacher-tables", default="",
+                    help="comma-separated prediction tables under artifacts/teacher/ mixed into the TRAINING targets (yt__*)")
+    ap.add_argument("--teacher-mix", type=float, default=0.5)
+    ap.add_argument("--teacher-root", default=TEACHER_ROOT)
+    ap.add_argument("--check-md5", action="store_true", help="print the md5 of the written targets file")
     args = ap.parse_args()
     source_names = [x.strip() for x in args.sources.split(",") if x.strip()]
 
@@ -263,6 +345,10 @@ def main() -> None:
     soft_rank = rank_blend(sources, idx)     # diagnostic only
     weights = confidence_weights(sources, idx)
 
+    teacher_names = [x.strip() for x in args.teacher_tables.split(",") if x.strip()]
+    tables = load_teacher_tables(args.teacher_root, idx, teacher_names) if teacher_names else {}
+    yt = mix_teacher(soft, tables, args.teacher_mix, is_gold.to_numpy()) if tables else None
+
     gold = tr.set_index("StudyInstanceUID")[LABELS]
     gold_idx = idx[is_gold.to_numpy()]
 
@@ -272,6 +358,13 @@ def main() -> None:
     for name, d in sources.items():
         a = [auc(gy[l].to_numpy(), d.loc[gold_idx, l].to_numpy()) for l in LABELS]
         log(f"  {name:<9} {np.nanmean(a):.4f}")
+    if tables:
+        log(f"\nteacher tables {teacher_names} mixed at {args.teacher_mix} into the TRAINING targets (yt__*); "
+            f"y__* stays the LLM teacher   ! NON-DEFAULT targets -- written beside artifacts/targets.csv, not over it")
+        covered_gold = [n for n, d in tables.items() if np.isfinite(d.loc[gold_idx, LABELS].to_numpy()).all()]
+        for n in covered_gold:
+            a = [auc(gy[l].to_numpy(), tables[n].loc[gold_idx, l].to_numpy()) for l in LABELS]
+            log(f"  {n:<16} gold macro-AUC {np.nanmean(a):.4f}  (the table alone, n=58 -- direction only)")
     blend_aucs = [auc(gy[l].to_numpy(), soft.loc[gold_idx, l].to_numpy()) for l in LABELS]
     rank_aucs = [auc(gy[l].to_numpy(), soft_rank.loc[gold_idx, l].to_numpy()) for l in LABELS]
     log(f"  {'BLEND':<9} {np.nanmean(blend_aucs):.4f}  (mean of probabilities -- the target)")
@@ -303,6 +396,8 @@ def main() -> None:
         have = gvals.notna().to_numpy()
         targets.loc[have, lab] = gvals[have].to_numpy()
         w.loc[have, lab] = GOLD_WEIGHT
+        if yt is not None:
+            yt.loc[have, lab] = gvals[have].to_numpy()
 
     n_nan = int(targets[LABELS].isna().sum().sum())
     if n_nan:
@@ -345,8 +440,13 @@ def main() -> None:
     out = pd.concat([tgt.reset_index(drop=True), wide_w], axis=1)
     out = out.merge(meta[["StudyInstanceUID", "is_gold", "fold", "report_group"]],
                     on="StudyInstanceUID")
+    if yt is not None:
+        ytdf = yt.reset_index(drop=True)
+        ytdf.columns = [f"yt__{c}" for c in LABELS]
+        out = pd.concat([out, ytdf], axis=1)
 
-    tpath = os.path.join(args.out_dir, "targets.csv")
+    out_name = "targets.csv" if yt is None else f"targets_teacher_{'_'.join(teacher_names)}.csv"
+    tpath = os.path.join(args.out_dir, out_name)
     fpath = os.path.join(args.out_dir, "folds.csv")
     rpath = os.path.join(args.out_dir, "label_report.txt")
     out.to_csv(tpath, index=False)
@@ -356,6 +456,8 @@ def main() -> None:
     log(f"\nwrote {tpath}  ({out.shape[0]} rows x {out.shape[1]} cols)")
     log(f"wrote {fpath}")
     log(f"wrote {rpath}")
+    if args.check_md5:
+        log(f"md5 {hashlib.md5(open(tpath, 'rb').read()).hexdigest()}  {tpath}")
 
 
 if __name__ == "__main__":
