@@ -15,7 +15,8 @@
     "lixin73/rsna-knee-llm-report-labels-sol56",
     "tiankljucanin/convnext-tiny-224-hf",
     "tiankljucanin/timm-coatnet-rmlp-1-rw-224",
-    "tiankljucanin/timm-coatnet-rmlp-2-rw-384"
+    "tiankljucanin/timm-coatnet-rmlp-2-rw-384",
+    "tiankljucanin/rsna-knee-teacher-tables"
   ],
   "kernel_sources": [
     "tiankljucanin/rsna-knee-cache-a",

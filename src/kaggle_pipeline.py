@@ -242,6 +242,17 @@ ARMS = [
     ("v09d", {**C02, "backbone": "timm:coatnet_rmlp_1_rw_224", "img_size": 224, "lr_backbone": 3e-5,
               "batch_studies": 2, "grad_accum": 2, "aug": "light"}),
     ("v08c", {**C02, "backbone": "dinov2", "img_size": 224, "aug": "light"}),
+    # 2026-09-23 (P-36 / P-37 / P-38, spec docs/superpowers/specs/2026-09-23-member-strength-design.md): fold-0
+    # arms vs v09c 0.8730, floor 0.008, run on RunPod (~1 h each on a 4090). v09e = the public schedule length at
+    # the public backbone LR (P-29 over-trained 16 epochs at 1e-4); v09f = the public member's pos_weight [1, 10];
+    # v09s = v09c on the self-distilled targets -- run with TEACHER_TABLES=("selfdistill_v1",) sed'd in (the arm
+    # dict cannot carry it: targets are built once per session).
+    ("v09e", {**C02, "backbone": "timm:coatnet_rmlp_1_rw_224", "img_size": 224, "lr_backbone": 3e-5,
+              "batch_studies": 2, "grad_accum": 2, "aug": "light", "epochs": 16}),
+    ("v09f", {**C02, "backbone": "timm:coatnet_rmlp_1_rw_224", "img_size": 224, "lr_backbone": 1e-4,
+              "batch_studies": 2, "grad_accum": 2, "aug": "light", "pos_weight_max": 10.0}),
+    ("v09s", {**C02, "backbone": "timm:coatnet_rmlp_1_rw_224", "img_size": 224, "lr_backbone": 1e-4,
+              "batch_studies": 2, "grad_accum": 2, "aug": "light"}),
 ]
 # Shipped fold-0 / 5-fold members (Datasets rsna-knee-ckpt-*) and finished probes: selectable through ARM_ONLY /
 # RSNA_ARM for a rerun, but no longer run by default -- a forgotten sed would otherwise spend the
@@ -347,6 +358,12 @@ TEACHER_PATHS = {
     "selfdistill_v1": ["/kaggle/input/rsna-knee-teacher-tables/selfdistill_v1.csv", "artifacts/teacher/selfdistill_v1.csv"],
     "raptor_teacher": ["/kaggle/input/rsna-knee-teacher-tables/raptor_teacher.csv", "artifacts/teacher/raptor_teacher.csv"],
 }
+# P-38: `v09s` is the self-distillation arm only when its targets are distilled, and the arm dict cannot carry
+# TEACHER_TABLES (targets are built once per session) -- never train it on the plain teacher under its name.
+# ARM_ONLY / RSNA_ARM cover a single-arm kernel, a resume and the RunPod runner (RSNA_ARM also reaches the P-31
+# children); PARALLEL_ARMS stops the parent before it spawns them.
+if (ARM_ONLY == "v09s" or os.environ.get("RSNA_ARM") == "v09s" or "v09s" in PARALLEL_ARMS) and not TEACHER_TABLES:
+    raise SystemExit("v09s is the self-distillation arm: sed TEACHER_TABLES = (\"selfdistill_v1\",) into the copy you run")
 
 
 @dataclass

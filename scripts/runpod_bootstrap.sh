@@ -12,6 +12,9 @@
 #   export KAGGLE_USERNAME=... KAGGLE_KEY=...        # or copy ~/.kaggle/kaggle.json
 #   bash scripts/runpod_bootstrap.sh setup           # pip, CSVs, labels, weights, caches (~40 min)
 #   bash scripts/runpod_bootstrap.sh train v09h      # one arm from ARMS / ARM_V10C, fold 0
+#   RSNA_TEACHER_TABLES='("selfdistill_v1",)' bash scripts/runpod_bootstrap.sh train v09s
+#                                                    # sed that tuple into TEACHER_TABLES (distilled targets, P-38;
+#                                                    # v09s refuses to run without it); unset = () = the LLM teacher
 #   bash scripts/runpod_bootstrap.sh ship v09h       # checkpoints -> Dataset rsna-knee-ckpt-<arm>
 #
 # Pod sizing: coatnet_rmlp_2_rw_384 with train_windows=24 needs grad_checkpoint=True on a 24 GB
@@ -28,7 +31,8 @@ WORK=/kaggle/working
 COMP=rsna-knee-abnormality-detection
 OWNER=tiankljucanin
 CACHE2=(rsna-knee-cache2-a rsna-knee-cache2-b rsna-knee-cache2-c rsna-knee-cache2-d)
-LABELS=(pilkwang/rsna-knee-llm-labels stevenleehans/rsna-knee-llm-report-labels lixin73/rsna-knee-llm-report-labels-sol56)
+LABELS=(pilkwang/rsna-knee-llm-labels stevenleehans/rsna-knee-llm-report-labels lixin73/rsna-knee-llm-report-labels-sol56
+        tiankljucanin/rsna-knee-teacher-tables)   # 2026-09-23: selfdistill_v1.csv / raptor_teacher.csv (Task 6 publishes it)
 WEIGHTS=(timm-coatnet-rmlp-1-rw-224 timm-coatnet-rmlp-2-rw-384 convnext-tiny-224-hf)
 
 log() { echo "[$(date +%H:%M:%S)] $*"; }
@@ -57,7 +61,7 @@ setup)
   done
   ( cd "$IN/competitions/$COMP" && for z in *.zip; do [ -f "$z" ] && unzip -oq "$z" && rm -f "$z"; done; true )
 
-  log "LLM label tables"
+  log "LLM label tables + teacher tables"
   for d in "${LABELS[@]}"; do
     slug="${d#*/}"; [ -d "$IN/$slug" ] && continue
     kaggle datasets download -d "$d" -p "$IN/$slug" --unzip
@@ -80,19 +84,26 @@ setup)
   ;;
 
 train)
-  [ -n "$ARM" ] || { echo "usage: $0 train <arm>  (v08w | v09h | v10c)"; exit 1; }
+  [ -n "$ARM" ] || { echo "usage: $0 train <arm>  (v09e | v09f | v09s | v09h | v08w | v10c ...)"; exit 1; }
   cd "$REPO"
   # Real run of ONE arm: the same sed the Kaggle real-run push uses (FORCE_SMOKE False, MODE
   # train); the arm is selected by RSNA_ARM inside the pipeline (ARMS or ARM_V10C), the session
   # guard is lifted to a long fold, and the loader gets RSNA_WORKERS workers. A crash-and-resume
   # works as on Kaggle: {arm}_fold0_last.pt in $WORK is picked up by the next run.
+  # RSNA_TEACHER_TABLES (e.g. '("selfdistill_v1",)') is sed'd into TEACHER_TABLES; unset keeps ().
+  # One sed'd copy per arm, so two arms can train on two GPUs at once without overwriting each other.
   mkdir -p artifacts
+  TEACHER="${RSNA_TEACHER_TABLES:-}"
   sed -e 's/^FORCE_SMOKE = True/FORCE_SMOKE = False/' -e 's/^MODE = "auto"/MODE = "train"/' \
-      src/kaggle_pipeline.py > artifacts/runpod_train.py
+      -e "s/^TEACHER_TABLES = ()/TEACHER_TABLES = ${TEACHER:-()}/" \
+      src/kaggle_pipeline.py > "artifacts/runpod_train_${ARM}.py"
+  log "TEACHER_TABLES in the copy: $(grep -m1 '^TEACHER_TABLES = ' "artifacts/runpod_train_${ARM}.py")"
   export RSNA_ARM="$ARM" RSNA_TRAIN_ONLY=1 RSNA_WORKERS="${RSNA_WORKERS:-8}" \
          RSNA_RUNTIME_H="${RSNA_RUNTIME_H:-40}" PYTHONUTF8=1 PYTHONPATH=src
   log "training $ARM (log -> $WORK/train_$ARM.log); resume = re-run this command"
-  python artifacts/runpod_train.py 2>&1 | tee "$WORK/train_$ARM.log"
+  ulimit -n "$(ulimit -Hn)" 2>/dev/null || true   # the container's 1024 fd limit killed a RSNA_WORKERS=8 run (traps 29)
+  export PYTHONUNBUFFERED=1                        # so tee shows progress as it happens
+  python "artifacts/runpod_train_${ARM}.py" 2>&1 | tee "$WORK/train_$ARM.log"
   ;;
 
 ship)

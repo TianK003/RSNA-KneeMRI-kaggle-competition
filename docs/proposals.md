@@ -88,6 +88,9 @@ result*, per unit of cost. "Depends on" lists hard blockers only.
 | P-33 | **Light train-time augmentation** (per-window affine rot ±8° / zoom-in 1.00–1.08 / shift ±5 %, gamma 0.8–1.25, gain ±10 %; no flips) | 🔁 **measured 2026-09-23 → experiments.md "S1 A/B on both T4s"**: `v09c` **0.8730** = +0.0039 over `v09b` (augmentation alone, 0.5× the floor, 8/12 up), +0.0047 over `v09h`; into the S2 `v09a` (same-direction rule); round 2 = `aug="light"` on the DINOv2 arm | **medium** — every public training recipe has it, ours has Gaussian noise only; P-29's over-fit signature | ≈ 3 h T4 (beside `v09b`) | P-32 (its control), P-31 |
 | P-34 | **CoAtNet backbone LR 3e-5 instead of 1e-4** (`v09d` = the `v09c` recipe with the public 0.928 member's backbone LR) | ⏳ **running — `rsna-knee-folds` v8 (pushed 2026-09-23 12:45 on Tian's go, ≈ 3.3 h, both T4s)**; smoke v7 green — arm `v09d` in `ARMS`; the last never-A/B'd recipe difference to the public CoAtNet (OneCycle 3e-5 / 1e-3); runs in `rsna-knee-folds` beside `v08c` (P-31), ≈ 3.3 h | **medium** — the P-32 "if it fails" branch; a hybrid's pretrained features may be over-written at 1e-4 (loss falls faster than OOF rises, P-29) | ≈ 3 h T4 (beside `v08c`) | P-32 / P-33 (`v09c` is the control), P-31 |
 | P-35 | **Light augmentation on the DINOv2 arm** (`v08c` = the `v08w` recipe + `aug="light"`) | ⏳ **running — `rsna-knee-folds` v8 (pushed 2026-09-23 12:45 on Tian's go, ≈ 3.3 h, both T4s)**; smoke v7 green — arm `v08c` in `ARMS`; the P-33 "if it works" branch on the second family; control `v08w` 0.8648 | **medium** — P-33 read +0.004 on the CoAtNet (🔁); the public DINO members train with the same rot ±8° / scale / shift / intensity recipe | ≈ 1.5 h T4 (beside `v09d`) | P-33, P-25 / P-26, P-31 |
+| P-36 | **CoAtNet at the public schedule: 16 epochs × backbone LR 3e-5** (`v09e` = the `v09c` recipe + `epochs 16`, `lr_backbone 3e-5`) | 🔧 implemented, effect pending — runs on the RunPod 4090 (Task 10); arm `v09e` in `ARMS`, local smoke green; dropped if P-34 (`v09d`, 3e-5 at 8 epochs) reads harmful (< 0.865) | **medium** — P-29's over-training was measured at 1e-4; the public 0.924 member trains 16 epochs at 3e-5, a pair never run together here | ≈ 1.7 h 4090 | P-32 / P-33 (`v09c`), P-34, P-31 / P-24 |
+| P-37 | **Per-label `pos_weight` [1, 10] in the BCE** (`v09f` = the `v09c` recipe + `pos_weight_max 10`: `clip((1 − p) / p, 1, 10)`, `p` = positive rate of the training targets at 0.5) | 🔧 implemented, effect pending — runs on the RunPod 4090 (Task 10); `Config.pos_weight_max` (0 = off, byte-identical), arm `v09f` in `ARMS`, local smoke green | **low-medium** — the public 0.924 member's loss; re-opens a "rejected without testing" row as a *training-dynamics* A/B (the rejection reasoned about calibration) | ≈ 1 h 4090 | P-32 / P-33 (`v09c`), P-31 / P-24 |
+| P-38 | **Self-distillation targets** (`v09s` = the `v09c` recipe on `TEACHER_TABLES=("selfdistill_v1",)`, mix 0.5: our own 5-fold OOF, quantile-matched onto the LLM blend) | 🔧 implemented, effect pending — runs on the RunPod 4090 (Task 10); arm `v09s` in `ARMS` (refuses to run without the table), table in Dataset `rsna-knee-teacher-tables`, local smoke green | **medium** — P-17's round-2 targets, never run; the cheap rehearsal of the Raptor-teacher path (P-39) on the same code | ≈ 1 h 4090 | P-32 / P-33 (`v09c`), P-17, P-31 / P-24 |
 
 ---
 
@@ -1025,6 +1028,81 @@ If it works:  `aug="light"` joins the DINOv2 PROD recipe (`v08a` retrain) and bo
 If it fails:  augmentation is a no-op for this data at this label noise; `aug` stays out of `v08a`, and P-33's CoAtNet 🔁 reads as noise.
 Depends on:   P-33 (the `aug` code path), P-25 / P-26 (c02 window recipe), P-31.
 
+### P-36 CoAtNet at the public schedule: 16 epochs × backbone LR 3e-5 (`v09e`)
+Status:       🔧 implemented, effect pending — runs on the RunPod 4090 (Task 10). Arm `v09e` in `ARMS` = the `v09c` recipe (CoAtNet-1
+@224, c02, window_attn, 24 random train windows, `best_oof`, `batch_studies=2, grad_accum=2, aug="light"`) with `epochs=16` and
+`lr_backbone=3e-5` (head LR 1e-3, LLRD 0.75, cosine + 10 % warm-up unchanged). Local CPU smoke green 2026-09-23 (banner
+`'lr_backbone': 3e-05 … 'epochs': 16`; smoke clamps to 1 epoch). Dropped before it runs if P-34 (`v09d`, 3e-5 at 8 epochs) reads
+harmful (< 0.865). Spec: docs/superpowers/specs/2026-09-23-member-strength-design.md §3.
+Hypothesis:   the fold-0 OOF-vs-teacher of the c02 CoAtNet member rises by ≥ 0.008 over `v09c` (0.8730) on the public member's full
+schedule — 16 epochs at a backbone LR of 3e-5 — because P-29's over-training past epoch 8 was measured at 1e-4; at a third of the
+LR the extra epochs may be training budget rather than over-fit.
+Origin:       the public 0.924 CoAtNet member trains 16 epochs, OneCycle 3e-5 (backbone) / 1e-3 (head) (experiments.md 2026-09-21
+"The 0.924 member's training recipe"); P-29 and P-34 each changed one of the two, never both.
+Evidence:     for: P-29 (`v09p`, 16 ep at 1e-4) peaked at 0.8731 at epoch 8 and ended at 0.8607 — the over-fit is measured *at 1e-4*;
+the public member (CoAtNet-2 @384) reaches 0.924 solo on this schedule. Against: P-34 reads 3e-5 alone at 8 epochs first — if it is ≈ 0 there,
+the doubled budget has to carry the whole effect; our schedule is cosine, theirs OneCycle; one seed.
+Measure:      `v09e_fold0_oof.csv` (best_oof epoch) → macro OOF-vs-teacher on the 882 fold-0 studies (S1 per-label script pattern,
+`hard = y__ > 0.5`) vs `v09c` 0.8730; per-label table; the per-epoch curve (peak epoch, and the epoch-15 value a PROD
+`ckpt_policy="last"` would ship).
+Noise floor:  0.008 macro (per label 0.03). **≥ 0.881 = ✅ KEEP; 0.865–0.881 = 🔁; < 0.865 = harmful.** Support: ≥ 9/12 labels up.
+`best_oof` chooses among 16 epochs here vs 8 for `v09c` — slightly more selection optimism, so read the curve, not only the peak.
+Cost:         ≈ 1.7 h of the RunPod 4090 (≈ 50 min per 8-epoch CoAtNet-1 fold-0 arm, measured for `v09h`, × 2); 2 config lines;
+0 submissions.
+If it works:  `epochs=16, lr_backbone=3e-5` joins the CoAtNet PROD recipe (a `v09a` retrain — only if the last-epoch value agrees,
+since PROD ships the SWA tail, not the peak).
+If it fails:  the LR / schedule is not the gap to the public member; PROD keeps 8 epochs (P-29) at P-34's verdict LR.
+Depends on:   P-32 / P-33 (`v09c` = the control, same code path), P-34 (read first; harmful → `v09e` dropped), P-31 / P-24 (the pod).
+
+### P-37 Per-label `pos_weight` [1, 10] in the BCE (`v09f`)
+Status:       🔧 implemented, effect pending — runs on the RunPod 4090 (Task 10). `Config.pos_weight_max` (0 = off, byte-identical loss):
+per-label `pos_weight = clip((1 − p) / p, 1, pos_weight_max)`, `p` = the positive rate of the training targets (`yt` if present,
+else `y`) at the 0.5 cut over the loader's own training studies, computed once per fold and passed to
+`F.binary_cross_entropy_with_logits` in `weighted_bce`. Arm `v09f` in `ARMS` = the `v09c` recipe + `pos_weight_max=10`. Local CPU
+smoke green 2026-09-23 (`pos_weight [1, 10]: ACL …`, finite).
+Hypothesis:   up-weighting the positive term to ≈ (1 − p) / p lifts fold-0 OOF by ≥ 0.008 over `v09c` (0.8730), mostly on the rare
+labels (gold prevalence MCL 16 %, Lateral OA 19 %, Baker's 21 %): with soft, noisy targets and few positives the negatives dominate
+the gradient, and macro AUC weighs every label equally.
+Origin:       the public 0.924 CoAtNet member's loss, BCE with `pos_weight` (1 − p) / p ∈ [1, 10] (experiments.md 2026-09-21 "The 0.924
+member's training recipe"); spec §3.
+Evidence:     for: the public member's recipe, never measured here; it changes the gradient balance during training, which the
+"Rejected without testing" row (AUC reads rank order, so calibration is worthless) does not speak to. Against: research.md §2.5
+lists `pos_weight` under "what does NOT work"; a per-label rescale of the positive term on soft targets largely moves the logit
+offset, which AUC ignores; the `decisive` confidence weights (floor 0.15) already re-weight rows; one seed.
+Measure:      `v09f_fold0_oof.csv` (best_oof epoch) → macro OOF-vs-teacher on the 882 fold-0 studies vs `v09c` 0.8730; per-label
+table — a real effect should show on the rare labels, not scatter.
+Noise floor:  0.008 macro (per label 0.03). **≥ 0.881 = ✅ KEEP; 0.865–0.881 = 🔁; < 0.865 = harmful.** Support: ≥ 9/12 labels up.
+Cost:         ≈ 1 h of the RunPod 4090; one `Config` field + one `weighted_bce` argument (done); 0 submissions.
+If it works:  `pos_weight_max=10` joins the CoAtNet PROD recipe.
+If it fails:  `pos_weight` stays 0 and the "Rejected without testing" row is confirmed by measurement.
+Depends on:   P-32 / P-33 (`v09c` = the control, same code path), P-31 / P-24 (the pod).
+
+### P-38 Self-distillation targets from our own out-of-fold predictions (`v09s`)
+Status:       🔧 implemented, effect pending — runs on the RunPod 4090 (Task 10). Arm `v09s` in `ARMS` = the `v09c` recipe, run with
+`TEACHER_TABLES = ("selfdistill_v1",)` sed'd into the copy (`RSNA_TEACHER_TABLES='("selfdistill_v1",)' bash
+scripts/runpod_bootstrap.sh train v09s`); the arm dict cannot carry it (targets are built once per session), so the config cell
+refuses to run `v09s` (ARM_ONLY, RSNA_ARM or PARALLEL_ARMS) without a teacher table. The table `selfdistill_v1.csv`
+(`src/build_distill_table.py`) = per-label rank-mean of the two complete 5-fold OOF sets (`v09h` pooled 0.8625, `v05g` 0.8467;
+4,407 studies, every prediction out-of-fold), published in the private Dataset `tiankljucanin/rsna-knee-teacher-tables`. Training
+targets `yt = 0.5 · LLM + 0.5 · quantile-matched table` on report-only rows; gold rows stay hard; `y` (evaluation) stays the LLM
+teacher. Local CPU smoke green 2026-09-23 (`teacher table selfdistill_v1: 4407 studies …`, `training targets = …`).
+Hypothesis:   the `v09c` recipe trained on the mixed targets lifts fold-0 OOF-vs-(unchanged)-teacher by ≥ 0.008 over `v09c` 0.8730:
+the image model's out-of-fold predictions disagree with the reports where the reports mislead, so the mix denoises the targets.
+Origin:       P-17's round-2 targets (0.5 teacher + 0.5 rank-normalised round-1 OOF), never run; pseudo-label relabelling was
+load-bearing for prior competition winners (P-17 evidence); spec §2–§3.
+Evidence:     for: the teacher-mixing code (quantile matching, `yt` vs `y`) exists and is unit-checked; the table alone reads gold-58
+0.8733 (direction only) with a different error pattern from the LLM blend (0.8948). Against: a ≈ 0.86-OOF teacher is weaker than
+the reports on gold; the measure scores agreement with the *LLM* teacher, so a student that learns to disagree with wrong reports
+reads lower, not higher (only gold is a clean read, and fold 0 holds ≈ 11 gold studies); the fold-1…4 models behind the table saw fold 0's targets, so the
+training rows' targets carry a little fold-0 information — read a gain near the floor as optimistic; one seed.
+Measure:      `v09s_fold0_oof.csv` (best_oof epoch) → macro OOF-vs-teacher on the 882 fold-0 studies vs `v09c` 0.8730; per-label
+table; the run's fold-0 gold line (n ≈ 11) as direction only.
+Noise floor:  0.008 macro (per label 0.03). **≥ 0.881 = ✅ KEEP; 0.865–0.881 = 🔁; < 0.865 = harmful.** Support: ≥ 9/12 labels up.
+Cost:         ≈ 1 h of the RunPod 4090; the table and the mixing code exist; 0 submissions.
+If it works:  self-distilled targets join the CoAtNet PROD recipe (the table is rebuilt from the new members for a later round).
+If it fails:  self-distillation from a 0.86-OOF teacher does not denoise — wait for the Raptor teacher (P-39).
+Depends on:   P-32 / P-33 (`v09c` = the control, same code path), P-17, P-31 / P-24 (the pod).
+
 ## Rejected without testing
 
 Merged from brainstorm.md and research.md §5; one line each. Do not resurrect without a new reason.
@@ -1035,7 +1113,7 @@ Merged from brainstorm.md and research.md §5; one line each. Do not resurrect w
 | Horizontal flip — **both variants** (with or without medial↔lateral swap) | undoes laterality normalisation; the swap is anatomically wrong (MCL has no lateral counterpart); P-05 does *not* make it legal | [pilkwang], traps.md, critic item 23 |
 | Vertical flip; zoom-out with padding | off-distribution; fabricated tissue | [pilkwang], [Guo et al.] |
 | Geometric TTA | degraded 11/12 medical pairs; flips hurt knee OA | [2604.09697], [2311.06118] |
-| Calibration, Platt scaling, thresholds, `pos_weight`, label smoothing on soft targets | AUC reads rank order only | metric arithmetic, brainstorm.md |
+| Calibration, Platt scaling, thresholds, label smoothing on soft targets | AUC reads rank order only; `pos_weight` re-opened as a *training-dynamics* A/B (P-37, 2026-09-23) | metric arithmetic, brainstorm.md |
 | Averaging probabilities across folds/models | most confident model dominates; rank-mean instead | brainstorm.md |
 | Full fine-tuning or best-epoch selection on 58 gold (~12/fold); a gold fine-tuning stage | SE 0.09, coin flip, our NaN-fold bug; gold role resolved as validation + weight arm | experiments.md, [Andre et al.], critic 25 |
 | Forking the public 0.95 ensemble; tuning on public LB | author-labelled overfit; 0.001–0.003 movements; the 0.936 notebook's gold-58-tuned per-label weights + "clinical residual" are worth **+0.001** over its untuned 0.935 (read in full 2026-08-30) | mattiaangeli (not re-read), `crazy_good_rsna.ipynb` (research.md §2.7.1), CLAUDE.md |
