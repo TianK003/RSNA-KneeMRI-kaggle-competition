@@ -233,6 +233,13 @@ ARMS = [
     # (experiments.md 2026-09-23 "S1 A/B"). Training-only knobs: neither reaches inference (not INFER_MEMBER_KEYS).
     ("v09a", {**PROD, "backbone": "timm:coatnet_rmlp_1_rw_224", "img_size": 224, "lr_backbone": 1e-4,
               "batch_studies": 2, "grad_accum": 2, "aug": "light"}),
+    # 2026-09-23 (P-38 in production): the v09a recipe trained on the SELF-DISTILLED targets -- run with
+    # TEACHER_TABLES=("selfdistill_v1",) sed'd in beside ARM_ONLY = "v09t" (the fold-0 probe v09s read +0.0109, 12/12 labels
+    # up, on the same table). Its own version name so nothing collides with the S2 v09a (Dataset rsna-knee-ckpt-v09a, a
+    # _last.pt resume, the fork's member slot). Read SOLO vs #18 (0.918): >= 0.923 KEEP / 0.919-0.922 INCONCLUSIVE / < 0.918
+    # harmful (experiments.md 2026-09-23 "Submission #18").
+    ("v09t", {**PROD, "backbone": "timm:coatnet_rmlp_1_rw_224", "img_size": 224, "lr_backbone": 1e-4,
+              "batch_studies": 2, "grad_accum": 2, "aug": "light"}),
     ("v08a", {**PROD, "backbone": "dinov2", "img_size": 224}),
 ]
 # Shipped fold-0 / 5-fold members (Datasets rsna-knee-ckpt-*) and finished probes: selectable through ARM_ONLY /
@@ -360,12 +367,14 @@ TEACHER_PATHS = {
     "selfdistill_v1": ["/kaggle/input/rsna-knee-teacher-tables/selfdistill_v1.csv", "artifacts/teacher/selfdistill_v1.csv"],
     "raptor_teacher": ["/kaggle/input/rsna-knee-teacher-tables/raptor_teacher.csv", "artifacts/teacher/raptor_teacher.csv"],
 }
-# P-38: `v09s` is the self-distillation arm only when its targets are distilled, and the arm dict cannot carry
-# TEACHER_TABLES (targets are built once per session) -- never train it on the plain teacher under its name.
-# ARM_ONLY / RSNA_ARM cover a single-arm kernel, a resume and the RunPod runner (RSNA_ARM also reaches the P-31
-# children); PARALLEL_ARMS stops the parent before it spawns them.
-if (ARM_ONLY == "v09s" or os.environ.get("RSNA_ARM") == "v09s" or "v09s" in PARALLEL_ARMS) and not TEACHER_TABLES:
-    raise SystemExit("v09s is the self-distillation arm: sed TEACHER_TABLES = (\"selfdistill_v1\",) into the copy you run")
+# P-38: a distilled arm (`v09s` = the fold-0 probe, `v09t` = the production member) is what its name says only when its
+# targets are distilled, and the arm dict cannot carry TEACHER_TABLES (targets are built once per session) -- never train
+# one on the plain teacher under its name. ARM_ONLY / RSNA_ARM cover a single-arm kernel, a resume and the RunPod runner
+# (RSNA_ARM also reaches the P-31 children); PARALLEL_ARMS stops the parent before it spawns them.
+DISTILLED_ARMS = ("v09s", "v09t")
+_distilled = [a for a in (ARM_ONLY, os.environ.get("RSNA_ARM", ""), *PARALLEL_ARMS) if a in DISTILLED_ARMS]
+if _distilled and not TEACHER_TABLES:
+    raise SystemExit(f"{_distilled[0]} is a distilled arm: sed TEACHER_TABLES = (\"selfdistill_v1\",) into the copy you run")
 
 
 @dataclass
