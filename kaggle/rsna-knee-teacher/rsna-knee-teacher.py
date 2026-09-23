@@ -35,26 +35,50 @@ def chunk_study_ids(train_csv, shard, n_shards, limit):
     ids = ids[shard::n_shards]
     return ids[:limit] if limit > 0 else ids
 
-def done_uids(input_root="/kaggle/input", skip_tops=("rsna-knee-abnormality-detection", "competitions")):
-    """Resume: UIDs already complete (all four views finite) in any mounted teacher npz -- a previous,
-    guard-stopped run of this shard mounted through kernel_sources. The competition tree is never walked."""
-    import numpy as np
+_SKIP_TOPS = ("rsna-knee-abnormality-detection", "competitions")
+
+def _teacher_npz_paths(input_root="/kaggle/input", skip_tops=_SKIP_TOPS):
+    """Every mounted teacher npz (shard outputs and 5-minute partials) outside the competition tree."""
     from pathlib import Path
-    root, done, paths = Path(input_root), set(), []
+    root, paths = Path(input_root), []
     for top in (sorted(root.iterdir()) if root.is_dir() else []):
         if top.name in skip_tops or not top.is_dir():
             continue
         paths += sorted(top.glob("**/raptor_teacher_shard*.npz"))[:50] + sorted(top.glob("**/raptor_teacher_partial.npz"))[:50]
-    for p in paths:
+    return paths
+
+def load_prior(input_root="/kaggle/input", skip_tops=_SKIP_TOPS, keep=None):
+    """Resume: the COMPLETE rows (finite in all four views) of every mounted teacher npz -- earlier, guard-stopped
+    runs of this shard, mounted through kernel_sources from a sibling slug (a kernel cannot mount its own output).
+    Deduplicated by UID (first file in sorted order wins); `keep` (a set) restricts them to this shard's UIDs.
+    Returns (uids, raw) with raw shaped (4, M, 12) float32 -- the rows every writer puts first."""
+    import numpy as np
+    uids, rows, seen = [], [], set()
+    for p in _teacher_npz_paths(input_root, skip_tops):
         try:
-            z = np.load(p, allow_pickle=False)
-            fin = np.isfinite(z["raw_probabilities"]).all(axis=(0, 2))
-            done |= set(map(str, z["study_uids"][fin]))
+            with np.load(p, allow_pickle=False) as z:
+                raw = np.asarray(z["raw_probabilities"], np.float32); su = [str(u) for u in z["study_uids"]]
+            if raw.ndim != 3 or raw.shape[0] != 4 or raw.shape[2] != 12 or raw.shape[1] != len(su):
+                raise ValueError(f"raw_probabilities {raw.shape} for {len(su)} study_uids")
+            fin = np.isfinite(raw).all(axis=(0, 2))
         except Exception as e:
             print("  ! unreadable", p, e)
-    return done
+            continue
+        n0 = len(uids)
+        for j, u in enumerate(su):
+            if fin[j] and u not in seen and (keep is None or u in keep):
+                seen.add(u); uids.append(u); rows.append(raw[:, j, :])
+        print(f"  prior {p}: {len(uids) - n0} new complete rows", flush=True)
+    return uids, (np.stack(rows, axis=1) if rows else np.zeros((4, 0, 12), np.float32))
+
+def done_uids(input_root="/kaggle/input", skip_tops=_SKIP_TOPS):
+    """UIDs already complete in any mounted teacher npz."""
+    return set(load_prior(input_root, skip_tops)[0])
+Path("/kaggle/working/raptor_raw.npz").unlink(missing_ok=True)   # the flush guard keys on this file (cell 5)
 ids = chunk_study_ids(f"{COMP_IN}/train.csv", SHARD, N_SHARDS, LIMIT)
-skip = done_uids() & set(ids)
+# Resume: complete rows of earlier runs of this shard (mounted from a sibling slug) are carried into every output.
+_TEACHER_PRIOR_UIDS, _TEACHER_PRIOR_RAW = load_prior(keep=set(ids))
+skip = set(_TEACHER_PRIOR_UIDS)
 ids = [u for u in ids if u not in skip]
 print(f"chunk: shard {SHARD}/{N_SHARDS}, limit {LIMIT} -> {len(ids)} studies ({len(skip)} already done); root {COMP_IN}", flush=True)
 if not ids:
@@ -396,19 +420,40 @@ def _dense_stack(reference, offsets, valid, source_depth):
 # %%
 _RSNA_TEST_IDS = list(ids)        # the cell-16 slice reset it to None
 import threading
+# Their runner saves raptor_raw.npz and THEN neutral-fills failed rows of these same arrays in place (patch (a) makes
+# them _KE_TEACHER_OUTPUTS): once that file exists a snapshot could publish filled rows as complete, so none is taken.
+_TEACHER_RAW_NPZ = "/kaggle/working/raptor_raw.npz"
+def _teacher_combine(run_uids, run_raw):
+    """Prior complete rows first, then this run's rows: (uids, raw (4, N, 12) float32); no UID twice."""
+    uids = list(_TEACHER_PRIOR_UIDS) + [str(u) for u in run_uids]
+    if len(set(uids)) != len(uids):
+        raise RuntimeError("teacher: a UID appears twice across the prior rows and this run")
+    raw = np.concatenate([np.asarray(_TEACHER_PRIOR_RAW, np.float32), np.asarray(run_raw, np.float32)], axis=1)
+    if raw.shape != (4, len(uids), 12):
+        raise RuntimeError(f"teacher: raw_probabilities {raw.shape} for {len(uids)} uids")
+    return uids, raw
 def _teacher_snapshot(path):
+    """Write prior + this run's rows (NaN where not yet predicted); -1 = skipped (raptor_raw.npz exists), else rows complete."""
     outs = globals().get("_KE_TEACHER_OUTPUTS"); ids = globals().get("_KE_TEACHER_IDS")
     if not outs or not ids:
         return 0
-    raw = np.stack(outs)                                  # (4, N, 12), NaN where not yet predicted
-    np.savez_compressed(path, study_uids=np.asarray(ids, dtype=str), raw_probabilities=raw)
+    raw = np.stack(outs)                                  # copy FIRST, then check: absent file => fill not begun at copy
+    if os.path.exists(_TEACHER_RAW_NPZ):
+        return -1
+    uids, raw = _teacher_combine(ids, raw)
+    tmp = path[:-len(".npz")] + ".tmp.npz"
+    np.savez_compressed(tmp, study_uids=np.asarray(uids, dtype=str), raw_probabilities=raw)
+    os.replace(tmp, path)                                 # a reader never sees a half-written partial
     return int(np.isfinite(raw).all(axis=(0, 2)).sum())
 def _teacher_flusher():
     while not globals().get("_TEACHER_DONE"):
         time.sleep(300)
+        if globals().get("_TEACHER_DONE"):
+            break
         try:
             n = _teacher_snapshot("/kaggle/working/raptor_teacher_partial.npz")
-            print(f"[teacher] partial flush: {n} studies complete, {(time.time() - T0) / 3600:.2f} h", flush=True)
+            if n >= 0:
+                print(f"[teacher] partial flush: {n} studies complete, {(time.time() - T0) / 3600:.2f} h", flush=True)
         except Exception as e:
             print("[teacher] flush failed:", e, flush=True)
 threading.Thread(target=_teacher_flusher, daemon=True).start()
@@ -1042,8 +1087,10 @@ _ke_gc.collect()
 
 # %%
 globals()["_TEACHER_DONE"] = True
-raw = np.load("/kaggle/working/raptor_raw.npz", allow_pickle=False)
-probs = raw["raw_probabilities"]; uids = [str(u) for u in raw["study_uids"]]
+with np.load(_TEACHER_RAW_NPZ, allow_pickle=False) as raw:   # saved by their runner BEFORE its neutral fill: NaN = failed
+    run_probs = raw["raw_probabilities"]; run_uids = [str(u) for u in raw["study_uids"]]
+run_ok = np.isfinite(run_probs).all(axis=(0, 2))
+uids, probs = _teacher_combine(run_uids, run_probs)   # prior complete rows first
 names = [a["name"] for a in _KE_NS["ARMS"]]; weights = np.asarray([float(a["w"]) for a in _KE_NS["ARMS"]]); weights /= weights.sum()
 ok = np.isfinite(probs).all(axis=(0, 2))
 mean = np.tensordot(weights, np.clip(np.nan_to_num(probs, nan=0.5), 0, 1), axes=(0, 0))
@@ -1052,9 +1099,11 @@ np.savez_compressed(f"/kaggle/working/raptor_teacher_shard{SHARD}.npz", study_ui
                     checkpoint_sha256=np.asarray([e.get("sha256", "") for e in _RSNA_AUDIT["events"] if e.get("kind") == "raptor_checkpoint"], dtype=str))
 csv = pd.DataFrame(mean[ok], columns=LABELS); csv.insert(0, "StudyInstanceUID", np.asarray(uids)[ok]); csv.to_csv(f"/kaggle/working/raptor_teacher_shard{SHARD}.csv", index=False)
 elapsed = time.time() - T0
-json.dump({"shard": SHARD, "n_shards": N_SHARDS, "limit": LIMIT, "studies": int(ok.sum()), "failed_uids": [u for u, f in zip(uids, ok) if not f],
-           "elapsed_s": elapsed, "sec_per_study": elapsed / max(1, int(ok.sum())), "k_eval": int(RUN["raptor_k_eval"])},
+n_run, n_prior = int(run_ok.sum()), len(_TEACHER_PRIOR_UIDS)
+json.dump({"shard": SHARD, "n_shards": N_SHARDS, "limit": LIMIT, "studies": n_run, "prior_studies": n_prior,
+           "total_studies": int(ok.sum()), "failed_uids": [u for u, f in zip(run_uids, run_ok) if not f],
+           "elapsed_s": elapsed, "sec_per_study": elapsed / max(1, n_run), "k_eval": int(RUN["raptor_k_eval"])},
           open("/kaggle/working/teacher_receipt.json", "w"), indent=1)
-print(f"[teacher] {int(ok.sum())} studies, {elapsed / max(1, int(ok.sum())):.1f} s/study, {len(uids) - int(ok.sum())} failed")
+print(f"[teacher] {n_run} studies this run ({elapsed / max(1, n_run):.1f} s/study, {len(run_uids) - n_run} failed) + {n_prior} prior = {int(ok.sum())} complete")
 for p in (str(CHUNK),):
     shutil.rmtree(p, ignore_errors=True)         # the chunk (and its symlink into train_images) is never an output

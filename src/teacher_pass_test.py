@@ -40,4 +40,76 @@ with tempfile.TemporaryDirectory() as d:
     ipynb = json.load(open(os.path.join(d, "rsna-knee-teacher.ipynb")))
     first = "".join(ipynb["cells"][0]["source"])
     check("SHARD = 1" in first and "N_SHARDS = 4" in first and "LIMIT = 6" in first, "shard constants baked into the notebook")
+
+# --- fix round 1, item 2: sibling slugs for resumes / the second concurrent slot (traps 31)
+with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as d:
+    tp.write_kernel(d, shard=1, n_shards=3, limit=0, slug="tiankljucanin/rsna-knee-teacher-b",
+                    kernel_sources=["tiankljucanin/rsna-knee-teacher"])
+    with open(os.path.join(d, "kernel-metadata.json")) as f:
+        meta = json.load(f)
+    check(meta["id"] == "tiankljucanin/rsna-knee-teacher-b" and meta["kernel_sources"] == ["tiankljucanin/rsna-knee-teacher"]
+          and meta["code_file"] == "rsna-knee-teacher-b.ipynb" and meta["title"] == "RSNA Knee Teacher B"
+          and os.path.isfile(os.path.join(d, "rsna-knee-teacher-b.ipynb")) and meta["machine_shape"] == "NvidiaTeslaT4",
+          "--slug / --kernel-source: sibling id, title, code_file, kernel_sources")
+try:
+    tp.build_metadata("tiankljucanin/rsna-knee-teacher", ["tiankljucanin/rsna-knee-teacher"])
+    check(False, "a kernel mounting its own output is refused")
+except SystemExit:
+    check(True, "a kernel mounting its own output is refused")
+
+# --- fix round 1, items 1 + 3: prior rows accumulate; no flush once raptor_raw.npz exists (their in-place neutral fill)
+import shutil, time  # noqa: E401,E402
+from pathlib import Path  # noqa: E402
+def _npz(p):
+    with np.load(p, allow_pickle=False) as z:
+        return {k: z[k] for k in z.files}
+with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as d:
+    d = d.replace("\\", "/"); work, inp = f"{d}/working", f"{d}/input"
+    for sub in ("working", "input/rsna-knee-teacher", "input/rsna-knee-abnormality-detection"):
+        os.makedirs(f"{d}/{sub}")
+    prior = np.full((4, 3, 12), 0.7, np.float32); prior[1, 2, 0] = np.nan                  # p0, p1 complete; p2 not
+    np.savez_compressed(f"{inp}/rsna-knee-teacher/raptor_teacher_partial.npz", study_uids=np.asarray(["p0", "p1", "p2"]), raw_probabilities=prior)
+    np.savez_compressed(f"{inp}/rsna-knee-abnormality-detection/raptor_teacher_shard0.npz",   # competition tree: never read
+                        study_uids=np.asarray(["c0"]), raw_probabilities=np.zeros((4, 1, 12), np.float32))
+    pns = {}
+    exec(tp.PREAMBLE_FUNCS, pns)
+    pu, pr = pns["load_prior"](inp, keep={"p0", "p1", "p2", "c0", "u9"})
+    check(pu == ["p0", "p1"] and pr.shape == (4, 2, 12) and pns["done_uids"](inp) == {"p0", "p1"},
+          "load_prior: complete rows only, competition tree skipped")
+    cells_ = src.split("\n# %%")
+    ns = dict(np=np, pd=pd, os=os, time=time, json=json, shutil=shutil, T0=time.time() - 60, ids=["u0", "u1", "u2"],
+              SHARD=0, N_SHARDS=1, LIMIT=0, LABELS=tp.LABELS, RUN={"raptor_k_eval": 94}, CHUNK=Path(f"{d}/chunk"),
+              _TEACHER_DONE=True, _TEACHER_PRIOR_UIDS=pu, _TEACHER_PRIOR_RAW=pr)   # DONE: the thread exits at once
+    exec(compile(cells_[4].replace("/kaggle/working", work), "flusher", "exec"), ns)
+    outs = [np.full((3, 12), np.nan, np.float32) for _ in range(4)]
+    for o in outs:
+        o[:2] = 0.2                                                                       # u0, u1 done; u2 failed
+    ns["_KE_TEACHER_OUTPUTS"], ns["_KE_TEACHER_IDS"] = outs, ["u0", "u1", "u2"]
+    part = f"{work}/raptor_teacher_partial.npz"
+    n = ns["_teacher_snapshot"](part); z = _npz(part)
+    check(n == 4 and z["study_uids"].tolist() == ["p0", "p1", "u0", "u1", "u2"] and z["raw_probabilities"].shape == (4, 5, 12),
+          "partial flush: prior complete rows first, then this run's")
+    np.savez_compressed(f"{work}/raptor_raw.npz", study_uids=np.asarray(["u0", "u1", "u2"]), raw_probabilities=np.stack(outs))
+    for o in outs:
+        o[2] = 0.5                                                                        # their neutral fill, in place
+    check(ns["_teacher_snapshot"](part) == -1 and np.isnan(_npz(part)["raw_probabilities"][:, 4]).all(),
+          "no flush once raptor_raw.npz exists: neutral-filled rows are never published")
+    ns["_KE_NS"] = {"ARMS": [{"name": nm, "w": w} for nm, w in (("maxspan-v5", .6), ("native384dense-v10", .1),
+                                                               ("maxspan-v5-reverse", .1), ("native384-v8", .2))]}
+    ns["_RSNA_AUDIT"] = {"events": [{"kind": "raptor_checkpoint", "sha256": s} for s in "abc"]}
+    exec(compile(cells_[6].replace("/kaggle/working", work), "final", "exec"), ns)
+    z = _npz(f"{work}/raptor_teacher_shard0.npz"); csv = pd.read_csv(f"{work}/raptor_teacher_shard0.csv", dtype={"StudyInstanceUID": str})
+    with open(f"{work}/teacher_receipt.json") as f:
+        rc = json.load(f)
+    check(z["study_uids"].tolist() == ["p0", "p1", "u0", "u1", "u2"] and z["raw_probabilities"].shape == (4, 5, 12)
+          and np.isnan(z["raw_probabilities"][:, 4]).all() and np.allclose(z["raw_probabilities"][:, :2], 0.7)
+          and csv.StudyInstanceUID.tolist() == ["p0", "p1", "u0", "u1"] and len(z["checkpoint_sha256"]) == 3,
+          "final shard npz / csv: prior rows + this run's, the failed study stays NaN and out of the csv")
+    check(rc["studies"] == 2 and rc["prior_studies"] == 2 and rc["total_studies"] == 4 and rc["failed_uids"] == ["u2"],
+          "receipt: this run's studies counted apart from prior_studies")
+    ns["_TEACHER_PRIOR_UIDS"] = ["u0"]; ns["_TEACHER_PRIOR_RAW"] = np.zeros((4, 1, 12), np.float32)
+    try:
+        ns["_teacher_combine"](["u0"], np.zeros((4, 1, 12), np.float32)); check(False, "a UID twice is refused")
+    except RuntimeError:
+        check(True, "a UID twice across prior and this run is refused")
 print("\n" + ("TEACHER PASS CHECKS PASSED" if not fails else f"TEACHER PASS CHECKS FAILED ({len(fails)})")); sys.exit(1 if fails else 0)

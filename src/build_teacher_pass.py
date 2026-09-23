@@ -27,6 +27,14 @@ Deterministic: the same notebook gives byte-identical files (`--check`).
     .venv/Scripts/python.exe src/build_teacher_pass.py --limit 100            # the timing spike
     .venv/Scripts/python.exe src/build_teacher_pass.py --shard 1 --n-shards 3 # one production chunk
     .venv/Scripts/python.exe src/build_teacher_pass.py --limit 6 --check      # rebuild in memory, diff vs disk
+    # the second concurrent slot / a resume: a SIBLING slug (a kernel cannot mount its own output, traps 31)
+    .venv/Scripts/python.exe src/build_teacher_pass.py --slug tiankljucanin/rsna-knee-teacher-b \
+        --shard 1 --n-shards 3 --kernel-source tiankljucanin/rsna-knee-teacher     # -> kaggle/rsna-knee-teacher-b/
+
+Resume: the preamble loads the COMPLETE rows (finite in all four views) of every mounted teacher npz (shard outputs and
+partials, competition tree never walked), restricted to this shard, skips those studies, and puts them FIRST in the
+partial flush and in the final shard npz / csv -- so each resume's outputs hold every row so far, and the next sibling
+needs to mount only the latest run.
 """
 import argparse
 import difflib
@@ -40,11 +48,7 @@ sys.path.insert(0, os.path.join(ROOT, "src"))
 import nbgen  # noqa: E402
 
 NOTEBOOK = "notebook_score_0.942.ipynb"
-OUT_DIR = os.path.join("kaggle", "rsna-knee-teacher")
 KERNEL_ID = "tiankljucanin/rsna-knee-teacher"
-KERNEL_TITLE = "RSNA Knee Teacher"
-CODE_FILE = "rsna-knee-teacher.ipynb"
-PY_FILE = "rsna-knee-teacher.py"
 COMPETITION = "rsna-knee-abnormality-detection"
 DATASETS = ["dreaddevelopment/raptor-knee-maxspan", "dreaddevelopment/raptor-knee-native384",
             "dreaddevelopment/raptor-knee-native384dense"]
@@ -90,7 +94,7 @@ def patch_once(text, old, new, label):
 
 
 # ------------------------------------------------------------------------------------------------ cell 1 (ours)
-# The two functions the test execs on the real train.csv. `done_uids` searches every mounted input EXCEPT the
+# The functions the test execs (chunking on the real train.csv; resume on fake npz files). `load_prior` searches every mounted input EXCEPT the
 # competition tree (a `**` glob over /kaggle/input would walk ~819k training DICOMs before finding nothing).
 PREAMBLE_FUNCS = '''LABELS = ["ACL", "MCL", "Medial Meniscus", "Lateral Meniscus", "Medial OA", "Lateral OA", "PF OA",
           "Effusion", "Synovitis", "Baker's", "Contusion", "Fracture"]
@@ -107,24 +111,45 @@ def chunk_study_ids(train_csv, shard, n_shards, limit):
     ids = ids[shard::n_shards]
     return ids[:limit] if limit > 0 else ids
 
-def done_uids(input_root="/kaggle/input", skip_tops=("rsna-knee-abnormality-detection", "competitions")):
-    """Resume: UIDs already complete (all four views finite) in any mounted teacher npz -- a previous,
-    guard-stopped run of this shard mounted through kernel_sources. The competition tree is never walked."""
-    import numpy as np
+_SKIP_TOPS = ("rsna-knee-abnormality-detection", "competitions")
+
+def _teacher_npz_paths(input_root="/kaggle/input", skip_tops=_SKIP_TOPS):
+    """Every mounted teacher npz (shard outputs and 5-minute partials) outside the competition tree."""
     from pathlib import Path
-    root, done, paths = Path(input_root), set(), []
+    root, paths = Path(input_root), []
     for top in (sorted(root.iterdir()) if root.is_dir() else []):
         if top.name in skip_tops or not top.is_dir():
             continue
         paths += sorted(top.glob("**/raptor_teacher_shard*.npz"))[:50] + sorted(top.glob("**/raptor_teacher_partial.npz"))[:50]
-    for p in paths:
+    return paths
+
+def load_prior(input_root="/kaggle/input", skip_tops=_SKIP_TOPS, keep=None):
+    """Resume: the COMPLETE rows (finite in all four views) of every mounted teacher npz -- earlier, guard-stopped
+    runs of this shard, mounted through kernel_sources from a sibling slug (a kernel cannot mount its own output).
+    Deduplicated by UID (first file in sorted order wins); `keep` (a set) restricts them to this shard's UIDs.
+    Returns (uids, raw) with raw shaped (4, M, 12) float32 -- the rows every writer puts first."""
+    import numpy as np
+    uids, rows, seen = [], [], set()
+    for p in _teacher_npz_paths(input_root, skip_tops):
         try:
-            z = np.load(p, allow_pickle=False)
-            fin = np.isfinite(z["raw_probabilities"]).all(axis=(0, 2))
-            done |= set(map(str, z["study_uids"][fin]))
+            with np.load(p, allow_pickle=False) as z:
+                raw = np.asarray(z["raw_probabilities"], np.float32); su = [str(u) for u in z["study_uids"]]
+            if raw.ndim != 3 or raw.shape[0] != 4 or raw.shape[2] != 12 or raw.shape[1] != len(su):
+                raise ValueError(f"raw_probabilities {raw.shape} for {len(su)} study_uids")
+            fin = np.isfinite(raw).all(axis=(0, 2))
         except Exception as e:
             print("  ! unreadable", p, e)
-    return done
+            continue
+        n0 = len(uids)
+        for j, u in enumerate(su):
+            if fin[j] and u not in seen and (keep is None or u in keep):
+                seen.add(u); uids.append(u); rows.append(raw[:, j, :])
+        print(f"  prior {p}: {len(uids) - n0} new complete rows", flush=True)
+    return uids, (np.stack(rows, axis=1) if rows else np.zeros((4, 0, 12), np.float32))
+
+def done_uids(input_root="/kaggle/input", skip_tops=_SKIP_TOPS):
+    """UIDs already complete in any mounted teacher npz."""
+    return set(load_prior(input_root, skip_tops)[0])
 '''
 
 PREAMBLE_TEMPLATE = '''# %%
@@ -150,8 +175,11 @@ CHUNK = Path("/tmp/rsna_teacher_chunk"); CHUNK.mkdir(parents=True, exist_ok=True
 Path("/kaggle/working/diagnostics").mkdir(parents=True, exist_ok=True)   # their per-study input audit appends here
 
 __PREAMBLE_FUNCS__
+Path("/kaggle/working/raptor_raw.npz").unlink(missing_ok=True)   # the flush guard keys on this file (cell 5)
 ids = chunk_study_ids(f"{COMP_IN}/train.csv", SHARD, N_SHARDS, LIMIT)
-skip = done_uids() & set(ids)
+# Resume: complete rows of earlier runs of this shard (mounted from a sibling slug) are carried into every output.
+_TEACHER_PRIOR_UIDS, _TEACHER_PRIOR_RAW = load_prior(keep=set(ids))
+skip = set(_TEACHER_PRIOR_UIDS)
 ids = [u for u in ids if u not in skip]
 print(f"chunk: shard {SHARD}/{N_SHARDS}, limit {LIMIT} -> {len(ids)} studies ({len(skip)} already done); root {COMP_IN}", flush=True)
 if not ids:
@@ -173,19 +201,40 @@ _RSNA_TEST_IDS = list(ids)
 FLUSHER_CELL = '''# %%
 _RSNA_TEST_IDS = list(ids)        # the cell-16 slice reset it to None
 import threading
+# Their runner saves raptor_raw.npz and THEN neutral-fills failed rows of these same arrays in place (patch (a) makes
+# them _KE_TEACHER_OUTPUTS): once that file exists a snapshot could publish filled rows as complete, so none is taken.
+_TEACHER_RAW_NPZ = "/kaggle/working/raptor_raw.npz"
+def _teacher_combine(run_uids, run_raw):
+    """Prior complete rows first, then this run's rows: (uids, raw (4, N, 12) float32); no UID twice."""
+    uids = list(_TEACHER_PRIOR_UIDS) + [str(u) for u in run_uids]
+    if len(set(uids)) != len(uids):
+        raise RuntimeError("teacher: a UID appears twice across the prior rows and this run")
+    raw = np.concatenate([np.asarray(_TEACHER_PRIOR_RAW, np.float32), np.asarray(run_raw, np.float32)], axis=1)
+    if raw.shape != (4, len(uids), 12):
+        raise RuntimeError(f"teacher: raw_probabilities {raw.shape} for {len(uids)} uids")
+    return uids, raw
 def _teacher_snapshot(path):
+    """Write prior + this run's rows (NaN where not yet predicted); -1 = skipped (raptor_raw.npz exists), else rows complete."""
     outs = globals().get("_KE_TEACHER_OUTPUTS"); ids = globals().get("_KE_TEACHER_IDS")
     if not outs or not ids:
         return 0
-    raw = np.stack(outs)                                  # (4, N, 12), NaN where not yet predicted
-    np.savez_compressed(path, study_uids=np.asarray(ids, dtype=str), raw_probabilities=raw)
+    raw = np.stack(outs)                                  # copy FIRST, then check: absent file => fill not begun at copy
+    if os.path.exists(_TEACHER_RAW_NPZ):
+        return -1
+    uids, raw = _teacher_combine(ids, raw)
+    tmp = path[:-len(".npz")] + ".tmp.npz"
+    np.savez_compressed(tmp, study_uids=np.asarray(uids, dtype=str), raw_probabilities=raw)
+    os.replace(tmp, path)                                 # a reader never sees a half-written partial
     return int(np.isfinite(raw).all(axis=(0, 2)).sum())
 def _teacher_flusher():
     while not globals().get("_TEACHER_DONE"):
         time.sleep(300)
+        if globals().get("_TEACHER_DONE"):
+            break
         try:
             n = _teacher_snapshot("/kaggle/working/raptor_teacher_partial.npz")
-            print(f"[teacher] partial flush: {n} studies complete, {(time.time() - T0) / 3600:.2f} h", flush=True)
+            if n >= 0:
+                print(f"[teacher] partial flush: {n} studies complete, {(time.time() - T0) / 3600:.2f} h", flush=True)
         except Exception as e:
             print("[teacher] flush failed:", e, flush=True)
 threading.Thread(target=_teacher_flusher, daemon=True).start()
@@ -194,8 +243,10 @@ threading.Thread(target=_teacher_flusher, daemon=True).start()
 # ------------------------------------------------------------------------------------------------ cell 7 (ours)
 FINAL_CELL = '''# %%
 globals()["_TEACHER_DONE"] = True
-raw = np.load("/kaggle/working/raptor_raw.npz", allow_pickle=False)
-probs = raw["raw_probabilities"]; uids = [str(u) for u in raw["study_uids"]]
+with np.load(_TEACHER_RAW_NPZ, allow_pickle=False) as raw:   # saved by their runner BEFORE its neutral fill: NaN = failed
+    run_probs = raw["raw_probabilities"]; run_uids = [str(u) for u in raw["study_uids"]]
+run_ok = np.isfinite(run_probs).all(axis=(0, 2))
+uids, probs = _teacher_combine(run_uids, run_probs)   # prior complete rows first
 names = [a["name"] for a in _KE_NS["ARMS"]]; weights = np.asarray([float(a["w"]) for a in _KE_NS["ARMS"]]); weights /= weights.sum()
 ok = np.isfinite(probs).all(axis=(0, 2))
 mean = np.tensordot(weights, np.clip(np.nan_to_num(probs, nan=0.5), 0, 1), axes=(0, 0))
@@ -204,10 +255,12 @@ np.savez_compressed(f"/kaggle/working/raptor_teacher_shard{SHARD}.npz", study_ui
                     checkpoint_sha256=np.asarray([e.get("sha256", "") for e in _RSNA_AUDIT["events"] if e.get("kind") == "raptor_checkpoint"], dtype=str))
 csv = pd.DataFrame(mean[ok], columns=LABELS); csv.insert(0, "StudyInstanceUID", np.asarray(uids)[ok]); csv.to_csv(f"/kaggle/working/raptor_teacher_shard{SHARD}.csv", index=False)
 elapsed = time.time() - T0
-json.dump({"shard": SHARD, "n_shards": N_SHARDS, "limit": LIMIT, "studies": int(ok.sum()), "failed_uids": [u for u, f in zip(uids, ok) if not f],
-           "elapsed_s": elapsed, "sec_per_study": elapsed / max(1, int(ok.sum())), "k_eval": int(RUN["raptor_k_eval"])},
+n_run, n_prior = int(run_ok.sum()), len(_TEACHER_PRIOR_UIDS)
+json.dump({"shard": SHARD, "n_shards": N_SHARDS, "limit": LIMIT, "studies": n_run, "prior_studies": n_prior,
+           "total_studies": int(ok.sum()), "failed_uids": [u for u, f in zip(run_uids, run_ok) if not f],
+           "elapsed_s": elapsed, "sec_per_study": elapsed / max(1, n_run), "k_eval": int(RUN["raptor_k_eval"])},
           open("/kaggle/working/teacher_receipt.json", "w"), indent=1)
-print(f"[teacher] {int(ok.sum())} studies, {elapsed / max(1, int(ok.sum())):.1f} s/study, {len(uids) - int(ok.sum())} failed")
+print(f"[teacher] {n_run} studies this run ({elapsed / max(1, n_run):.1f} s/study, {len(run_uids) - n_run} failed) + {n_prior} prior = {int(ok.sum())} complete")
 for p in (str(CHUNK),):
     shutil.rmtree(p, ignore_errors=True)         # the chunk (and its symlink into train_images) is never an output
 '''
@@ -294,11 +347,34 @@ def render_teacher_py(nb, shard, n_shards, limit):
     return src
 
 
-def build_metadata():
+def slug_name(slug):
+    """'owner/name' -> 'name' (the kernel dir, notebook and .py basename)."""
+    owner, _, name = str(slug).partition("/")
+    if not owner or not name or "/" in name or not all(c.isalnum() or c == "-" for c in name):
+        raise SystemExit(f"--slug expects owner/kernel-name, got {slug!r}")
+    return name
+
+
+def slug_title(name):
+    """The title Kaggle slugifies back to `name` ('rsna-knee-teacher-b' -> 'RSNA Knee Teacher B')."""
+    return " ".join("RSNA" if p == "rsna" else p.capitalize() for p in name.split("-"))
+
+
+def build_metadata(slug=KERNEL_ID, kernel_sources=()):
+    """A resume runs in a SIBLING slug that lists the previous run in kernel_sources (traps 31: a kernel cannot mount
+    its own output); two concurrent shards need two slugs (the cache2-a..d pattern)."""
+    name = slug_name(slug)
+    sources = [str(s) for s in kernel_sources]
+    if slug in sources:
+        raise SystemExit(f"--kernel-source {slug}: a kernel cannot mount its own output (traps 31); use a sibling --slug")
+    if len(set(sources)) != len(sources):
+        raise SystemExit(f"duplicate --kernel-source in {sources}")
+    for s in sources:
+        slug_name(s)
     return {
-        "id": KERNEL_ID,
-        "title": KERNEL_TITLE,
-        "code_file": CODE_FILE,
+        "id": slug,
+        "title": slug_title(name),
+        "code_file": f"{name}.ipynb",
         "language": "python",
         "kernel_type": "notebook",
         "is_private": True,
@@ -307,29 +383,31 @@ def build_metadata():
         "enable_internet": False,
         "keywords": [],
         "dataset_sources": list(DATASETS),
-        "kernel_sources": [],
+        "kernel_sources": sources,
         "competition_sources": [COMPETITION],
         "model_sources": [],
         "machine_shape": "NvidiaTeslaT4",
     }
 
 
-def _render_files(shard, n_shards, limit, notebook=NOTEBOOK):
+def _render_files(shard, n_shards, limit, slug=KERNEL_ID, kernel_sources=(), notebook=NOTEBOOK):
     """{filename: text} for the kernel directory, built in a temp dir through nbgen (so --check is exact)."""
+    name = slug_name(slug)
+    meta = build_metadata(slug, kernel_sources)
     src = render_teacher_py(load_notebook(notebook), shard, n_shards, limit)
     with tempfile.TemporaryDirectory() as d:
-        py, ipynb = os.path.join(d, PY_FILE), os.path.join(d, CODE_FILE)
+        py, ipynb = os.path.join(d, f"{name}.py"), os.path.join(d, f"{name}.ipynb")
         with open(py, "w", encoding="utf-8", newline="\n") as f:
             f.write(src)
         nbgen.build(py, ipynb)
         with open(ipynb, encoding="utf-8") as f:
             nb_text = f.read()
-    return {PY_FILE: src, CODE_FILE: nb_text, "kernel-metadata.json": json.dumps(build_metadata(), indent=2) + "\n"}
+    return {f"{name}.py": src, f"{name}.ipynb": nb_text, "kernel-metadata.json": json.dumps(meta, indent=2) + "\n"}
 
 
-def write_kernel(out_dir, shard, n_shards, limit):
+def write_kernel(out_dir, shard, n_shards, limit, slug=KERNEL_ID, kernel_sources=()):
     os.makedirs(out_dir, exist_ok=True)
-    for name, text in _render_files(shard, n_shards, limit).items():
+    for name, text in _render_files(shard, n_shards, limit, slug, kernel_sources).items():
         with open(os.path.join(out_dir, name), "w", encoding="utf-8", newline="\n") as f:
             f.write(text)
 
@@ -339,18 +417,22 @@ def main(argv=None):
     ap.add_argument("--shard", type=int, default=0)
     ap.add_argument("--n-shards", type=int, default=1)
     ap.add_argument("--limit", type=int, default=0, help="> 0: the first N studies of the shard (6 smoke, 100 spike)")
-    ap.add_argument("--out", default=OUT_DIR)
+    ap.add_argument("--slug", default=KERNEL_ID, help="kernel id owner/name; names the dir, notebook and title")
+    ap.add_argument("--kernel-source", action="append", default=[],
+                    help="a previous run's kernel slug to mount for a resume (repeatable; never --slug itself)")
+    ap.add_argument("--out", default=None, help="kernel dir (default kaggle/<slug name>)")
     ap.add_argument("--check", action="store_true", help="render in memory and compare with the files on disk")
     a = ap.parse_args(argv)
     os.chdir(ROOT)
-    files = _render_files(a.shard, a.n_shards, a.limit)
+    out = a.out or os.path.join("kaggle", slug_name(a.slug))
+    files = _render_files(a.shard, a.n_shards, a.limit, a.slug, a.kernel_source)
     _, table = extract(load_notebook(NOTEBOOK))
-    summary = (f"{a.out}: shard {a.shard}/{a.n_shards} limit {a.limit}; "
+    summary = (f"{out}: {a.slug} shard {a.shard}/{a.n_shards} limit {a.limit} kernel_sources {a.kernel_source}; "
                + "; ".join(f"{lab} c{c} {s}..{e}" for lab, c, s, e, _, _ in table))
     if a.check:
         ok = True
         for name, text in files.items():
-            path = os.path.join(a.out, name)
+            path = os.path.join(out, name)
             if not os.path.exists(path):
                 print(f"  MISSING {path}")
                 ok = False
@@ -365,7 +447,7 @@ def main(argv=None):
             ok = ok and same
         print(("check: " + ("ok" if ok else "FAILED")) + " -- " + summary)
         return 0 if ok else 1
-    write_kernel(a.out, a.shard, a.n_shards, a.limit)
+    write_kernel(out, a.shard, a.n_shards, a.limit, a.slug, a.kernel_source)
     print("wrote " + summary)
     return 0
 
