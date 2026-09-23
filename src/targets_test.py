@@ -97,9 +97,36 @@ def test_default_teacher_unchanged():
     check(md5.startswith("29f641ed"), f"artifacts/targets.csv md5 {md5[:8]} == 29f641ed (default teacher byte-identical)")
 
 
+def test_distill_table_builder():
+    import build_distill_table as bd
+    with tempfile.TemporaryDirectory() as d:
+        ids = [f"u{i}" for i in range(6)]
+        rng = np.random.default_rng(3)
+        for setname in ("a", "b"):
+            for k in (0, 1):
+                rows = ids[k * 3:(k + 1) * 3]
+                df = pd.DataFrame({"StudyInstanceUID": rows, "epoch": 7, "is_gold": 0})
+                for l in bt.LABELS:
+                    df[f"pred__{l}"] = rng.uniform(0, 1, 3); df[f"y__{l}"] = 0.5; df[f"w__{l}"] = 1.0
+                df.to_csv(os.path.join(d, f"{setname}_fold{k}_oof.csv"), index=False)
+        out = bd.build_distill_table([os.path.join(d, "a_fold*_oof.csv"), os.path.join(d, "b_fold*_oof.csv")],
+                                     os.path.join(d, "t.csv"))
+        check(len(out) == 6 and list(out.columns) == ["StudyInstanceUID", *bt.LABELS], "distill table: one row per study, schema")
+        v = out[bt.LABELS].to_numpy()
+        check(np.all((v > 0) & (v <= 1)), "distill table: rank percentiles in (0, 1]")
+        check(os.path.exists(os.path.join(d, "t.csv")), "distill table: csv written")
+        try:
+            bd.build_distill_table([os.path.join(d, "a_fold0_oof.csv"), os.path.join(d, "b_fold*_oof.csv")],
+                                    os.path.join(d, "t2.csv"))
+            check(False, "distill table: an OOF set that does not cover every study of another set is rejected")
+        except SystemExit:
+            check(True, "distill table: partial coverage rejected")
+
+
 if __name__ == "__main__":
     for fn in [test_quantile_match_preserves_ranks_and_scale, test_quantile_match_nan_passthrough, test_constant_column,
-               test_mix_teacher_rows_and_gold, test_load_tables_validation, test_default_teacher_unchanged]:
+               test_mix_teacher_rows_and_gold, test_load_tables_validation, test_default_teacher_unchanged,
+               test_distill_table_builder]:
         print(fn.__name__); fn()
     print("\n" + ("TARGET CHECKS PASSED" if not fails else f"TARGET CHECKS FAILED ({len(fails)}):\n  - " + "\n  - ".join(fails)))
     sys.exit(1 if fails else 0)
