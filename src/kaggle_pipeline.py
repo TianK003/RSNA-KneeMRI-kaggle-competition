@@ -226,17 +226,13 @@ C02 = {"cache_scheme": "c02", "window_mode": "random", "head_type": "window_attn
 # (11/12 labels down); SWA over the tail did not rescue it. Production members therefore train 8 epochs, SWA over 5-7.
 PROD = {**C02, "epochs": 8, "train_all": True, "swa_last": 3, "ckpt_policy": "last"}
 ARMS = [
-    ("v09a", {**PROD, "backbone": "timm:coatnet_rmlp_1_rw_224", "img_size": 224, "lr_backbone": 1e-4}),
-    ("v08a", {**PROD, "backbone": "dinov2", "img_size": 224}),
-    # 2026-09-22 (P-32 / P-33): the S1 A/B on fold 0, one arm per GPU (P-31). `v09b` = the v09h recipe with TWO
-    # studies per BatchNorm batch (48 windows; grad_accum 2 keeps 4 studies per optimiser step, so windows/epoch and
-    # the schedule are v09h's -- only the BN batch changes; timm CoAtNet's MBConv stages are BatchNorm and today see
-    # 24 windows of ONE study). `v09c` = v09b + light train-time augmentation (affine + gamma/gain, no flips).
-    # Read against v09h fold 0 (0.8683), floor 0.008: >= 0.876 KEEP, 0.860-0.876 inconclusive, < 0.860 harmful.
-    ("v09b", {**C02, "backbone": "timm:coatnet_rmlp_1_rw_224", "img_size": 224, "lr_backbone": 1e-4,
-              "batch_studies": 2, "grad_accum": 2}),
-    ("v09c", {**C02, "backbone": "timm:coatnet_rmlp_1_rw_224", "img_size": 224, "lr_backbone": 1e-4,
+    # 2026-09-23 (S2): the CoAtNet production member carries the S1 knobs -- two studies per BatchNorm batch (P-32,
+    # `v09b` 0.8690) and light train-time augmentation (P-33, `v09c` 0.8730), both read against `v09h` 0.8683 on fold 0.
+    # Both are under the 0.008 floor, both in the same direction, so both ride along by the pre-registered rule
+    # (experiments.md 2026-09-23 "S1 A/B"). Training-only knobs: neither reaches inference (not INFER_MEMBER_KEYS).
+    ("v09a", {**PROD, "backbone": "timm:coatnet_rmlp_1_rw_224", "img_size": 224, "lr_backbone": 1e-4,
               "batch_studies": 2, "grad_accum": 2, "aug": "light"}),
+    ("v08a", {**PROD, "backbone": "dinov2", "img_size": 224}),
 ]
 # Shipped fold-0 / 5-fold members (Datasets rsna-knee-ckpt-*) and finished probes: selectable through ARM_ONLY /
 # RSNA_ARM for a rerun, but no longer run by default -- a forgotten sed would otherwise spend the
@@ -247,6 +243,13 @@ SHIPPED_ARMS = [
     # P-29 epoch-budget probe (done 2026-09-22, train v21): the v09h recipe for 16 epochs, per-epoch OOF csvs.
     ("v09p", {**C02, "epochs": 16, "backbone": "timm:coatnet_rmlp_1_rw_224", "img_size": 224,
               "lr_backbone": 1e-4}),
+    # S1 A/B (done 2026-09-23, train v23, one arm per GPU -- P-31 / P-32 / P-33). `v09b` = the v09h recipe with TWO
+    # studies per BatchNorm batch (48 windows; grad_accum 2 keeps 4 studies per optimiser step, so windows/epoch and
+    # the schedule are v09h's) -> fold-0 OOF 0.8690; `v09c` = v09b + light augmentation -> 0.8730; v09h 0.8683.
+    ("v09b", {**C02, "backbone": "timm:coatnet_rmlp_1_rw_224", "img_size": 224, "lr_backbone": 1e-4,
+              "batch_studies": 2, "grad_accum": 2}),
+    ("v09c", {**C02, "backbone": "timm:coatnet_rmlp_1_rw_224", "img_size": 224, "lr_backbone": 1e-4,
+              "batch_studies": 2, "grad_accum": 2, "aug": "light"}),
 ]
 ARM_V10C = ("v10c", {**C02, "backbone": "timm:coatnet_rmlp_2_rw_384", "img_size": 384,
                      "lr_backbone": 1e-4, "eval_windows": 42, "grad_checkpoint": True})
