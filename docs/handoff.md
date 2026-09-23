@@ -6,6 +6,139 @@ to read first after a break.
 
 ---
 
+## 2026-09-23 (20:15) — Evening: the **member-strength plan executed subagent-driven** (Tasks 1–8, 9 steps 1–2, 10, 11 — 19 commits on `member-strength`, final review clean, **merged to `main`**); **`v09s` self-distillation 0.8839 ✅ is the one lever**; #18 = the S2 `v09a` alone **0.918**; #17 **0.941** 🔁; Raptor teacher pass green (full pass after Saturday); RunPod pod created, used 3.1 h, terminated
+
+Tian's asks: execute the approved plan subagent-driven, **spin up the pod myself** over the RunPod MCP (superseding "Tian creates the
+pod"), estimate its running time; later "pull the latest scoring" (#18 = 0.918), `/update`, `/handoff`, then "finish up, I have to
+close my computer". Everything after the opening message ran unattended. The SDD ledger (`.superpowers/sdd/…`, git-ignored) was
+deleted after the merge; its rulings R1–R22 are summarised under "decided".
+
+### ⏳ Still in flight as this was written (20:15)
+
+**Nothing is running.** All five kernel slugs are COMPLETE, #17 and #18 are both read, `list-pods` is empty (pod terminated 16:45),
+no background task survives this session. Kaggle quota this week: **≈ 3.4–6.4 h left** — the ledger's running count and the sum of
+the session logs disagree (22.8 h at 13:15 + train v27 smoke 0.28 + infer v15 0.04 + teacher v1–v3 ≈ 0.25), so **read the quota meter on
+kaggle.com before any real push**; reset Saturday 2026-09-26. **3 submissions left today** (reset 02:00). Kaggle token expires
+**20:37 local** — the refresh token carried `datasets create` past the last expiry, but `kaggle auth login --force` if the first CLI call
+fails (traps 20).
+
+### Where things stand
+
+| | Status |
+|---|---|
+| Best LB | **0.942** (#13 / #15); #16 0.940; **#17 = 0.941 🔁** (the S2 members at β 0.10, read 20:00 — identical to #14, the fork at β 0.10 does not read member quality); **#18 = the S2 `v09a` ALONE 0.918** — the baseline every distilled member is read against (experiments.md 2026-09-23 "Submission #18", "Submission #17 read 0.941") |
+| Member-strength programme | **Tasks 1–8, 9 (steps 1–2), 10 (`v09e` dropped by rule), 11 done — every code task implemented and reviewed by subagents (11 per-task reviews, 6 fix rounds)**; final whole-branch review 20:03 = approved with one fix (applied: the finished arms out of `ARMS`); **left: Task 9 step 3 (full Raptor pass, after Saturday) and Task 12 (distilled production retrain + solo read)** |
+| Shared mechanism | `TEACHER_TABLES` / `TEACHER_MIX` / `TEACHER_PATHS` in the config cell → `yt__*` training targets = `(1−mix)·LLM + mix·quantile-matched table` on report-only rows (gold rows stay hard 0/1), `y__*` evaluation targets unchanged; a listed table that is not mounted is fatal; `v09s` is refused without a table (`ARM_ONLY` / `RSNA_ARM` / `PARALLEL_ARMS`). The same functions live in `src/build_targets.py` (`--teacher-tables a,b --teacher-mix 0.5`, default md5 unchanged, BLEND 0.8948) and are AST-equality-guarded by `src/window_head_test.py` (75 checks) |
+| Track B (recipe, RunPod 4090) | `v09f` (P-37 pos_weight [1, 10]) **0.8717 🔁**; **`v09s` (P-38 self-distillation on `selfdistill_v1`, mix 0.5) 0.8839 ✅ KEEP — +0.0109 vs `v09c` 0.8730, 12/12 labels up**; `v09e` never ran (round 2's `v09d` 0.8596 ❌ < 0.865). Checkpoints: Datasets `rsna-knee-ckpt-v09f` / `-v09s` (ready); OOF csvs `artifacts/kaggle_out/pod_v09f/`, `pod_v09s/`; `artifacts/ckpt_pod/v09s/v09s_fold0_best.pt` |
+| Track A (teacher) | `rsna-knee-teacher` v2 smoke 6/6 (62 s), v3 spike **100/100 at 5.11 s/study** (both T4s, k_eval 94) → the full pass over 4,349 studies = **6.2 GPU-h = 2 shards × 3.1 h in the two slots**; `artifacts/teacher/raptor_spike100.csv`; Raptor vs the hard LLM teacher macro AUC 0.914 on the 100 (MCL 0.77 lowest), Raptor's operating point more positive (Fracture mean 0.47 vs 0.15) → quantile matching is required and in place |
+| Datasets | `tiankljucanin/rsna-knee-teacher-tables` = `selfdistill_v1.csv` (4,407 rows; publish folder `artifacts/ship_teacher/` with its `dataset-metadata.json` — `raptor_teacher.csv` goes in as the next version); `rsna-knee-ckpt-v09f`, `-v09s` new; `-v09a` = the S2 member (unchanged, #17 / #18) |
+| Code | `ARMS = [v09a, v08a]` (production only); `SHIPPED_ARMS` += `v09d v08c v09e v09f v09s` (reachable through `ARM_ONLY` / `RSNA_ARM` / `PARALLEL_ARMS`); switches at defaults (`FORCE_SMOKE True`, `MODE "auto"`, `ARM_ONLY ""`, `PARALLEL_ARMS ()`, `TEACHER_TABLES ()`); `Config.pos_weight_max` (0 = off, loss byte-identical); `scripts/runpod_bootstrap.sh train <arm>` honours `RSNA_TEACHER_TABLES` and writes `artifacts/runpod_train_<arm>.py`; new `src/build_distill_table.py`, `src/build_teacher_pass.py`, `src/merge_teacher.py`, `src/targets_test.py`, `src/teacher_pass_test.py` |
+| Committed notebooks | `rsna-knee-train` = the **teacher-table SMOKE v27** (`PARALLEL_ARMS ("v09s","v09f")`, FORCE_SMOKE True — rendered *before* the `ARMS` move: **regenerate before any push**); `rsna-knee-folds` = the round-2 **REAL** run (re-push = 3.3 h); `rsna-knee-infer` = **v15 = #18** (`MODE "infer"`, `INFER_MEMBERS ["v09a"]`, a real submission-grade run); `rsna-knee-teacher` = the **LIMIT-100 spike v3** (re-push = 0.14 h); fork = v8 (#17) |
+| RunPod | pod `eagdf1rc0408w7` (SECURE RTX 4090, EU-CZ-1, $0.74/h, disk 40 + 100 GB persistent `/workspace`): up ≈ 13:40, `v09f` 15:25 → 15:58, `v09s` 16:01 → 16:35 (≈ 34 min per 8-epoch CoAtNet-1 fold-0 arm), **terminated 16:45 — ≈ 3.1 h, ≈ $2.3** (estimate given up front: 3–4 h). Recipe: memory `runpod-pod-self-service` + CLAUDE.md "Off-Kaggle training" |
+| Docs | experiments: Scoreboard rows `v09d` / `v08c` / `v09f` / `v09s` / #17 / #18 / teacher smoke + spike, Submissions rows 17–18, entries "Round 2", "RunPod arms on a 4090", "Submission #18", "Raptor teacher pass", "Submission #17 read 0.941"; proposals: P-34 ❌ / P-35 🔁 / P-36 dropped / P-37 🔁 / **P-38 ✅** / **P-39 new** / P-28 LB read; traps **37** (`train_series`, not `train_images`) + **38** (`kernels output` skips a truncated local file); CLAUDE.md state (20:10), layout rows, doc-map range |
+| Repo | `member-strength` (`ead67bd` … this handoff) fast-forwarded into `main` and pushed; every commit attribution-free (managed policy; one subagent commit was reworded to drop a harness trailer, R13) |
+
+### What we talked about and decided
+
+- **Pod self-service (R6):** "you also have runpod connected so just spin up a new pod" — this session created, drove (SSH from Bash) and
+  terminated the pod. `disk: 100` was refused three times ("no instances available"); disk 40 + a 100 GB persistent `/workspace` worked.
+  `/workspace` is a MooseFS network mount, so the 36 GB c02 cache lived on `/dev/shm` behind a symlink (R7).
+- **Order and drops by the pre-registered rules:** arms `v09f → v09s → v09e`, `v09e` only if `v09d ≥ 0.865` (R5); `v09d` read 0.8596 →
+  **`v09e` dropped and the pod terminated once `v09s` had shipped (R20)**. Caveat written into P-36: `v09d` was still rising at epoch 7.
+- **Task 11 ran out of plan order (R11)** while a GPU slot was free — #18 = 0.918 re-priced the member wall (finding 2).
+- **The controller ran the pure-CLI steps itself** (Dataset publish, the teacher smoke / spike pushes and pulls, the docs pass, and the
+  final review's one-line fix — R16, R21, R22); every code task had a subagent implementer and an independent subagent reviewer.
+- **Plan defects found and ruled during execution:** `fold*_oof.csv` swept per-epoch csvs (R8); a rejection test that could never raise
+  (R9); `pos_w` NaN under smoke → the loader's own study list (R14); the `v09s` guard's placement and `PARALLEL_ARMS` scope (R2, R15);
+  per-arm bootstrap files (R3); the image tree is `train_series` — plan and spec said `train_images` (traps 37).
+- **Docs in one pass** after all reads (`a09d9f8`), #17's read folded in tonight; the final review's deferred minors are listed below.
+
+### What we figured out
+
+1. **Self-distillation is the lever: `v09s` +0.0109, 12/12 labels up, 1.4× the 0.008 floor** — the only recipe change since `v09h` that
+   clears the floor. Every knob between our CoAtNet and the public 0.928 member is now measured and none does: LR 3e-5 ❌ harmful
+   (−0.0134), pos_weight 🔁, BN batch 🔁, aug 🔁, DINOv2 + aug 🔁 → experiments.md "RunPod arms on a 4090", "Round 2"; P-38 ✅.
+2. **One production member of ours reads 0.918 solo (#18)** — above our whole 12-member blend (#11, 0.913); the fold-0→LB offset
+   under-predicts an all-data SWA member by ≈ 0.02. Baseline for the distilled member: **≥ 0.923 ✅ / 0.919–0.922 🔁 / < 0.918 ❌**.
+3. **#17 = 0.941 = #14:** the 8-epoch, +0.015-gold upgrade of both production members moved the fork by nothing → the fork at β 0.10 is
+   not an instrument for member quality; the solo submission is. P-28's LB question is closed (✅ as a regime, 🔁 as a stack vote).
+4. **The Raptor teacher pass costs 5.1 s/study (6.2 GPU-h for all 4,349)**; on the spike the Raptor teacher scores 0.914 against the
+   hard LLM teacher with a more positive operating point → quantile matching, already in the mechanism, is what makes it usable.
+5. **Kaggle's DICOM trees are `train_series/` / `test_series/`** (traps 37); **`kernels output` skips an existing truncated blob**, so
+   verify every `blob*.npy` against its csv after a pull (traps 38).
+
+### ⏭ Next action, in order
+
+1. **Self-distilled production `v09a` recipe → solo read vs 0.918** (the `/try-out` rule applies: smoke autonomously, **the real run and the
+   submission need Tian's go**). Give it its own version so nothing collides with the S2 `v09a` (Dataset, `_last.pt` resume, fork slot):
+   add `("v09t", {**PROD, "backbone": "timm:coatnet_rmlp_1_rw_224", "img_size": 224, "lr_backbone": 1e-4, "batch_studies": 2, "grad_accum": 2, "aug": "light"})`
+   to `ARMS` beside `v09a`, then
+   ```bash
+   sed -e 's/^ARM_ONLY = ""/ARM_ONLY = "v09t"/' -e 's/^TEACHER_TABLES = ()/TEACHER_TABLES = ("selfdistill_v1",)/' src/kaggle_pipeline.py > artifacts/train_v09t.py
+   grep -E '^(FORCE_SMOKE|MODE|ARM_ONLY|PARALLEL_ARMS|TEACHER_TABLES) = ' artifacts/train_v09t.py      # FORCE_SMOKE True first
+   .venv/Scripts/python.exe src/nbgen.py artifacts/train_v09t.py kaggle/rsna-knee-train/rsna-knee-train.ipynb
+   timeout 60 .venv/Scripts/kaggle.exe kernels push -p kaggle/rsna-knee-train
+   ```
+   Smoke green = the log shows `teacher table selfdistill_v1: 4407 studies`, `training targets = (1 - 0.5) * LLM + 0.5 * quantile-matched`,
+   `ok  arm v09t`. Real: `FORCE_SMOKE = False` (≈ 2.7 h on one T4) **or** on RunPod (≈ 1 h, ≈ $1):
+   `RSNA_TEACHER_TABLES='("selfdistill_v1",)' bash scripts/runpod_bootstrap.sh train v09t && bash scripts/runpod_bootstrap.sh ship v09t`
+   → Dataset `rsna-knee-ckpt-v09t`. Read gold-58 SWA vs 0.8922 (direction only). Then the solo kernel exactly as #18: `INFER_MEMBERS = ["v09t"]`
+   sed'd, `tiankljucanin/rsna-knee-ckpt-v09t` added to `kaggle/rsna-knee-infer/kernel-metadata.json`, push, `competitions submit -k
+   tiankljucanin/rsna-knee-infer -v <version>`. **≥ 0.923 ✅ (P-38 holds in production → it becomes the fork's `v09a` slot); 0.919–0.922 🔁;
+   < 0.918 ❌.**
+2. **After Saturday 2026-09-26 — Task 9 step 3, the full Raptor pass (≈ 6.5 h of the fresh 30), two shards in the two slots:**
+   ```bash
+   .venv/Scripts/python.exe src/build_teacher_pass.py --shard 0 --n-shards 2                                            # -> kaggle/rsna-knee-teacher/
+   .venv/Scripts/python.exe src/build_teacher_pass.py --shard 1 --n-shards 2 --slug tiankljucanin/rsna-knee-teacher-b   # -> kaggle/rsna-knee-teacher-b/
+   grep -E '^(SHARD|N_SHARDS|LIMIT) = ' kaggle/rsna-knee-teacher*/rsna-knee-teacher*.py                                   # LIMIT must be None/0
+   timeout 60 .venv/Scripts/kaggle.exe kernels push -p kaggle/rsna-knee-teacher; timeout 60 .venv/Scripts/kaggle.exe kernels push -p kaggle/rsna-knee-teacher-b
+   ```
+   ≈ 3.1 h each. Green: `teacher_receipt.json` `studies` = 2,175 / 2,174 with `failed_uids: []`. A guard stop → re-push **the same shard**
+   with `--kernel-source <the stopped slug>` from the sibling slug (resume by `done_uids`; the partial npz is a legitimate input, R18).
+   Pull `kernels output <slug> -p artifacts/kaggle_out/teacher_s<k> --file-pattern "(\.npz|teacher_receipt\.json|\.log)$"`, then
+   `.venv/Scripts/python.exe src/merge_teacher.py artifacts/kaggle_out/teacher_s0/raptor_teacher_shard0.npz artifacts/kaggle_out/teacher_s1/raptor_teacher_shard1.npz --out artifacts/teacher/raptor_teacher.csv`
+   (must report 4,349 rows; `--allow-partial` only for a guard-stopped run), copy it into `artifacts/ship_teacher/`, `kaggle datasets version -p artifacts/ship_teacher -m "raptor_teacher.csv (4 views, 94 windows, 4,349 studies)"`,
+   `datasets status` ready. Plausibility: Raptor vs LLM teacher macro AUC on all 4,349 (0.914 on the spike). `/update` P-39 + Scoreboard row.
+3. **Task 12 (after 2):** `TEACHER_TABLES = ("raptor_teacher",)` + `PARALLEL_ARMS = ("v09a", "v08a")` sed'd, `FORCE_SMOKE = True` → Kaggle
+   smoke (`teacher table raptor_teacher: 4349 studies` in both children's logs) → real (≈ 2.7 h) → gold-58 SWA vs 0.8922 / 0.8850 (direction
+   only) → ship as **new Dataset slugs** `rsna-knee-ckpt-v09a-rt` / `-v08a-rt` (the S2 members stay mounted for the fork) → the solo read of
+   the distilled `v09a` with the `-rt` Dataset in the infer kernel: **≥ 0.923 ✅ → fork at β 0.10 with the `-rt` members, `/update` P-39 ✅;
+   0.919–0.922 🔁; < 0.918 ❌ (track closed, production members unchanged)**. If step 1 read ✅, decide the Task 12 table set (Raptor alone
+   vs Raptor + self-distillation) in the P-39 card *before* building. Never mount the S2 and the `-rt` Dataset in one kernel (same
+   `version v09a` file names).
+4. `/update` after every read; `/handoff` at the end of the session.
+
+### Open decisions for Tian
+
+- **Go for step 1** — the self-distilled production `v09a` (`v09t`): Kaggle (2.7 h of this week's remaining quota) or RunPod (≈ 1 h,
+  ≈ $1), and its solo submission (3 left today, 5 tomorrow).
+- **Re-open `v09e`?** Dropped by the rule; `v09d` was still rising (+0.0008/epoch) at epoch 7, so 16 epochs at 3e-5 might close part of the
+  gap — ≈ 1 h on a 4090. Low priority: the LR is not the lever, the target source is.
+- Final selection (#13 / #15 vs #16) — unchanged; #17 (0.941) does not displace them.
+- RadImageNet licence in the final submission — unchanged.
+
+### Things that will bite if forgotten
+
+- **The committed `rsna-knee-train` notebook predates the `ARMS` move** — always regenerate from `src/kaggle_pipeline.py` before a push;
+  `rsna-knee-folds` (3.3 h) and `rsna-knee-infer` (a submission-grade infer) are REAL runs.
+- **A teacher table is a sed, not an arm key** — `TEACHER_TABLES` is built once per session, so the arm dict cannot carry it. The guard stops
+  `v09s` without a table; a *new* distilled arm name (`v09t`, Task 12's `v09a`) has no guard — grep the log for `teacher table … studies`
+  before trusting a run.
+- **Final-review minors, deferred (all later-only):** the kernel's teacher load has no [0, 1] range check (harmless after quantile matching);
+  the local `targets_teacher_*.csv` can hold NaN `yt__` where the LLM blend is NaN (no consumer); a zero-coverage teacher table trains
+  silently (add a `SystemExit` before the Raptor retrain); a `_last.pt` resume does not compare the saved `teacher_tables` with the
+  session's; the teacher npz carries no label names (`LAB == LABELS` verified by hand on the committed notebook); the spec's cv2 wheel
+  Dataset is not mounted (the Kaggle image has cv2).
+- **Kaggle CLI hygiene:** token 20:37 → `kaggle auth login --force` (traps 20); `kernels status` before any push retry (traps 36); `timeout 60`
+  on every call; `export PATH="/usr/bin:/bin:$PATH"` in the Bash tool; git via PowerShell; the docs are CRLF (single-line patterns only).
+- **Teacher pass:** a guard-stopped shard keeps few 4-view-complete studies (GPU-1 arm order) — size shards so the 8 h guard never fires
+  (2 × 3.1 h); a resume needs a SIBLING slug (traps 31); `merge_teacher` skips `.tmp.npz`, drops failed studies, borrows sibling view
+  weights for a partial (R18).
+- **RunPod:** disk 100 refused → disk 40 + persistent 100 GB; `/workspace` is MooseFS → cache on `/dev/shm`; pull the four c02 shards in
+  parallel and verify every blob against its csv (traps 38); `delete-pod` as soon as the last arm has shipped, confirm with `list-pods`.
+- **Quota next week:** the full pass (6.2 h) + Task 12 (2.7 h) + the solo reads (≈ 0.1 h each) ≈ 9.5 h of the 30; the two teacher shards
+  occupy both GPU slots for ≈ 3.1 h.
+
 ## 2026-09-23 (13:15) — Afternoon: **round 2 pushed** (P-34 ‖ P-35, `rsna-knee-folds` v8), the **member-strength programme designed and planned** (spec + 12-task plan, approved by Tian) — **the next session executes the plan subagent-driven**; #17 still scoring
 
 Tian's ask this afternoon: "figure out how to improve individual models — they are dragging us down"; research, then implement,
