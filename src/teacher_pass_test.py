@@ -112,4 +112,43 @@ with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as d:
         ns["_teacher_combine"](["u0"], np.zeros((4, 1, 12), np.float32)); check(False, "a UID twice is refused")
     except RuntimeError:
         check(True, "a UID twice across prior and this run is refused")
+
+# --- Task 8: merge_teacher (shards -> raptor_teacher.csv)
+import merge_teacher as mt  # noqa: E402
+with tempfile.TemporaryDirectory() as d:
+    rng = np.random.default_rng(0)
+    for k in range(2):
+        uids = np.asarray([f"u{k}_{i}" for i in range(5)], dtype=str); raw = rng.uniform(0, 1, (4, 5, 12)).astype(np.float32)
+        if k == 1: raw[2, 4, :] = np.nan                                 # one failed study in one view
+        np.savez_compressed(os.path.join(d, f"raptor_teacher_shard{k}.npz"), study_uids=uids, raw_probabilities=raw,
+                            view_names=np.asarray(["a", "b", "c", "d"]), view_weights=np.asarray([.6, .1, .1, .2]))
+    out = mt.merge_teacher([os.path.join(d, f"raptor_teacher_shard{k}.npz") for k in range(2)], os.path.join(d, "t.csv"), expect_n=9)
+    check(len(out) == 9 and list(out.columns) == ["StudyInstanceUID", *tp.LABELS], "merge: failed study dropped, schema")
+    check(np.all((out[tp.LABELS].to_numpy() >= 0) & (out[tp.LABELS].to_numpy() <= 1)), "merge: probabilities in [0, 1]")
+    try:
+        mt.merge_teacher([os.path.join(d, "raptor_teacher_shard0.npz")] * 2, os.path.join(d, "t2.csv"), expect_n=10); check(False, "merge: duplicate UID across shards rejected")
+    except SystemExit:
+        check(True, "merge: duplicate UID across shards rejected")
+
+    # --- R18: a partial file (no view_names/view_weights) borrows the sibling's weights; a .tmp.npz leftover is skipped untouched
+    full_uids = np.asarray([f"f_{i}" for i in range(4)], dtype=str); full_raw = rng.uniform(0, 1, (4, 4, 12)).astype(np.float32)
+    np.savez_compressed(os.path.join(d, "raptor_teacher_shard2.npz"), study_uids=full_uids, raw_probabilities=full_raw,
+                        view_names=np.asarray(["a", "b", "c", "d"]), view_weights=np.asarray([.6, .1, .1, .2]))
+    part_uids = np.asarray([f"p_{i}" for i in range(3)], dtype=str); part_raw = rng.uniform(0, 1, (4, 3, 12)).astype(np.float32)
+    np.savez_compressed(os.path.join(d, "raptor_teacher_partial.npz"), study_uids=part_uids, raw_probabilities=part_raw)  # no view_names/view_weights
+    with open(os.path.join(d, "raptor_teacher_partial.tmp.npz"), "wb") as f:
+        f.write(b"mid-flush leftover, not a real npz")   # must be skipped by name before any np.load is attempted
+    paths = [os.path.join(d, "raptor_teacher_shard2.npz"), os.path.join(d, "raptor_teacher_partial.npz"), os.path.join(d, "raptor_teacher_partial.tmp.npz")]
+    out2 = mt.merge_teacher(paths, os.path.join(d, "t3.csv"), expect_n=7)
+    check(len(out2) == 7 and set(out2.StudyInstanceUID) == set(full_uids) | set(part_uids),
+          "merge: partial file with no weights borrows the sibling's, .tmp.npz leftover skipped")
+
+    # --- R18: no input carries view_weights at all -> fatal
+    np.savez_compressed(os.path.join(d, "raptor_teacher_partial2.npz"), study_uids=part_uids, raw_probabilities=part_raw)  # also no weights
+    try:
+        mt.merge_teacher([os.path.join(d, "raptor_teacher_partial.npz"), os.path.join(d, "raptor_teacher_partial2.npz")],
+                          os.path.join(d, "t4.csv"), expect_n=6, allow_partial=True)
+        check(False, "merge: no input carrying view_weights is rejected")
+    except SystemExit:
+        check(True, "merge: no input carrying view_weights is rejected")
 print("\n" + ("TEACHER PASS CHECKS PASSED" if not fails else f"TEACHER PASS CHECKS FAILED ({len(fails)})")); sys.exit(1 if fails else 0)
