@@ -77,6 +77,7 @@ Judge label changes on **coverage** (does the rule fire at all, per language) an
 | 2026-09-23 | **`v09s` (P-38: the `v09c` recipe on `TEACHER_TABLES=("selfdistill_v1",)`, mix 0.5 — self-distillation from the rank-mean of the `v09h` + `v05g` 5-fold OOF sets, quantile-matched onto the LLM blend; evaluation targets unchanged) — RunPod 4090, fold 0, 8 ep, 34 min** | gold 0.922 (n=11) · OOF **0.8839** | — | ✅ **KEEP: +0.0109 vs `v09c` 0.8730 (1.4× the 0.008 floor), 12/12 labels up** (MCL +0.024, Medial OA +0.015, Baker's +0.015) — the first recipe change since `v09h` that clears the floor; leads `v09c`/`v09f` from epoch 1 (0.836 vs 0.807). Caveat: the table's fold-1..4 models saw fold 0's *targets* (second order); the LB solo read of a distilled production member is the arbiter (entry "RunPod arms") |
 | 2026-09-23 | **Submission #18 — the S2 `v09a` ALONE (`rsna-knee-infer` v15, `INFER_MEMBERS=["v09a"]`; member-strength plan Task 11)** | gold-58 0.8922 (all-data SWA) | **0.918** | ✅ FINDING: one production member of ours reads 0.918 solo — above our whole 12-member blend (#11, 0.913) and inside the public stack's member range (0.90–0.928); the fold-0→LB offset (+0.02–0.03) under-predicted the all-data SWA member by ≈ 0.02. **Baseline for the Raptor-distilled retrain (P-39): ≥ 0.923 ✅ / ≤ 0.922 🔁 / < 0.918 ❌** (entry "Solo baseline #18") |
 | 2026-09-23 | **Raptor teacher pass (P-39) — `rsna-knee-teacher` v2 smoke (LIMIT 6) and v3 spike (LIMIT 100)**: the 0.942 notebook's Raptor branch verbatim over a chunk of our training studies via `RSNA_COMP_ROOT`, both T4s | — | — | ✅ FEASIBLE: v1 red (the preamble looked for `train_images`; the tree is `train_series` — traps 37) → v2 green (6/6, 62 s) → v3 **100/100 studies, 0 failed, 5.11 s/study incl. setup** → full pass 4,349 × 5.1 s ≈ **6.2 GPU-h** (one session under the 8 h guard, or 2 shards × 3.1 h in the two slots). Plausibility on the 100: Raptor vs the hard LLM teacher macro AUC 0.914; operating point more positive (Fracture mean 0.47 vs 0.15) — quantile matching handles it (entry "Raptor teacher pass") |
+| 2026-09-23 | **`v09t` (P-38 in production): the S2 `v09a` recipe (CoAtNet-1 @224, c02, window_attn, all 4,349 studies, 8 ep, SWA 5–7, `batch_studies=2, grad_accum=2, aug="light"`) trained on `TEACHER_TABLES=("selfdistill_v1",)`, mix 0.5 — its own version name; RunPod RTX 4090, 35 min (4.4 min/epoch)** | gold-58 (all 58, reported only): **SWA 0.9009** (CI95 0.867–0.929; last EMA 0.9016; epochs 0–7: 0.798 · 0.866 · 0.886 · 0.893 · 0.898 · 0.901 · 0.901 · 0.902) vs `v09a` 0.8922 → +0.0087, direction only | ⏳ #19 | ✅ the run: `train 4349 / val 58 studies`, `-> v09t_fold0_best.pt = SWA`; Kaggle smoke v28 green first (4 min); shipped as Dataset `rsna-knee-ckpt-v09t`; **solo submission #19 (`rsna-knee-infer` v16, ref 56504077, 23:25) — read vs #18 (0.918): ≥ 0.923 ✅ / 0.919–0.922 🔁 / < 0.918 ❌** (entry "`v09t`") |
 
 **External reference points** (not ours — for calibrating ambition):
 
@@ -1706,6 +1707,39 @@ the fork.
 **Verdict: 🔁 INCONCLUSIVE (pre-registered band). P-28 → ✅ as a training regime (0.918 solo), 🔁 as a stack contribution.
 Final-selection candidates unchanged: #13 / #15 (0.942) and the flat-map hedge #16 (0.940).** Submissions table row 17.
 
+### 2026-09-23 — `v09t`: the production `v09a` recipe on the self-distilled targets (P-38 in production), RunPod 4090, 35 min — gold-58 SWA **0.9009** (S2 `v09a`: 0.8922) · direction only · LB ⏳ (#19, solo vs 0.918)
+
+**Setup.** `ARMS` gains `v09t` = the S2 `v09a` dict under its own version name (final-review item: no collision with Dataset
+`rsna-knee-ckpt-v09a`, a `_last.pt` resume or the fork's member slot); the `v09s` guard became `DISTILLED_ARMS = ("v09s", "v09t")`
+(either is refused without `TEACHER_TABLES`; probed locally). Kaggle smoke `rsna-knee-train` v28 (`ARM_ONLY = "v09t"`,
+`TEACHER_TABLES = ("selfdistill_v1",)`, 4 min) green: `teacher table selfdistill_v1: 4407 studies`, `training targets = (1 - 0.5) * LLM +
+0.5 * quantile-matched`. Real run on a RunPod RTX 4090 (Tian chose the pod over Kaggle quota and capped it at one hour): one chained job —
+four parallel cache pulls (36 GB in 6 min, ≈ 85 MB/s aggregate), blob verification (71 blobs, 4,407 studies, 0 bad), then
+`RSNA_TEACHER_TABLES='("selfdistill_v1",)' bash scripts/runpod_bootstrap.sh train v09t` — `train 4349 / val 58 studies [train_all: val =
+gold rows]`, 8 epochs at 4.4 min each (≈ 0.06 s/study), SWA of epochs 5–7, `-> v09t_fold0_best.pt = SWA`; 41 min from job start to
+checkpoint. Shipped as Dataset `rsna-knee-ckpt-v09t` (ready 23:22); `rsna-knee-infer` v16 solo (`infer members (1): v09t/fold0 … score
+0.9009`, 3 placeholder studies, `constant labels 0`) → **submission #19** (ref 56504077, 23:25). Outputs `artifacts/kaggle_out/pod_v09t/`
+(gold-58 `_oof.csv`, train + job logs).
+
+| epoch | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | SWA 5–7 |
+|---|---|---|---|---|---|---|---|---|---|
+| `v09t` gold-58 EMA (self-distilled targets) | 0.798 | 0.866 | 0.886 | 0.893 | 0.898 | 0.901 | 0.901 | 0.902 | **0.9009** (CI95 0.867–0.929) |
+| `v09a` S2 gold-58 EMA (LLM targets, same recipe) | — | — | — | 0.873 | 0.891 | 0.891 | 0.8925 | 0.8934 | **0.8922** |
+
+Per-label gold-58 (SWA): ACL 0.949 · MCL 0.930 · Medial Meniscus 0.954 · Lateral Meniscus 0.839 · Medial OA 0.977 · Lateral OA 0.803 ·
+PF OA 0.799 · Effusion 0.965 · Synovitis 0.754 · Baker's 0.980 · Contusion 0.942 · Fracture 0.919.
+
+**What it says.** (1) +0.0087 on gold-58 is direction only (floor 0.05; under `train_all` the gold rows are training data at weight 8,
+so the number is optimistic by construction) — but it has the sign of the fold-0 read (`v09s` +0.0109 vs `v09c`, 12/12 labels) and the
+curve is still rising at epoch 7, as `v09a`'s was. (2) The distilled targets change nothing at inference (same architecture, same
+cache), so a ✅ read drops straight into `v09a`'s slot in the fork. (3) The measurement that counts is #19 vs #18 (0.918),
+pre-registered: **≥ 0.923 ✅ self-distillation transfers to the production member (retrain `v08a` the same way as `v08t`, both
+distilled members into the fork at β 0.10) / 0.919–0.922 🔁 / < 0.918 ❌ (the production member keeps the LLM targets; the Raptor
+teacher, P-39, is the remaining lever).**
+
+**Verdict: ✅ the run (the production regime end to end in 35 min on a 4090, ≈ $0.5 of GPU for the training itself); ⏳ PENDING the
+LB (#19).** Submissions table row 19.
+
 ## Infrastructure
 
 ### 2026-09-21 — P-27 fork builder + P-28 production regime shipped; local checks ✅ KEEP the code · Kaggle ⏳
@@ -2115,3 +2149,4 @@ and public LB score, so a public/private divergence can be traced to a specific 
 | 16 | 2026-09-22 | rsna-knee-fork v7 (the 20 sources of v3/v4/v6) | **Final-selection hedge**: `build_fork.py --anchor-preset parent --beta 0.0` — the anchor's own `PRESET` default patched `speedy` → `parent` (one token, asserted once), which flattens the per-label outer CoAtNet map (LatMen 1.00, ACL / LatOA / Fracture 0.75, MedMen 0.80) to 0.60; our arm not run. Placeholder green 20:29 (fork log `preset=parent … outer CoAtNet weight per finding: flat 0.60`; `btkd_v559_complete.json` diff vs v6: every per-label weight 0.6; `status: anchor_control`, submission sha = anchor sha) | none (fork) | **0.940** | sent 20:37, ref 56471784, read 2026-09-23 08:40 (≈ 12 h to score, no arm). **−0.002 vs #15 (anchor 0.942) → 🔁 (0.4× the floor), inside the expected 0.939–0.941 band**: the public-tuned per-label map buys ≈ +0.002 on the public split. Validated flat-weights hedge for the second final slot (Scoreboard row; entry 2026-09-23) |
 | 17 | 2026-09-23 | rsna-knee-fork v8 (v5's 22 sources: the 20 public ones + Datasets `rsna-knee-ckpt-v09a` / `-v08a`, both re-versioned 11:44 to the S2 checkpoints) | **P-27 + P-28 S2**: #14's blend with the two production members retrained under the 8-epoch regime — `INFER_MEMBERS = [v08w, v09h, v09a, v08a]`, one vote per version (`v09h` = 5 folds inside its vote), β 0.10; `v09a` = CoAtNet-1 + `batch_studies 2, grad_accum 2, aug light` (gold-58 SWA 0.8922), `v08a` = DINOv2-S (0.8850) | none (fork; production members have no OOF — traps 32) | **0.941** | **read 20:00 → 🔁** (−0.001 vs 0.942, = #14 with the 16-epoch members; entry "Submission #17 read 0.941"). sent 11:54, ref 56489906. Placeholder green 11:45 → 11:53 (0.12 h): `status beta0.10`, `members [v08w, v09h, v09a, v08a]`, subprocess rc 0 in 190 s, 8 checkpoints in one geometry group, `v09a/fold0 … [epoch 7, score 0.8922]` / `v08a/fold0 … [score 0.885]` = the S2 checkpoints, anchor sha = submission sha on the 3 placeholder studies (expected at β 0.10). **Read vs #13 / #15 (0.942): ≥ 0.947 = our arm counts (a correctly trained production member helps), 0.940–0.946 = 🔁, ≤ 0.939 = the arm hurts**; vs #14 (0.941, the 16-epoch members) isolates the epoch budget + S1 knobs. ≈ 10 h to score (≈ 22:00); honest expectation 0.942 ± 0.001. 4 submissions left today |
 | 18 | 2026-09-23 | rsna-knee-infer v15 (v14's ckpt Datasets + `rsna-knee-ckpt-v09a`) | **Solo baseline (member-strength plan Task 11)**: `MODE="infer"`, `INFER_MEMBERS = ["v09a"]` — the S2 production `v09a` alone (CoAtNet-1 c02 window_attn, all 4,349 studies, 8 ep SWA, `batch_studies 2, grad_accum 2, aug light`) | none (production member, gold-58 0.8922 — traps 32) | **0.918** | sent 14:36, ref 56493264; placeholder 2.2 min (`infer members (1): v09a/fold0 … score 0.8922`, `constant labels 0`). **The reference for the Raptor-distilled retrain (P-39)**: ≥ 0.923 ✅ / ≤ 0.922 🔁 / < 0.918 ❌. A single model of ours above our own 12-member blend (#11, 0.913) — the "our members are ≈ 0.89–0.90 solo" estimate in the 2026-09-23 "#16 … why nothing of ours moves 0.942" entry was ≈ 0.02 too low for the all-data SWA member |
+| 19 | 2026-09-23 | rsna-knee-infer v16 (v15's mounts + Dataset `rsna-knee-ckpt-v09t`) | **Self-distilled production member, solo (P-38 in production)**: `INFER_MEMBERS = ["v09t"]` — the `v09a` recipe trained on 0.5 · LLM + 0.5 · quantile-matched `selfdistill_v1` (RunPod 4090, 35 min), gold-58 SWA 0.9009 (`v09a`: 0.8922) | none (production member — traps 32) | ⏳ | sent 23:25, ref 56504077; placeholder 2 min (`infer members (1): v09t/fold0 … [epoch 7, score 0.9009]`, `constant labels 0`). **Read vs #18 (0.918): ≥ 0.923 ✅ self-distillation transfers to the production member → retrain `v08a` the same way and put both into the fork; 0.919–0.922 🔁; < 0.918 ❌.** 2 submissions left today |
