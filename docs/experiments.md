@@ -65,10 +65,10 @@ Judge label changes on **coverage** (does the rule fire at all, per language) an
 | 2026-09-22 | **P-27 + P-28 fork, submission #14 (`rsna-knee-fork` v5, sent 08:41, ref 56459131)**: #13 + `v09a` + `v08a` in our arm (four votes), β = 0.10 | gold-58 of the new members 0.8768 / 0.8816 | **0.941** | **−0.001 vs #13 → 🔁**: the two all-data production members add nothing on the LB (P-28 not confirmed); consistent with P-29 — both were trained 16 epochs, which over-trains by ≈ 0.012 OOF |
 | 2026-09-22 | **Anchor-only control, submission #15 (`rsna-knee-fork` v6, sent 10:08, ref 56461317)**: the public 0.942 graph verbatim, our arm not run (β 0, `submission.csv` byte-identical to the anchor) | — | **0.942** | ✅ **the anchor reproduces 0.942 from our account** (unpinned sources did not drift). The baseline for #12–#14: β 0.20 −0.003, β 0.10 ±0.000, β 0.10 + P-28 members −0.001. **Tied best on the board** |
 | 2026-09-22 | **`v09p` (P-29, kernel `rsna-knee-train` v21, 5.64 h)**: the `v09h` recipe on fold 0 with the production schedule's **16 epochs**, per-epoch OOF | OOF peak **0.8731 at epoch 8**; epoch 15 **0.8607**; SWA-of-13–15 proxy 0.8611 | — | ❌ **the 16-epoch schedule over-trains**: peak − epoch 15 = **0.0124** (1.6× the 0.008 floor), **11/12 labels down**; the peak (+0.0048 vs `v09h` 8-ep 0.8683) is sub-floor. P-28 members lose ≈ 0.012 → epoch budget changes (P-29 entry) |
-| 2026-09-22 | **Hedge, submission #16 (`rsna-knee-fork` v7, sent 20:37, ref 56471784)**: the public 0.942 graph with its own `PRESET = "parent"` (the per-label outer CoAtNet map — LatMen 1.00, ACL / LatOA / Fracture 0.75, MedMen 0.80 — flattened to 0.60), our arm not run (β 0). Placeholder: `preset=parent … outer CoAtNet weight per finding: flat 0.60`, audit diff vs v6 = every weight 0.6, `status: anchor_control` | — | ⏳ | **read ≈ 02:30**: expected 0.939–0.941 (the 0.941 author's ladder puts the tuned map at +0.001–0.002 publicly). Whatever it reads it is the validated flat-weights candidate for the second final slot — the map is "the likeliest place to give back points privately" (anchor author; why-941 analysis) |
+| 2026-09-22 | **Hedge, submission #16 (`rsna-knee-fork` v7, sent 20:37, ref 56471784)**: the public 0.942 graph with its own `PRESET = "parent"` (the per-label outer CoAtNet map — LatMen 1.00, ACL / LatOA / Fracture 0.75, MedMen 0.80 — flattened to 0.60), our arm not run (β 0). Placeholder: `preset=parent … outer CoAtNet weight per finding: flat 0.60`, audit diff vs v6 = every weight 0.6, `status: anchor_control` | — | **0.940** (read 2026-09-23 08:40) | **−0.002 vs the anchor's 0.942 (#15) → 🔁 INCONCLUSIVE as a score (0.4× the 0.005 floor), and exactly the pre-registered 0.939–0.941 band**: the per-label outer map the public authors tuned on this leaderboard is worth ≈ +0.002 publicly. Whether it gives that back privately is what this hedge is for → the validated flat-weights candidate for the second final slot (brainstorm; entry 2026-09-23 "#16 … why nothing of ours moves 0.942") |
 | 2026-09-22 | **P-31 smoke (`rsna-knee-train` v22, 20:21 → 20:24)**: `PARALLEL_ARMS = ("v09b", "v09c")`, FORCE_SMOKE, full 24 windows | — | — | ✅ **the second T4 is usable**: children on `cuda:0` / `cuda:1`, both `_best.pt` written, rc 0, 0.03 h wall; **2 studies × 24 windows through CoAtNet-1 @224 peak 6.84 GiB** of 15 (no grad-checkpoint needed); `aug light` and `aug none` children diverge in loss (0.6834 vs 0.7001) as they should. Real S1 run staged, not pushed (needs Tian's go) |
-| 2026-09-22 | **`v09b` (P-32, `rsna-knee-train` v23, pushed 20:54 on Tian's go, child on `cuda:0`)**: the `v09h` recipe (CoAtNet-1 @224, c02, window_attn, 8 ep, `best_oof`, fold 0) with **`batch_studies=2, grad_accum=2`** — 48 windows from two studies per BatchNorm batch, the same 4 studies per optimiser step | ⏳ | — | ⏳ **read ≈ 00:00**: OOF-vs-teacher (best_oof epoch) vs `v09h` **0.8683**, floor 0.008 → ≥ 0.876 ✅ KEEP / 0.860–0.876 🔁 / < 0.860 harmful; ≥ 9/12 labels up as support. P-31 read alongside: child `s/study` vs 0.25 solo (≤ 1.3× ✅) |
-| 2026-09-22 | **`v09c` (P-33, same kernel v23, child on `cuda:1`)**: `v09b` + **`aug="light"`** (per-window affine rot ±8° / zoom-in 1.00–1.08 / shift ±5 %, gamma 0.8–1.25, gain ±10 %, no flips, training only) | ⏳ | — | ⏳ same read; **`v09c − v09b` is augmentation alone** (same session, same recipe otherwise), `v09c − v09h` is P-32 + P-33 together |
+| 2026-09-22 | **`v09b` (P-32, `rsna-knee-train` v23, pushed 20:54 on Tian's go, child on `cuda:0`)**: the `v09h` recipe (CoAtNet-1 @224, c02, window_attn, 8 ep, `best_oof`, fold 0) with **`batch_studies=2, grad_accum=2`** — 48 windows from two studies per BatchNorm batch, the same 4 studies per optimiser step | gold 0.926 (n=11) · OOF **0.8690** (epoch 7, still climbing +0.0005/ep) | — | **🔁 INCONCLUSIVE: +0.0008 vs `v09h` 0.8683 = 0.1× the 0.008 floor, 7/12 labels up** with seed-scatter signs (ACL +0.028, MedMen +0.017 / LatOA −0.032, LatMen −0.017) → the BatchNorm batch composition is *not* the CoAtNet gap (P-32). **P-31 ✅**: 0.25 s/study = 1.00× solo, 6.84 GiB peak, rc 0, `_best.pt`; both arms in **3.22 h wall** (entry 2026-09-23 "S1 A/B") |
+| 2026-09-22 | **`v09c` (P-33, same kernel v23, child on `cuda:1`)**: `v09b` + **`aug="light"`** (per-window affine rot ±8° / zoom-in 1.00–1.08 / shift ±5 %, gamma 0.8–1.25, gain ±10 %, no flips, training only) | gold 0.919 (n=11) · OOF **0.8730** (epoch 6; plateau 6–7 at 0.8730) | — | **🔁 INCONCLUSIVE: +0.0039 over `v09b` (augmentation alone, 0.5× the floor, 8/12 up; LatOA +0.020, Fracture +0.014) and +0.0047 over `v09h` (7/12 up)**. Monotone `v09h` < `v09b` < `v09c` → by the pre-registered same-direction rule **both knobs ride into the S2 production `v09a`** (P-33). 0.28 s/study = 1.12× solo (GPU-side grid_sample) |
 
 **External reference points** (not ours — for calibrating ambition):
 
@@ -1358,6 +1358,99 @@ the full public LB csv (4,183 teams, 17:33 UTC) and Kaggle's score-sorted kernel
   A 16-channel retry and a RadImageNet member are already stages of the anchor (A5, stage 3). And the machine we train on
   has had a second, idle T4 all along (traps 34, P-31).
 
+### 2026-09-23 — S1 A/B on both T4s (P-31 / P-32 / P-33, `rsna-knee-train` v23, 3.22 h): `v09b` (two-study BatchNorm batches) **0.8690**, `v09c` (+ light augmentation) **0.8730** vs `v09h` 0.8683 — both 🔁 INCONCLUSIVE (under the 0.008 floor) · P-31 two arms per session ✅ KEEP
+
+The first real two-arm session: one child process per GPU (`v09b` on `cuda:0`, `v09c` on `cuda:1`), fold 0 (3,525 train /
+882 val, 11 gold), 8 epochs, `best_oof`, seed 42, the `v09h` recipe otherwise (CoAtNet-1 @224, c02, window_attn, 24 random
+train windows, `lr_backbone` 1e-4). `v09b` = `batch_studies=2, grad_accum=2` (48 windows from two studies per BatchNorm
+batch, the same 4 studies per optimiser step); `v09c` = `v09b` + `aug="light"` (affine rot ±8° / zoom-in 1.00–1.08 / shift
+±5 %, gamma 0.8–1.25, gain ±10 %, no flips). Both children rc 0 with `_best.pt` (parent: `ok  arm v09b` / `ok  arm v09c`);
+**3.22 h wall for both** (≈ 5.6 h if run one after the other). Outputs `artifacts/kaggle_out/train_v23/` (children's logs,
+per-epoch OOF csvs); the read-out script reproduces the kernel's macros (0.8683 / 0.8690 / 0.8730) on the same 882 studies.
+
+**P-31 (throughput) ✅ KEEP:** `v09b` 0.25 s/study (1.00× the solo 0.25), `v09c` 0.28 s/study (1.12×; the GPU-side
+grid_sample), val 6.0 / 7.2 min per epoch; peak **6.84 GiB per child** (2 × 24 windows, AMP); no host-RAM or loader stall in
+the heartbeat. 1.75× arms per quota hour → the default for every session from S2 on.
+
+| epoch | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 |
+|---|---|---|---|---|---|---|---|---|
+| `v09h` (1 × 24, no aug; RunPod) | 0.759 | 0.814 | 0.836 | 0.853 | 0.864 | 0.867 | 0.868 | **0.8683** |
+| `v09b` (2 × 24, accum 2) | 0.7498 | 0.8128 | 0.8389 | 0.8534 | 0.8613 | 0.8665 | 0.8685 | **0.8690** |
+| `v09c` (`v09b` + `aug="light"`) | 0.7514 | 0.8116 | 0.8397 | 0.8542 | 0.8646 | 0.8703 | **0.8730** | 0.8730 |
+
+Per label (OOF-vs-teacher AUC, fold 0, all 882 rows; per-label floor ≈ 0.03):
+
+| label | `v09h` | `v09b` | `v09c` | b − h | c − h | c − b |
+|---|---|---|---|---|---|---|
+| ACL | 0.871 | 0.899 | 0.890 | +0.028 | +0.019 | −0.009 |
+| MCL | 0.799 | 0.807 | 0.810 | +0.008 | +0.011 | +0.003 |
+| Medial Meniscus | 0.899 | 0.916 | 0.920 | +0.017 | +0.021 | +0.004 |
+| Lateral Meniscus | 0.868 | 0.850 | 0.856 | −0.017 | −0.011 | +0.006 |
+| Medial OA | 0.879 | 0.880 | 0.879 | +0.001 | 0.000 | −0.001 |
+| Lateral OA | 0.848 | 0.816 | 0.836 | −0.032 | −0.012 | +0.020 |
+| PF OA | 0.821 | 0.817 | 0.819 | −0.004 | −0.001 | +0.003 |
+| Effusion | 0.854 | 0.861 | 0.864 | +0.007 | +0.010 | +0.002 |
+| Synovitis | 0.894 | 0.890 | 0.889 | −0.004 | −0.006 | −0.002 |
+| Baker's | 0.898 | 0.897 | 0.905 | −0.002 | +0.007 | +0.008 |
+| Contusion | 0.870 | 0.875 | 0.874 | +0.005 | +0.003 | −0.001 |
+| Fracture | 0.918 | 0.921 | 0.935 | +0.003 | +0.017 | +0.014 |
+| **macro** | **0.8683** | **0.8690** | **0.8730** | **+0.0008** (7/12 up) | **+0.0047** (7/12 up) | **+0.0039** (8/12 up) |
+
+1. **P-32 (BatchNorm batch composition) 🔁 — the hypothesis is not supported.** +0.0008 is 0.1× the floor, 7/12 labels up,
+   and the per-label pattern (ACL +0.028 and Medial Meniscus +0.017 against Lateral OA −0.032 and Lateral Meniscus −0.017)
+   is the seed-scatter signature (the floor run moved Fracture 0.028 on seed alone), not a normalisation effect. Two
+   studies per BN batch is not what separates our CoAtNet from the public 0.928 one. It is free (0.25 s/study, 6.84 GiB),
+   which is the only reason it rides along.
+2. **P-33 (light augmentation) 🔁 — half the floor, right sign.** +0.0039 over its same-session control, 8/12 up, the
+   largest moves on Lateral OA (+0.020) and Fracture (+0.014); `v09c` plateaus at epochs 6–7 (0.8730 / 0.8730) where
+   `v09b` is still climbing, so augmentation did not need more epochs. Costs 12 % time.
+3. **Both arms beat `v09h` in the same direction, monotone `v09h` < `v09b` < `v09c`.** The S2 rule pre-registered in the
+   handoff (a 🔁 knob stays out *unless both A/B arms beat `v09h` in the same direction*) therefore puts **both knobs into
+   the production `v09a` retrain**. Honest expectation: +0.00–0.005 OOF — nothing the fork can see at β 0.10.
+4. **Epoch budget confirmed under both knobs:** the honest split-half best-epoch-minus-last-epoch is −0.0001 (`v09b`) /
+   −0.0002 (`v09c`) over 200 splits, so `ckpt_policy="last"` + SWA over epochs 5–7 loses nothing at 8 epochs (P-29 holds).
+5. **Diversity:** mean per-label Spearman ρ(`v09c`, `v09h`) 0.898, ρ(`v09b`, `v09h`) 0.889, ρ(`v09c`, `v09b`) 0.919 — the
+   same member with another seed, not a new family (P-23's rule: a new member needs ρ < 0.80 against the blend).
+
+**Verdict: ✅ KEEP P-31 (two arms per session is the default from S2 on); 🔁 INCONCLUSIVE P-32 and P-33 (both under 0.008;
+both carried into the S2 `v09a` by the same-direction rule, at zero score risk).** Round-2 candidates unchanged: the
+backbone LR (3e-5 OneCycle vs our 1e-4 cosine — the last never-A/B'd difference to the public 0.928 recipe) and `aug="light"`
+on the DINOv2 arm.
+
+### 2026-09-23 — Submission #16 (the flat-0.60 outer-map hedge, arm not run) read **0.940**: −0.002 vs the anchor's 0.942 🔁 INCONCLUSIVE (0.4× the floor, inside the pre-registered 0.939–0.941 band) · why nothing of ours moves the public 0.942 ✅ FINDING
+
+The ladder from our own account, all on the same 20 public sources:
+
+| # | what changed vs the anchor | public LB | Δ |
+|---|---|---|---|
+| 15 | nothing (anchor only) | 0.942 | — |
+| 13 | + our c02 arm (`v08w`, 5-fold `v09h`) at β 0.10 | 0.942 | ±0.000 |
+| 14 | + the 16-epoch `v09a` / `v08a` in the arm too, β 0.10 | 0.941 | −0.001 |
+| 12 | + our c02 arm at β 0.20 | 0.939 | −0.003 |
+| **16** | **per-label outer CoAtNet map → flat 0.60**, our arm not run | **0.940** | **−0.002** |
+
+1. **0.940 is the public price of the flat map, not a defect.** The anchor's per-label map (LatMen 1.00 / ACL, LatOA,
+   Fracture 0.75 / MedMen 0.80) was tuned *on this leaderboard* by the public authors; their own ladder priced it at
+   +0.001–0.002 ("why public forks stop at 0.941"), we measured +0.002. Whether that is fitted noise that gives itself back
+   privately is exactly what #16 hedges — the public number cannot tell, and −0.002 is under the 0.005 floor either way.
+2. **Why no submission of ours exceeds 0.942.** (a) The anchor is a superset of the best public notebook (2026-09-22 night
+   entry) — no public component is missing. (b) Our members are 0.86–0.87 OOF-vs-teacher, ≈ 0.89–0.90 solo on the LB by
+   the measured +0.02–0.03 offset, while the stack's own members are 0.90–0.928 solo; a weaker vote that is also
+   *correlated* with the stack (our c02 lane is the stack's own CoAtNet + window-attention family) can only perturb its
+   ranks, and every non-zero reading is negative and grows with β (#13 0.000 → #14 −0.001 → #12 −0.003). (c) At β 0.10 a
+   vote correlated ≈ 0.9 with the anchor overturns almost no pairwise orderings, which is why #13 is *exactly* the
+   anchor. (d) 690 teams sit at 0.941–0.942 for the same reason; everything ≥ 0.945 is private members trained to ≥ 0.92
+   solo (A6000/H100 boxes, several families). S1 moved our best single from 0.8683 to 0.8730 — a tenth of the gap to a
+   member the stack would notice.
+3. **Consequence for S2:** the retrained `v09a` (8 epochs, both S1 knobs) ships and is submitted at β 0.10 as planned, with
+   the pre-registered read **≥ 0.947 = our arm counts, 0.940–0.946 = 🔁, ≤ 0.939 = the arm hurts**; the honest expectation
+   is 0.942 ± 0.001. A public gain needs a member the stack does not already hold at ≥ 0.92 solo, which is a different
+   input representation or self-training (P-23 #3 / #4, P-17), not another c02 CoAtNet.
+
+**Verdict: 🔁 INCONCLUSIVE for #16 as a score (−0.002 < 0.005); ✅ FINDING for the mechanism (the public frontier is a
+member-quality wall at ≈ 0.90 solo, not a blend-weight problem). #16 is the validated flat-weights candidate for the second
+final slot (brainstorm).**
+
 ## Infrastructure
 
 ### 2026-09-21 — P-27 fork builder + P-28 production regime shipped; local checks ✅ KEEP the code · Kaggle ⏳
@@ -1764,4 +1857,4 @@ and public LB score, so a public/private divergence can be traced to a specific 
 | 13 | 2026-09-22 | rsna-knee-fork v4 (same 20 sources as v3) | **P-27, β 0.10**: identical to #12 except the blend weight of our arm (0.20 → 0.10); the pre-registered action for a < 0.940 read | none (fork) | **0.942** | sent 08:30, ref 56458837; placeholder: `fork_diagnostics.json` status `beta0.10`, subprocess rc 0 in 98 s, anchor sha = submission sha on the 3 placeholder studies (expected — a 1/3 rank step cannot be overturned at β 0.10). Read-out in the Scoreboard row |
 | 14 | 2026-09-22 | rsna-knee-fork v5 (v4's 20 sources + Datasets `rsna-knee-ckpt-v09a`, `rsna-knee-ckpt-v08a`; 22 sources) | **P-27 + P-28**: #13's blend with the two production members added to our arm — `INFER_MEMBERS = [v08w, v09h, v09a, v08a]`, one vote per version (`v09h` = 5 folds inside its vote), β 0.10 | none (fork; the new members have no OOF — traps 32) | **0.941** | sent 08:41, ref 56459131; placeholder: `blend: by_version -> v08w (1 fold), v09h (5 folds), v09a (1 fold), v08a (1 fold)`, rc 0 in 82 s, anchor graph 186 s with 20/20 DINO + 5 A5 folds. Hidden-test arm cost ≈ #12's + two single-fold members (≈ +20 min). Read-out vs #13 in the Scoreboard row |
 | 15 | 2026-09-22 | rsna-knee-fork v6 (the 20 sources of v3/v4) | **Anchor-only control (P-27)**: `build_fork.py --beta 0.0 --members v08w v09h` — the fork's arm cell raises `_ForkControl` before the runtime gate, our subprocess is never launched, `submission.csv` is the anchor's own file (`fork_diagnostics.json`: `status anchor_control`, `subprocess null`, anchor sha = submission sha; anchor graph 204 s, 20/20 DINO + 5 A5 folds on the placeholder) | none | **0.942** | sent 10:08, ref 56461317. Purpose: fix the anchor's score from *our* account — the number #12 (0.939, β 0.20), #13 (β 0.10) and #14 (β 0.10 + P-28 members) are compared against, instead of the author's stated 0.942. Expected ≈ 6 h to score (no arm) |
-| 16 | 2026-09-22 | rsna-knee-fork v7 (the 20 sources of v3/v4/v6) | **Final-selection hedge**: `build_fork.py --anchor-preset parent --beta 0.0` — the anchor's own `PRESET` default patched `speedy` → `parent` (one token, asserted once), which flattens the per-label outer CoAtNet map (LatMen 1.00, ACL / LatOA / Fracture 0.75, MedMen 0.80) to 0.60; our arm not run. Placeholder green 20:29 (fork log `preset=parent … outer CoAtNet weight per finding: flat 0.60`; `btkd_v559_complete.json` diff vs v6: every per-label weight 0.6; `status: anchor_control`, submission sha = anchor sha) | none (fork) | ⏳ | sent 20:37, ref 56471784; expected 0.939–0.941 by the 0.941 author's ladder; a validated flat-weights candidate for the second final slot whatever it reads. 1 submission left today |
+| 16 | 2026-09-22 | rsna-knee-fork v7 (the 20 sources of v3/v4/v6) | **Final-selection hedge**: `build_fork.py --anchor-preset parent --beta 0.0` — the anchor's own `PRESET` default patched `speedy` → `parent` (one token, asserted once), which flattens the per-label outer CoAtNet map (LatMen 1.00, ACL / LatOA / Fracture 0.75, MedMen 0.80) to 0.60; our arm not run. Placeholder green 20:29 (fork log `preset=parent … outer CoAtNet weight per finding: flat 0.60`; `btkd_v559_complete.json` diff vs v6: every per-label weight 0.6; `status: anchor_control`, submission sha = anchor sha) | none (fork) | **0.940** | sent 20:37, ref 56471784, read 2026-09-23 08:40 (≈ 12 h to score, no arm). **−0.002 vs #15 (anchor 0.942) → 🔁 (0.4× the floor), inside the expected 0.939–0.941 band**: the public-tuned per-label map buys ≈ +0.002 on the public split. Validated flat-weights hedge for the second final slot (Scoreboard row; entry 2026-09-23) |
