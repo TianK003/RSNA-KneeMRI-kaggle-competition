@@ -342,6 +342,19 @@ def main():
     check(abs(float(l_y) - float(l_yt)) < 1e-6, "weighted_bce at logit 0 is symmetric in the target (sanity)")
     check(K["TEACHER_TABLES"] == () and K["Config"]().teacher_tables == (), "TEACHER_TABLES default () (no teacher mixing unless sed'd)")
     check("selfdistill_v1" in K["TEACHER_PATHS"] and "raptor_teacher" in K["TEACHER_PATHS"], "TEACHER_PATHS lists both tables")
+    # Drift guard: the kernel is one file, so quantile_match / mix_teacher are COPIES of src/build_targets.py's.
+    # A fix applied to one copy would pass both suites while the training and reference targets diverge.
+    import ast
+    import inspect
+    import textwrap
+    import build_targets as BT
+
+    def fn_ast(fn):
+        return ast.dump(ast.parse(textwrap.dedent(inspect.getsource(fn))))
+
+    for fname in ("quantile_match", "mix_teacher"):
+        check(fn_ast(K[fname]) == fn_ast(getattr(BT, fname)),
+              f"kernel {fname} is AST-identical (docstring included) to src/build_targets.py's")
 
     # Dataset: both target blocks ship `yt` only when the targets frame carries yt__ columns; `y` is untouched
     tgt = pd.DataFrame({"StudyInstanceUID": ["a"], "is_gold": [0], **{l: [0.2] for l in LABELS},
