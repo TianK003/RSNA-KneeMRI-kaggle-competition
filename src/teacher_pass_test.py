@@ -151,4 +151,32 @@ with tempfile.TemporaryDirectory() as d:
         check(False, "merge: no input carrying view_weights is rejected")
     except SystemExit:
         check(True, "merge: no input carrying view_weights is rejected")
+
+# --- fix round 2 (teacher smoke v1 red): the mounted image tree is train_series/, not train_images/
+pre = cells[0]
+check("find_competition_root(" in pre and "train_series" in pre and 'for _link in ("test_series", "test_images"):' in pre
+      and 'os.symlink(f"{COMP_IN}/{TRAIN_TREE}", CHUNK / _link)' in pre and '"train_images").is_dir()' not in pre,
+      "preamble: root via find_competition_root, both test_series and test_images symlinked to the training tree")
+with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as d:
+    d = d.replace("\\", "/"); fns = {}
+    exec(tp.PREAMBLE_FUNCS, fns)
+    comp = f"{d}/input/competitions/rsna-knee-abnormality-detection"
+    for sub in (f"{comp}/train_series/s1", f"{comp}/test_series", f"{d}/input/datasets/someone/labels",
+                f"{d}/input/datasets/someone/labels/train_series/deep"):
+        os.makedirs(sub)
+    for f in (f"{comp}/train.csv", f"{d}/input/datasets/someone/labels/train.csv",          # decoy: train.csv, no tree at depth
+              f"{d}/input/datasets/someone/labels/train_series/deep/train.csv"):
+        open(f, "w").close()
+    got = fns["find_competition_root"]([comp, f"{d}/input/rsna-knee-abnormality-detection"], f"{d}/input")
+    check(got == (comp, "train_series"), f"find_competition_root: first candidate with train.csv + train_series/ ({got})")
+    got = fns["find_competition_root"]([f"{d}/input/nowhere"], f"{d}/input")
+    check(got[1] == "train_series" and got[0].replace("\\", "/") in (comp, f"{d}/input/datasets/someone/labels"),
+          f"find_competition_root: glob fallback finds a root with train.csv + train_series/ ({got})")
+    os.rename(f"{comp}/train_series", f"{comp}/train_images")
+    got = fns["find_competition_root"]([comp], f"{d}/input")
+    check(got == (comp, "train_images"), "find_competition_root: train_images accepted as the alternative spelling")
+    try:
+        fns["find_competition_root"]([f"{d}/input/nowhere"], f"{d}/empty"); check(False, "no root -> FileNotFoundError")
+    except FileNotFoundError:
+        check(True, "no root -> FileNotFoundError")
 print("\n" + ("TEACHER PASS CHECKS PASSED" if not fails else f"TEACHER PASS CHECKS FAILED ({len(fails)})")); sys.exit(1 if fails else 0)

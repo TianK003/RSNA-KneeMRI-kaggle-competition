@@ -7,7 +7,7 @@ raw per-view probabilities saved to `/kaggle/working/raptor_raw.npz` (4 x N x 12
 
 This builder extracts that branch VERBATIM (plus the helper slices it names from cells 12, 14 and 16), prepends our
 chunk preamble -- which writes a fake competition root (`test.csv`, `test_series.csv`, `sample_submission.csv`,
-`test_images -> train_images`) holding one shard of the 4,349 report-labelled training studies (the 58 gold rows are
+`test_series` and `test_images` -> the mounted `train_series/`) holding one shard of the 4,349 report-labelled training studies (the 58 gold rows are
 validation and never teach) and points `RSNA_COMP_ROOT` at it -- and appends a 5-minute partial-flush thread and a
 final writer. The Raptor code then believes the chunk is the test set. Nothing else of the 0.942 graph (DINO x20,
 A5, RadImageNet, calibrator, CoAt family, FineSpacing) is included.
@@ -150,6 +150,38 @@ def load_prior(input_root="/kaggle/input", skip_tops=_SKIP_TOPS, keep=None):
 def done_uids(input_root="/kaggle/input", skip_tops=_SKIP_TOPS):
     """UIDs already complete in any mounted teacher npz."""
     return set(load_prior(input_root, skip_tops)[0])
+
+_IMAGE_TREES = ("train_series", "train_images")          # the mounted tree is train_series/; train_images accepted
+_TREE_NAMES = ("train_series", "test_series", "train_images", "test_images")   # never walked into
+
+def find_competition_root(candidates, input_root="/kaggle/input", max_depth=3):
+    """(root, tree): the first candidate -- else the first dir within `max_depth` of `input_root`, breadth-first,
+    image trees never entered -- that holds train.csv and a training image tree (hard constraint 4: no bare
+    hard-coded /kaggle/input path)."""
+    from pathlib import Path
+    def tree_of(d):
+        d = Path(d)
+        if not (d / "train.csv").is_file():
+            return None
+        return next((t for t in _IMAGE_TREES if (d / t).is_dir()), None)
+    for c in candidates:
+        t = tree_of(c)
+        if t:
+            return str(c), t
+    level = [Path(input_root)] if Path(input_root).is_dir() else []
+    for _ in range(max_depth + 1):
+        following = []
+        for d in level:
+            t = tree_of(d)
+            if t:
+                return str(d), t
+            try:
+                following += sorted(p for p in d.iterdir() if p.is_dir() and p.name not in _TREE_NAMES)
+            except OSError:
+                pass
+        level = following
+    raise FileNotFoundError(f"no competition root (train.csv + one of {_IMAGE_TREES}) in {list(candidates)} "
+                            f"nor under {input_root} to depth {max_depth}")
 '''
 
 PREAMBLE_TEMPLATE = '''# %%
@@ -164,17 +196,18 @@ import torch                      # rsna_phase (cell-16 slice) reads the global 
 from pathlib import Path
 T0 = time.time()
 TIME_BUDGET = 8.0 * 3600          # rsna_deadline raises past this (the 0.942 run's own budget)
-_COMP_CANDIDATES = ["/kaggle/input/competitions/rsna-knee-abnormality-detection", "/kaggle/input/rsna-knee-abnormality-detection"]
-_COMP_FOUND = [p for p in _COMP_CANDIDATES if Path(p, "train.csv").is_file() and Path(p, "train_images").is_dir()]
-if not _COMP_FOUND:
-    raise FileNotFoundError(f"competition root with train.csv + train_images not found in {_COMP_CANDIDATES}")
-COMP_IN = _COMP_FOUND[0]
-# The chunk lives OUTSIDE /kaggle/working: its test_images symlink into train_images must never sit in the output
-# directory, even when a guard-stopped run never reaches the final cell's cleanup.
-CHUNK = Path("/tmp/rsna_teacher_chunk"); CHUNK.mkdir(parents=True, exist_ok=True)
-Path("/kaggle/working/diagnostics").mkdir(parents=True, exist_ok=True)   # their per-study input audit appends here
 
 __PREAMBLE_FUNCS__
+
+# The competition mounts at /kaggle/input/competitions/rsna-knee-abnormality-detection/ with its DICOMs under
+# train_series/ and test_series/ (no train_images/); the shallow glob fallback covers any other layout.
+COMP_IN, TRAIN_TREE = find_competition_root(["/kaggle/input/competitions/rsna-knee-abnormality-detection",
+                                             "/kaggle/input/rsna-knee-abnormality-detection"])
+print(f"competition root {COMP_IN}, training image tree {TRAIN_TREE}/", flush=True)
+# The chunk lives OUTSIDE /kaggle/working: its test_series / test_images symlinks into the training image tree must
+# never sit in the output directory, even when a guard-stopped run never reaches the final cell's cleanup.
+CHUNK = Path("/tmp/rsna_teacher_chunk"); CHUNK.mkdir(parents=True, exist_ok=True)
+Path("/kaggle/working/diagnostics").mkdir(parents=True, exist_ok=True)   # their per-study input audit appends here
 Path("/kaggle/working/raptor_raw.npz").unlink(missing_ok=True)   # the flush guard keys on this file (cell 5)
 ids = chunk_study_ids(f"{COMP_IN}/train.csv", SHARD, N_SHARDS, LIMIT)
 # Resume: complete rows of earlier runs of this shard (mounted from a sibling slug) are carried into every output.
@@ -188,8 +221,9 @@ pd.DataFrame({"StudyInstanceUID": ids}).to_csv(CHUNK / "test.csv", index=False)
 ser = pd.read_csv(f"{COMP_IN}/train_series.csv", dtype=str)
 ser[ser.StudyInstanceUID.isin(ids)].to_csv(CHUNK / "test_series.csv", index=False)
 sub = pd.DataFrame({"StudyInstanceUID": ids, **{l: 0.5 for l in LABELS}}); sub.to_csv(CHUNK / "sample_submission.csv", index=False)
-if not (CHUNK / "test_images").exists():
-    os.symlink(f"{COMP_IN}/train_images", CHUNK / "test_images")
+for _link in ("test_series", "test_images"):     # their reader takes root/test_series if it is a dir, else root/test_images
+    if not os.path.lexists(CHUNK / _link):
+        os.symlink(f"{COMP_IN}/{TRAIN_TREE}", CHUNK / _link)
 os.environ["RSNA_COMP_ROOT"] = str(CHUNK)
 RUN = {"raptor_view_w": {"maxspan-v5": 0.60, "native384dense-v10": 0.10, "maxspan-v5-reverse": 0.10, "native384-v8": 0.20},
        "raptor_k_eval": 94}
@@ -262,7 +296,7 @@ json.dump({"shard": SHARD, "n_shards": N_SHARDS, "limit": LIMIT, "studies": n_ru
           open("/kaggle/working/teacher_receipt.json", "w"), indent=1)
 print(f"[teacher] {n_run} studies this run ({elapsed / max(1, n_run):.1f} s/study, {len(run_uids) - n_run} failed) + {n_prior} prior = {int(ok.sum())} complete")
 for p in (str(CHUNK),):
-    shutil.rmtree(p, ignore_errors=True)         # the chunk (and its symlink into train_images) is never an output
+    shutil.rmtree(p, ignore_errors=True)         # the chunk (and its symlinks into the image tree) is never an output
 '''
 
 
