@@ -6,6 +6,72 @@ to read first after a break.
 
 ---
 
+## 2026-09-24 (00:15) — #19 read: the self-distilled `v09t` alone = **0.917** vs 0.918 → ❌ self-distillation does not transfer to the production member; ✅ FINDING: OOF against the LLM targets cannot judge a target-source change (traps 39); nothing running; Saturday = the Raptor pass
+
+Tian asked to check because the Kaggle UI showed nothing running — the submission had scored. Read 00:07, logged, committed, pushed.
+This entry supersedes the 23:30 entry's "next action 1" branches: the ✅ branch (`v08t`, distilled fork) is dropped.
+
+### ⏳ Still in flight as this was written (00:15)
+
+**Nothing is running**: no kernel, no submission pending, no RunPod pod (`list-pods` empty). **2 submissions left today** (reset 02:00);
+Kaggle token valid until **01:34** (check `access_token_expiration` before the next session's first long step; only Tian can re-login).
+Kaggle quota this week ≈ unchanged (two smokes tonight); reset Saturday 2026-09-26.
+
+### Where things stand
+
+| | Status |
+|---|---|
+| Best LB | **0.942** (#13 / #15); #16 0.940; #17 0.941 🔁; **#18 `v09a` alone 0.918; #19 `v09t` alone 0.917 ❌** |
+| P-38 self-distillation | **❌ DEAD END in production** (#19 −0.001 vs #18, sub-floor); the fold-0 ✅ (`v09s` +0.011) is withdrawn as an instrument artefact — experiments.md 2026-09-24 "Submission #19", traps **39** |
+| Production member | **`v09a` (S2, LLM targets) stays**; `v09t` exists (Dataset `rsna-knee-ckpt-v09t`, `ARMS`, `DISTILLED_ARMS`) as a measured dead end — do not put it in the fork |
+| Remaining lever | **P-39 the Raptor teacher** — a teacher with more information than ours (public 0.924 solo; gold-58 0.905–0.917 held out vs our 0.8948) — judged by gold-58 direction + solo LB only. Shard kernels built and committed (`kaggle/rsna-knee-teacher` 0/2, `kaggle/rsna-knee-teacher-b` 1/2); push after Saturday's reset |
+| Docs | experiments: `v09t` row LB cell, Submissions row 19, READ line, entry "Submission #19"; proposals: P-38 ❌ (index + card), P-39 lesson; traps 39; CLAUDE.md state 00:15 |
+| Repo | `main` pushed |
+
+### What we talked about and decided
+
+- **#19 is ❌ by the pre-registered rule** (< 0.918) even though −0.001 is noise — the rule was written before the read and stands, as with
+  `v09e` (R20). The honest description: a null result; the fold-0 instrument, not the training, produced the false ✅.
+- **Dropped:** the `v08t` retrain, the distilled-fork rebuild, and any further self-distillation round (P-17 lineage closed).
+- **Kept:** P-39 exactly as planned; Task 12 keeps its measurement (gold-58 direction + solo LB vs 0.918) and gains traps 39 as the reason.
+
+### What we figured out
+
+1. **Self-distillation from our own OOF cannot add information the LLM teacher does not have**: `v09t` 0.917 vs `v09a` 0.918 on the LB
+   after +0.011 fold-0 OOF and +0.009 gold-58 — experiments.md 2026-09-24 "Submission #19".
+2. **OOF against the LLM targets is the wrong instrument for a target-source change** (it rewards agreement with the teacher; the
+   12/12-labels sign consistency came from the same artefact) → **traps 39**: target changes are read by gold-58 direction + solo LB only;
+   recipe changes may still use OOF vs the unchanged teacher.
+3. Cost of the read: 41 min of a 4090 (≈ $0.5 of training, ≈ $2.0 with the idle wait) + one submission; the Kaggle route would have cost
+   2.7 h of quota.
+
+### ⏭ Next action, in order
+
+1. **After Saturday 2026-09-26 (quota reset) — the full Raptor pass**, both shards already rendered and committed (the 23:30 entry's step 2
+   has the exact commands): push `kaggle/rsna-knee-teacher` and `kaggle/rsna-knee-teacher-b` (≈ 3.1 h each, concurrently), pull the two
+   `raptor_teacher_shard*.npz`, `merge_teacher.py` → `artifacts/teacher/raptor_teacher.csv` (4,349 rows), `kaggle datasets version` of
+   `rsna-knee-teacher-tables`, plausibility = Raptor vs LLM teacher macro AUC on all 4,349 (0.914 on the spike) **and** Raptor vs the 58 gold
+   labels held out (the Raptor branch never saw them — the number that says whether it carries more truth than our teacher's 0.8948).
+2. **Task 12 — the Raptor-distilled production member**: `TEACHER_TABLES = ("raptor_teacher",)` (Raptor alone; the self-distill table is
+   dead), `ARM_ONLY = "v09r"` — give it its own version name in `ARMS` + `DISTILLED_ARMS` like `v09t` — smoke → real (a 4090 pod ≈ 41 min
+   incl. the pull, or 2.7 h of Kaggle quota) → gold-58 SWA vs 0.8922 (direction) → ship → **solo read vs 0.918: ≥ 0.923 ✅ (then `v08r`
+   and the fork) / 0.919–0.922 🔁 / < 0.918 ❌**. Judge it by nothing else (traps 39).
+3. `/update` after every read; `/handoff` at the end.
+
+### Open decisions for Tian
+
+- **Task 12's mix** once the Raptor table exists: 0.5 (the spec) is the default; a Raptor-only target (mix 1.0) is the natural second arm if
+  0.5 reads 🔁 — decide after the gold-58 plausibility read in step 1.
+- Final selection (#13 / #15 vs #16) — unchanged. RadImageNet licence — unchanged.
+
+### Things that will bite if forgotten
+
+- **traps 39**: no fold-0 OOF read for any teacher-table arm; the `v09s` ✅ in older entries is superseded (marked inline).
+- `v09t` is in `ARMS` and in Dataset `rsna-knee-ckpt-v09t`: a measured dead end — never `INFER_MEMBERS` it; the committed infer render is
+  still the `v09t` solo (v16) — rebuild before any other infer push.
+- The 23:30 entry's bites still hold: the teacher kernel dirs are FULL-PASS renders (3.1 h per push), token expiry, pod storage differs
+  per pod, `DISTILLED_ARMS` for any new distilled arm name.
+
 ## 2026-09-23 (23:30) — Late evening: **`v09t`** (the production `v09a` recipe on the self-distilled targets) trained on a RunPod 4090 in 35 min — gold-58 SWA **0.9009** vs 0.8922 — shipped and **submitted solo as #19 (⏳, read vs 0.918)**; the Raptor full-pass shard kernels built and committed for Saturday; pod terminated
 
 Tian: "Continue with next session's work" (steps 1–3 of the 20:15 entry); chose **RunPod** over Kaggle quota for the real run when
