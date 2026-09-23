@@ -72,6 +72,11 @@ Judge label changes on **coverage** (does the rule fire at all, per language) an
 | 2026-09-23 | **S2 smoke (`rsna-knee-train` v25, 08:57 → 09:01; v24 = an accidental duplicate, traps 36)**: `PARALLEL_ARMS = ("v09a", "v08a")`, FORCE_SMOKE, the production `v09a` now with `batch_studies=2, grad_accum=2, aug="light"` | — | — | ✅ both children rc 0 with SWA `_best.pt` (`ok  arm v09a` / `ok  arm v08a`); `v09a` banner `batch 2 x accum 2 \| aug light \| train_all, swa_last`, peak **6.84 GiB**; `v08a` `batch 1 x accum 4 \| aug none`, 1.56 GiB; 0.05 h. Local CPU smoke of the same file (MODE train sed'd, traps 30) green first |
 | 2026-09-23 | **S2 production retrain — `v09a` (P-28 + P-32 + P-33: CoAtNet-1 @224, c02, window_attn, all 4,349 studies, 8 ep, SWA of the last 3 EMA, `batch_studies=2, grad_accum=2, aug="light"`) ‖ `v08a` (P-28: DINOv2-S @224, same regime, 8 ep) — `rsna-knee-train` v26, pushed 09:05 on Tian's go, one arm per T4** | gold-58 (all 58, reported only; no OOF — traps 32): **`v09a` SWA 0.8922** (last EMA 0.8934; epochs 3–7: 0.873 → 0.891 → 0.891 → 0.8925 → 0.8934, still rising) · **`v08a` SWA 0.8850** (last EMA 0.8848; 0.879 → 0.881 → 0.883 → 0.884 → 0.885) | ⏳ via the fork (#17) | ✅ **the regime ran end to end on both T4s in 2.64 h wall** (`ok  arm` ×2, `_best.pt = SWA`; `v09a` 0.26 s/study, 19 min/epoch, 6.84 GiB; `v08a` 0.12 s/study, 8.8 min/epoch). vs the 16-ep members' SWA (0.8768 / 0.8816): **+0.015 / +0.003 on gold-58 — direction only** (floor 0.05), but the curves no longer peak-and-drift (P-29 confirmed on the production data: at 8 epochs both are still climbing at epoch 7). Shipped as new versions of `rsna-knee-ckpt-v09a` / `-v08a` (11:44, `datasets status` ready); fork v8 built (β 0.10, four members) → #17 (entry 2026-09-23 "S2 production retrain") |
 | 2026-09-23 | **P-27 + P-28 S2, submission #17 (`rsna-knee-fork` v8, sent 11:54, ref 56489906)**: #14's graph and blend with the S2 production members — `v08w` + 5-fold `v09h` + `v09a` (8 ep, batch 2, aug light) + `v08a` (8 ep), one vote each — at β 0.10 | gold-58 of the new members 0.8922 / 0.8850 | ⏳ | **read ≈ 22:00** vs #13 / #15 (0.942): **≥ 0.947 ✅ our arm counts; 0.940–0.946 🔁; ≤ 0.939 the arm hurts**; vs #14 (0.941) = the epoch budget + the S1 knobs. Honest expectation 0.942 ± 0.001 — the member-quality wall (entry "#16 … why nothing of ours moves 0.942") |
+| 2026-09-23 | **Round 2 — `v09d` (P-34: the `v09c` recipe with `lr_backbone=3e-5`) ‖ `v08c` (P-35: `v08w` + `aug="light"`) — `rsna-knee-folds` v8, fold 0, 8 ep, `best_oof`, one arm per T4, 3.24 h wall** | `v09d` gold 0.924 (n=11) · OOF **0.8596** · `v08c` gold 0.924 · OOF **0.8650** | — | **P-34 ❌ HARMFUL**: −0.0134 vs `v09c` 0.8730, 10/12 labels down (Lateral Meniscus −0.059, MCL −0.028) — the hybrid under-trains at 3e-5 in 8 epochs (still rising +0.0008/epoch at 7); **`v09e` (P-36, 16 ep × 3e-5) dropped by the pre-registered rule**. **P-35 🔁 INCONCLUSIVE**: +0.0002 vs `v08w` 0.8648, 6/12 up — light augmentation is worth nothing on the DINOv2 arm (entry 2026-09-23 "Round 2") |
+| 2026-09-23 | **`v09f` (P-37: the `v09c` recipe + `pos_weight_max=10`, per-label `clip((1−p)/p, 1, 10)`) — RunPod RTX 4090 (secure, EU-CZ-1), fold 0, 8 ep, 33 min** | gold 0.910 (n=11) · OOF **0.8717** | — | 🔁 INCONCLUSIVE: −0.0013 vs `v09c` 0.8730, 3/12 up — `pos_weight` is not a training-dynamics lever either; stays 0 (entry "RunPod arms") |
+| 2026-09-23 | **`v09s` (P-38: the `v09c` recipe on `TEACHER_TABLES=("selfdistill_v1",)`, mix 0.5 — self-distillation from the rank-mean of the `v09h` + `v05g` 5-fold OOF sets, quantile-matched onto the LLM blend; evaluation targets unchanged) — RunPod 4090, fold 0, 8 ep, 34 min** | gold 0.922 (n=11) · OOF **0.8839** | — | ✅ **KEEP: +0.0109 vs `v09c` 0.8730 (1.4× the 0.008 floor), 12/12 labels up** (MCL +0.024, Medial OA +0.015, Baker's +0.015) — the first recipe change since `v09h` that clears the floor; leads `v09c`/`v09f` from epoch 1 (0.836 vs 0.807). Caveat: the table's fold-1..4 models saw fold 0's *targets* (second order); the LB solo read of a distilled production member is the arbiter (entry "RunPod arms") |
+| 2026-09-23 | **Submission #18 — the S2 `v09a` ALONE (`rsna-knee-infer` v15, `INFER_MEMBERS=["v09a"]`; member-strength plan Task 11)** | gold-58 0.8922 (all-data SWA) | **0.918** | ✅ FINDING: one production member of ours reads 0.918 solo — above our whole 12-member blend (#11, 0.913) and inside the public stack's member range (0.90–0.928); the fold-0→LB offset (+0.02–0.03) under-predicted the all-data SWA member by ≈ 0.02. **Baseline for the Raptor-distilled retrain (P-39): ≥ 0.923 ✅ / ≤ 0.922 🔁 / < 0.918 ❌** (entry "Solo baseline #18") |
+| 2026-09-23 | **Raptor teacher pass (P-39) — `rsna-knee-teacher` v2 smoke (LIMIT 6) and v3 spike (LIMIT 100)**: the 0.942 notebook's Raptor branch verbatim over a chunk of our training studies via `RSNA_COMP_ROOT`, both T4s | — | — | ✅ FEASIBLE: v1 red (the preamble looked for `train_images`; the tree is `train_series` — traps 37) → v2 green (6/6, 62 s) → v3 **100/100 studies, 0 failed, 5.11 s/study incl. setup** → full pass 4,349 × 5.1 s ≈ **6.2 GPU-h** (one session under the 8 h guard, or 2 shards × 3.1 h in the two slots). Plausibility on the 100: Raptor vs the hard LLM teacher macro AUC 0.914; operating point more positive (Fracture mean 0.47 vs 0.15) — quantile matching handles it (entry "Raptor teacher pass") |
 
 **External reference points** (not ours — for calibrating ambition):
 
@@ -1484,6 +1489,201 @@ green first; pushed 09:05 on Tian's go; both children rc 0, `-> {arm}_fold0_best
 knobs); 🔁 the gold-58 gains (sub-floor, direction only); ⏳ the LB (#17, fork v8, β 0.10 vs 0.942 — ≥ 0.947 = our arm counts;
 honest expectation 0.942 ± 0.001, entry "#16 … why nothing of ours moves 0.942").**
 
+### 2026-09-23 — Round 2 (`rsna-knee-folds` v8, 3.24 h, both T4s): `v09d` (P-34, backbone LR 3e-5) **0.8596** ❌ HARMFUL vs `v09c` 0.8730 · `v08c` (P-35, DINOv2-S + light aug) **0.8650** vs `v08w` 0.8648 🔁 INCONCLUSIVE · `v09e` (P-36) dropped by rule
+
+**Setup.** Pushed 12:45 on Tian's go, COMPLETE 16:05 (11,671 s wall, both children rc 0, 6.84 GiB peak). `v09d` = the
+`v09c` recipe (CoAtNet-1 @224, c02 `window_attn`, 24 random train windows, 8 ep, `best_oof`, `batch_studies=2,
+grad_accum=2, aug="light"`) with `lr_backbone=3e-5` (the public 0.928 member's LR) on `cuda:0`; `v08c` = the `v08w`
+recipe (DINOv2-S @224) + `aug="light"` on `cuda:1`. Read on all 882 fold-0 studies, hard = `y__ > 0.5` (the unchanged
+LLM teacher), vs the controls `v09c` 0.8730 (`train_v23`) and `v08w` 0.8648 (`v17`). Outputs `artifacts/kaggle_out/folds_v8/`.
+
+**`v09d` vs `v09c`** — 10/12 labels down, `best_oof` = epoch 7; the curve 0.739 / 0.805 / 0.831 / 0.845 / 0.852 / 0.857 /
+0.859 / 0.860 is still rising at +0.0008/epoch, i.e. the hybrid *under-trains* at 3e-5 in 8 epochs (its loss 0.42 at epoch 7
+vs `v09c`'s 0.40):
+
+| label | v09c | v09d | delta |
+|---|---|---|---|
+| ACL | 0.8895 | 0.8935 | +0.0040 |
+| MCL | 0.8100 | 0.7820 | -0.0281 |
+| Medial Meniscus | 0.9198 | 0.8980 | -0.0219 |
+| Lateral Meniscus | 0.8561 | 0.7971 | -0.0590 |
+| Medial OA | 0.8793 | 0.8679 | -0.0115 |
+| Lateral OA | 0.8362 | 0.8201 | -0.0161 |
+| PF OA | 0.8193 | 0.8128 | -0.0065 |
+| Effusion | 0.8637 | 0.8553 | -0.0084 |
+| Synovitis | 0.8888 | 0.8942 | +0.0053 |
+| Baker's | 0.9049 | 0.8964 | -0.0085 |
+| Contusion | 0.8737 | 0.8675 | -0.0061 |
+| Fracture | 0.9345 | 0.9309 | -0.0037 |
+| **macro** | **0.8730** | **0.8596** | **-0.0134** (2/12 up) |
+
+**`v08c` vs `v08w`** — 6/12 up, +0.0002: augmentation is worth nothing on the DINOv2 arm (on the CoAtNet, P-33 read +0.004,
+also 🔁):
+
+| label | v08w | v08c | delta |
+|---|---|---|---|
+| ACL | 0.8648 | 0.8732 | +0.0083 |
+| MCL | 0.8226 | 0.8228 | +0.0002 |
+| Medial Meniscus | 0.9031 | 0.9101 | +0.0070 |
+| Lateral Meniscus | 0.8266 | 0.8309 | +0.0042 |
+| Medial OA | 0.8782 | 0.8774 | -0.0009 |
+| Lateral OA | 0.8330 | 0.8286 | -0.0043 |
+| PF OA | 0.8249 | 0.8189 | -0.0060 |
+| Effusion | 0.8555 | 0.8489 | -0.0067 |
+| Synovitis | 0.8877 | 0.8841 | -0.0036 |
+| Baker's | 0.8935 | 0.8959 | +0.0024 |
+| Contusion | 0.8743 | 0.8832 | +0.0089 |
+| Fracture | 0.9136 | 0.9059 | -0.0077 |
+| **macro** | **0.8648** | **0.8650** | **+0.0002** (6/12 up) |
+
+**Verdicts.** P-34 ❌ **HARMFUL** (−0.0134, 1.7× the floor the wrong way) — at 8 epochs the public LR is not our recipe's
+gap; by its own pre-registered rule this **drops `v09e` (P-36, 16 ep × 3e-5)** — 16 epochs might close part of the gap
+(the curve was still rising), but the rule was written before the read and stands; re-openable on Kaggle quota for 1.7 h
+if nothing better competes for it. P-35 🔁 **INCONCLUSIVE** (+0.0002). **With P-32 (BN batch ≈ 0), P-33 (+0.004),
+P-29 (16 ep harmful) and now P-34, every recipe knob between our c02 CoAtNet and the public 0.928 member is measured
+and none clears the floor — the recipe is exhausted as a lever; the target source is not (next entry).**
+
+### 2026-09-23 — RunPod arms on a 4090 (member-strength plan Task 10): `v09f` (P-37 `pos_weight`) **0.8717** 🔁 INCONCLUSIVE · `v09s` (P-38 self-distillation) **0.8839** ✅ KEEP (+0.0109, 12/12 labels up) · `v09e` (P-36) not run
+
+**Pod.** RTX 4090 (secure, EU-CZ-1, $0.74/h; the EUR-IS-2 4090s were out of stock), 32 vCPU / 125 GB, created 13:40
+over the RunPod MCP, terminated 16:45 (≈ 3.1 h, ≈ $2.3). `/workspace` there is a MooseFS network mount, so the 36 GB c02
+cache was pulled onto RAM (`/dev/shm`, 58 GB) — four shard pulls in parallel (~30 MB/s each; one died on an
+`IncompleteRead` and was re-pulled after deleting the truncated blob — traps 38); 71 blobs verified against their csvs.
+Throughput **0.05–0.06 s/study** (Kaggle T4 0.28), 3.3 min train + 0.9 min val per epoch, **≈ 34 min per 8-epoch
+CoAtNet-1 fold-0 arm** (the 2026-08-30 pod: 50 min). Branch `member-strength` was pushed into the pod's clone over SSH;
+`scripts/runpod_bootstrap.sh train <arm>` (now per-arm `artifacts/runpod_train_<arm>.py`, `ulimit -n`, unbuffered) ran
+the arms back to back; `ship <arm>` published `rsna-knee-ckpt-v09f` / `-v09s` (`_best.pt` + `_oof.csv`, `datasets
+status` ready). Read-outs on all 882 fold-0 studies, hard = `y__ > 0.5` (the unchanged LLM teacher), vs `v09c` 0.8730.
+
+**`v09f` (P-37)** = `v09c` + `pos_weight_max=10` (per-label `clip((1−p)/p, 1, 10)` from the training rows; the public
+0.924 member's loss). Printed `pos_weight [1, 10]: ACL 3.7, MCL 5.4, MedMen 1.5, LatMen 5.3, MedOA 1.8, LatOA 2.8, PF OA 1.2,
+Effusion 1.0, Synovitis 6.9, Baker's 3.1, Contusion 4.8, Fracture 10.0`. Curve 0.744 / 0.807 / 0.835 / 0.854 / 0.865 /
+0.870 / 0.8715 / 0.8717; gold 0.910 (n=11). **−0.0013, 3/12 up → 🔁 INCONCLUSIVE**; the "rejected without testing"
+reasoning (AUC reads ranks; a positive-term weight changes calibration, not ranking) is now a measurement:
+
+| label | v09c | v09f | delta |
+|---|---|---|---|
+| ACL | 0.8895 | 0.8700 | -0.0195 |
+| MCL | 0.8100 | 0.8210 | +0.0109 |
+| Medial Meniscus | 0.9198 | 0.9184 | -0.0015 |
+| Lateral Meniscus | 0.8561 | 0.8781 | +0.0220 |
+| Medial OA | 0.8793 | 0.8749 | -0.0045 |
+| Lateral OA | 0.8362 | 0.8272 | -0.0090 |
+| PF OA | 0.8193 | 0.8089 | -0.0104 |
+| Effusion | 0.8637 | 0.8600 | -0.0037 |
+| Synovitis | 0.8888 | 0.8831 | -0.0057 |
+| Baker's | 0.9049 | 0.9046 | -0.0003 |
+| Contusion | 0.8737 | 0.8820 | +0.0084 |
+| Fracture | 0.9345 | 0.9320 | -0.0026 |
+| **macro** | **0.8730** | **0.8717** | **-0.0013** (3/12 up) |
+
+**`v09s` (P-38)** = `v09c` trained on `yt = 0.5 · LLM + 0.5 · quantile_match(selfdistill_v1)` (`TEACHER_TABLES =
+("selfdistill_v1",)` sed'd; `selfdistill_v1.csv` = per-label rank-mean of the `v09h` (pooled OOF 0.8625) and `v05g`
+(0.8467) 5-fold OOF sets, 4,407 studies, gold-58 of the table alone 0.8733; `src/build_distill_table.py`); gold rows keep
+their hard 0/1; the **evaluation** targets `y__*` are the unchanged 3-source LLM teacher, so this OOF is comparable with
+every earlier arm. Curve 0.772 / 0.836 / 0.861 / 0.872 / 0.879 / 0.881 / 0.8835 / 0.8839 — ahead of `v09f` from epoch 1
+(0.836 vs 0.807); gold 0.922 (n=11):
+
+| label | v09c | v09s | delta |
+|---|---|---|---|
+| ACL | 0.8895 | 0.9005 | +0.0110 |
+| MCL | 0.8100 | 0.8343 | +0.0242 |
+| Medial Meniscus | 0.9198 | 0.9229 | +0.0030 |
+| Lateral Meniscus | 0.8561 | 0.8586 | +0.0025 |
+| Medial OA | 0.8793 | 0.8940 | +0.0146 |
+| Lateral OA | 0.8362 | 0.8491 | +0.0129 |
+| PF OA | 0.8193 | 0.8323 | +0.0130 |
+| Effusion | 0.8637 | 0.8755 | +0.0118 |
+| Synovitis | 0.8888 | 0.8988 | +0.0100 |
+| Baker's | 0.9049 | 0.9195 | +0.0146 |
+| Contusion | 0.8737 | 0.8846 | +0.0109 |
+| Fracture | 0.9345 | 0.9370 | +0.0025 |
+| **macro** | **0.8730** | **0.8839** | **+0.0109** (12/12 up) |
+
+**Verdict: ✅ KEEP — +0.0109 macro (1.4× the 0.008 floor), 12/12 labels up, the largest and only-consistent gain of any
+recipe change since `v09h`.** Reading: a student trained on *smoothed* targets (half its own out-of-fold ranks, half the
+LLM blend) ranks the LLM teacher's hard labels better than a student trained on the LLM blend alone — target noise, not
+optimisation, was the binding constraint, exactly the member-strength diagnosis (spec 2026-09-23). **Caveats:** (a) the
+OOF-vs-teacher metric rewards agreement with the LLM teacher, and the self-distill table is itself a function of that
+teacher, so part of the gain may be "learning the teacher's noise more smoothly"; the 58 gold rows (0.922 vs 0.919 for
+`v09c`, n=11, floor 0.05) cannot tell; (b) the fold-1..4 models behind the table saw fold 0's *targets* (not its images)
+— a second-order leak into the fold-0 read. **Both caveats are settled by the LB**: the plan's Task 12 trains the
+production `v09a` on a mixed teacher and reads it solo against #18 (0.918). **Next:** the production retrain on
+`("selfdistill_v1",)` can run *now* (Kaggle both T4s, ≈ 2.7 h, next week's quota) without waiting for the Raptor table;
+the Raptor table (P-39) is the second, stronger teacher for the same mechanism.
+
+`v09e` (P-36, 16 ep × 3e-5) was **not run**: P-34's `v09d` read < 0.865 (entry above) and the card's rule drops it.
+Cards: P-36 ❌ dropped, P-37 🔁, P-38 ✅ (proposals.md). OOF csvs + per-label tables: `artifacts/kaggle_out/pod_v09f/`,
+`pod_v09s/`; logs there too; the `v09s` checkpoint also at `artifacts/ckpt_pod/v09s/`.
+
+### 2026-09-23 — Submission #18: the S2 `v09a` ALONE reads **0.918** public — one member of ours above our own 12-member blend (#11, 0.913) ✅ FINDING · the baseline for the distilled retrain
+
+`rsna-knee-infer` v15 = `MODE="infer"`, `INFER_MEMBERS = ["v09a"]`, Dataset `rsna-knee-ckpt-v09a` (the S2 member:
+CoAtNet-1 c02 `window_attn`, all 4,349 studies, 8 ep, SWA of the last 3 EMA, `batch_studies 2, grad_accum 2, aug light`,
+gold-58 0.8922). Placeholder 14:33 → 14:35 (2.2 min; `infer members (1): v09a/fold0 … [epoch 7, score 0.8922]`,
+`constant labels 0`); sent 14:36, ref 56493264, scored **0.918** at ≈ 16:00.
+
+**What it says.** (1) The fold-0-OOF → LB offset (+0.02–0.03, measured on fold-0 members) under-predicts an *all-data
+SWA* member by ≈ 0.02: the "why nothing of ours moves 0.942" entry put our members at ≈ 0.89–0.90 solo; the S2 `v09a`
+is **0.918**, inside the public stack's member range (0.90–0.928) and 0.006 under its best single member (Raptor
+CoAtNet-2, 0.924). (2) A single model of ours beats the 12-member blend we submitted as #11 (0.913) — the c01-era members
+in that blend were dragging it. (3) The member-quality wall is therefore thinner than estimated; whether a 0.918 member
+*counts* in the 0.942 stack is exactly what #17 (fork v8, β 0.10, pending) reads. **Rule for the distilled retrain
+(P-39 / Task 12), pre-registered: solo LB ≥ 0.923 = ✅ the teacher works (retrain `v08a` the same way, rebuild the fork);
+0.919–0.922 = 🔁; < 0.918 = ❌.** Submissions table row 18.
+
+### 2026-09-23 — Raptor teacher pass (P-39): the 0.942 notebook's Raptor branch as `kaggle/rsna-knee-teacher` — smoke green, spike **100 studies at 5.1 s/study → full pass ≈ 6.2 GPU-h** ✅ FEASIBLE · teacher vs LLM teacher macro AUC 0.914 on the 100
+
+**Built (member-strength plan Tasks 7–8).** `src/build_teacher_pass.py` slices `notebook_score_0.942.ipynb` verbatim
+(cell 16 helpers 104..195 + `rsna_phase` 274..294, cell 12 asset finder 123..165 + the memoised finder 308..330, cell 14
+dense sampler, cell 45 Raptor branch 2..8 + 14..628 with two token patches asserted once — `_KE_TEACHER_OUTPUTS` /
+`_KE_TEACHER_IDS` expose the running arrays) behind our chunk preamble (`SHARD` / `N_SHARDS` / `LIMIT`; the 4,349
+report-labelled UIDs sorted and sharded, **gold excluded**; `chunk/test.csv` + `test_series.csv` + `sample_submission.csv`
+in the competition schema; `chunk/test_series` **and** `test_images` symlinked to the mounted `train_series/`;
+`RSNA_COMP_ROOT` → the chunk in `/tmp`, never under `/kaggle/working`), a 5-min flush thread (atomic write; suppressed
+once `raptor_raw.npz` exists so the runner's in-place NaN fill can never be published as "complete"), and a final writer
+(`raptor_teacher_shard{K}.npz` with `study_uids`, `raw_probabilities` 4 × N × 12, `view_names`, `view_weights`,
+`checkpoint_sha256`; `.csv` with the view-weighted mean; `teacher_receipt.json`). Resume: `done_uids()` / `load_prior()`
+read any mounted shard or partial npz (skipping the competition tree), prior complete rows are carried into the new
+outputs; `--slug` / `--kernel-source` build a sibling kernel that mounts the previous run (a kernel cannot mount its own
+output — traps 31). `src/merge_teacher.py` merges shards (partial files without weights borrow a sibling's; `.tmp.npz`
+skipped; duplicate UID fatal; 4,349 expected unless `--allow-partial`) → `artifacts/teacher/raptor_teacher.csv`.
+Checks: `src/teacher_pass_test.py` (32 checks) and a byte-for-byte assertion that the extracted code equals the notebook.
+
+**Runs.** v1 (LIMIT 6) **red** in cell 1 — the preamble required `train_images/`; the competition mounts image trees
+`train_series/` + `test_series/` (traps 37); fixed with a shallow-glob root finder. v2 (LIMIT 6) **green**: 6/6 studies,
+62 s, both T4s (`balanced arm groups cuda:0=[0,2], cuda:1=[1,3]`), probabilities varied in (0, 1). v3 (LIMIT 100)
+**green**: 100/100, 0 failed, **511 s = 5.11 s/study including ≈ 13 s setup**, k_eval 94. Outputs
+`artifacts/kaggle_out/teacher_smoke_v2/`, `teacher_spike_v3/`; `merge_teacher.py --allow-partial` →
+`artifacts/teacher/raptor_spike100.csv`.
+
+**Plausibility (the 100 studies, Raptor's view-weighted mean vs the LLM blend, hard = LLM > 0.5):**
+
+| label | LLM positive rate | Raptor mean | corr | AUC (Raptor vs hard LLM) |
+|---|---|---|---|---|
+| ACL | 0.23 | 0.42 | 0.84 | 0.946 |
+| MCL | 0.16 | 0.46 | 0.52 | 0.772 |
+| Medial Meniscus | 0.44 | 0.46 | 0.86 | 0.948 |
+| Lateral Meniscus | 0.16 | 0.44 | 0.70 | 0.972 |
+| Medial OA | 0.36 | 0.38 | 0.78 | 0.912 |
+| Lateral OA | 0.26 | 0.37 | 0.71 | 0.904 |
+| PF OA | 0.44 | 0.40 | 0.75 | 0.912 |
+| Effusion | 0.47 | 0.49 | 0.76 | 0.906 |
+| Synovitis | 0.25 | 0.52 | 0.54 | 0.884 |
+| Baker's | 0.25 | 0.32 | 0.63 | 0.897 |
+| Contusion | 0.25 | 0.46 | 0.81 | 0.965 |
+| Fracture | 0.15 | 0.47 | 0.73 | 0.949 |
+| **macro** | | | | **0.914** |
+
+The public teacher ranks the LLM teacher's labels at 0.914 on 100 report-only studies (n small, direction only) and sits
+at a *more positive* operating point on every rare label (Fracture 0.47 vs 0.15) — exactly why the targets path
+quantile-matches each table onto the LLM blend before mixing (spec §2). **Shard plan:** 4,349 × 5.11 s = **6.2 h** in
+one session (guard 8.0 h, margin 1.8 h) or two shards × 3.1 h in the two GPU slots (`--shard k --n-shards 2`, the second
+via `--slug tiankljucanin/rsna-knee-teacher-b`); **runs after Saturday's quota reset** (≈ 3.4 h left this week). Then
+`merge_teacher.py artifacts/kaggle_out/teacher_s*/raptor_teacher_shard*.npz` → `raptor_teacher.csv` → new version of
+Dataset `rsna-knee-teacher-tables` → the production retrain with `TEACHER_TABLES = ("raptor_teacher",)` (Task 12) — or
+`("selfdistill_v1", "raptor_teacher")`, both quantile-matched and averaged.
+
 ## Infrastructure
 
 ### 2026-09-21 — P-27 fork builder + P-28 production regime shipped; local checks ✅ KEEP the code · Kaggle ⏳
@@ -1892,3 +2092,4 @@ and public LB score, so a public/private divergence can be traced to a specific 
 | 15 | 2026-09-22 | rsna-knee-fork v6 (the 20 sources of v3/v4) | **Anchor-only control (P-27)**: `build_fork.py --beta 0.0 --members v08w v09h` — the fork's arm cell raises `_ForkControl` before the runtime gate, our subprocess is never launched, `submission.csv` is the anchor's own file (`fork_diagnostics.json`: `status anchor_control`, `subprocess null`, anchor sha = submission sha; anchor graph 204 s, 20/20 DINO + 5 A5 folds on the placeholder) | none | **0.942** | sent 10:08, ref 56461317. Purpose: fix the anchor's score from *our* account — the number #12 (0.939, β 0.20), #13 (β 0.10) and #14 (β 0.10 + P-28 members) are compared against, instead of the author's stated 0.942. Expected ≈ 6 h to score (no arm) |
 | 16 | 2026-09-22 | rsna-knee-fork v7 (the 20 sources of v3/v4/v6) | **Final-selection hedge**: `build_fork.py --anchor-preset parent --beta 0.0` — the anchor's own `PRESET` default patched `speedy` → `parent` (one token, asserted once), which flattens the per-label outer CoAtNet map (LatMen 1.00, ACL / LatOA / Fracture 0.75, MedMen 0.80) to 0.60; our arm not run. Placeholder green 20:29 (fork log `preset=parent … outer CoAtNet weight per finding: flat 0.60`; `btkd_v559_complete.json` diff vs v6: every per-label weight 0.6; `status: anchor_control`, submission sha = anchor sha) | none (fork) | **0.940** | sent 20:37, ref 56471784, read 2026-09-23 08:40 (≈ 12 h to score, no arm). **−0.002 vs #15 (anchor 0.942) → 🔁 (0.4× the floor), inside the expected 0.939–0.941 band**: the public-tuned per-label map buys ≈ +0.002 on the public split. Validated flat-weights hedge for the second final slot (Scoreboard row; entry 2026-09-23) |
 | 17 | 2026-09-23 | rsna-knee-fork v8 (v5's 22 sources: the 20 public ones + Datasets `rsna-knee-ckpt-v09a` / `-v08a`, both re-versioned 11:44 to the S2 checkpoints) | **P-27 + P-28 S2**: #14's blend with the two production members retrained under the 8-epoch regime — `INFER_MEMBERS = [v08w, v09h, v09a, v08a]`, one vote per version (`v09h` = 5 folds inside its vote), β 0.10; `v09a` = CoAtNet-1 + `batch_studies 2, grad_accum 2, aug light` (gold-58 SWA 0.8922), `v08a` = DINOv2-S (0.8850) | none (fork; production members have no OOF — traps 32) | ⏳ | sent 11:54, ref 56489906. Placeholder green 11:45 → 11:53 (0.12 h): `status beta0.10`, `members [v08w, v09h, v09a, v08a]`, subprocess rc 0 in 190 s, 8 checkpoints in one geometry group, `v09a/fold0 … [epoch 7, score 0.8922]` / `v08a/fold0 … [score 0.885]` = the S2 checkpoints, anchor sha = submission sha on the 3 placeholder studies (expected at β 0.10). **Read vs #13 / #15 (0.942): ≥ 0.947 = our arm counts (a correctly trained production member helps), 0.940–0.946 = 🔁, ≤ 0.939 = the arm hurts**; vs #14 (0.941, the 16-epoch members) isolates the epoch budget + S1 knobs. ≈ 10 h to score (≈ 22:00); honest expectation 0.942 ± 0.001. 4 submissions left today |
+| 18 | 2026-09-23 | rsna-knee-infer v15 (v14's ckpt Datasets + `rsna-knee-ckpt-v09a`) | **Solo baseline (member-strength plan Task 11)**: `MODE="infer"`, `INFER_MEMBERS = ["v09a"]` — the S2 production `v09a` alone (CoAtNet-1 c02 window_attn, all 4,349 studies, 8 ep SWA, `batch_studies 2, grad_accum 2, aug light`) | none (production member, gold-58 0.8922 — traps 32) | **0.918** | sent 14:36, ref 56493264; placeholder 2.2 min (`infer members (1): v09a/fold0 … score 0.8922`, `constant labels 0`). **The reference for the Raptor-distilled retrain (P-39)**: ≥ 0.923 ✅ / ≤ 0.922 🔁 / < 0.918 ❌. A single model of ours above our own 12-member blend (#11, 0.913) — the "our members are ≈ 0.89–0.90 solo" estimate in the 2026-09-23 "#16 … why nothing of ours moves 0.942" entry was ≈ 0.02 too low for the all-data SWA member |

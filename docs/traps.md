@@ -718,3 +718,30 @@ plain `kernels status` right afterwards while the site itself answered in < 1 s.
 means the version exists and the retry would be a duplicate. Wrap CLI calls in a timeout (`timeout 60 kaggle …` in Git
 Bash, or `Start-Process … WaitForExit` in PowerShell) so a hang cannot eat a turn. Related: 20 (token expiry blames the
 slug), 21 (`datasets create` silent failures), handoff 2026-08-30 (`datasets version` exits 0 on an expired token).
+
+### 37. The competition's DICOM trees are `train_series/` and `test_series/` — there is no `train_images/` (Tier 2: one kernel version, 2026-09-23)
+
+The member-strength spec and plan (and one line of an earlier CLAUDE.md) assumed `train_images/<study>/<series>/*.dcm`;
+the first teacher-pass kernel (`rsna-knee-teacher` v1) hard-coded that name in its competition-root check and died in
+cell 1 (`competition root with train.csv + train_images not found`). The real mount, printed by every training kernel's
+`input layout` block: `/kaggle/input/competitions/rsna-knee-abnormality-detection/` with the five csvs and the two image
+trees **`train_series/`** and **`test_series/`**. The public 0.942 notebook's own reader agrees (`root + '/test_series'`
+first, `'/test_images'` as a fallback).
+
+**Do:** never name an image tree without checking the layout print; resolve the competition root with the shallow glob
+fallback (hard constraint 4 — `find_competition_root()` in `src/build_teacher_pass.py` accepts either spelling and walks
+`/kaggle/input` to depth 3 without entering the image trees); when a chunk root has to look like the test set, symlink
+**both** `test_series` and `test_images`.
+
+### 38. `kaggle kernels output` skips files that already exist locally — including a truncated one (Tier 2, 2026-09-23)
+
+Pulling the four c02 shards onto the RunPod pod, one `kernels output` died mid-blob with `Connection broken:
+IncompleteRead(11359326 bytes read, 508865570 more expected)` and left an 11 MB `blob01_013.npy` on disk. Re-running the
+same command printed `Skipping, found more recently modified local copy (use --force to force download)` for every file
+it had already written — **the truncated blob included**. `np.load` on that file would have failed at training time
+(or, with `mmap_mode`, read a wrong-shaped array), hours later and on another machine.
+
+**Do:** treat the skip as a feature (a broken pull resumes for free) but **delete any file smaller than its siblings
+before re-pulling**, and verify every blob after a pull: `np.load(npy, mmap_mode="r").shape[0] == len(pd.read_csv(csv))`
+for each `blob*.npy` / `.csv` pair (71 blobs, 4,407 studies in total for c02). Four shards pull in parallel at ≈ 30 MB/s
+each; sequentially the bootstrap's loop takes 4× longer.
