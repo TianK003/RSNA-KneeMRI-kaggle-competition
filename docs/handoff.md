@@ -6,6 +6,109 @@ to read first after a break.
 
 ---
 
+## 2026-09-23 (23:30) — Late evening: **`v09t`** (the production `v09a` recipe on the self-distilled targets) trained on a RunPod 4090 in 35 min — gold-58 SWA **0.9009** vs 0.8922 — shipped and **submitted solo as #19 (⏳, read vs 0.918)**; the Raptor full-pass shard kernels built and committed for Saturday; pod terminated
+
+Tian: "Continue with next session's work" (steps 1–3 of the 20:15 entry); chose **RunPod** over Kaggle quota for the real run when
+asked; re-authenticated Kaggle when the OAuth token expired mid-way; capped the pod at one hour ("stop the pod if it's not finishing
+within an hour") — the chained job took 41 min. Steps 2–3 cannot run before Saturday's quota reset; their kernels are built. Commits
+`47127df` (v09t + guard + shard kernels), the docs pass and this handoff.
+
+### ⏳ Still in flight as this was written (23:30)
+
+| In flight | What it is | Started | How to check | How to read it |
+|---|---|---|---|---|
+| **Submission #19 — `rsna-knee-infer` v16, ref 56504077** | **`v09t` ALONE**: the S2 `v09a` recipe (CoAtNet-1 @224, c02, window_attn, all 4,349 studies, 8 ep, SWA 5–7, batch 2 × accum 2, aug light) trained on `TEACHER_TABLES=("selfdistill_v1",)`, mix 0.5 — gold-58 SWA 0.9009 (`v09a`: 0.8922). Placeholder green 23:22 → 23:24: `infer members (1): v09t/fold0 … [epoch 7, score 0.9009]`, `constant labels 0`, `range=[0.333, 1.000]`. Outputs `artifacts/kaggle_out/infer_solo_v09t/` | 23:25 | `.venv\Scripts\kaggle.exe competitions submissions rsna-knee-abnormality-detection --csv \| head -3` | ≈ 1.5 h (#18 took 1.5 h) → **≈ 01:00**. **vs #18 (the same recipe on the LLM targets, 0.918): ≥ 0.923 ✅ self-distillation transfers to the production member; 0.919–0.922 🔁; < 0.918 ❌.** Then `/update`: fill the LB cell of the `v09t` Scoreboard row + Submissions row 19, P-38 status, CLAUDE.md state |
+
+Nothing else is running: `rsna-knee-train` v28 (smoke) and `rsna-knee-infer` v16 are COMPLETE, the teacher slugs untouched since v3,
+**no RunPod pod** (`list-pods` empty at 23:25). Kaggle quota this session: two smokes (≈ 0.1 h) — the training ran on the pod. **2
+submissions left today** (reset 02:00). Kaggle token valid until **01:34 local** (fresh login 22:34; see "will bite").
+
+### Where things stand
+
+| | Status |
+|---|---|
+| Best LB | **0.942** (#13 / #15); #16 0.940; #17 0.941 🔁; **#18 = `v09a` alone 0.918** (baseline); **#19 = `v09t` alone ⏳** |
+| `v09t` | **trained** (RunPod RTX 4090, 22:36 → 23:17 job, 35 min of training at 4.4 min/epoch): gold-58 EMA curve 0.798 → 0.866 → 0.886 → 0.893 → 0.898 → 0.901 → 0.901 → 0.902, **SWA 0.9009** (CI95 0.867–0.929), `v09a` S2 was 0.8922 → +0.0087 direction only (floor 0.05); weakest labels Synovitis 0.754 / PF OA 0.799 / Lateral OA 0.803. Dataset `tiankljucanin/rsna-knee-ckpt-v09t` ready (`v09t_fold0_best.pt` 157 MB + gold-58 `_oof.csv`); logs + csv in `artifacts/kaggle_out/pod_v09t/`. experiments.md 2026-09-23 "`v09t`" |
+| Code | `ARMS = [v09a, v09t, v08a]` — `v09t` = the `v09a` dict under its own version name (final-review item 6: no collision with `rsna-knee-ckpt-v09a`, a `_last.pt` resume, the fork slot); **`DISTILLED_ARMS = ("v09s", "v09t")`** replaces the `v09s`-only guard (refused without `TEACHER_TABLES`; probed locally); 75 unit checks + local smoke green |
+| Committed notebooks | `rsna-knee-train` = **v28 SMOKE** (`ARM_ONLY "v09t"`, `TEACHER_TABLES ("selfdistill_v1",)`, FORCE_SMOKE True — safe); `rsna-knee-infer` = **v16 = #19** (`INFER_MEMBERS ["v09t"]`, MODE infer, + `rsna-knee-ckpt-v09t` source); **`rsna-knee-teacher` = shard 0/2 of the FULL Raptor pass (LIMIT 0 — a push = a 3.1 h session)**; **`rsna-knee-teacher-b/` = shard 1/2 (new dir, slug `tiankljucanin/rsna-knee-teacher-b`, never pushed — the first push creates the kernel)**; `rsna-knee-folds` = round-2 REAL; fork = v8 (#17). `build_teacher_pass.py --check` and `teacher_pass_test.py` green on the shard renders |
+| Raptor pass (Task 9 step 3) | **built, not pushed** — waits for Saturday 2026-09-26; ≈ 3.1 h per shard in the two GPU slots; then `merge_teacher.py` → `artifacts/teacher/raptor_teacher.csv` → `kaggle datasets version` of `rsna-knee-teacher-tables` → Task 12 |
+| RunPod | pod `r8dijk36d7vpaz` (SECURE 4090, local NVMe `/workspace`, 14 GB `/dev/shm`): created 20:37, **idled ≈ 2 h on the expired Kaggle token**, job 22:36 → 23:17, shipped 23:21, terminated 23:22 — **≈ 2.75 h ≈ $2.0** (≈ $0.5 of it the actual training). `list-pods` empty |
+| Docs | experiments: Scoreboard row `v09t` (LB ⏳ #19), Submissions row 19, entry "`v09t`"; proposals: P-38 index + status (production retrain done, #19 ⏳); CLAUDE.md state 23:30 + layout rows (teacher = full-pass shard 0, teacher-b new) |
+| Repo | `main` pushed; memory `runpod-pod-self-service` updated (storage check, token window) |
+
+### What we talked about and decided
+
+- **RunPod over Kaggle quota for the real run (Tian, when asked)** — keeps this week's remaining quota; the pod recipe from the afternoon
+  worked again (4090 SECURE, disk 40 + 100 GB persistent). **One-hour cap (Tian)**: the job finished in 41 min, so nothing was cut.
+- **`v09t` as its own version name** (the final review's item 6) rather than retraining under `v09a`: Dataset, resume and fork slot stay
+  unambiguous; the guard was generalised to `DISTILLED_ARMS` so a distilled arm can never train on the plain teacher under its name.
+- **The pod idled ≈ 2 h ($1.5) waiting for the re-authentication** — I kept it running after asking Tian to re-login (offered "stop" as the
+  alternative); next time check the token's `access_token_expiration` *before* creating a pod (memory + "will bite").
+- **The shard kernels are committed as full-pass renders** (the same practice as the round-2 `rsna-knee-folds` real render) so Saturday's
+  session only pushes — with the warning in the table above.
+- Task 12 and the fork rebuild wait for #19's read and the Raptor table; nothing was pre-decided about the Task 12 table set.
+
+### What we figured out
+
+1. **The production regime on the self-distilled targets trains end to end and reads 0.9009 gold-58 SWA vs 0.8922** — the same sign as the
+   fold-0 `v09s` read, still rising at epoch 7; direction only until #19 (experiments.md "`v09t`").
+2. **A 4090 pod does the whole production retrain in 35 min** (4.4 min/epoch, 0.06 s/study) — the T4 takes 2.6 h; with four parallel pulls
+   the 36 GB cache lands in 6 min (≈ 85 MB/s aggregate). Whole job 41 min.
+3. **The Kaggle OAuth token does not refresh itself**: at its `access_token_expiration` (20:37 tonight) every CLI call failed
+   (`Permission 'kernels.get' was denied` / `Authentication required`) although a `refresh_token` sits in `credentials.json`; only Tian's
+   `kaggle auth login --force` (browser) fixed it, and the new token is valid for 3 h (until 01:34). traps 20 symptom, now with the mechanism.
+4. **Pod storage differs per pod**: tonight `/workspace` was a local NVMe xfs (1.5 GB/s) and `/dev/shm` only 14 GB — the afternoon's
+   RAM-cache trick would have failed; check `stat -f -c %T /workspace; df -h /dev/shm` before laying out `/kaggle/input`.
+
+### ⏭ Next action, in order
+
+1. **Read #19 (≈ 01:00, or next session):** `.venv\Scripts\kaggle.exe competitions submissions rsna-knee-abnormality-detection --csv | head -3`
+   → **≥ 0.923 ✅ / 0.919–0.922 🔁 / < 0.918 ❌** vs 0.918. `/update` (Scoreboard `v09t` row LB cell, Submissions row 19, P-38 status →
+   measured, CLAUDE.md state), then:
+   - **✅:** add `("v08t", {**PROD, "backbone": "dinov2", "img_size": 224})` to `ARMS` and to `DISTILLED_ARMS`; train it the same way
+     (pod: `RSNA_TEACHER_TABLES='("selfdistill_v1",)' bash scripts/runpod_bootstrap.sh train v08t` ≈ 20 min on a 4090, then `ship v08t`;
+     or Kaggle `ARM_ONLY = "v08t"` + the `TEACHER_TABLES` sed, ≈ 1.2 h); rebuild the fork at β 0.10 with `v09t` / `v08t` in place of
+     `v09a` / `v08a` (`src/build_fork.py --help` for the member and Dataset flags; new Datasets `rsna-knee-ckpt-v09t` / `-v08t`) → smoke →
+     **Tian's go** → submit vs 0.942 (≥ 0.947 ✅ / 0.940–0.946 🔁 / ≤ 0.939 ❌).
+   - **🔁 / ❌:** `v09a` stays the production member; the Raptor teacher (step 2) is the remaining lever; write the finding into P-38.
+2. **After Saturday 2026-09-26 (quota reset) — the full Raptor pass, both shards already rendered and committed:**
+   ```bash
+   grep -E '^(SHARD|N_SHARDS|LIMIT) = ' kaggle/rsna-knee-teacher/rsna-knee-teacher.py kaggle/rsna-knee-teacher-b/rsna-knee-teacher-b.py   # 0/2/0 and 1/2/0
+   timeout 60 .venv/Scripts/kaggle.exe kernels push -p kaggle/rsna-knee-teacher
+   timeout 60 .venv/Scripts/kaggle.exe kernels push -p kaggle/rsna-knee-teacher-b      # first push creates the kernel
+   ```
+   ≈ 3.1 h each, concurrently. Green: `teacher_receipt.json` `studies` 2,175 / 2,174, `failed_uids: []`. Guard stop → re-run
+   `build_teacher_pass.py --shard k --n-shards 2 --slug <the OTHER slug> --kernel-source <the stopped slug>` and push (resume by `done_uids`;
+   the partial npz is a legitimate input, R18). Pull `kernels output <slug> -p artifacts/kaggle_out/teacher_s<k> --file-pattern "(\.npz|teacher_receipt\.json|\.log)$"`,
+   `.venv/Scripts/python.exe src/merge_teacher.py artifacts/kaggle_out/teacher_s0/raptor_teacher_shard0.npz artifacts/kaggle_out/teacher_s1/raptor_teacher_shard1.npz --out artifacts/teacher/raptor_teacher.csv`
+   (4,349 rows), copy into `artifacts/ship_teacher/`, `kaggle datasets version -p artifacts/ship_teacher -m "raptor_teacher.csv (4 views, 94 windows, 4,349 studies)"`,
+   `datasets status` ready; plausibility = Raptor vs LLM teacher macro AUC on all 4,349 (0.914 on the spike). `/update` P-39.
+3. **Task 12 (after 2):** `TEACHER_TABLES = ("raptor_teacher",)` (or the set decided in P-39 after #19's read), `PARALLEL_ARMS = ("v09a", "v08a")`
+   sed'd, smoke → real (≈ 2.7 h on Kaggle, or two pod arms) → gold-58 SWA vs 0.8922 / 0.8850 → new Dataset slugs `rsna-knee-ckpt-v09a-rt` /
+   `-v08a-rt` (or distinct version names as with `v09t`) → solo read vs 0.918 → fork.
+4. `/update` after every read; `/handoff` at the end.
+
+### Open decisions for Tian
+
+- **If #19 ✅:** the `v08t` retrain (pod ≈ $0.3 or 1.2 h of quota) and the fork rebuild with the distilled members — a submission.
+- **Task 12's teacher set** once #19 is read: Raptor alone vs Raptor + self-distillation (write it into the P-39 card first).
+- Re-open `v09e` — unchanged (low priority). Final selection (#13 / #15 vs #16) — unchanged. RadImageNet licence — unchanged.
+
+### Things that will bite if forgotten
+
+- **`kaggle/rsna-knee-teacher/` and `-b/` are FULL-PASS renders now** — each push is a 3.1 h GPU session; run them only after the reset, and
+  only two at a time (the two slots). `rsna-knee-teacher-b` does not exist on Kaggle until its first push.
+- **Kaggle token:** `python -c "import json,os;print(json.load(open(os.path.expanduser('~/.kaggle/credentials.json')))['access_token_expiration'])"`
+  before anything long-running; the CLI does not refresh it; only Tian can re-login (`! .venv\Scripts\kaggle.exe auth login --force`);
+  a pod waiting on it costs $0.74/h — create the pod *after* a fresh login.
+- **Pod storage varies** (MooseFS + 58 GB shm vs local NVMe + 14 GB shm): check before choosing `/workspace` vs `/dev/shm` for the cache.
+- **`v09t` / `v09s` need the `TEACHER_TABLES` sed**; any *new* distilled arm name must be added to `DISTILLED_ARMS` or it trains silently
+  on the plain teacher — grep the log for `teacher table … studies`.
+- **Submissions:** 2 left today (reset 02:00); the infer kernel's committed render is the solo `v09t` — for a fork submission use
+  `kaggle/rsna-knee-fork/`.
+- `kernels status` before any push retry (traps 36); `timeout 60` on every CLI call; `export PATH="/usr/bin:/bin:$PATH"` in the Bash tool;
+  git via PowerShell; CRLF docs.
+
 ## 2026-09-23 (20:15) — Evening: the **member-strength plan executed subagent-driven** (Tasks 1–8, 9 steps 1–2, 10, 11 — 19 commits on `member-strength`, final review clean, **merged to `main`**); **`v09s` self-distillation 0.8839 ✅ is the one lever**; #18 = the S2 `v09a` alone **0.918**; #17 **0.941** 🔁; Raptor teacher pass green (full pass after Saturday); RunPod pod created, used 3.1 h, terminated
 
 Tian's asks: execute the approved plan subagent-driven, **spin up the pod myself** over the RunPod MCP (superseding "Tian creates the
