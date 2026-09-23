@@ -2184,7 +2184,10 @@ def split_studies(targets, fold, cfg):
 
 
 def label_pos_weight(targets, study_ids, max_w):
-    """P-37: clip((1 - p) / p, 1, max_w) per label from the training rows' hard targets (yt if present)."""
+    """P-37: clip((1 - p) / p, 1, max_w) per label from the training rows' hard targets (yt if present).
+    An empty `study_ids` is fatal (SystemExit), never a silent all-NaN mean of an empty frame."""
+    if not study_ids:
+        raise SystemExit("pos_weight: no training studies to compute the positive rate from")
     t = targets.set_index("StudyInstanceUID").loc[study_ids]
     cols = [f"yt__{l}" if f"yt__{l}" in t.columns else l for l in LABELS]
     p = (t[cols].to_numpy(dtype=float) > 0.5).mean(0)
@@ -2412,8 +2415,10 @@ def train_fold(fold, manifest, targets, image_root, cfg, device):
     tr_loader, va_loader = make_loaders(manifest, targets, image_root, cfg, fold)
     pos_w = None
     if cfg.pos_weight_max > 0:
-        tr_ids, _ = split_studies(targets, fold, cfg)
-        pw = label_pos_weight(targets, [s for s in tr_ids if s in set(tr_loader.dataset.studies)], cfg.pos_weight_max)
+        # The loader's dataset already holds the exact, smoke-adjusted training list (make_loaders may
+        # fall back to a local sample) -- re-deriving it via split_studies can disagree under cfg.smoke
+        # and hand label_pos_weight an empty list, which was silently NaN before the SystemExit guard.
+        pw = label_pos_weight(targets, list(tr_loader.dataset.studies), cfg.pos_weight_max)
         pos_w = torch.tensor(pw, dtype=torch.float32, device=device)
         print("    pos_weight [1, %g]: " % cfg.pos_weight_max + ", ".join(f"{l} {v:.1f}" for l, v in zip(LABELS, pw)))
     steps_per_epoch = max(1, len(tr_loader) // cfg.grad_accum)

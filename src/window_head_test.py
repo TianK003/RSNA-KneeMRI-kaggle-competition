@@ -451,6 +451,12 @@ def main():
     check(pw.shape == (12,) and np.isfinite(pw).all(), "label_pos_weight: 12 finite weights")
     check(abs(pw[LABELS.index("ACL")] - 9.0) < 1e-6, "label_pos_weight: 10 % positive -> 9")
     check(pw[LABELS.index("MCL")] == 1.0 and pw[LABELS.index("Fracture")] == 10.0, "pos_weight extremes clip to [1, max]")
+    try:
+        lpw(tg, [], 10.0)
+        empty_raised = False
+    except SystemExit:
+        empty_raised = True
+    check(empty_raised, "label_pos_weight: empty study list is fatal, never NaN")
     lg = torch.randn(2, 12); yy = torch.rand(2, 12); ww = torch.ones(2, 12)
     check(torch.allclose(K["weighted_bce"](lg, yy, ww), K["weighted_bce"](lg, yy, ww, pos_weight=None)), "weighted_bce: pos_weight=None is the old loss")
     check(float(K["weighted_bce"](lg, yy, ww, pos_weight=torch.full((12,), 3.0))) > float(K["weighted_bce"](lg, yy, ww)), "weighted_bce: pos_weight > 1 raises the loss")
