@@ -27,7 +27,7 @@ before Saturday's push). Submissions: 5 today, none used.
 | Shard 2/3 | **not built yet** — `build_teacher_pass.py --shard 2 --n-shards 3` → `kaggle/rsna-knee-teacher/` (v4's output is already pulled, so the slug is free), push after Saturday's reset, **budget 2.5 h** (6.2 s/study in the slower session) |
 | Committed notebooks | `rsna-knee-teacher` = shard 0/3 render (done); `rsna-knee-teacher-b` = shard 1/3 render (done); `rsna-knee-train` = v28 smoke; `rsna-knee-infer` = v16 (`v09t` solo — a dead end, rebuild before any infer push); `rsna-knee-folds` = round-2 REAL; fork = v8 |
 | Tools | `src/teacher_plausibility.py <table.csv>` = the P-39 read (per-label AUC / ρ / operating points vs `artifacts/targets.csv`, coverage checks; exits 1 below macro 0.85) |
-| Docs | experiments: Scoreboard row measured + entry "Raptor pass shards 0–1"; proposals P-39 status; CLAUDE.md state 17:35 + layout |
+| Docs | experiments: Scoreboard row measured + entry "Raptor pass shards 0–1"; proposals P-39 status + an **"In plain words"** paragraph (what Raptor, the shards and Task 12 are — Tian's question) + Cost; CLAUDE.md state 17:35 + layout |
 | Repo | `main` pushed |
 
 ### What we talked about and decided
