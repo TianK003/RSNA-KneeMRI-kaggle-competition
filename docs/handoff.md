@@ -6,6 +6,84 @@ to read first after a break.
 
 ---
 
+## 2026-09-24 (14:55) — Afternoon: **the Raptor teacher pass is running — shards 0 and 1 of 3, one per GPU slot** (`rsna-knee-teacher` v4, `rsna-knee-teacher-b` v1, pushed 14:54, ≈ 2.1 h each); re-sharded 2 → 3 so two shards fit the week's last 6.3 h of quota (Tian's choice); shard 2 after Saturday; RunPod credit reserved for Task 12
+
+Tian asked whether the two-shard pass fits the remaining 6.3 h (no: 6.2 session-hours + startup, and a quota kill loses nearly every
+row because a row counts only with all four views) and whether RunPod could run it (no: the pass reads the DICOMs, which exist only on
+Kaggle — hard constraint 2). Chosen: **3 shards, two now** (≈ 4.3 h of quota, ≈ 2 h margin, 2/3 of the table before Saturday). Tian also
+asked what Raptor and the shards are — answered in chat: Raptor = the public 0.942 notebook's frozen CoAtNet-2 branch (≈ 0.924 solo), run
+verbatim over our 4,349 report-only training studies to produce a *teacher table*; the shards are a plain partition of that work; the
+table is then mixed into our own production member's training targets (Task 12). Commit `f929d4e` (renders) + this handoff.
+
+### ⏳ Still in flight as this was written (14:55)
+
+| In flight | What it is | Started | How to check | How to read it |
+|---|---|---|---|---|
+| **Shard 0/3 — `rsna-knee-teacher` v4** | the Raptor branch verbatim over training studies 0–1,449 of the sorted gold-free 4,349, both T4s, raw per-view probabilities (`raptor_teacher_shard0.npz` 4 × N × 12 + csv + `teacher_receipt.json`), partial flush every 5 min | 14:54 | `.venv\Scripts\kaggle.exe kernels status tiankljucanin/rsna-knee-teacher` | ≈ 1,450 × 5.1 s + startup ≈ **2.1 h → ≈ 17:05**. COMPLETE → `kernels output tiankljucanin/rsna-knee-teacher -p artifacts/kaggle_out/teacher_s0 --file-pattern "(\.npz\|teacher_receipt\.json\|\.log)$"`; green = receipt `studies: 1450`, `failed_uids: []`, npz `study_uids` 1,450. ERROR / guard stop / quota kill → the partial npz is a legitimate merge input (R18); the resume is `build_teacher_pass.py --shard 0 --n-shards 3 --slug tiankljucanin/rsna-knee-teacher-b --kernel-source tiankljucanin/rsna-knee-teacher`, pushed once `-b` has finished. **Pull before pushing anything else to this slug** (`kernels output` reads the latest version) |
+| **Shard 1/3 — `rsna-knee-teacher-b` v1** | the same over studies 1,450–2,899 | 14:54 | `… kernels status tiankljucanin/rsna-knee-teacher-b` | same rule; pull into `artifacts/kaggle_out/teacher_s1`; a resume of this shard goes to the sibling slug `rsna-knee-teacher` with `--kernel-source tiankljucanin/rsna-knee-teacher-b` |
+
+Quota: 6.3 h before the push − ≈ 4.3 h → **≈ 2 h left this week** (a quota kill hits *both* sessions at once; the margin covers a ≈ 45 %
+slowdown vs the 100-study spike). Reset Saturday 2026-09-26. **Token:** the CLI does not refresh it — check `access_token_expiration` in
+`~/.kaggle/credentials.json` before the 17:05 pull (only Tian can `! .venv\Scripts\kaggle.exe auth login --force`). Submissions: 5 today,
+none used. RunPod: no pod; ≈ $4 of credit ≈ 5 h of 4090, **reserved for Task 12** (≈ 41 min per arm incl. the cache pull).
+
+### Where things stand
+
+| | Status |
+|---|---|
+| Best LB | **0.942** (#13 / #15); #18 `v09a` alone 0.918; #19 `v09t` alone 0.917 ❌ (00:15 entry) |
+| P-39 Raptor pass | **2/3 running** (above); shard 2/3 after Saturday: `build_teacher_pass.py --shard 2 --n-shards 3` → `kaggle/rsna-knee-teacher/` (only after v4's output is pulled), push, ≈ 2.1 h → `merge_teacher.py s0 s1 s2 --out artifacts/teacher/raptor_teacher.csv` (`--expect-n 4349`) → `artifacts/ship_teacher/` → `kaggle datasets version` → Task 12 |
+| Committed notebooks | `rsna-knee-teacher` = **shard 0/3** (v4, running), `rsna-knee-teacher-b` = **shard 1/3** (v1, running) — LIMIT 0, a re-push = 2.1 h; `rsna-knee-train` = v28 smoke; `rsna-knee-infer` = v16 (#19, `v09t` — a dead end: rebuild before any infer push); `rsna-knee-folds` = round-2 REAL; fork = v8 |
+| Docs | experiments: ⏳ Scoreboard row for the pass; proposals: P-39 status; CLAUDE.md state 14:55 + layout rows (0/3, 1/3) |
+| Everything else | as the 00:15 entry (P-38 ❌, traps 39, `v09a` the production member) |
+
+### What we talked about and decided
+
+- **3 shards, two now** (Tian) over "one of two now" (3 h of quota would expire unused) and "wait for Saturday": the week's leftover quota
+  is spent, the full-pass kernel is validated on real shards, and the finish date (after Saturday) is the same.
+- **The pass stays on Kaggle**; the RunPod credit goes to the Task 12 retrain, where it buys the most (a 4090 does the production retrain in
+  35 min vs 2.6 h of T4 quota).
+- Correction to the 00:15 entry's next action 1: **the pass cannot give "Raptor vs the 58 gold labels"** — the shards are gold-free by design
+  (the 58 gold rows never teach). The plausibility read on the merged table is Raptor vs the LLM teacher (0.914 on the spike) plus P-39's
+  cited public numbers (0.924 solo LB; gold-58 0.905–0.917 from the anchor's own report). A separate 58-study Raptor read would need a
+  small extra kernel (≈ 5 min) — optional, not planned.
+
+### What we figured out
+
+Nothing new was measured. Operational: Kaggle bills concurrent GPU sessions separately, so "6.2 GPU-h" is 6.2 h of quota whether the two
+sessions run side by side or not; the 2 h margin rule (never plan a pass closer than ≈ 30 % to the remaining quota) is now in the P-39 card.
+
+### ⏭ Next action, in order
+
+1. **≈ 17:05 — read both shards** by the table above; then a plausibility read on the 2,900 rows:
+   `.venv/Scripts/python.exe src/merge_teacher.py artifacts/kaggle_out/teacher_s0/raptor_teacher_shard0.npz artifacts/kaggle_out/teacher_s1/raptor_teacher_shard1.npz --allow-partial --out artifacts/teacher/raptor_partial_s01.csv`
+   (expect 2,900 rows), then Raptor vs the hard LLM teacher (`y__* > 0.5` from `artifacts/targets.csv`) macro AUC per label as in the spike
+   script pattern (0.914 on 100 studies; MCL lowest) — a value far below 0.9 or a label near 0.5 means a view/label-order problem, stop and
+   inspect before Saturday. `/update`: the ⏳ Scoreboard row → measured (studies, s/study, failures, plausibility), P-39 status.
+2. **Saturday 2026-09-26 (reset):** shard 2/3 as in "Where things stand" (pull v4's output first); merge all three with `--expect-n 4349`;
+   `kaggle datasets version -p artifacts/ship_teacher -m "raptor_teacher.csv (4 views, 94 windows, 4,349 studies)"`; `datasets status` ready;
+   `/update`.
+3. **Task 12 — `v09r`** (own version name in `ARMS` + `DISTILLED_ARMS`, like `v09t`): `TEACHER_TABLES = ("raptor_teacher",)`, mix 0.5 (the
+   spec) — Kaggle smoke (`teacher table raptor_teacher: 4349 studies`), then the real run on a **RunPod 4090** (≈ 41 min ≈ $0.5; check the
+   token first, create the pod after a fresh login), `ship v09r`, solo read vs 0.918: **≥ 0.923 ✅ (then `v08r` and the fork) / 0.919–0.922 🔁 /
+   < 0.918 ❌**. Judge by nothing else (traps 39).
+4. `/update` after every read; `/handoff` at the end.
+
+### Open decisions for Tian
+
+- Task 12's mix (0.5 per the spec; Raptor-only = mix 1.0 as the second arm if 0.5 reads 🔁) — decide after the plausibility read.
+- Whether a 5-minute extra kernel over the 58 gold studies is worth it for a direct "Raptor vs gold" number (optional).
+- Final selection (#13 / #15 vs #16) — unchanged. RadImageNet licence — unchanged.
+
+### Things that will bite if forgotten
+
+- **Do not push to `rsna-knee-teacher` before pulling v4's output** — `kernels output` serves the latest version only; shard 2 reuses the slug.
+- A quota kill shows as `ERROR` in `kernels status` with no message: read the log tail and the partial npz's `study_uids` before deciding
+  between a resume and a re-run.
+- The token (`access_token_expiration`) before the pull; only Tian can re-login.
+- Both teacher renders are full-pass runs (2.1 h per push); the infer render is the dead-end `v09t` solo.
+- ≈ 2 h of quota left this week — enough for nothing but smokes until Saturday.
+
 ## 2026-09-24 (00:15) — #19 read: the self-distilled `v09t` alone = **0.917** vs 0.918 → ❌ self-distillation does not transfer to the production member; ✅ FINDING: OOF against the LLM targets cannot judge a target-source change (traps 39); nothing running; Saturday = the Raptor pass
 
 Tian asked to check because the Kaggle UI showed nothing running — the submission had scored. Read 00:07, logged, committed, pushed.
