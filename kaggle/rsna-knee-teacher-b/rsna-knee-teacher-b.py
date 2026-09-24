@@ -1,6 +1,6 @@
 # %%
 SHARD = 1                 # sed'd at build: shard index
-N_SHARDS = 2              # sed'd at build: number of shards over the 4,349 report-labelled studies
+N_SHARDS = 3              # sed'd at build: number of shards over the 4,349 report-labelled studies
 LIMIT = 0                 # sed'd at build: > 0 = first N studies of the shard (6 = smoke, 100 = the timing spike)
 # Teacher pass (src/build_teacher_pass.py): the 0.942 notebook's Raptor branch, verbatim, over a chunk of TRAINING
 # studies presented to it as a competition root through RSNA_COMP_ROOT.
