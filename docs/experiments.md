@@ -78,7 +78,7 @@ Judge label changes on **coverage** (does the rule fire at all, per language) an
 | 2026-09-23 | **Submission #18 — the S2 `v09a` ALONE (`rsna-knee-infer` v15, `INFER_MEMBERS=["v09a"]`; member-strength plan Task 11)** | gold-58 0.8922 (all-data SWA) | **0.918** | ✅ FINDING: one production member of ours reads 0.918 solo — above our whole 12-member blend (#11, 0.913) and inside the public stack's member range (0.90–0.928); the fold-0→LB offset (+0.02–0.03) under-predicted the all-data SWA member by ≈ 0.02. **Baseline for the Raptor-distilled retrain (P-39): ≥ 0.923 ✅ / ≤ 0.922 🔁 / < 0.918 ❌** (entry "Solo baseline #18") |
 | 2026-09-23 | **Raptor teacher pass (P-39) — `rsna-knee-teacher` v2 smoke (LIMIT 6) and v3 spike (LIMIT 100)**: the 0.942 notebook's Raptor branch verbatim over a chunk of our training studies via `RSNA_COMP_ROOT`, both T4s | — | — | ✅ FEASIBLE: v1 red (the preamble looked for `train_images`; the tree is `train_series` — traps 37) → v2 green (6/6, 62 s) → v3 **100/100 studies, 0 failed, 5.11 s/study incl. setup** → full pass 4,349 × 5.1 s ≈ **6.2 GPU-h** (one session under the 8 h guard, or 2 shards × 3.1 h in the two slots). Plausibility on the 100: Raptor vs the hard LLM teacher macro AUC 0.914; operating point more positive (Fracture mean 0.47 vs 0.15) — quantile matching handles it (entry "Raptor teacher pass") |
 | 2026-09-23 | **`v09t` (P-38 in production): the S2 `v09a` recipe (CoAtNet-1 @224, c02, window_attn, all 4,349 studies, 8 ep, SWA 5–7, `batch_studies=2, grad_accum=2, aug="light"`) trained on `TEACHER_TABLES=("selfdistill_v1",)`, mix 0.5 — its own version name; RunPod RTX 4090, 35 min (4.4 min/epoch)** | gold-58 (all 58, reported only): **SWA 0.9009** (CI95 0.867–0.929; last EMA 0.9016; epochs 0–7: 0.798 · 0.866 · 0.886 · 0.893 · 0.898 · 0.901 · 0.901 · 0.902) vs `v09a` 0.8922 → +0.0087, direction only | **0.917** (#19, read 2026-09-24 00:07) | **❌ by the pre-registered rule (< 0.918): −0.001 vs #18 (the same recipe on the LLM targets), 0.2× the 0.005 floor — self-distillation does not transfer to the production member; the fold-0 gain (`v09s` +0.011 OOF) was agreement with the LLM teacher, not truth (entry "Submission #19")**. ✅ the run: `train 4349 / val 58 studies`, `-> v09t_fold0_best.pt = SWA`; Kaggle smoke v28 green first (4 min); shipped as Dataset `rsna-knee-ckpt-v09t`; **solo submission #19 (`rsna-knee-infer` v16, ref 56504077, 23:25) — read vs #18 (0.918): ≥ 0.923 ✅ / 0.919–0.922 🔁 / < 0.918 ❌** (entry "`v09t`") |
-| 2026-09-24 | **Raptor teacher pass, the full run (P-39) — shards 0/3 and 1/3 (`rsna-knee-teacher` v4, `rsna-knee-teacher-b` v1, pushed 14:54, one per GPU slot)**: the 0.942 notebook's Raptor branch verbatim over 2 × 1,450 gold-free training studies, raw per-view probabilities, partial flush every 5 min | — | — | ⏳ ≈ 2.1 h each (1,450 × 5.1 s + startup) → read ≈ 17:05; shard 2/3 after Saturday's reset. Re-sharded 2 → 3 to fit the week's last 6.3 h of quota (≈ 4.3 h used, ≈ 2 h margin — a quota kill loses nearly every row because a row counts only with all four views). RunPod cannot host the pass (it reads the DICOMs; hard constraint 2) |
+| 2026-09-24 | **Raptor teacher pass, the full run (P-39) — shards 0/3 and 1/3 (`rsna-knee-teacher` v4, `rsna-knee-teacher-b` v1, pushed 14:54, one per GPU slot)**: the 0.942 notebook's Raptor branch verbatim over 2 × 1,450 gold-free training studies, raw per-view probabilities, partial flush every 5 min | — | — | ✅ **both green (read 17:12 / 17:25): 1,450 + 1,450 studies, 0 failed, 5.6 and 6.2 s/study (2.24 h and 2.50 h — the slower session ≈ 20 % over the spike's 5.1 s), k_eval 94; disjoint UIDs; merged 2,900 rows read macro AUC 0.906 vs the hard LLM teacher** (`src/teacher_plausibility.py`; spike 0.914; lowest MCL 0.844 / Effusion 0.845 / Synovitis 0.847, highest Baker's 0.950 / Fracture 0.949 / LatMen 0.947) — entry "Raptor pass shards 0–1". Shard 2/3 (1,449 studies, ≈ 2.5 h) after Saturday's reset; quota this week ≈ 1.5 h left. Re-sharded 2 → 3 to fit the week's last 6.3 h of quota (≈ 4.3 h used, ≈ 2 h margin — a quota kill loses nearly every row because a row counts only with all four views). RunPod cannot host the pass (it reads the DICOMs; hard constraint 2) |
 
 **External reference points** (not ours — for calibrating ambition):
 
@@ -1772,6 +1772,50 @@ says. (4) Cost of the read: 41 min of a 4090 (≈ $0.5) + one submission — che
 production; its fold-0 ✅ is withdrawn as an instrument artefact). ✅ FINDING — target-source changes are read by gold-58 + solo LB
 only (traps 39). `v09a` stays the production member; the `v08t` retrain and the distilled-fork rebuild are dropped.** Submissions
 table row 19.
+
+### 2026-09-24 — Raptor teacher pass, shards 0/3 and 1/3 (`rsna-knee-teacher` v4, `rsna-knee-teacher-b` v1): **2,900 of 4,349 studies, 0 failed, 5.6–6.2 s/study** ✅ the pass works at scale · Raptor vs the hard LLM teacher macro AUC **0.906** on 2,900 (plausibility, not a verdict)
+
+**Setup.** The 4,349 gold-free training studies split three ways (sorted UIDs; `build_teacher_pass.py --shard k --n-shards 3`; the
+two-shard plan needed 6.2 session-hours against 6.3 h of quota and a quota kill keeps few 4-view-complete rows — traps-39-era
+arithmetic in the 14:55 handoff). Shards 0 and 1 pushed 14:54 into the two GPU slots, the Raptor branch verbatim (3 public CoAtNet-2
+checkpoints, 4 views, 94 windows, both T4s), partial flush every 5 min, `raptor_teacher_shard{k}.npz` (4 × 1,450 × 12 raw probabilities
++ view names / weights + checkpoint sha256) and a receipt each. Outputs `artifacts/kaggle_out/teacher_s0/`, `teacher_s1/`.
+
+| shard | studies | failed | s/study | wall | receipt |
+|---|---|---|---|---|---|
+| 0/3 (`rsna-knee-teacher` v4) | 1,450 | 0 | 6.20 | 2.50 h | `k_eval 94`, 1,450/1,450 rows finite in all four views |
+| 1/3 (`rsna-knee-teacher-b` v1) | 1,450 | 0 | 5.56 | 2.24 h | same |
+| spike (v3, 2026-09-23) | 100 | 0 | 5.11 | 0.14 h | — |
+
+The partial-flush curve confirms the guard-stop caveat: at 1.75 h only 627 of shard 1's 1,450 studies had all four views (the runner
+covers the views sequentially per GPU), so a session killed at 80 % of its time would have kept ≈ 40 % of its rows.
+
+**Plausibility on the merged 2,900 rows** (`merge_teacher.py … --allow-partial --out artifacts/teacher/raptor_partial_s01.csv`, then
+`teacher_plausibility.py`: Raptor probability vs `LLM blend > 0.5`, report-only rows, no gold row in the table):
+
+| label | AUC | ρ | Raptor mean | LLM pos rate | label | AUC | ρ | Raptor mean | LLM pos rate |
+|---|---|---|---|---|---|---|---|---|---|
+| ACL | 0.912 | 0.64 | 0.43 | 0.21 | PF OA | 0.906 | 0.75 | 0.42 | 0.45 |
+| MCL | **0.844** | 0.50 | 0.47 | 0.16 | Effusion | **0.845** | 0.77 | 0.50 | 0.59 |
+| Medial Meniscus | 0.945 | 0.82 | 0.48 | 0.40 | Synovitis | **0.847** | 0.73 | 0.52 | 0.12 |
+| Lateral Meniscus | 0.947 | 0.62 | 0.47 | 0.15 | Baker's | 0.950 | 0.56 | 0.38 | 0.25 |
+| Medial OA | 0.924 | 0.71 | 0.40 | 0.37 | Contusion | 0.903 | 0.67 | 0.48 | 0.17 |
+| Lateral OA | 0.905 | 0.64 | 0.40 | 0.26 | Fracture | 0.949 | 0.46 | 0.47 | 0.07 |
+
+**Macro 0.906** (spike: 0.914 on 100 studies; shard 1 alone 0.903).
+
+**What it says.** (1) The pass is sound at scale — no failed study, every row finite in all four views, the view / label order is
+right (no label near chance), and the per-study cost is 5.6–6.2 s (the spike's 5.1 s was optimistic by up to 20 %: budget 2.5 h for
+shard 2). (2) Raptor and the LLM teacher agree at 0.906 macro — enough to be the same task, far from a copy: on the 2,900 studies they
+disagree on real cases, which is exactly what a second teacher must do (the self-distillation table, by contrast, was a smoothed copy of
+the LLM signal — traps 39). Agreement is lowest on MCL, Effusion and Synovitis, the three findings where the reports themselves are
+least specific; whether Raptor or the LLM is *right* there is what the solo LB of the distilled member will say, not this table.
+(3) Raptor's operating point is far more positive than the LLM blend on the rare labels (Fracture mean 0.47 vs a 7 % positive rate,
+MCL 0.47 vs 16 %, Synovitis 0.52 vs 12 %) — the kernel's `quantile_match` onto the LLM blend removes that before mixing; a plain
+probability average would have flooded the rare labels with positives.
+
+**Verdict: ✅ the pass (2/3 done; shard 2/3 after Saturday); the teacher itself is ⏳ until Task 12's solo read vs 0.918 — judged by
+gold-58 direction + solo LB only (traps 39).**
 
 ## Infrastructure
 
