@@ -91,6 +91,7 @@ src/build_distill_table.py  P-38: rank-mean of complete 5-fold OOF sets -> artif
 src/build_teacher_pass.py   P-39: notebook_score_0.942.ipynb's Raptor branch (verbatim, 2 token patches) + chunk preamble -> kaggle/rsna-knee-teacher/ (--shard/--n-shards/--limit/--slug/--kernel-source/--check)
 src/merge_teacher.py    P-39: raptor_teacher_shard*.npz (+ partial flushes) -> artifacts/teacher/raptor_teacher.csv (view-weighted mean probabilities)
 src/teacher_pass_test.py  checks for build_teacher_pass.py + merge_teacher.py (7 cells, patches once, gold-free disjoint shards, resume accumulation, merge rules)
+src/teacher_plausibility.py  P-39: a merged Raptor table vs the hard LLM teacher (per-label AUC / rho / operating points, coverage) -- a plausibility read of the pass, never a verdict (traps 39)
 scripts/runpod_bootstrap.sh  off-Kaggle runner: setup | train <arm> | ship <arm>   (requirements-gpu.txt)
 notebook_score_0.942.ipynb  the public "DINOsaur V5" inference graph (public LB 0.942, trains nothing) -- input of build_fork.py
 kaggle/rsna-knee-train/     generated training notebook + kernel-metadata.json (one production arm via ARM_ONLY sed)
