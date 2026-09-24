@@ -6,6 +6,81 @@ to read first after a break.
 
 ---
 
+## 2026-09-24 (17:35) — **Raptor pass shards 0/3 and 1/3 green**: 2,900 studies, 0 failed, 5.6–6.2 s/study, Raptor vs the LLM teacher macro AUC 0.906 on 2,900; outputs pulled; **shard 2 after Saturday**, then merge → Dataset → Task 12 on RunPod; nothing running
+
+Continuation of the 14:55 entry: both shards finished (17:12, 17:25), were pulled, merged and read with the new
+`src/teacher_plausibility.py`. No decisions were needed. Commits: `9754031` (plausibility script), the docs pass and this handoff.
+
+### ⏳ Still in flight as this was written (17:35)
+
+**Nothing is running**: `rsna-knee-teacher` v4 and `rsna-knee-teacher-b` v1 COMPLETE and pulled (`artifacts/kaggle_out/teacher_s0/`,
+`teacher_s1/`), no submission pending, no RunPod pod. **Quota this week ≈ 1.5 h left** (6.3 − 2.50 − 2.24) — smokes only until the reset
+on Saturday 2026-09-26. Kaggle token valid until **02:54** tonight (then a fresh `! .venv\Scripts\kaggle.exe auth login --force` by Tian
+before Saturday's push). Submissions: 5 today, none used.
+
+### Where things stand
+
+| | Status |
+|---|---|
+| Best LB | **0.942** (#13 / #15); #18 `v09a` alone 0.918 (the baseline for Task 12); #19 `v09t` 0.917 ❌ |
+| P-39 Raptor pass | **2/3 done**: shard 0 1,450 studies / 0 failed / 6.20 s/study / 2.50 h; shard 1 1,450 / 0 / 5.56 / 2.24 h; UIDs disjoint; all rows finite in 4 views. `artifacts/teacher/raptor_partial_s01.csv` (2,900 rows) reads **macro 0.906 vs the hard LLM teacher** (MCL 0.844 / Effusion 0.845 / Synovitis 0.847 lowest; Baker's 0.950 highest); Raptor far more positive on the rare labels (Fracture mean 0.47 vs 7 % positive) → quantile matching in the kernel is essential and in place. experiments.md 2026-09-24 "Raptor pass shards 0–1" |
+| Shard 2/3 | **not built yet** — `build_teacher_pass.py --shard 2 --n-shards 3` → `kaggle/rsna-knee-teacher/` (v4's output is already pulled, so the slug is free), push after Saturday's reset, **budget 2.5 h** (6.2 s/study in the slower session) |
+| Committed notebooks | `rsna-knee-teacher` = shard 0/3 render (done); `rsna-knee-teacher-b` = shard 1/3 render (done); `rsna-knee-train` = v28 smoke; `rsna-knee-infer` = v16 (`v09t` solo — a dead end, rebuild before any infer push); `rsna-knee-folds` = round-2 REAL; fork = v8 |
+| Tools | `src/teacher_plausibility.py <table.csv>` = the P-39 read (per-label AUC / ρ / operating points vs `artifacts/targets.csv`, coverage checks; exits 1 below macro 0.85) |
+| Docs | experiments: Scoreboard row measured + entry "Raptor pass shards 0–1"; proposals P-39 status; CLAUDE.md state 17:35 + layout |
+| Repo | `main` pushed |
+
+### What we talked about and decided
+
+- Nothing new; the 14:55 entry's plan ran as written. The spike's 5.1 s/study was optimistic by up to 20 % (6.2 s in the slower
+  session) — Saturday's shard budget is 2.5 h, not 2.1.
+
+### What we figured out
+
+1. **The pass works at scale**: 2,900 studies, 0 failed, every row finite in all four views, view / label order confirmed by the
+   per-label read (no label near chance).
+2. **Raptor is a second opinion, not a copy**: 0.906 macro agreement with the LLM teacher on 2,900 studies (0.914 on the spike) — it
+   disagrees on real cases, lowest on MCL / Effusion / Synovitis, the findings the reports are least specific about. Which side is right is
+   what Task 12's solo LB read decides; this table cannot (traps 39).
+3. **The guard-stop caveat is real**: at 80 % of shard 1's wall time only 43 % of its rows were 4-view-complete — never plan a shard closer
+   than ≈ 30 % to the remaining quota or the 8 h guard.
+
+### ⏭ Next action, in order
+
+1. **Saturday 2026-09-26 (after the quota reset; check the token first):**
+   ```bash
+   .venv/Scripts/python.exe src/build_teacher_pass.py --shard 2 --n-shards 3           # -> kaggle/rsna-knee-teacher/ (SHARD = 2, N_SHARDS = 3, LIMIT = 0)
+   grep -E '^(SHARD|N_SHARDS|LIMIT) = ' kaggle/rsna-knee-teacher/rsna-knee-teacher.py
+   .venv/Scripts/python.exe src/teacher_pass_test.py
+   timeout 60 .venv/Scripts/kaggle.exe kernels push -p kaggle/rsna-knee-teacher        # ≈ 2.5 h; the second slot is free for a Task 12 smoke
+   ```
+   COMPLETE → `kernels output tiankljucanin/rsna-knee-teacher -p artifacts/kaggle_out/teacher_s2 --file-pattern "(\.npz|teacher_receipt\.json|\.log)$"`;
+   green = receipt `studies: 1449`, `failed_uids: []`. Then
+   `.venv/Scripts/python.exe src/merge_teacher.py artifacts/kaggle_out/teacher_s0/raptor_teacher_shard0.npz artifacts/kaggle_out/teacher_s1/raptor_teacher_shard1.npz artifacts/kaggle_out/teacher_s2/raptor_teacher_shard2.npz --expect-n 4349 --out artifacts/teacher/raptor_teacher.csv`,
+   `.venv/Scripts/python.exe src/teacher_plausibility.py artifacts/teacher/raptor_teacher.csv` (expect ≈ 0.906), copy the csv into
+   `artifacts/ship_teacher/`, `kaggle datasets version -p artifacts/ship_teacher -m "raptor_teacher.csv (4 views, 94 windows, 4,349 studies)"`,
+   `datasets status` ready. `/update` (Scoreboard row for shard 2, P-39 → table published).
+2. **Task 12 — `v09r`**: add `("v09r", <the v09a dict>)` to `ARMS` and `"v09r"` to `DISTILLED_ARMS`; `TEACHER_TABLES = ("raptor_teacher",)`,
+   mix 0.5 (the spec's default); Kaggle smoke (`ARM_ONLY "v09r"` sed'd; expect `teacher table raptor_teacher: 4349 studies`); real run on a
+   **RunPod 4090** (create the pod after a fresh Kaggle login; `stat -f -c %T /workspace; df -h /dev/shm` to place the cache; the chained
+   job pattern from the 23:30 entry: ≈ 41 min ≈ $0.5) → `ship v09r` → infer solo (`INFER_MEMBERS = ["v09r"]`, Dataset `rsna-knee-ckpt-v09r`)
+   → submit → **vs 0.918: ≥ 0.923 ✅ (then `v08r` and the fork at β 0.10) / 0.919–0.922 🔁 / < 0.918 ❌** (traps 39: nothing else counts).
+3. `/update` after every read; `/handoff` at the end.
+
+### Open decisions for Tian
+
+- Task 12's mix: 0.5 first (spec); a Raptor-only target (mix 1.0) is the natural second arm if 0.5 reads 🔁 — one more pod hour.
+- Whether a 5-minute extra kernel over the 58 gold studies (a direct "Raptor vs gold" read) is worth it — optional; the shards are gold-free.
+- Final selection (#13 / #15 vs #16) — unchanged. RadImageNet licence — unchanged.
+
+### Things that will bite if forgotten
+
+- **Shard 2 reuses the `rsna-knee-teacher` slug and dir**: v4's output is pulled, so pushing shard 2 is safe — but never pull "the latest
+  version" of that slug again expecting shard 0.
+- The token expires 02:54 tonight; Saturday's push needs a fresh login (only Tian).
+- Budget 2.5 h per shard, not 2.1; ≈ 1.5 h of quota left this week — no real run before Saturday.
+- The infer render is the dead-end `v09t` solo; both teacher renders are full-pass runs.
+
 ## 2026-09-24 (14:55) — Afternoon: **the Raptor teacher pass is running — shards 0 and 1 of 3, one per GPU slot** (`rsna-knee-teacher` v4, `rsna-knee-teacher-b` v1, pushed 14:54, ≈ 2.1 h each); re-sharded 2 → 3 so two shards fit the week's last 6.3 h of quota (Tian's choice); shard 2 after Saturday; RunPod credit reserved for Task 12
 
 Tian asked whether the two-shard pass fits the remaining 6.3 h (no: 6.2 session-hours + startup, and a quota kill loses nearly every
