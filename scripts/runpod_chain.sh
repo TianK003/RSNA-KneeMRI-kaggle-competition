@@ -28,7 +28,10 @@ WEIGHTS=(timm-coatnet-rmlp-1-rw-224 timm-coatnet-rmlp-2-rw-384 convnext-tiny-224
 log() { echo "[$(date +%H:%M:%S)] $*"; }
 
 mkdir -p "$IN/competitions/$COMP" "$IN/models/metaresearch/dinov2/pytorch/small/1" "$WORK" "$CACHE_ROOT"
-python -c "import torch, timm; print('torch', torch.__version__, 'cuda', torch.cuda.is_available(), torch.cuda.get_device_name(0))"
+log "python deps (torch comes from the image)"
+pip install -q -r "$REPO/requirements-gpu.txt"
+python -c "import torch, timm, pydicom, safetensors; print('torch', torch.__version__, 'timm', timm.__version__, 'cuda', torch.cuda.is_available(), torch.cuda.get_device_name(0))"
+kaggle --version
 
 log "cache shards: 4 parallel pulls -> $CACHE_ROOT"
 pids=()
