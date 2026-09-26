@@ -30,7 +30,7 @@ log() { echo "[$(date +%H:%M:%S)] $*"; }
 
 mkdir -p "$IN/competitions/$COMP" "$IN/models/metaresearch/dinov2/pytorch/small/1" "$WORK" "$CACHE_ROOT"
 log "python deps (torch comes from the image)"
-pip install -q -r "$REPO/requirements-gpu.txt"
+PIP_BREAK_SYSTEM_PACKAGES=1 pip install -q -r "$REPO/requirements-gpu.txt"   # the runpod/pytorch image marks its Python externally managed (PEP 668)
 python -c "import torch, timm, pydicom, safetensors; print('torch', torch.__version__, 'timm', timm.__version__, 'cuda', torch.cuda.is_available(), torch.cuda.get_device_name(0))"
 kaggle --version
 
