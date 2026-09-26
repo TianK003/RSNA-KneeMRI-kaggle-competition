@@ -233,13 +233,6 @@ ARMS = [
     # (experiments.md 2026-09-23 "S1 A/B"). Training-only knobs: neither reaches inference (not INFER_MEMBER_KEYS).
     ("v09a", {**PROD, "backbone": "timm:coatnet_rmlp_1_rw_224", "img_size": 224, "lr_backbone": 1e-4,
               "batch_studies": 2, "grad_accum": 2, "aug": "light"}),
-    # 2026-09-23 (P-38 in production): the v09a recipe trained on the SELF-DISTILLED targets -- run with
-    # TEACHER_TABLES=("selfdistill_v1",) sed'd in beside ARM_ONLY = "v09t" (the fold-0 probe v09s read +0.0109, 12/12 labels
-    # up, on the same table). Its own version name so nothing collides with the S2 v09a (Dataset rsna-knee-ckpt-v09a, a
-    # _last.pt resume, the fork's member slot). Read SOLO vs #18 (0.918): >= 0.923 KEEP / 0.919-0.922 INCONCLUSIVE / < 0.918
-    # harmful (experiments.md 2026-09-23 "Submission #18").
-    ("v09t", {**PROD, "backbone": "timm:coatnet_rmlp_1_rw_224", "img_size": 224, "lr_backbone": 1e-4,
-              "batch_studies": 2, "grad_accum": 2, "aug": "light"}),
     ("v08a", {**PROD, "backbone": "dinov2", "img_size": 224}),
 ]
 # Shipped fold-0 / 5-fold members (Datasets rsna-knee-ckpt-*) and finished probes: selectable through ARM_ONLY /
@@ -278,6 +271,23 @@ SHIPPED_ARMS = [
     ("v09f", {**C02, "backbone": "timm:coatnet_rmlp_1_rw_224", "img_size": 224, "lr_backbone": 1e-4,
               "batch_studies": 2, "grad_accum": 2, "aug": "light", "pos_weight_max": 10.0}),
     ("v09s", {**C02, "backbone": "timm:coatnet_rmlp_1_rw_224", "img_size": 224, "lr_backbone": 1e-4,
+              "batch_studies": 2, "grad_accum": 2, "aug": "light"}),
+    # Distilled production members (moved out of ARMS 2026-09-26 for the reason v09s was: a run with neither ARM_ONLY nor
+    # PARALLEL_ARMS set would work through ARMS and train them on the plain teacher under their names). Select with
+    # ARM_ONLY / RSNA_ARM / PARALLEL_ARMS + the TEACHER_TABLES sed that DISTILLED_ARMS names.
+    # 2026-09-23 (P-38 in production): the v09a recipe trained on the SELF-DISTILLED targets -- run with
+    # TEACHER_TABLES=("selfdistill_v1",) sed'd in beside ARM_ONLY = "v09t" (the fold-0 probe v09s read +0.0109, 12/12 labels
+    # up, on the same table). Its own version name so nothing collides with the S2 v09a (Dataset rsna-knee-ckpt-v09a, a
+    # _last.pt resume, the fork's member slot). Read SOLO vs #18 (0.918): >= 0.923 KEEP / 0.919-0.922 INCONCLUSIVE / < 0.918
+    # harmful (experiments.md 2026-09-23 "Submission #18").
+    ("v09t", {**PROD, "backbone": "timm:coatnet_rmlp_1_rw_224", "img_size": 224, "lr_backbone": 1e-4,
+              "batch_studies": 2, "grad_accum": 2, "aug": "light"}),
+    # 2026-09-26 (P-39, plan Task 12): the v09a recipe trained on the RAPTOR teacher -- the public 0.942 notebook's frozen
+    # CoAtNet-2 branch run over our 4,349 report-only studies (src/build_teacher_pass.py, 3 shards, raptor_teacher.csv) --
+    # with TEACHER_TABLES=("raptor_teacher",) sed'd in, mix 0.5. Own version name as with v09t. #19 showed OOF / gold-58 vs
+    # the LLM targets cannot judge a target change (traps 39): read SOLO vs #18 (0.918) only -- >= 0.923 KEEP /
+    # 0.919-0.922 INCONCLUSIVE / < 0.918 harmful.
+    ("v09r", {**PROD, "backbone": "timm:coatnet_rmlp_1_rw_224", "img_size": 224, "lr_backbone": 1e-4,
               "batch_studies": 2, "grad_accum": 2, "aug": "light"}),
 ]
 ARM_V10C = ("v10c", {**C02, "backbone": "timm:coatnet_rmlp_2_rw_384", "img_size": 384,
@@ -371,10 +381,14 @@ TEACHER_PATHS = {
 # targets are distilled, and the arm dict cannot carry TEACHER_TABLES (targets are built once per session) -- never train
 # one on the plain teacher under its name. ARM_ONLY / RSNA_ARM cover a single-arm kernel, a resume and the RunPod runner
 # (RSNA_ARM also reaches the P-31 children); PARALLEL_ARMS stops the parent before it spawns them.
-DISTILLED_ARMS = ("v09s", "v09t")
-_distilled = [a for a in (ARM_ONLY, os.environ.get("RSNA_ARM", ""), *PARALLEL_ARMS) if a in DISTILLED_ARMS]
-if _distilled and not TEACHER_TABLES:
-    raise SystemExit(f"{_distilled[0]} is a distilled arm: sed TEACHER_TABLES = (\"selfdistill_v1\",) into the copy you run")
+# 2026-09-26 (P-39): arm -> the EXACT table set it must train on, so `v09r` can train neither on the plain teacher nor on
+# the dead self-distill table under its name.
+DISTILLED_ARMS = {"v09s": ("selfdistill_v1",), "v09t": ("selfdistill_v1",), "v09r": ("raptor_teacher",)}
+# Every arm this session can train: the filters, and the sequential loop's list itself (a run with no filter).
+for _a in (ARM_ONLY, os.environ.get("RSNA_ARM", ""), *PARALLEL_ARMS, *(a[0] for a in (ARMS or []))):
+    if _a in DISTILLED_ARMS and tuple(TEACHER_TABLES) != DISTILLED_ARMS[_a]:
+        raise SystemExit(f"{_a} is a distilled arm: sed TEACHER_TABLES = {DISTILLED_ARMS[_a]!r} into the copy you run "
+                         f"(it has {tuple(TEACHER_TABLES)!r})")
 
 
 @dataclass
