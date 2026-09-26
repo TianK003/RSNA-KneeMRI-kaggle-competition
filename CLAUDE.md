@@ -93,6 +93,7 @@ src/merge_teacher.py    P-39: raptor_teacher_shard*.npz (+ partial flushes) -> a
 src/teacher_pass_test.py  checks for build_teacher_pass.py + merge_teacher.py (7 cells, patches once, gold-free disjoint shards, resume accumulation, merge rules)
 src/teacher_plausibility.py  P-39: a merged Raptor table vs the hard LLM teacher (per-label AUC / rho / operating points, coverage) -- a plausibility read of the pass, never a verdict (traps 39)
 scripts/runpod_bootstrap.sh  off-Kaggle runner: setup | train <arm> | ship <arm>   (requirements-gpu.txt)
+scripts/runpod_chain.sh      one unattended pod job: inputs, 4 parallel c02 pulls, blob verify, teacher-table check, train <arm>, ship <arm>
 notebook_score_0.942.ipynb  the public "DINOsaur V5" inference graph (public LB 0.942, trains nothing) -- input of build_fork.py
 kaggle/rsna-knee-train/     generated training notebook + kernel-metadata.json (one production arm via ARM_ONLY sed)
 kaggle/rsna-knee-folds/     second training slot (ARM_ONLY sed; historically FIVE_FOLD=True); mounts c02 + timm weights too

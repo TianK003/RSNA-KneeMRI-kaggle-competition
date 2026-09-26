@@ -759,3 +759,31 @@ a smoothed copy of the LLM signal and *agreed with the teacher better* without m
 gold-58 direction (floor 0.05, 58 studies) and the solo public LB (floor 0.005) — never by OOF against the teacher it was distilled from
 or against the teacher that produced its inputs. Recipe changes (LR, augmentation, batch composition, epochs) may still use OOF vs the
 unchanged teacher. Related: 32 (production members have no OOF), experiments.md 2026-09-24 "Submission #19", P-38 / P-39.
+
+### 40. A distilled arm left in `ARMS` trains on the *plain* teacher under its distilled name when no arm filter is set (Tier 1, found in review 2026-09-26, never ran)
+
+The P-38 guard (`DISTILLED_ARMS`) refused a distilled arm without `TEACHER_TABLES` — but it only looked at the arm *filters*
+(`ARM_ONLY`, `RSNA_ARM`, `PARALLEL_ARMS`). `v09t` sat in `ARMS`, so a real run with none of the filters set (the default sequential
+loop) would have trained `v09t` on the LLM targets and written `v09t_fold0_best.pt` — a checkpoint whose name says "self-distilled"
+over a model that is not. The same reasoning had already moved `v09s` out of `ARMS` in the branch's final review (2026-09-23); `v09t`
+was added back to `ARMS` afterwards. A second, quieter gap: the guard checked only that *some* table was set, so `v09r` (the Raptor
+arm) would have trained on `selfdistill_v1` without complaint.
+
+**Do:** distilled arms live in `SHIPPED_ARMS` (reachable through the filters, never run by default); `DISTILLED_ARMS` maps each arm to
+its **exact** table set and the guard compares `tuple(TEACHER_TABLES)` against it for every arm the session can train — the filters
+*and* the sequential loop's `ARMS` list (commit `d75719c`; probed: `()`, the wrong table, `PARALLEL_ARMS`, and an unfiltered run that
+trains `v09a` + `v08a` only). Any new distilled arm name goes into `DISTILLED_ARMS` with its table. The checkpoint's
+`teacher_tables` field records what was used — grep the training log for `teacher table <name>: N studies` before shipping.
+
+### 41. A GPU kernel can sit `QUEUED` for hours with no message — and the stall is Kaggle's, not the kernel's (Tier 3, 2026-09-26)
+
+`rsna-knee-teacher` v5 (shard 2/3 of the Raptor pass, a render identical to v4 but for `SHARD`) stayed `KernelWorkerStatus.QUEUED`
+from its 17:26 push to past 19:07 on a Saturday evening; `kernels status` and the API's `failureMessage` are both empty, and
+`kernels list --mine` keeps showing the *previous* run's `lastRunTime`. A 2 h queue happened once before (2026-08-29, the folds v2
+log's clock read 8.0 h at 10 h wall-clock). Diagnostic that separates "Kaggle has no T4 capacity" from "this kernel is stuck": push a
+throwaway GPU script (`nvidia-smi -L`, no inputs, `machine_shape` T4) to its own slug — it queued too (`rsna-knee-gpu-probe`, 19:04).
+
+**Do:** plan GPU work with queue slack (the token's ≈ 3 h life is the tight constraint: a queued shard can finish after the token
+that must pull it); keep the queued version rather than re-pushing (a new version of the slug would replace it and most likely
+start again at the back of the queue); read "hours since push" as an upper bound on run time (traps 20's token note, handoff
+2026-08-29). Delete a probe kernel once it has told you what you needed.
