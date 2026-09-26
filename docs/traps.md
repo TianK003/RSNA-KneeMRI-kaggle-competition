@@ -785,7 +785,7 @@ throwaway GPU script (`nvidia-smi -L`, no inputs, `machine_shape` T4) to its own
 Quota is ruled out by **`kaggle quota`** (CLI 2.2.4; used / remaining / total hours + `refreshAt`): at 20:03 it read GPU
 **0.00 h used, 30.00 h remaining, refresh 2026-10-03T00:00:00** — the weekly reset is **Saturday 00:00 UTC**, and a queue with
 a full quota is capacity. The API accepts only `NvidiaTeslaT4`, `NvidiaTeslaP100` (never — hard constraint 1) and `Tpu1VmV38`, so
-there is no other GPU to fall back to; still queued at 20:03 (2 h 37 min).
+there is no other GPU to fall back to. It started at ≈ 20:35 — **3 h 10 min in the queue** — with the probe still queued behind it.
 
 **Do:** plan GPU work with queue slack (the token's ≈ 3 h life is the tight constraint: a queued shard can finish after the token
 that must pull it); keep the queued version rather than re-pushing (a new version of the slug would replace it and most likely
