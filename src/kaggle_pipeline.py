@@ -289,6 +289,9 @@ SHIPPED_ARMS = [
     # 0.919-0.922 INCONCLUSIVE / < 0.918 harmful.
     ("v09r", {**PROD, "backbone": "timm:coatnet_rmlp_1_rw_224", "img_size": 224, "lr_backbone": 1e-4,
               "batch_studies": 2, "grad_accum": 2, "aug": "light"}),
+    # P-39 "if it works": the v08a recipe (DINOv2-S) on the same Raptor teacher -- train only after v09r reads KEEP, then the
+    # fork at beta 0.10 with v09r / v08r in the member slots.
+    ("v08r", {**PROD, "backbone": "dinov2", "img_size": 224}),
 ]
 ARM_V10C = ("v10c", {**C02, "backbone": "timm:coatnet_rmlp_2_rw_384", "img_size": 384,
                      "lr_backbone": 1e-4, "eval_windows": 42, "grad_checkpoint": True})
@@ -383,7 +386,8 @@ TEACHER_PATHS = {
 # (RSNA_ARM also reaches the P-31 children); PARALLEL_ARMS stops the parent before it spawns them.
 # 2026-09-26 (P-39): arm -> the EXACT table set it must train on, so `v09r` can train neither on the plain teacher nor on
 # the dead self-distill table under its name.
-DISTILLED_ARMS = {"v09s": ("selfdistill_v1",), "v09t": ("selfdistill_v1",), "v09r": ("raptor_teacher",)}
+DISTILLED_ARMS = {"v09s": ("selfdistill_v1",), "v09t": ("selfdistill_v1",),
+                  "v09r": ("raptor_teacher",), "v08r": ("raptor_teacher",)}
 # Every arm this session can train: the filters, and the sequential loop's list itself (a run with no filter).
 for _a in (ARM_ONLY, os.environ.get("RSNA_ARM", ""), *PARALLEL_ARMS, *(a[0] for a in (ARMS or []))):
     if _a in DISTILLED_ARMS and tuple(TEACHER_TABLES) != DISTILLED_ARMS[_a]:
