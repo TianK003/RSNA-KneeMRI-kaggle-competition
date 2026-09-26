@@ -778,10 +778,14 @@ trains `v09a` + `v08a` only). Any new distilled arm name goes into `DISTILLED_AR
 ### 41. A GPU kernel can sit `QUEUED` for hours with no message — and the stall is Kaggle's, not the kernel's (Tier 3, 2026-09-26)
 
 `rsna-knee-teacher` v5 (shard 2/3 of the Raptor pass, a render identical to v4 but for `SHARD`) stayed `KernelWorkerStatus.QUEUED`
-from its 17:26 push to past 19:07 on a Saturday evening; `kernels status` and the API's `failureMessage` are both empty, and
+from its 17:26 push to past 20:03 on a Saturday evening; `kernels status` and the API's `failureMessage` are both empty, and
 `kernels list --mine` keeps showing the *previous* run's `lastRunTime`. A 2 h queue happened once before (2026-08-29, the folds v2
 log's clock read 8.0 h at 10 h wall-clock). Diagnostic that separates "Kaggle has no T4 capacity" from "this kernel is stuck": push a
 throwaway GPU script (`nvidia-smi -L`, no inputs, `machine_shape` T4) to its own slug — it queued too (`rsna-knee-gpu-probe`, 19:04).
+Quota is ruled out by **`kaggle quota`** (CLI 2.2.4; used / remaining / total hours + `refreshAt`): at 20:03 it read GPU
+**0.00 h used, 30.00 h remaining, refresh 2026-10-03T00:00:00** — the weekly reset is **Saturday 00:00 UTC**, and a queue with
+a full quota is capacity. The API accepts only `NvidiaTeslaT4`, `NvidiaTeslaP100` (never — hard constraint 1) and `Tpu1VmV38`, so
+there is no other GPU to fall back to; still queued at 20:03 (2 h 37 min).
 
 **Do:** plan GPU work with queue slack (the token's ≈ 3 h life is the tight constraint: a queued shard can finish after the token
 that must pull it); keep the queued version rather than re-pushing (a new version of the slug would replace it and most likely
