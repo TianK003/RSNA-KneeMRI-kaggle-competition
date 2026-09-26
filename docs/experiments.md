@@ -80,6 +80,7 @@ Judge label changes on **coverage** (does the rule fire at all, per language) an
 | 2026-09-23 | **`v09t` (P-38 in production): the S2 `v09a` recipe (CoAtNet-1 @224, c02, window_attn, all 4,349 studies, 8 ep, SWA 5–7, `batch_studies=2, grad_accum=2, aug="light"`) trained on `TEACHER_TABLES=("selfdistill_v1",)`, mix 0.5 — its own version name; RunPod RTX 4090, 35 min (4.4 min/epoch)** | gold-58 (all 58, reported only): **SWA 0.9009** (CI95 0.867–0.929; last EMA 0.9016; epochs 0–7: 0.798 · 0.866 · 0.886 · 0.893 · 0.898 · 0.901 · 0.901 · 0.902) vs `v09a` 0.8922 → +0.0087, direction only | **0.917** (#19, read 2026-09-24 00:07) | **❌ by the pre-registered rule (< 0.918): −0.001 vs #18 (the same recipe on the LLM targets), 0.2× the 0.005 floor — self-distillation does not transfer to the production member; the fold-0 gain (`v09s` +0.011 OOF) was agreement with the LLM teacher, not truth (entry "Submission #19")**. ✅ the run: `train 4349 / val 58 studies`, `-> v09t_fold0_best.pt = SWA`; Kaggle smoke v28 green first (4 min); shipped as Dataset `rsna-knee-ckpt-v09t`; **solo submission #19 (`rsna-knee-infer` v16, ref 56504077, 23:25) — read vs #18 (0.918): ≥ 0.923 ✅ / 0.919–0.922 🔁 / < 0.918 ❌** (entry "`v09t`") |
 | 2026-09-24 | **Raptor teacher pass, the full run (P-39) — shards 0/3 and 1/3 (`rsna-knee-teacher` v4, `rsna-knee-teacher-b` v1, pushed 14:54, one per GPU slot)**: the 0.942 notebook's Raptor branch verbatim over 2 × 1,450 gold-free training studies, raw per-view probabilities, partial flush every 5 min | — | — | ✅ **both green (read 17:12 / 17:25): 1,450 + 1,450 studies, 0 failed, 5.6 and 6.2 s/study (2.24 h and 2.50 h — the slower session ≈ 20 % over the spike's 5.1 s), k_eval 94; disjoint UIDs; merged 2,900 rows read macro AUC 0.906 vs the hard LLM teacher** (`src/teacher_plausibility.py`; spike 0.914; lowest MCL 0.844 / Effusion 0.845 / Synovitis 0.847, highest Baker's 0.950 / Fracture 0.949 / LatMen 0.947) — entry "Raptor pass shards 0–1". Shard 2/3 (1,449 studies, ≈ 2.5 h) after Saturday's reset; quota this week ≈ 1.5 h left. Re-sharded 2 → 3 to fit the week's last 6.3 h of quota (≈ 4.3 h used, ≈ 2 h margin — a quota kill loses nearly every row because a row counts only with all four views). RunPod cannot host the pass (it reads the DICOMs; hard constraint 2) |
 | 2026-09-26 | **Raptor teacher pass — shard 2/3 (`rsna-knee-teacher` v5, pushed 17:26)**: the v4 render with `SHARD = 2` (the only diff; `teacher_pass_test.py` green), the last 1,449 gold-free studies; merge target `--expect-n 4349` | — | — | ✅ **green (COMPLETE 23:39): 1,449 studies, 0 failed, 7.50 s/study (3.02 h — the slowest of the three sessions), k_eval 94** after **3 h 10 min QUEUED** (17:26 → 20:35; Kaggle T4 capacity — a probe kernel queued too, `kaggle quota` 0.00 / 30 h; traps 41). **The pass is complete: `merge_teacher.py` s0+s1+s2 `--expect-n 4349` → `artifacts/teacher/raptor_teacher.csv`, 4,349 rows, 0 gold; Raptor vs the hard LLM teacher macro AUC 0.9075** (2,900 rows: 0.906; spike 0.914); published as a new version of Dataset `rsna-knee-teacher-tables` (23:40, beside `selfdistill_v1.csv`) — entry "Raptor pass complete" |
+| 2026-09-26 | **`v09r` (P-39 / Task 12): the S2 `v09a` recipe (CoAtNet-1 @224, c02, window_attn, all 4,349 studies, 8 ep, SWA 5–7, `batch_studies=2, grad_accum=2, aug="light"`) trained on `TEACHER_TABLES=("raptor_teacher",)`, mix 0.5 — own version name; RunPod RTX 4090 (EUR-IS-1), 5.9 min/epoch, job 23:33 → 00:30** | gold-58 (all 58, reported only): **SWA 0.9093** (CI95 0.879–0.936; epochs 0–7 EMA: 0.770 · 0.860 · 0.887 · 0.898 · 0.904 · 0.910 · 0.909 · 0.908) vs `v09a` 0.8922 / `v09t` 0.9009 → +0.017 / +0.008, direction only; 9/12 labels up vs `v09a` (Synovitis 0.744 → 0.823, Fracture 0.897 → 0.943) | ⏳ #20 (`rsna-knee-infer` v17) | ⏳ **read solo vs #18 0.918: ≥ 0.923 ✅ / 0.919–0.922 🔁 / < 0.918 ❌** — the only instrument for a target change (traps 39) |
 
 **External reference points** (not ours — for calibrating ambition):
 
@@ -1848,6 +1849,39 @@ third shard is the same population, and the two readings of "a second opinion th
 
 **Verdict: ✅ the table is complete and sound (a plausibility read, never a verdict on the teacher — traps 39); the teacher is ⏳ until
 `v09r`'s solo read vs 0.918.**
+
+### 2026-09-26 — `v09r`: the production `v09a` recipe on the Raptor-distilled targets (P-39, plan Task 12) — gold-58 SWA **0.9093** vs 0.8922 (direction only) · solo LB ⏳ #20
+
+**Setup.** Arm `v09r` = the `v09a` dict under its own version name (in `SHIPPED_ARMS`; `DISTILLED_ARMS` pins it to
+`("raptor_teacher",)` — traps 40), `TEACHER_TABLES = ("raptor_teacher",)`, `TEACHER_MIX = 0.5`: training target
+`yt = 0.5 · LLM blend + 0.5 · quantile_match(Raptor)` on the 4,349 report-only rows, gold rows hard 0/1, evaluation targets unchanged.
+Trained on RunPod pod `xwgxw1ai93sjow` (SECURE RTX 4090, EUR-IS-1, MooseFS `/workspace` → cache on `/dev/shm`) with the new
+`scripts/runpod_chain.sh v09r` (`TEACHER_WAIT_MIN=40`: the job started 23:33, waited 7 min for the Dataset version, verified 71 blobs /
+4,407 studies, trained 23:42 → 00:30 at 5.9 min/epoch, shipped `rsna-knee-ckpt-v09r` 00:30); log lines `teacher table raptor_teacher:
+4349 studies`, `training targets = (1 - 0.5) * LLM + 0.5 * quantile-matched ['raptor_teacher']`. Pod 23:30 → 00:32 ≈ 1.03 h ≈ $0.76,
+deleted. Logs + gold csv: `artifacts/kaggle_out/pod_v09r/`. The Kaggle smoke was skipped (the T4 queue stood at 3 h; the pod's first
+minute shows the same lines, and the local smoke on the 2,900-row partial table had covered the code path).
+
+**Gold-58 per label** (SWA checkpoints; `v09a` = S2 on the LLM targets, `v09t` = self-distilled, both from their shipped csvs):
+
+| label | `v09a` | `v09t` | **`v09r`** | label | `v09a` | `v09t` | **`v09r`** |
+|---|---|---|---|---|---|---|---|
+| ACL | 0.915 | 0.949 | 0.953 | PF OA | 0.795 | 0.799 | 0.816 |
+| MCL | 0.887 | 0.930 | 0.925 | Effusion | 0.969 | 0.965 | 0.974 |
+| Medial Meniscus | 0.947 | 0.954 | 0.958 | Synovitis | 0.744 | 0.754 | **0.823** |
+| Lateral Meniscus | 0.842 | 0.839 | 0.853 | Baker's | 0.973 | 0.980 | 0.960 |
+| Medial OA | 0.986 | 0.977 | 0.967 | Contusion | 0.934 | 0.942 | 0.934 |
+| Lateral OA | 0.816 | 0.803 | 0.805 | Fracture | 0.897 | 0.919 | **0.943** |
+| **macro** | **0.892** | **0.901** | **0.909** | | | | |
+
+**What it says (direction only — gold floor 0.05, per-label SE ≈ 0.09).** The Raptor-distilled member trains as cleanly as `v09t`
+(monotone EMA curve to epoch 5, flat 5–7, SWA ≥ last EMA) and reads +0.017 over `v09a` on the held-out truth, 9/12 labels up; the two
+largest moves are on Synovitis (+0.079) and Fracture (+0.046) — Synovitis is one of the three labels where Raptor disagreed most with
+the LLM teacher (0.847), so if the gain is real it is where the second opinion was supposed to help. `v09t` read +0.009 here and then
+−0.001 on the LB (traps 39), so none of this is a verdict.
+
+**Verdict: ⏳ PENDING — solo submission #20 (`rsna-knee-infer` v17, `INFER_MEMBERS = ["v09r"]`) vs #18 0.918: ≥ 0.923 ✅ (then `v08r` and
+the fork at β 0.10) / 0.919–0.922 🔁 / < 0.918 ❌.**
 
 ## Infrastructure
 
