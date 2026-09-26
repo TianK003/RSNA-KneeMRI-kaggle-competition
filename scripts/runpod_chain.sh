@@ -10,7 +10,8 @@
 #     nohup bash scripts/runpod_chain.sh v09r > /workspace/job_v09r.log 2>&1 &
 # CACHE_ROOT: where the 36 GB of blobs land (a local NVMe /workspace, or /dev/shm when it has > 40 GB free -- check
 # `stat -f -c %T /workspace; df -h /dev/shm` first); /kaggle/input/<shard> is symlinked to it.
-# EXPECT_TEACHER (default: every table named in RSNA_TEACHER_TABLES): each must be in the downloaded teacher-tables Dataset.
+# EXPECT_TEACHER (default: every table named in RSNA_TEACHER_TABLES): each must be in the downloaded teacher-tables Dataset
+# with >= EXPECT_ROWS (4349) rows; TEACHER_WAIT_MIN (default 0) = minutes to keep re-downloading until it is.
 set -euo pipefail
 
 ARM="${1:?usage: $0 <arm>}"
@@ -54,11 +55,28 @@ for d in "${LABELS[@]}"; do
   kaggle datasets download -d "$d" -p "$IN/$slug" --unzip > /dev/null
   echo "  $slug: $(find "$IN/$slug" -type f | wc -l) files"
 done
+# TEACHER_WAIT_MIN > 0: the pod may start before the table's Dataset version is published/processed -- re-download the
+# teacher-tables Dataset once a minute until every expected table is there (the cache pulls keep running meanwhile).
 EXPECT_TEACHER="${EXPECT_TEACHER:-$(echo "${RSNA_TEACHER_TABLES:-}" | tr -d '()"'"'"' ' | tr ',' ' ')}"
+EXPECT_ROWS="${EXPECT_ROWS:-4349}"
+waited=0
+while :; do
+  missing=""
+  for t in $EXPECT_TEACHER; do
+    f="$IN/rsna-knee-teacher-tables/$t.csv"
+    if [ ! -f "$f" ] || [ "$(($(wc -l < "$f") - 1))" -lt "$EXPECT_ROWS" ]; then missing="$missing $t"; fi
+  done
+  [ -z "$missing" ] && break
+  if [ "$waited" -ge "${TEACHER_WAIT_MIN:-0}" ]; then
+    echo "!! teacher table(s)$missing missing or < $EXPECT_ROWS rows in the downloaded Dataset -- publish first"
+    ls -la "$IN/rsna-knee-teacher-tables"; exit 3
+  fi
+  sleep 60; waited=$((waited + 1))
+  rm -rf "$IN/rsna-knee-teacher-tables"
+  kaggle datasets download -d tiankljucanin/rsna-knee-teacher-tables -p "$IN/rsna-knee-teacher-tables" --unzip > /dev/null 2>&1 || true
+done
 for t in $EXPECT_TEACHER; do
-  f="$IN/rsna-knee-teacher-tables/$t.csv"
-  [ -f "$f" ] || { echo "!! teacher table $t.csv is not in the downloaded Dataset -- publish it first"; ls "$IN/rsna-knee-teacher-tables"; exit 3; }
-  echo "  $t.csv: $(($(wc -l < "$f") - 1)) rows"
+  echo "  $t.csv: $(($(wc -l < "$IN/rsna-knee-teacher-tables/$t.csv") - 1)) rows (waited ${waited} min)"
 done
 
 log "backbone weights"
