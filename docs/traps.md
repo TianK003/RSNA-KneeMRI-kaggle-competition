@@ -600,6 +600,17 @@ logged-in to Kaggle as [user]. Please use the --force flag to override."* — it
 exists, not that it is valid, while every API call in the same minute says *"Authentication required"*.
 The fix is `kaggle auth login --force`. Cost this morning: ~10 min and one confused exchange.
 
+**CORRECTED 2026-09-26: the CLI *does* refresh the token by itself — 30 minutes after it expires.** `kagglesdk/kaggle_creds.py`
+(`kaggle` 2.2.4): `get_access_token()` calls `refresh_access_token()` (which uses the stored `refresh_token` and **rewrites
+`credentials.json`**) only when `access_token_has_expired()`, and that returns `expiration < now − 30 min` — the margin has the
+wrong sign, so the token is treated as valid for 30 min *after* it died. Observed: token expired 22:00:59 local → `kernels status`
+failed at 22:03 with the "wrong kernel slug" message above → the next call, at 22:50, succeeded and the file was rewritten with a
+**12 h** token (expiry 2026-09-27 08:50 UTC). The failures recorded above (2026-08-29/30, 2026-09-23) all fell inside that dead
+half hour or ended with a browser login before it passed. **Do:** after an expiry, wait ≥ 31 min and make one call — it refreshes
+(`access_token_expiration` jumps ≈ 12 h); a browser login is needed only if the `refresh_token` itself is rejected. A pod holding
+a *copy* of the file refreshes independently. Also corrected: `kaggle kernels logs <slug> -f` now **streams a running kernel's
+log** (read `[teacher] partial flush: N studies complete` mid-run on 2026-09-26), so the mid-run throughput gate is CLI-readable.
+
 ### 21. `kaggle datasets create` on Windows: two silent-looking failures
 
 Publishing the ConvNeXt weights (2026-08-29) failed twice before it worked:
