@@ -666,6 +666,12 @@ Five things that each cost one round trip on the first RunPod run:
   epoch's `N studies in` lines landed at once), so an empty log is not a hung run — check `nvidia-smi`, the
   per-epoch `{arm}_fold0_ep*_oof.csv` in `/kaggle/working`, or launch with `PYTHONUNBUFFERED=1`.
 - **Never overwrite a script a running bash is executing** (2026-08-30, chain4): replacing `scripts/runpod_bootstrap.sh` in place (`ssh … cat > file`) while its old copy was inside the `train` step made that bash re-read its next command from the shifted byte offset when `python` returned — the step exited non-zero and chain4 printed a spurious `!! train v09h FAILED` (training itself had completed, all five folds `"completed": true`). Harmless here only because `python | tee` was the last real command of the step. **Do:** write to a temp file and `mv` over the target — a rename keeps the running bash on the old inode; truncate-in-place does not.
+- **2026-09-26 (pod `xwgxw1ai93sjow`, image `runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404`):** the image's system Python is
+  PEP 668 *externally managed* — `pip install -r requirements-gpu.txt` exits with `error: externally-managed-environment`, so a job
+  that begins with it dies in the first second. `scripts/runpod_chain.sh` sets `PIP_BREAK_SYSTEM_PACKAGES=1` (a disposable container;
+  torch stays the image's). And over SSH, `cd … && git pull && VAR=… nohup bash job.sh > log 2>&1 < /dev/null &` backgrounds the
+  **whole `&&` list**, whose earlier commands still hold the ssh channel's stdout — the local `ssh` hangs until the job ends. Put the
+  `nohup … &` in its own statement (`cd … && git pull; nohup … &`).
 
 ### 30. On a *new* machine the local smoke does not train — `MODE="auto"` resolves to `infer` and exits
 
