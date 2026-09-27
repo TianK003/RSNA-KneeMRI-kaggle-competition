@@ -81,6 +81,7 @@ Judge label changes on **coverage** (does the rule fire at all, per language) an
 | 2026-09-24 | **Raptor teacher pass, the full run (P-39) — shards 0/3 and 1/3 (`rsna-knee-teacher` v4, `rsna-knee-teacher-b` v1, pushed 14:54, one per GPU slot)**: the 0.942 notebook's Raptor branch verbatim over 2 × 1,450 gold-free training studies, raw per-view probabilities, partial flush every 5 min | — | — | ✅ **both green (read 17:12 / 17:25): 1,450 + 1,450 studies, 0 failed, 5.6 and 6.2 s/study (2.24 h and 2.50 h — the slower session ≈ 20 % over the spike's 5.1 s), k_eval 94; disjoint UIDs; merged 2,900 rows read macro AUC 0.906 vs the hard LLM teacher** (`src/teacher_plausibility.py`; spike 0.914; lowest MCL 0.844 / Effusion 0.845 / Synovitis 0.847, highest Baker's 0.950 / Fracture 0.949 / LatMen 0.947) — entry "Raptor pass shards 0–1". Shard 2/3 (1,449 studies, ≈ 2.5 h) after Saturday's reset; quota this week ≈ 1.5 h left. Re-sharded 2 → 3 to fit the week's last 6.3 h of quota (≈ 4.3 h used, ≈ 2 h margin — a quota kill loses nearly every row because a row counts only with all four views). RunPod cannot host the pass (it reads the DICOMs; hard constraint 2) |
 | 2026-09-26 | **Raptor teacher pass — shard 2/3 (`rsna-knee-teacher` v5, pushed 17:26)**: the v4 render with `SHARD = 2` (the only diff; `teacher_pass_test.py` green), the last 1,449 gold-free studies; merge target `--expect-n 4349` | — | — | ✅ **green (COMPLETE 23:39): 1,449 studies, 0 failed, 7.50 s/study (3.02 h — the slowest of the three sessions), k_eval 94** after **3 h 10 min QUEUED** (17:26 → 20:35; Kaggle T4 capacity — a probe kernel queued too, `kaggle quota` 0.00 / 30 h; traps 41). **The pass is complete: `merge_teacher.py` s0+s1+s2 `--expect-n 4349` → `artifacts/teacher/raptor_teacher.csv`, 4,349 rows, 0 gold; Raptor vs the hard LLM teacher macro AUC 0.9075** (2,900 rows: 0.906; spike 0.914); published as a new version of Dataset `rsna-knee-teacher-tables` (23:40, beside `selfdistill_v1.csv`) — entry "Raptor pass complete" |
 | 2026-09-26 | **`v09r` (P-39 / Task 12): the S2 `v09a` recipe (CoAtNet-1 @224, c02, window_attn, all 4,349 studies, 8 ep, SWA 5–7, `batch_studies=2, grad_accum=2, aug="light"`) trained on `TEACHER_TABLES=("raptor_teacher",)`, mix 0.5 — own version name; RunPod RTX 4090 (EUR-IS-1), 5.9 min/epoch, job 23:33 → 00:30** | gold-58 (all 58, reported only): **SWA 0.9093** (CI95 0.879–0.936; epochs 0–7 EMA: 0.770 · 0.860 · 0.887 · 0.898 · 0.904 · 0.910 · 0.909 · 0.908) vs `v09a` 0.8922 / `v09t` 0.9009 → +0.017 / +0.008, direction only; 9/12 labels up vs `v09a` (Synovitis 0.744 → 0.823, Fracture 0.897 → 0.943) | **0.927** (#20, `rsna-knee-infer` v17, read 2026-09-27 09:28) | **✅ KEEP — +0.009 vs #18 0.918 (1.8× the 0.005 floor; above the pre-registered 0.923 line): the first target-source change that transfers to the LB; our best single member, ≈ the best public member (0.928)** (entry "Submission #20") |
+| 2026-09-27 | **`v08r` (P-40 step B): the S2 `v08a` recipe (DINOv2-S @224, c02, window_attn, all 4,349 studies, 8 ep, SWA 5–7, batch 1 × accum 4, aug none) on `TEACHER_TABLES=("raptor_teacher",)`, mix 0.5 — RunPod A100 SXM 80 GB (US-MD-1), 3.2 min/epoch, job 12:52 → 13:23 UTC** | gold-58 (all 58, reported only): **SWA 0.8981** (CI95 0.865–0.926; epochs 0–7 EMA 0.768 · 0.839 · 0.873 · 0.889 · 0.897 · 0.898 · 0.898 · 0.899) vs `v08a` 0.8850 → +0.013, direction only | — (no solo / fork read yet) | ✅ the run: shipped as Dataset `rsna-knee-ckpt-v08r` (ready); pod ≈ 36 min ≈ $0.95, deleted. 🔁 on gold (floor 0.05). Joins the fork only if #21 (step A, `v09r` alone) reads 🔁 / ✅ (entry "`v08r`") |
 
 **External reference points** (not ours — for calibrating ambition):
 
@@ -1926,6 +1927,31 @@ rule, not a measured seed spread — but the sign also agrees with gold-58 (+0.0
 **Next (pre-registered in P-39 "If it works", card P-40):** `v08r` (the `v08a` DINOv2 recipe on the same table) and the fork at β 0.10
 with the Raptor-distilled members vs 0.942 (≥ 0.947 ✅ / 0.940–0.946 🔁 / ≤ 0.939 ❌) — #17 showed the fork at β 0.10 did not register
 0.918-level members; a 0.927 member (≈ the best public member) is the first real test of whether one of ours counts in the stack.
+
+### 2026-09-27 — `v08r`: the production `v08a` DINOv2-S recipe on the Raptor-distilled targets (P-40 step B) — gold-58 SWA **0.8981** vs `v08a` 0.8850 (direction only) · shipped, no LB read yet
+
+**Verdict: ✅ the run (complete, shipped); gold-58 +0.013 = 🔁 direction only (floor 0.05); the member's worth is a solo or fork LB
+read, not this number (traps 39).**
+
+The S2 `v08a` recipe (DINOv2-S @224, c02 cache, `window_mode="random"` 24 train windows / all at eval, `window_attn`, all 4,349
+report-labelled studies + 58 gold as the reported validation, 8 epochs, SWA of the last 3 EMA snapshots, batch 1 × accum 4, `aug
+none`) trained on `TEACHER_TABLES=("raptor_teacher",)`, mix 0.5 — the same table and mix as `v09r`. **RunPod A100 SXM 80 GB**
+(SECURE, US-MD-1, $1.59/h; every 24/48 GB card read NONE at 12:48 UTC) via `scripts/runpod_chain.sh v08r` with
+`CACHE_ROOT=/dev/shm/cache` (MooseFS `/workspace`, 117 GB shm): job 12:52:01 → 13:22:57 UTC — 3 min inputs (4 parallel pulls,
+`blobs 71, bad 0, studies 4407`, `raptor_teacher.csv: 4349 rows`), **3.2–3.3 min/epoch (0.04–0.05 s/study, 8 workers)**, ship; pod
+12:49:54 → ≈ 13:26 (≈ 36 min ≈ $0.95), deleted, `list-pods` empty.
+
+| epoch | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | SWA 5–7 |
+|---|---|---|---|---|---|---|---|---|---|
+| gold-58 (EMA) | 0.768 | 0.839 | 0.873 | 0.889 | 0.897 | 0.898 | 0.898 | 0.899 | **0.8981** (CI95 0.865–0.926) |
+
+vs `v08a` (S2, LLM targets): SWA **0.8850** → **+0.013**; the curve plateaus from epoch 4 (`v08a` was still creeping up at epoch 7).
+Per label (SWA): ACL 0.939 · MCL 0.880 · MedMen 0.952 · LatMen 0.824 · MedOA 0.972 · LatOA 0.797 · PF OA 0.821 · Effusion 0.924 ·
+Synovitis 0.812 · Baker's 0.991 · Contusion 0.947 · Fracture 0.918. The CoAtNet twin moved +0.017 on gold-58 and +0.009 on the LB
+(`v09r`); gold direction has predicted the LB 1 time in 2 (traps 39). Dataset **`tiankljucanin/rsna-knee-ckpt-v08r`** (private,
+`datasets status` ready: `v08r_fold0_best.pt` 88.7 MB + `v08r_fold0_oof.csv` = the gold-58 predictions); per-epoch gold csvs + the
+job log in `artifacts/kaggle_out/pod_v08r/`. No LB read yet — the fork with `v09r` alone (step A) is queued first; `v08r` joins
+the fork only if step A reads 🔁 or ✅ (P-40), and a `v08r` solo read (no `v08a` solo baseline exists) is Tian's call.
 
 ## Infrastructure
 
