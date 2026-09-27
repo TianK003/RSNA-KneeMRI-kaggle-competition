@@ -6,6 +6,100 @@ to read first after a break.
 
 ---
 
+## 2026-09-26 (17:25) → 2026-09-27 (09:35) — **P-39 ✅: the Raptor-distilled `v09r` alone reads 0.927** (#20) vs #18 `v09a` 0.918; Raptor pass completed (shard 2/3 after a 3 h Kaggle T4 queue), table published, `v09r` trained on a RunPod 4090 (48 min, pod deleted); nothing running
+
+Tian: "continue training the third shard … prepare everything else … log results". Authorised in-session (asked): **RunPod + submit**
+for Task 12 (18:10), **"wait, create later"** for the pod (18:15), then "continue on your own — spin up the pod when appropriate, don't
+forget to delete it" and "/update regularly, /handoff only after the results". Commits `7d5816e` … `562b510` (code, script, docs).
+
+### Where things stand
+
+| | Status |
+|---|---|
+| Best LB | **0.942** fork (#13 / #15); **best member of ours: `v09r` 0.927 solo (#20)** ≈ the public stack's best member (0.928) |
+| P-39 Raptor teacher | ✅ **KEEP** — pass complete (4,349 studies, 0 failed, macro 0.9075 vs the LLM teacher; `raptor_teacher.csv` in Dataset `rsna-knee-teacher-tables`); `v09r` gold-58 SWA 0.9093, **LB 0.927 vs 0.918 (+0.009, 1.8× the floor)** — experiments.md 2026-09-26 "Raptor pass complete", "`v09r`", 2026-09-27 "Submission #20" |
+| P-40 | 💡 pre-registered: `v08r` (DINOv2-S on the same table) + the fork at β 0.10 with the Raptor-distilled members, **≥ 0.947 ✅ / 0.940–0.946 🔁 / ≤ 0.939 ❌** vs 0.942 |
+| Code | arms `v09r`, `v08r` in `SHIPPED_ARMS`; `DISTILLED_ARMS` = arm → exact table set, checked for every arm the session can train (traps 40); `scripts/runpod_chain.sh` = the one-shot pod job (deps with `PIP_BREAK_SYSTEM_PACKAGES=1`, 4 parallel pulls, blob verify, `TEACHER_WAIT_MIN`, train, ship) |
+| Datasets | `rsna-knee-teacher-tables` (new version: `raptor_teacher.csv` + `selfdistill_v1.csv`), `rsna-knee-ckpt-v09r` (`v09r_fold0_best.pt` 157 MB + gold csv) — both private |
+| Committed notebooks | `rsna-knee-infer` = **v17 = #20** (`v09r` solo); `rsna-knee-train` = **`v09r` SMOKE render, never pushed** (Kaggle still holds v28 = the old `v09t` smoke); `rsna-knee-teacher` = shard 2/3 (v5, done — the pass is complete, never re-push); `-teacher-b` = shard 1/3 (done); fork = v8 (#17); folds = round-2 REAL |
+| Quota / money | Kaggle GPU 3.05 h used / 26.95 h left (reset 2026-10-03 00:00 UTC); RunPod ≈ $0.76 tonight (pod `xwgxw1ai93sjow` 23:30 → 00:32, deleted, `list-pods` empty) of the ≈ $4 credit; submissions: 5 today (UTC day) |
+| Repo | `main` pushed, clean |
+
+### What we talked about and decided
+
+- **RunPod over a Kaggle real run** for `v09r` (Tian, when asked): 48 min vs ≈ 2.7 h of T4, and — as it turned out — no 3 h GPU queue.
+- **No pre-created pod** (Tian chose "wait, create later" over "create, pre-pull, stop"): the pod was created at 23:30, ≈ 15 min before the
+  shard ended, and `TEACHER_WAIT_MIN=40` let its setup overlap the merge/publish (it waited 7 min for the Dataset version) — no idle hour.
+- **Kept the queued shard instead of re-pushing** (a new version would have replaced it and most likely re-queued at the back).
+- **Skipped the `v09r` Kaggle smoke**: it would have sat in the same 3 h queue, and the pod's first minute shows the same lines
+  (`teacher table raptor_teacher: 4349 studies`); the local smoke on the 2,900-row partial table had covered the code path.
+- **4090 kept as first choice** although SECURE stock read NONE at 23:00 (fallbacks 3090 $0.50 → A40 → A100 $1.59 were lined up); stock was
+  back at 23:30.
+- **`v09t` / `v09r` moved out of `ARMS`** after finding that an unfiltered run would have trained `v09t` on the plain teacher under its name
+  (traps 40) — the same reason `v09s` was moved on 2026-09-23.
+- Tian asked what #15 / #16 / #17 changed and what #20 would mean — answered in chat (#15 = anchor control 0.942, #16 = flat-0.60 hedge 0.940,
+  #17 = our S2 members at β 0.10 0.941, i.e. the fork does not read member quality at β 0.10; my #20 guess was ≈ 0.920 — it came in higher).
+- The P-39 in-sample caveat commit (`3effe43`) landed from a tool call Tian interrupted; kept, since `/update` was asked to record it —
+  revert it if unwanted.
+
+### What we figured out
+
+1. **A teacher with information our labels lack transfers; our own OOF does not** — same recipe, same mix code: self-distillation
+   −0.001 (#19), Raptor **+0.009** (#20). The target source was a binding constraint (experiments.md "Submission #20").
+2. **Gold-58 direction predicted the LB 1 time in 2** (`v09t` +0.009 → −0.001; `v09r` +0.017 → +0.009) — traps 39 stands.
+3. **Kaggle T4 capacity can stall a GPU kernel for 3 h 10 min with an empty `failureMessage`** — `kaggle quota` (0.00 h used) rules out
+   quota, a throwaway probe kernel rules out the kernel (traps 41). Shard 2 then ran at 7.50 s/study (a shard needs up to 3 h).
+4. **The Kaggle CLI refreshes its OAuth token itself** on the first call ≥ 30 min after expiry (kagglesdk's margin has the wrong sign;
+   the new token lasts ≈ 12 h) — traps 20 CORRECTED; the "only Tian can re-login" rule was wrong.
+5. **The runpod/pytorch 1.0.2 image refuses pip (PEP 668)**, and `… && nohup job &` over ssh backgrounds the whole list and hangs the
+   channel (traps 29). `kaggle kernels logs <slug> -f` streams a running kernel's log (mid-run progress readable from the CLI).
+
+### ⏭ Next action, in order
+
+1. **P-40 step A — the fork with `v09r` (no new training; ≈ 0.2 h of T4 + 1 submission, ≈ 10 h to score).** Recommended member set:
+   `v09r` alone, so it carries the whole β instead of 1/4 of it (the #17 structure gave `v09a` 2.5 % of the rank blend):
+   ```bash
+   export PYTHONUTF8=1 PYTHONPATH=src
+   .venv/Scripts/python.exe src/build_fork.py --members v09r --member v09r=tiankljucanin/rsna-knee-ckpt-v09r:tiankljucanin/timm-coatnet-rmlp-1-rw-224 --beta 0.10
+   .venv/Scripts/python.exe src/build_fork.py --members v09r --member v09r=tiankljucanin/rsna-knee-ckpt-v09r:tiankljucanin/timm-coatnet-rmlp-1-rw-224 --beta 0.10 --check
+   grep -E '"machine_shape"|rsna-knee-ckpt-v09r' kaggle/rsna-knee-fork/kernel-metadata.json      # NvidiaTeslaT4, the v09r Dataset
+   timeout 90 .venv/Scripts/kaggle.exe kernels push -p kaggle/rsna-knee-fork                          # may queue (traps 41)
+   ```
+   Placeholder green = `fork_diagnostics.json` `status beta0.10`, `members [v09r]`, subprocess rc 0, `v09r/fold0 … score 0.9093`, anchor sha =
+   submission sha on the 3 placeholder studies (expected at β 0.10). Then **Tian's go** → `kaggle competitions submit rsna-knee-abnormality-detection -k tiankljucanin/rsna-knee-fork -v <v> -f submission.csv -m "..."`
+   → read vs #13 / #15 0.942: **≥ 0.947 ✅ our member counts / 0.940–0.946 🔁 / ≤ 0.939 ❌**. `/update` (Submissions row 21, P-40).
+2. **P-40 step B — `v08r` on a RunPod 4090 (≈ 30 min incl. setup, ≈ $0.4):** check `kaggle` token expiry and 4090 SECURE stock
+   (`get-gpu-type … include AVAILABILITY`), create the pod (memory `runpod-pod-self-service`: image `runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404`,
+   SECURE, disk 40 + persistent 100 GB `/workspace`, ports 22/8888, `startSsh`), `stat -f -c %T /workspace; df -h /dev/shm` (MooseFS + ≥ 40 GB shm
+   → `CACHE_ROOT=/dev/shm/cache`; local NVMe → `/workspace/cache`), scp `~/.kaggle/credentials.json`, clone, then — **`nohup` as its own statement** —
+   `cd /root/repo; CACHE_ROOT=… RSNA_TEACHER_TABLES='("raptor_teacher",)' nohup bash scripts/runpod_chain.sh v08r > /root/job_v08r.log 2>&1 < /dev/null &`.
+   Green = `teacher table raptor_teacher: 4349 studies` + `job done`; read gold-58 SWA vs `v08a` 0.8850 (direction only); scp the logs, delete the pod.
+   Then the fork with `--members v09r v08r` (both `--member` flags) if step A read 🔁 or ✅.
+3. **If step A reads ✅:** a mix-1.0 arm (`TEACHER_MIX = 1.0` sed + a new version name in `SHIPPED_ARMS` / `DISTILLED_ARMS`, ≈ $0.7) and a
+   two-teacher table (Raptor + public DINO members over the training set, the `build_teacher_pass.py` pattern) — write a card first.
+4. `/update` after every read; `/handoff` at the end.
+
+### Open decisions for Tian
+
+- **The fork's member set for step A**: `v09r` alone (recommended: cleanest read, full β) vs #17's set with `v09r` swapped in for `v09a`
+  (`v08w v09h v09r v08a`, isolates the swap vs #17's 0.941 but gives `v09r` a quarter of the arm).
+- **Final selection** (deadline 2026-10-22; entries 2026-10-15): #13 / #15 (0.942) + the #16 hedge (0.940) today; a ✅ in step A adds a third
+  candidate. Anything final must use **public** Datasets (`rsna-knee-ckpt-v09r`, `rsna-knee-teacher-tables` are private — flip before then).
+- Whether to spend a submission on `v08r` solo (it has no solo baseline — `v08a` was never submitted alone).
+- RadImageNet licence — unchanged.
+
+### Things that will bite if forgotten
+
+- **GPU queue**: a Kaggle T4 kernel can sit QUEUED for 3 h (Saturday evening); plan pushes with slack and never re-push a queued version.
+- **Token**: after an expiry every call fails for ≈ 30 min, then the next call refreshes it (≈ 12 h). Check `access_token_expiration` before
+  creating a pod anyway.
+- **Pod**: storage differs per pod (tonight MooseFS `/workspace` + 58 GB `/dev/shm`); `runpod_chain.sh` needs `RSNA_TEACHER_TABLES` for a
+  distilled arm (the guard refuses otherwise) and `TEACHER_WAIT_MIN` only if the table is not yet published; `nohup` must not end an `&&` list.
+- **Committed renders**: `rsna-knee-train` is the `v09r` smoke (never pushed) — re-render before any push; `rsna-knee-infer` is v17 (`v09r` solo);
+  `rsna-knee-teacher` is a full-pass shard render (3 h) — the pass is done, do not push it.
+- **Local smoke**: `MODE="auto"` resolves to infer on this laptop (`artifacts/kaggle_out/v8/v03_fold0_best.pt`, traps 30) — sed `MODE = "train"`.
+- **The laptop sleeps**: background pollers stopped between 01:02 and 09:29 — an overnight read needs the machine awake (or a cloud routine).
+
 ## 2026-09-24 (17:35) — **Raptor pass shards 0/3 and 1/3 green**: 2,900 studies, 0 failed, 5.6–6.2 s/study, Raptor vs the LLM teacher macro AUC 0.906 on 2,900; outputs pulled; **shard 2 after Saturday**, then merge → Dataset → Task 12 on RunPod; nothing running
 
 Continuation of the 14:55 entry: both shards finished (17:12, 17:25), were pulled, merged and read with the new
