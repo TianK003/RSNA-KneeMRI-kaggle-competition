@@ -1350,6 +1350,10 @@ the full public LB csv (4,183 teams, 17:33 UTC) and Kaggle's score-sorted kernel
   0.60 / 0.10 / 0.10 / 0.20 at 94 capacity-aware windows, the resgated + Global96 + D4 CoAt family at 0.40, the probe22
   outer map (LatMen 1.00). Our anchor is a superset (it also carries the repair-v1 child when pinned). **→ re-anchoring
   the fork is worth ≤ +0.001 — not a lever.**
+  **CORRECTED 2026-09-27:** `notebook_score_0.942.ipynb` runs **two** CoAt readers (resgated top-3 + D4) and mounts neither the
+  Global96 nor the Repair-v1 artifacts (its only "global96" strings are the D4 preparation function's name). The haideptry
+  "0943" Speedy Raptors build (2026-09-24) is our anchor's cells **plus** Global96 + Repair-v1 — our anchor is the subset there.
+  The ≤ +0.001 conclusion stands (it is that notebook's own claim). Infrastructure entry 2026-09-27 "Speedy Raptors".
 - **"RSNA Fast Parent 0.957"** (kminsher / mekduy, published today): the *0.941* recipe (A5 0.45, Rad 0.50 / 0.15, 62/42
   windows, resgated only, flat outer 0.60). Its own config cell states `"parent" … (0.939 public)` and `"probe22" … (0.941
   public)`; the 0.957385 is its "local diagnostic" on the 58 gold studies. Nothing in it is missing from our anchor
@@ -1924,6 +1928,55 @@ with the Raptor-distilled members vs 0.942 (≥ 0.947 ✅ / 0.940–0.946 🔁 /
 0.918-level members; a 0.927 member (≈ the best public member) is the first real test of whether one of ours counts in the stack.
 
 ## Infrastructure
+
+### 2026-09-27 — The "0.943 Speedy Raptors CoAtNet D4" notebook is our anchor **plus two CoAt readers**, not a faster graph; its "< 30 min" is a 3-study commit run · P-41 (threaded scan + 8 decode workers) smoke-green and byte-identical
+
+**Verdict: ✅ FINDING (read-only) for the notebook; 🔧 P-41 shipped, output identity ✅ (binary), effect on scoring time ⏳ PENDING
+(the next solo submission, timed by `src/watch_submission.py`).**
+
+**The notebook** (`haideptry/rsna-knee-speedy-raptors-coatnet-d4-0943`, last run 2026-09-24; local copy in the repo root, untracked),
+diffed cell by cell against `notebook_score_0.942.ipynb`: its cells 2–29 are our anchor's cells 12–49 **byte-identical** (to the last
+newline) except (a) cell 27 ↔ our 45: **two more CoAt readers** — Global96 top-3 (`mattiaangeli/rsna-knee-coatnet-global96-top3`, epochs
+16/23/18) and Repair-v1 top-3 (epochs 12/7/11) — beside resgated top-3 and D4, the family reduced as the rank of the four readers'
+*probability mean* (ours: rank mix of two), `private_alpha 0.4` and the per-label outer map hard-coded instead of read from `RUN`;
+(b) cell 9 ↔ 23: the DINO stage's ordering pass also stores full-header `(path, spacing)` lists (`RAPTOR_HEADER_CACHE`) that the Raptor
+stage reuses instead of re-reading every header; (c) A5 0.52 / Rad 0.55 · 0.20 / calibrator 0.40 hard-coded (= our `speedy` preset).
+Every speed device it advertises is already in our anchor: the 6 frozen DINOv2 blocks computed once for 20 members
+(`SHARED_DINO_PREFIX_LAYERS`, hash-checked), CPU model templates deep-copied instead of 20 `from_pretrained`, A5 folds replicated on
+both T4s with alternating 8-study micro-batches, one 48-study CPU decode block kept ahead of the GPU, the MaxSpan forward / reverse views
+from one decode, the Raptor order + 192 MB pixel LRU caches, the memoised asset catalogue.
+
+**The "sub-30 minute" claim is its commit run.** Its own `diagnostics/phase_events.jsonl` (pulled with `kernels output`): **3 studies,
+238 s** end to end (DINO 57 s, A5 16 s, Rad 8 s, Raptor 29 s, D4 ‖ residual 57 s, Repair-v1 ‖ Global96 67 s; our anchor's placeholder:
+184–204 s). The CoAt readers run in parallel pairs **only when the cohort is ≤ 48 studies**
+(`RSNA_PARALLEL_COAT_READERS` default `'1' if len(ids) <= 48`); on the hidden test all four run one after another, so it does
+*more* serial work than our anchor. The "1322 test studies" in its log is its cache-sizing assumption (0.3 × train), not a count. Our
+own measurement of the anchor's Raptor branch alone — 5.1–7.5 s/study on T4 ×2 over 4,349 studies (P-39 pass) — rules out any
+graph of this shape scoring a hidden test of hundreds of studies in 30 min. Kaggle's score-sorted listing (09:55) places it **below**
+`romantamrazov/rsna-knee-dinosaur-v5` (our anchor's source), above which sit `jiweiliu/rsna-knee-fast-2xt4-inference` (the origin of
+the 2×T4 harness), `evgendvorkin/rsna-versia-5` and `pjmathematician/rsna-knee-d4-blend` / `-d4-lite`. Re-anchoring on it would buy
+≤ +0.001 (its own claim, 0.2× the floor) for two more serial CoAtNet-2 @384 readers (3 checkpoints × ≤ 94 windows each).
+
+**What our scoring actually costs (bounds from the submissions API `date` vs the time each score was read; no exact scoring time has
+ever been measured):** solo #19 (`rsna-knee-infer` v16, one c02 CoAtNet-1 member) sent 21:25 UTC, read 22:07 UTC → **≤ 42 min**;
+fork #17 sent 09:54 UTC, read 18:00 UTC → **≤ 8 h 06 min**; #12 / #16 "≈ 10 / 12 h" are morning reads. The fork's hours are the anchor
+graph (untouchable without changing its score); the solo's minutes are mostly our own DICOM I/O, which ran on **one** header thread
+(`scan_series`) and **two** decode workers.
+
+**P-41, shipped the same morning (one change, output-neutral by construction):** `scan_series` reads its per-series header on 16
+threads (`RSNA_SCAN_THREADS`; `pool.map` keeps order); the decode-once pass uses `Config.infer_workers` = `min(8, 2 × usable CPUs)`
+(`RSNA_INFER_WORKERS`; 0 on Windows, where spawn cannot pickle the loader's local Dataset); a Kaggle smoke now uses that real worker
+count (traps 12d — before, smoke decoded in-process and could not exercise the pool). Checks: local `v09r` solo render on the 3 sample
+studies before / after (`RSNA_WORKERS=0`) → `submission.csv`, `manifest_test.csv`, `series_scan_test.csv` **byte-identical**; the scan
+frame identical at 1 / 16 / 64 threads; `src/cache_selftest.py` PASSED; local train smoke green. **Kaggle `rsna-knee-infer` v18**
+(`FORCE_SMOKE=True`, `MODE="infer"`, `INFER_MEMBERS=["v09r"]`, 10:08 → 10:10): `cpus 4, usable 4` → **8 decode workers**, `scanned 15
+series … (16 threads)`, `decode-once verified … 3 studies rebuilt, identical` (main-process rebuild vs worker output), **`submission.csv`
+byte-identical to v17's (#20 placeholder)**. Outputs `artifacts/kaggle_out/infer_v18_p41_smoke/`. The speed read (P-41 card: ≤ 30 min
+✅ / 30–42 🔁 / > 42 ❌) rides the next solo submission; v18 itself is a smoke render (0.4 h guard) and is **not** submittable.
+
+**Also shipped:** `src/watch_submission.py` — polls one submission, prints status changes, appends sent → first-seen-scored
+(± the poll interval) to `artifacts/submission_timing.csv`; exits 0 / 2 / 3 / 4 (COMPLETE / ERROR / timeout / unknown ref); API errors
+(traps 20 token window, 429s) are retried. Tested on #20 (already scored → bound only) and on a simulated PENDING → COMPLETE sequence.
 
 ### 2026-09-21 — P-27 fork builder + P-28 production regime shipped; local checks ✅ KEEP the code · Kaggle ⏳
 

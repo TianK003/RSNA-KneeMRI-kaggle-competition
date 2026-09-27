@@ -716,11 +716,21 @@ public scores as 0.939 / 0.941 in its config cell; the "0.957385" it advertises 
 (58 studies its members were trained or selected on). Two hours were nearly spent re-anchoring the fork on
 it. Kaggle's own score ordering is available without the numbers:
 `kaggle kernels list --competition rsna-knee-abnormality-detection --sort-by scoreDescending` — Speedy Raptors
-leads it, and a cell-level diff shows our anchor is a superset of Speedy Raptors.
+leads it, and a cell-level diff shows our anchor is a superset of Speedy Raptors. (**CORRECTED 2026-09-27:** not of
+haideptry's later "0943" build — that one is our anchor plus the Global96 and Repair-v1 CoAt readers.)
 
 **Do:** before believing a title, read the config / markdown cells for the *stated public* number, diff the
 notebook's `dataSources` against our anchor (`notebook_score_0.942.ipynb` metadata), and check the
 score-sorted listing. Titles, "local diagnostic" numbers and gold-58 gates are not public LB scores.
+
+**Runtime claims too (2026-09-27).** "Ultra-fast … sub-30 minute inference on the entire hidden test set" (haideptry's
+"Speedy Raptors CoAtNet D4 0943+") is its **3-study commit run** (238 s by its own `phase_events.jsonl`); on the hidden test it
+does more serial work than our anchor, and its readers pair up only below 48 studies. The commit run of *any* notebook scores
+3 placeholder studies, so its wall clock says nothing about a rerun — and **cohort-size branches** (`if len(ids) <= 48`) mean
+the commit run can take a code path the rerun never takes (the same blind spot as 12d, one level up). **Do:** pull the
+notebook's own timings (`kaggle kernels output <slug> --file-pattern "phase_events\.jsonl$"`), grep it for `len(` branches on
+the test cohort, and scale against our measured per-study costs (Raptor branch 5.1–7.5 s/study on T4 ×2, P-39). experiments.md
+Infrastructure 2026-09-27.
 
 ### 36. `kaggle kernels push` can report `Expecting value: line 1 column 1 (char 0)` *after* creating the version
 

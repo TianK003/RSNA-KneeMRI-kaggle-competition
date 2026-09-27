@@ -93,6 +93,7 @@ result*, per unit of cost. "Depends on" lists hard blockers only.
 | P-38 | **Self-distillation targets** (`v09s` = the `v09c` recipe on `TEACHER_TABLES=("selfdistill_v1",)`, mix 0.5: our own 5-fold OOF, quantile-matched onto the LLM blend) | ❌ **DEAD END in production (2026-09-24)** — fold 0 read ✅ 2026-09-23 — `v09s` **0.8839** vs `v09c` 0.8730 (+0.0109, 12/12 up), RunPod 4090 34 min; see experiments.md "RunPod arms". **Production `v09t` trained 2026-09-23 evening (4090, 35 min): gold-58 SWA 0.9009 vs `v09a` 0.8922 → **solo #19 = 0.917 ❌ (2026-09-24)** vs #18 0.918: no transfer to the production member — the fold-0 gain was agreement with the LLM teacher, not truth (experiments.md 2026-09-24 "Submission #19", traps 39); card → ❌ | **medium** — P-17's round-2 targets, never run; the cheap rehearsal of the Raptor-teacher path (P-39) on the same code | ≈ 1 h 4090 | P-32 / P-33 (`v09c`), P-17, P-31 / P-24 |
 | P-39 | **Raptor teacher pass** (the public 0.942 notebook's Raptor CoAtNet branch, verbatim, over our 4,349 report-labelled training studies → `raptor_teacher.csv`, mixed 0.5/0.5 with the LLM blend via `TEACHER_TABLES`) | ✅ **KEEP 2026-09-27 — #20 `v09r` solo 0.927 vs #18 0.918 (+0.009, floor 0.005)** → experiments.md "Submission #20"; pass complete (4,349 studies, `raptor_teacher.csv` in `rsna-knee-teacher-tables`); follow-up = P-40 | **high** — the one available teacher better than the reports (Raptor gold-58 0.905–0.917 held out; ranks the LLM teacher at 0.914 on the spike); P-38 just showed target smoothing is the lever | spike 0.2 h done; pass 6.2 h (1 session or 2 × 3.1 h); retrain 2.7 h; 1 solo submission | P-38 (mechanism), Tasks 7–8 (`src/build_teacher_pass.py`, `src/merge_teacher.py`), P-24 / P-31 |
 | P-40 | **Raptor-distilled members into the fork**: `v08r` (the `v08a` DINOv2-S recipe on `TEACHER_TABLES=("raptor_teacher",)`) + `rsna-knee-fork` at β 0.10 with `v09r` (+ `v08r`) in our arm; mix-1.0 and a Raptor+DINO teacher set behind it | 💡 pre-registered 2026-09-27, not run | **high** — the first member of ours at the public stack's best-member level (0.927 vs 0.928) | `v08r` ≈ 20 min on a 4090 (≈ $0.3); fork build + placeholder ≈ 0.2 h of T4 + 1 submission (≈ 10 h to score) | P-39 ✅, P-27 (`build_fork.py`), traps 39 / 40 |
+| P-41 | **Faster solo scoring**: the infer path's header scan on 16 threads + the decode-once pass on `min(8, 2 × cores)` worker processes (today: 1 thread, 2 workers) — byte-identical output | 🔧 **implemented, effect pending (2026-09-27)** — `rsna-knee-infer` v18 smoke green: 8 decode workers on 4 CPUs, `decode-once verified`, `submission.csv` byte-identical to v17; speed read = the next solo submission (experiments.md Infrastructure 2026-09-27) | **medium** — shortens the one instrument that reads member quality (solo LB, traps 39); the fork's anchor graph is untouched and stays hours | ≈ 40 lines, 1 smoke push (≈ 0.1 h T4), no extra submission (rides the next solo) | — |
 
 ---
 
@@ -1154,6 +1155,36 @@ If it works:  our arm finally counts → final-selection candidate; then a mix-1
 If it fails:  🔁 → the fork's β 0.10 cannot read a +0.009 member; try β 0.15–0.20 once (the #12 lesson: β 0.20 with 0.87 members
               cost −0.003) or keep `v09r` as a solo-side asset; ❌ → our arm hurts even at 0.927 — correlated with the anchor's Raptor.
 Depends on:   P-39 ✅, P-27 (`src/build_fork.py`), traps 39 (solo LB is the instrument) / 40 (distilled-arm guard).
+
+### P-41 Faster solo scoring: threaded header scan + more decode workers in `MODE="infer"`
+Status:       🔧 implemented, effect pending (2026-09-27). Identity ✅: local before/after byte-identical (3 csvs), scan identical at
+              1/16/64 threads, `cache_selftest` PASSED; Kaggle `rsna-knee-infer` v18 (smoke, `v09r`): `cpus 4, usable 4` → 8 workers,
+              `decode-once verified`, `submission.csv` = v17's byte for byte. Speed ⏳: time the next solo submission with
+              `src/watch_submission.py` (rebuild the infer render with `FORCE_SMOKE = False` first — v18 is a smoke).
+Hypothesis:   our infer rerun (the solo instrument, and the fork's arm) is bound by DICOM I/O + decode that runs on ONE thread
+              (`scan_series`, one header per series) and TWO worker processes (the decode-once pass) on a 4-vCPU T4 ×2 box; a
+              16-thread header scan and `min(8, 2 × cores)` decode workers cut a solo submission's scoring time from ≤ 42 min (#19)
+              to ≤ 30 min with a **byte-identical** `submission.csv`.
+Origin:       the public 2×T4 inference harness (Jiwei Liu "RSNA Knee Fast 2xT4 Inference" → Speedy Raptors → our 0.942 anchor, cells
+              12–45: `HDR_THREADS 16`, `PIX_THREADS 12`, `ORDER_THREADS 32`, one CPU decode block kept ahead of the GPU), read cell by
+              cell 2026-09-27 in `rsna-knee-speedy-raptors-coatnet-d4-0943.ipynb`. Our anchor already runs that harness; our own infer
+              path has none of it.
+Evidence:     #19 (`rsna-knee-infer` v16, one c02 CoAtNet-1 member) sent 23:25, read 00:07 → scored in ≤ 42 min; the model pass is
+              ≈ 44 s / 100 studies (`v09h`, experiments.md 2026-08-30 "Rerun cost"), so decode + scan are most of it. Not measured: the
+              hidden-test decode rate at 2 workers, and how far FUSE latency (not the 4 cores) is the limit.
+Measure:      (1) identity: local `v09r` solo render on the 3 sample studies (workers 0) — `submission.csv`, `manifest_test.csv`,
+              `series_scan_test.csv` byte-identical before / after; `scan_series` DataFrame identical at 1 vs 16 threads;
+              `src/cache_selftest.py` green; on Kaggle `decode-once verified` with workers > 0 (the only process-pool path) and the
+              placeholder `submission.csv` identical to v17's. (2) speed: the next solo submission's PENDING → COMPLETE time, polled
+              by `src/watch_submission.py`, vs #19's ≤ 42 min.
+Noise floor:  one wall-clock read with Kaggle's queue inside it: **≤ 30 min ✅ / 30–42 min 🔁 (inside the queue noise of a bound) /
+              > 42 min ❌**. Identity is binary — any byte of difference is a bug, not noise.
+Cost:         ≈ 40 lines (`scan_series` threads, `Config.infer_workers`, smoke on Kaggle uses the real worker path — traps 12d);
+              one smoke push (≈ 0.1 h T4); no extra submission — it rides the next solo read (`v08r` or a later member).
+If it works:  the default for every infer render; the fork arm gets it for free (≈ 10–20 min of its tail).
+If it fails:  ❌ slower or an OOM in the decode workers → `RSNA_INFER_WORKERS=2` restores today's behaviour without a code change;
+              🔁 → the decode is not the bottleneck; next is overlapping decode with the model pass (the harness's one-block-ahead).
+Depends on:   nothing.
 
 ## Rejected without testing
 
