@@ -1878,7 +1878,8 @@ minute shows the same lines, and the local smoke on the 2,900-row partial table 
 (monotone EMA curve to epoch 5, flat 5–7, SWA ≥ last EMA) and reads +0.017 over `v09a` on the held-out truth, 9/12 labels up; the two
 largest moves are on Synovitis (+0.079) and Fracture (+0.046) — Synovitis is one of the three labels where Raptor disagreed most with
 the LLM teacher (0.847), so if the gain is real it is where the second opinion was supposed to help. `v09t` read +0.009 here and then
-−0.001 on the LB (traps 39), so none of this is a verdict.
+−0.001 on the LB (traps 39), so none of this is a verdict. A second reason for caution: Raptor was trained on this same training set, so its table on
+our 4,349 studies is largely in-sample for Raptor (P-39 caveat) — the student may be learning Raptor's fit of *its* training labels.
 
 **Verdict: ⏳ PENDING — solo submission #20 (`rsna-knee-infer` v17, `INFER_MEMBERS = ["v09r"]`) vs #18 0.918: ≥ 0.923 ✅ (then `v08r` and
 the fork at β 0.10) / 0.919–0.922 🔁 / < 0.918 ❌.**
