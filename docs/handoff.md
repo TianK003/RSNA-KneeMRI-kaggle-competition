@@ -6,6 +6,110 @@ to read first after a break.
 
 ---
 
+## 2026-09-27 (18:24 → 19:20 local = 16:24 → 17:20 UTC) — **#21 `v08r` solo = 0.918** (not a fork member); fork v9 left the queue after ≈ 3 h 40 min → **#22 sent** (⏳, read vs 0.942); **#23 P-42 `v09r` + `v08r` = 0.927 = `v09r` alone** (🔁); **P-41 ✅ — a solo scores in 28–29 min**
+
+*Written before #22 scored, at Tian's request ("write the handoff now … and prepare to put in the #22 score") — the fill-in checklist is Next action 1.*
+
+Tian: "read handoff and continue working, the latest submission has been rated on kaggle, but our knee fork is still queued"; then
+**"Yes, run P-42 (Recommended)"** (asked with the gold-58 prior stated); then "what are we testing with #22 and #23" (answered in
+chat); then this handoff. Commits `6714251` … (this one).
+
+### ⏳ Still in flight as this was written (19:20 local = 17:20 UTC)
+
+| In flight | What it is | Started | How to check | How to read it |
+|---|---|---|---|---|
+| **Submission #22 = `rsna-knee-fork` v9**, **ref 56614068** | P-40 step A: the public 0.942 graph (cells 0–49 verbatim) + our arm = **`v09r` alone** (Raptor-distilled CoAtNet-1, solo 0.927) at **β 0.10**. Placeholder green: `status beta0.10`, `members [v09r]`, rc 0 (104 s), `score 0.9093`, anchor sha = submission sha `7c6dfe8b…` (expected on 3 studies) — `artifacts/kaggle_out/fork_v9/` | sent **16:36:17 UTC** after ≈ 3 h 40 min QUEUED (pushed 12:48); forks have scored in ≤ 8 h 06 min (#17) → expect **≈ 00:30–02:30 UTC** (02:30–04:30 local) | `kaggle competitions submissions rsna-knee-abnormality-detection --csv \| head -3`; background watcher `watch_submission.py --ref 56614068 --every 120 --max-h 14` (task `buiay90kx`) appends the exact time to `artifacts/submission_timing.csv` — **it dies if the laptop sleeps** (then the time is only a bound) | **vs #13 / #15 (0.942), pre-registered in P-40: ≥ 0.947 ✅ our member counts in the stack / 0.940–0.946 🔁 / ≤ 0.939 ❌ our arm hurts.** Also compare #17 (0.941, 0.918-level members at the same β). Honest prior: 0.942 ± 0.001 (🔁). A read exactly 0.942 is *not* a sign the arm was skipped — the placeholder shows it ran (`members [v09r]`, rc 0) |
+
+### Where things stand
+
+| | Status |
+|---|---|
+| Best LB | **0.942** (#13 / #15); best member of ours `v09r` **0.927** solo (#20) — and the `v09r` + `v08r` pair is also 0.927 (#23) |
+| P-40 | ⏳ `v08r` solo **0.918** (#21, −0.009 vs `v09r`, under the ≈ 0.920 bar → not a fork member); step A = **#22 ⏳** (experiments.md 2026-09-27 "Submission #21") |
+| P-41 | ✅ **KEEP** — #23 (two members, 8 decode workers) scored **28.3–29.3 min** after sending vs #19's ≤ 42 min bound (experiments.md "Submission #23") |
+| P-42 | 🔁 **INCONCLUSIVE** — `v09r` + `v08r` flat rank-mean **0.927 = `v09r` alone**; gold-58 had predicted −0.001 (ρ 0.924 vs 0.874 on LLM targets) → a second backbone on the same Raptor table is not the lever (experiments.md "Submission #23") |
+| Committed renders | `rsna-knee-infer` = **v20** (`v09r` + `v08r`, = #23, submittable); `rsna-knee-fork` = **v9** (= #22); `rsna-knee-train` = `v09r` smoke render (never pushed); teacher kernels done, never re-push |
+| Quota / money | Kaggle GPU **3.25 h used / 26.75 h left** (reset 2026-10-03 00:00 UTC); **submissions: 3 used today (#21–#23), 2 left** until 00:00 UTC; **RunPod: no pod this session, `list-pods` empty (17:18 UTC)**; Kaggle token valid to **2026-09-28 00:48 UTC** |
+| Repo | `main` pushed; `rsna-knee-speedy-raptors-coatnet-d4-0943.ipynb` in the root still untracked on purpose |
+
+### What we talked about and decided
+
+- **`v08r` judged by the pre-registered ≈ 0.920 bar, strictly:** 0.918 misses it by 0.002 (sub-floor), but the rule written before the
+  read decides — `v08r` is not added to the fork on solo strength.
+- **P-42 run instead of waiting idle** (Tian's go): today's spare submissions do not carry over, the placeholder cost 0.1 h of T4, and
+  one submission read two things (the pairing question and P-41's timing). The gold-58 prior (🔁) was stated before asking.
+- **Rejected:** a weighted `v09r` 0.75 / `v08r` 0.25 solo — a sub-floor bet on the reading that `v08r` roughly pays for its weakness.
+- **Handoff before #22 scores** (Tian) — overrides the usual "handoff only after results"; the read is staged below instead.
+- **Corrected my own timestamp slip:** the session's first check was 16:24 UTC, not 14:24 (Git Bash `date -u` prints UTC with a 12 h
+  clock) → #21's bound is ≤ 2 h 43 min (commit `013f41f`).
+- **No AI attribution** in commits (the organisation's managed policy).
+
+### What we figured out
+
+1. **On the same Raptor targets DINOv2-S is ≈ 0.009 behind CoAtNet-1** (#21 0.918 vs #20 0.927; gold-58 −0.011 said the same) —
+   experiments.md "Submission #21".
+2. **A shared teacher makes the two families non-additive** (#23 = 0.927 = `v09r`); on LLM targets every new family had lifted the
+   blend. The next gain must come from the targets or the input, not a third backbone — experiments.md "Submission #23".
+3. **A solo read is now ≈ 30 min send-to-score** (28.3–29.3 min, two members) — P-41 ✅; four member reads fit in two hours.
+4. **Kaggle's GPU queue is not first-in-first-out per account:** the fork waited ≈ 3 h 40 min while `rsna-knee-infer` v19, pushed
+   49 min later, started within a minute (traps 41, second instance).
+
+### ⏭ Next action, in order
+
+1. **Read #22 and log it** (the fill-in checklist — every anchor below exists in the files now):
+   ```bash
+   export PYTHONUTF8=1
+   .venv/Scripts/kaggle.exe competitions submissions rsna-knee-abnormality-detection --csv | head -3
+   cat artifacts/submission_timing.csv          # a 56614068 row = exact scoring time; none = watcher died -> bound = sent 16:36:17 -> first read
+   ```
+   Then `/update`:
+   - **experiments.md Submissions row 22** (`grep -n "^| 22 | 2026-09-27" docs/experiments.md`): replace its `| ⏳ |` with the score and
+     prefix the notes with `**read <time> UTC → <verdict> vs 0.942 (P-40)**; scored within … (timing)`.
+   - **Scoreboard:** a new row after the "P-42 solo blend, submission #23" row: `| 2026-09-27 | **P-40 step A, submission #22 (rsna-knee-fork v9)**: the public 0.942 graph + v09r alone at β 0.10 | gold-58 of v09r 0.9093 | **<score>** | <verdict> |`.
+   - **New entry** `### 2026-09-27 — Submission #22: …` directly **before `## Infrastructure`** (after "Submission #23"): a table
+     #15 anchor 0.942 / #13 (β 0.10, `v08w` + `v09h`) 0.942 / #17 (β 0.10, 0.918-level members) 0.941 / **#22 (β 0.10, `v09r`)**; the
+     verdict by the rule; what it says about the P-40 "Against" point (Raptor already inside the anchor at 0.40–0.60 weight).
+   - **proposals.md P-40:** card `Status:` (anchor: `→ **submitted as #22** (ref 56614068, 16:36 UTC) ⏳`) and the index row (anchor:
+     `**#22 sent** (ref 56614068, 16:36 UTC) ⏳ → read vs 0.942`) → the verdict; on ✅ / ❌ reduce the card to a pointer ("History below").
+   - **CLAUDE.md state line** (anchor: `**submitted as #22** (16:36 UTC) ⏳`) → the score; bump `State as of`.
+2. **Then by the P-40 rule:**
+   - **✅ ≥ 0.947** — our member counts: #22 becomes a final-selection candidate beside #13 / #15 and the #16 hedge. Next = P-40 "If it
+     works": write a card for a **mix-1.0 arm** (the `v09r` recipe on Raptor-only targets: `TEACHER_MIX = 1.0` sed + a new version name
+     in `SHIPPED_ARMS` / `DISTILLED_ARMS`, traps 40), train on a RunPod 4090 (≈ 48 min, ≈ $0.8, memory `runpod-pod-self-service`),
+     read it solo (≈ 30 min) vs 0.927, and only then in the fork.
+   - **🔁 0.940–0.946** — P-40 "If it fails": try a heavier vote **once** (recommended β 0.20: at 0.10 a 0.927 member was not
+     readable, and #12's −0.003 at 0.20 was with 0.87-level members):
+     ```bash
+     export PYTHONUTF8=1 PYTHONPATH=src
+     .venv/Scripts/python.exe src/build_fork.py --members v09r --member v09r=tiankljucanin/rsna-knee-ckpt-v09r:tiankljucanin/timm-coatnet-rmlp-1-rw-224 --beta 0.20
+     .venv/Scripts/python.exe src/build_fork.py --members v09r --member v09r=tiankljucanin/rsna-knee-ckpt-v09r:tiankljucanin/timm-coatnet-rmlp-1-rw-224 --beta 0.20 --check
+     grep -E '"machine_shape"|rsna-knee-ckpt-v09r' kaggle/rsna-knee-fork/kernel-metadata.json
+     timeout 90 .venv/Scripts/kaggle.exe kernels push -p kaggle/rsna-knee-fork       # may queue for hours (traps 41) -- never re-push a queued version
+     ```
+     Placeholder green = `status beta0.20`, `members [v09r]`, rc 0, `score 0.9093`, anchor sha = submission sha (as in fork v3 = #12
+     at β 0.20 on the 3 placeholder studies). Same read bands vs 0.942. Needs Tian's go to submit.
+   - **❌ ≤ 0.939** — our arm hurts even at 0.927 (its errors are the anchor's Raptor errors): keep `v09r` as a solo-side asset; the fork
+     finals stay #13 / #15 + #16; go to the target-diversity question (Open decisions).
+3. `/handoff` at the end of the next session.
+
+### Open decisions for Tian
+
+- **Target diversity without waiting for a fork ✅?** The 09-26 plan gated the mix-1.0 arm and a second teacher on a fork ✅; P-42 now says
+  that is where the next gain has to come from regardless, and a solo read costs 30 min. Relax the gate (card first, then a pod run)?
+- **β 0.20 retry if #22 reads 🔁** — recommended above; the alternative is to stop spending fork submissions on member reads.
+- **Final selection** (entries close 2026-10-15, final 2026-10-22): #13 / #15 (0.942) + the #16 hedge (0.940) today. Final assets must
+  be **public** Datasets (`rsna-knee-ckpt-v09r`, `-v08r`, `rsna-knee-teacher-tables` are private).
+- `v08a` vs `v08r` ("submit the v08a too", 09-27) — never confirmed; #21 was `v08r`. RadImageNet licence — unchanged.
+
+### Things that will bite if forgotten
+
+- **The watcher needs the machine awake** — #21's timing was lost when the laptop went off; #22's watcher (`buiay90kx`) has the same risk.
+- **Kaggle token expires 2026-09-28 00:48 UTC**, right inside #22's likely scoring window: every CLI call fails until the first call
+  ≥ 30 min after expiry, which refreshes it (traps 20). The watcher retries API errors, so it survives; a manual read at 00:50 will not.
+- **Timestamps:** Git Bash `date -u` prints UTC in a 12 h clock ("4:24:19 PM" = 16:24 UTC); local is UTC+2. Stamp docs in UTC.
+- **`rsna-knee-infer` v20 is the P-42 pair, v19 `v08r` alone, v18 a SMOKE** — re-render before any new solo (`sed` `INFER_MEMBERS`).
+- **In the Bash tool, `cat > file` without a heredoc reads stdin and hangs** until the 2-min timeout (cost one background task today).
+
 ## 2026-09-27 (09:45 → 15:45) — the "0.943 Speedy Raptors" notebook is not faster (our anchor + 2 CoAt readers; "< 30 min" = its 3-study commit run); **P-41** faster solo scoring shipped (byte-identical); **`v08r`** trained on a RunPod A100 (gold-58 0.8981, shipped, pod deleted); **#21 = `v08r` solo sent** (13:41 UTC); fork v9 (`v09r` alone, β 0.10) **still QUEUED, not submitted**
 
 *Refreshed in place at 15:45 (same session): #21 sent, fork still queued, Tian closing the laptop.*
