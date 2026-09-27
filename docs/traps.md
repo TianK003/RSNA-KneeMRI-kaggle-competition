@@ -818,3 +818,8 @@ there is no other GPU to fall back to. It started at ≈ 20:35 — **3 h 10 min 
 that must pull it); keep the queued version rather than re-pushing (a new version of the slug would replace it and most likely
 start again at the back of the queue); read "hours since push" as an upper bound on run time (traps 20's token note, handoff
 2026-08-29). Delete a probe kernel once it has told you what you needed.
+
+**Second instance, 2026-09-27 (Sunday):** `rsna-knee-fork` v9 (P-40 step A) queued from its 12:48 UTC push to between 16:24 and 16:31
+UTC (**≈ 3 h 40 min**), while `rsna-knee-infer` v19, pushed 49 min *after* it (13:37), started within a minute — so the queue is not
+first-in-first-out per account. Why is unknown (the fork mounts far more inputs than
+the infer kernel; that is a guess, not a finding). Once it ran, the placeholder took 6 min. Unchanged rule: never re-push a queued version.
