@@ -92,8 +92,9 @@ result*, per unit of cost. "Depends on" lists hard blockers only.
 | P-37 | **Per-label `pos_weight` [1, 10] in the BCE** (`v09f` = the `v09c` recipe + `pos_weight_max 10`: `clip((1 − p) / p, 1, 10)`, `p` = positive rate of the training targets at 0.5) | 🔁 **INCONCLUSIVE 2026-09-23** — `v09f` 0.8717 vs `v09c` 0.8730 (−0.0013, 3/12 up), RunPod 4090 33 min; see experiments.md "RunPod arms" | **low-medium** — the public 0.924 member's loss; re-opens a "rejected without testing" row as a *training-dynamics* A/B (the rejection reasoned about calibration) | ≈ 1 h 4090 | P-32 / P-33 (`v09c`), P-31 / P-24 |
 | P-38 | **Self-distillation targets** (`v09s` = the `v09c` recipe on `TEACHER_TABLES=("selfdistill_v1",)`, mix 0.5: our own 5-fold OOF, quantile-matched onto the LLM blend) | ❌ **DEAD END in production (2026-09-24)** — fold 0 read ✅ 2026-09-23 — `v09s` **0.8839** vs `v09c` 0.8730 (+0.0109, 12/12 up), RunPod 4090 34 min; see experiments.md "RunPod arms". **Production `v09t` trained 2026-09-23 evening (4090, 35 min): gold-58 SWA 0.9009 vs `v09a` 0.8922 → **solo #19 = 0.917 ❌ (2026-09-24)** vs #18 0.918: no transfer to the production member — the fold-0 gain was agreement with the LLM teacher, not truth (experiments.md 2026-09-24 "Submission #19", traps 39); card → ❌ | **medium** — P-17's round-2 targets, never run; the cheap rehearsal of the Raptor-teacher path (P-39) on the same code | ≈ 1 h 4090 | P-32 / P-33 (`v09c`), P-17, P-31 / P-24 |
 | P-39 | **Raptor teacher pass** (the public 0.942 notebook's Raptor CoAtNet branch, verbatim, over our 4,349 report-labelled training studies → `raptor_teacher.csv`, mixed 0.5/0.5 with the LLM blend via `TEACHER_TABLES`) | ✅ **KEEP 2026-09-27 — #20 `v09r` solo 0.927 vs #18 0.918 (+0.009, floor 0.005)** → experiments.md "Submission #20"; pass complete (4,349 studies, `raptor_teacher.csv` in `rsna-knee-teacher-tables`); follow-up = P-40 | **high** — the one available teacher better than the reports (Raptor gold-58 0.905–0.917 held out; ranks the LLM teacher at 0.914 on the spike); P-38 just showed target smoothing is the lever | spike 0.2 h done; pass 6.2 h (1 session or 2 × 3.1 h); retrain 2.7 h; 1 solo submission | P-38 (mechanism), Tasks 7–8 (`src/build_teacher_pass.py`, `src/merge_teacher.py`), P-24 / P-31 |
-| P-40 | **Raptor-distilled members into the fork**: `v08r` (the `v08a` DINOv2-S recipe on `TEACHER_TABLES=("raptor_teacher",)`) + `rsna-knee-fork` at β 0.10 with `v09r` (+ `v08r`) in our arm; mix-1.0 and a Raptor+DINO teacher set behind it | ⏳ **running (2026-09-27)** — step B done: `v08r` gold-58 SWA 0.8981 vs `v08a` 0.8850 (direction only), Dataset `rsna-knee-ckpt-v08r` ready (A100 pod, 31 min); **`v08r` solo = #21 (ref 56610108, 13:41 UTC) ⏳**; step A: `rsna-knee-fork` v9 (`v09r` alone, β 0.10) pushed 12:48 UTC, still QUEUED at 13:42 → placeholder → submission → read vs 0.942 | **high** — the first member of ours at the public stack's best-member level (0.927 vs 0.928) | `v08r` ≈ 20 min on a 4090 (≈ $0.3); fork build + placeholder ≈ 0.2 h of T4 + 1 submission (≈ 10 h to score) | P-39 ✅, P-27 (`build_fork.py`), traps 39 / 40 |
-| P-41 | **Faster solo scoring**: the infer path's header scan on 16 threads + the decode-once pass on `min(8, 2 × cores)` worker processes (today: 1 thread, 2 workers) — byte-identical output | 🔧 **implemented, effect pending (2026-09-27)** — `rsna-knee-infer` v18 smoke green: 8 decode workers on 4 CPUs, `decode-once verified`, `submission.csv` byte-identical to v17; speed read = **#21** (`v08r` solo, ref 56610108, sent 13:41 UTC, timed by `watch_submission.py`) ⏳ (experiments.md Infrastructure 2026-09-27) | **medium** — shortens the one instrument that reads member quality (solo LB, traps 39); the fork's anchor graph is untouched and stays hours | ≈ 40 lines, 1 smoke push (≈ 0.1 h T4), no extra submission (rides the next solo) | — |
+| P-40 | **Raptor-distilled members into the fork**: `v08r` (the `v08a` DINOv2-S recipe on `TEACHER_TABLES=("raptor_teacher",)`) + `rsna-knee-fork` at β 0.10 with `v09r` (+ `v08r`) in our arm; mix-1.0 and a Raptor+DINO teacher set behind it | ⏳ **running (2026-09-27)** — step B done: `v08r` gold-58 SWA 0.8981 vs `v08a` 0.8850 (direction only), Dataset `rsna-knee-ckpt-v08r` ready (A100 pod, 31 min); **`v08r` solo = #21 → 0.918** (−0.009 vs `v09r`, under the ≈ 0.920 bar → not a fork member on solo strength; experiments.md "Submission #21"; the pairing question is P-42); step A: `rsna-knee-fork` v9 (`v09r` alone, β 0.10) pushed 12:48 UTC, still QUEUED at 14:24 → placeholder → submission → read vs 0.942 | **high** — the first member of ours at the public stack's best-member level (0.927 vs 0.928) | `v08r` ≈ 20 min on a 4090 (≈ $0.3); fork build + placeholder ≈ 0.2 h of T4 + 1 submission (≈ 10 h to score) | P-39 ✅, P-27 (`build_fork.py`), traps 39 / 40 |
+| P-41 | **Faster solo scoring**: the infer path's header scan on 16 threads + the decode-once pass on `min(8, 2 × cores)` worker processes (today: 1 thread, 2 workers) — byte-identical output | 🔧 **implemented, effect pending (2026-09-27)** — `rsna-knee-infer` v18 smoke green: 8 decode workers on 4 CPUs, `decode-once verified`, `submission.csv` byte-identical to v17; speed read: **#21 unread** (the watcher died with the laptop; bound ≤ 43 min = no information) → rides the next solo ⏳ (experiments.md Infrastructure 2026-09-27, "Submission #21") | **medium** — shortens the one instrument that reads member quality (solo LB, traps 39); the fork's anchor graph is untouched and stays hours | ≈ 40 lines, 1 smoke push (≈ 0.1 h T4), no extra submission (rides the next solo) | — |
+| P-42 | **Two-family Raptor-distilled solo blend** (`INFER_MEMBERS = ["v09r", "v08r"]`) vs `v09r` 0.927 — does the shared Raptor teacher erase the DINOv2 / CoAtNet diversity? | 💡 **untested (2026-09-27)** — no training needed; gold-58 (direction only): ρ **0.924** (LLM-target pair `v09a`/`v08a` 0.874), rank-mean 0.9085 vs `v09r` 0.9093 → expect 🔁 | **medium-low** — decides whether more Raptor-distilled families are worth training, or diversity must come from the targets / input; doubles as P-41's timed solo | ≈ 0.1 h T4 placeholder + 1 submission | P-40, P-21, P-41, traps 32 |
 
 ---
 
@@ -1138,7 +1139,9 @@ Depends on:   P-38 (the mixing mechanism, `TEACHER_TABLES`), Tasks 7–8 (`src/b
 Status:       ⏳ running (2026-09-27). Step B done: `v08r` trained on a RunPod A100 (12:52 → 13:23 UTC), gold-58 SWA 0.8981 vs
               `v08a` 0.8850 (direction only), shipped as `rsna-knee-ckpt-v08r` (experiments.md 2026-09-27 "`v08r`"). Step A:
               `rsna-knee-fork` v9 = `--members v09r --beta 0.10` pushed 12:48 UTC (Kaggle queue) → placeholder → submission.
-              `v08r` solo sent as **#21** (`rsna-knee-infer` v19, ref 56610108, 13:41 UTC) ⏳ — read vs `v09r` 0.927.
+              `v08r` solo sent as **#21** (`rsna-knee-infer` v19, ref 56610108, 13:41 UTC) → **0.918** (read 14:24 UTC): −0.009 vs
+              `v09r`, under the ≈ 0.920 bar → `v08r` does **not** join the fork on solo strength (experiments.md 2026-09-27
+              "Submission #21"); whether it adds to `v09r` is P-42. Step A (fork v9) still QUEUED at 14:24 UTC.
               Arms in code: `v08r` (`SHIPPED_ARMS`, `DISTILLED_ARMS` → `("raptor_teacher",)`).
 Hypothesis:   the 0.942 fork registers a member of ours once that member is at the public stack's best-member level: `rsna-knee-fork` at
               β 0.10 with `v09r` (0.927 solo, P-39) — and `v08r`, the DINOv2-S production recipe on the same teacher table — in our arm
@@ -1165,7 +1168,9 @@ Status:       🔧 implemented, effect pending (2026-09-27). Identity ✅: local
               1/16/64 threads, `cache_selftest` PASSED; Kaggle `rsna-knee-infer` v18 (smoke, `v09r`): `cpus 4, usable 4` → 8 workers,
               `decode-once verified`, `submission.csv` = v17's byte for byte. Speed ⏳: time the next solo submission with
               `src/watch_submission.py` (rebuild the infer render with `FORCE_SMOKE = False` first — v18 is a smoke).
-              **Riding #21** (`rsna-knee-infer` v19 = `v08r` solo, placeholder `decode-once workers: 8`, sent 13:41:35 UTC) ⏳.
+              **Riding #21** (`rsna-knee-infer` v19 = `v08r` solo, placeholder `decode-once workers: 8`, sent 13:41:35 UTC) →
+              **unread**: the watcher died with the laptop, bound ≤ 43 min = no information vs #19 (experiments.md "Submission #21").
+              Rides the next solo, watched with the machine awake.
 Hypothesis:   our infer rerun (the solo instrument, and the fork's arm) is bound by DICOM I/O + decode that runs on ONE thread
               (`scan_series`, one header per series) and TWO worker processes (the decode-once pass) on a 4-vCPU T4 ×2 box; a
               16-thread header scan and `min(8, 2 × cores)` decode workers cut a solo submission's scoring time from ≤ 42 min (#19)
@@ -1190,6 +1195,32 @@ If it works:  the default for every infer render; the fork arm gets it for free 
 If it fails:  ❌ slower or an OOM in the decode workers → `RSNA_INFER_WORKERS=2` restores today's behaviour without a code change;
               🔁 → the decode is not the bottleneck; next is overlapping decode with the model pass (the harness's one-block-ahead).
 Depends on:   nothing.
+
+### P-42 Two-family Raptor-distilled solo blend (`INFER_MEMBERS = ["v09r", "v08r"]`) — does a shared teacher erase family diversity?
+Status:       💡 untested (2026-09-27). Needs no training: both checkpoints are shipped (`rsna-knee-ckpt-v09r`, `-v08r`).
+Hypothesis:   the rank-mean of `v09r` (CoAtNet-1, 0.927 solo) and `v08r` (DINOv2-S, 0.918 solo) reads ≥ 0.932 public — a weaker
+              member of another pretraining family still lifts the stronger one, as the two heads (#5, +0.019) and the c02 families
+              (#9 / #10) did on LLM targets.
+Origin:       our hypothesis, from #21 (2026-09-27): `v08r` missed P-40's ≈ 0.920 bar for joining the fork *on solo strength*, which
+              says nothing about what it adds as a second member.
+Evidence:     for: every family added on LLM targets helped the blend (#8 → #9 → #10: 0.900 → 0.909 → 0.912); on gold-58 the LLM-target
+              pair `v09a` + `v08a` is ρ 0.874 and rank-means to 0.8964 vs `v09a` 0.8922 (+0.004, 7/12 up). **Against (measured
+              2026-09-27, gold-58, direction only):** the Raptor-distilled pair is **ρ 0.924** (the same-family, different-teacher pair
+              `v09r` + `v09a` is 0.932; `v09r` + `v09t` 0.935) and rank-means to **0.9085 vs `v09r` 0.9093 (−0.001, 5/12 up)** — the
+              shared teacher pulled the two backbones together, so the pairing gain on LLM targets may not survive. The 0.936
+              notebook's counter-example (three backbones on one input: +0.001) points the same way.
+Measure:      solo submission via `rsna-knee-infer` (`INFER_MEMBERS = ["v09r", "v08r"]`, flat rank-mean, one vote each, decode-once
+              shared) vs #20 `v09r` 0.927. Timed by `src/watch_submission.py` with the machine awake — it is also P-41's speed read
+              (two members; the DINOv2-S pass adds a little model time, so a ≤ 30 min read bounds the one-member case too).
+Noise floor:  public LB 0.005: **≥ 0.932 ✅ / 0.923–0.931 🔁 / ≤ 0.922 ❌**. Honest expectation from gold-58: 🔁 (≈ 0.926–0.929).
+Cost:         one infer render + placeholder (≈ 0.1 h T4), one submission (≈ 40 min to score).
+If it works:  `v08r` joins `v09r` in the fork arm (`--members v09r v08r`, P-40 step 2) and Raptor-distilled families are additive →
+              the next family (CoAtNet-2 @384 `v10c` recipe, or ConvNeXt `v06c`) on the same table.
+If it fails:  🔁 / ❌ → a shared teacher homogenises families: more Raptor-distilled backbones on the same input are not the lever;
+              diversity has to come from the targets (mix 1.0, a second teacher — P-40 "If it works" items) or the input
+              representation (slice band / plane budget), and `v08r` stays out of the fork.
+Depends on:   P-40 (`v08r` shipped), P-21 (`INFER_MEMBERS`), P-41 (timing), traps 32 (no `blend_check.py` on production members —
+              the gold-58 numbers above are hand-computed and direction only).
 
 ## Rejected without testing
 
