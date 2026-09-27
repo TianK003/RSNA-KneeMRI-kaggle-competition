@@ -6,18 +6,20 @@ to read first after a break.
 
 ---
 
-## 2026-09-27 (09:45 → 15:40) — the "0.943 Speedy Raptors" notebook is not faster (our anchor + 2 CoAt readers; "< 30 min" = its 3-study commit run); **P-41** faster solo scoring shipped (byte-identical); **`v08r`** trained on a RunPod A100 (gold-58 0.8981, shipped, pod deleted); fork v9 (`v09r` alone, β 0.10) + `v08r` solo pushed for submission
+## 2026-09-27 (09:45 → 15:45) — the "0.943 Speedy Raptors" notebook is not faster (our anchor + 2 CoAt readers; "< 30 min" = its 3-study commit run); **P-41** faster solo scoring shipped (byte-identical); **`v08r`** trained on a RunPod A100 (gold-58 0.8981, shipped, pod deleted); **#21 = `v08r` solo sent** (13:41 UTC); fork v9 (`v09r` alone, β 0.10) **still QUEUED, not submitted**
+
+*Refreshed in place at 15:45 (same session): #21 sent, fork still queued, Tian closing the laptop.*
 
 Tian: "read handoff, figure out the next step in testing; research what makes the speedy notebook fast … implement something that would
 speed up scoring"; then **"Yes, continue with step A and spin up the pod"**; then **"Submit the v08a too, I will have to turn the computer
 off soon"** (read as `v08r` solo — see decisions). Commits `d76b05f` … (this one).
 
-### ⏳ Still in flight as this was written (15:40)
+### ⏳ Still in flight as this was written (15:45 local = 13:43 UTC)
 
 | In flight | What it is | Started | How to check | How to read it |
 |---|---|---|---|---|
-| **`rsna-knee-fork` v9** (P-40 step A) | `build_fork.py --members v09r --member v09r=tiankljucanin/rsna-knee-ckpt-v09r:tiankljucanin/timm-coatnet-rmlp-1-rw-224 --beta 0.10` — the public 0.942 graph + `v09r` alone at β 0.10 | pushed 12:48 UTC; **still QUEUED at 13:37 UTC** (Kaggle T4 capacity, traps 41 — never re-push a queued version) | `kaggle kernels status tiankljucanin/rsna-knee-fork`; when COMPLETE: `kaggle kernels output tiankljucanin/rsna-knee-fork -p artifacts/kaggle_out/fork_v9 --file-pattern "(fork_diagnostics\.json\|submission\.csv)$"` | Placeholder green = `fork_diagnostics.json` `status beta0.10`, `members [v09r]`, subprocess rc 0, `v09r/fold0 … score 0.9093`, anchor sha = submission sha (expected at β 0.10 on 3 studies). Then **submit** (Tian's go given): `kaggle competitions submit rsna-knee-abnormality-detection -k tiankljucanin/rsna-knee-fork -v 9 -f submission.csv -m "P-40 step A: public 0.942 graph + v09r (Raptor-distilled CoAtNet-1, solo 0.927) alone at beta 0.10; vs #13/#15 0.942"` and time it: `python src/watch_submission.py` (background). **Read vs 0.942: ≥ 0.947 ✅ / 0.940–0.946 🔁 / ≤ 0.939 ❌** (P-40) |
-| **`rsna-knee-infer` v19** (`v08r` solo) | `INFER_MEMBERS = ["v08r"]`, `FORCE_SMOKE = False`, `MODE = "infer"` (`artifacts/infer_solo_v08r.py`), Dataset `rsna-knee-ckpt-v08r` added to the metadata | pushed 13:37 UTC, RUNNING 13:37 | `kaggle kernels status tiankljucanin/rsna-knee-infer`; log: `kaggle kernels output tiankljucanin/rsna-knee-infer -p artifacts/kaggle_out/infer_solo_v08r --file-pattern "(submission\.csv)$"` | Green = `infer members (1): v08r/fold0 … [epoch 7, score 0.8981, ema True]`, `decode-once workers: 8`, `decode-once verified`, `constant labels 0`. Then submit `-k tiankljucanin/rsna-knee-infer -v 19` + `watch_submission.py`. **Two reads:** (a) LB — there is no `v08a` solo baseline (#18 was the CoAtNet `v09a`); compare with `v09r` 0.927 (a DINOv2-S member ≥ 0.920 would make it a real second member for the fork); (b) **P-41 speed** — the first solo with 8 decode workers: **≤ 30 min ✅ / 30–42 🔁 / > 42 ❌** vs #19's ≤ 42 min bound (the watcher records it in `artifacts/submission_timing.csv`) |
+| **`rsna-knee-fork` v9** (P-40 step A) | `build_fork.py --members v09r --member v09r=tiankljucanin/rsna-knee-ckpt-v09r:tiankljucanin/timm-coatnet-rmlp-1-rw-224 --beta 0.10` — the public 0.942 graph + `v09r` alone at β 0.10 | pushed 12:48 UTC; **still QUEUED at 13:43 UTC — NOT submitted** (Kaggle T4 capacity, traps 41 — never re-push a queued version; it runs on Kaggle with the laptop off, only the submit call needs a session) | `kaggle kernels status tiankljucanin/rsna-knee-fork`; when COMPLETE: `kaggle kernels output tiankljucanin/rsna-knee-fork -p artifacts/kaggle_out/fork_v9 --file-pattern "(fork_diagnostics\.json\|submission\.csv)$"` | Placeholder green = `fork_diagnostics.json` `status beta0.10`, `members [v09r]`, subprocess rc 0, `v09r/fold0 … score 0.9093`, anchor sha = submission sha (expected at β 0.10 on 3 studies). Then **submit** (Tian's go given): `kaggle competitions submit rsna-knee-abnormality-detection -k tiankljucanin/rsna-knee-fork -v 9 -f submission.csv -m "P-40 step A: public 0.942 graph + v09r (Raptor-distilled CoAtNet-1, solo 0.927) alone at beta 0.10; vs #13/#15 0.942"` and time it: `python src/watch_submission.py` (background). **Read vs 0.942: ≥ 0.947 ✅ / 0.940–0.946 🔁 / ≤ 0.939 ❌** (P-40) |
+| **Submission #21 = `rsna-knee-infer` v19** (`v08r` solo), **ref 56610108** | `INFER_MEMBERS = ["v08r"]`, `FORCE_SMOKE = False`, `MODE = "infer"` (`artifacts/infer_solo_v08r.py`), Dataset `rsna-knee-ckpt-v08r` added to the metadata; placeholder green (`v08r/fold0 … [epoch 7, score 0.8981, ema True]`, `decode-once workers: 8 (cpus 4, usable 4)`, `decode-once verified`, `constant labels 0`) | pushed 13:37 UTC; **submitted 13:41:35 UTC** (PENDING at 13:43); `watch_submission.py --ref 56610108` was polling — it dies when the laptop is off, so the exact scoring time may be lost (then it is ≤ the next read) | `kaggle competitions submissions rsna-knee-abnormality-detection --csv \| head -3`; if `artifacts/submission_timing.csv` has a row for 56610108 the watcher caught the exact time | **Two reads:** (a) LB — there is no `v08a` solo baseline (#18 was the CoAtNet `v09a`); compare with `v09r` 0.927 (a DINOv2-S member ≥ 0.920 would make it a real second member for the fork); (b) **P-41 speed** — the first solo with 8 decode workers: **≤ 30 min ✅ / 30–42 🔁 / > 42 ❌** vs #19's ≤ 42 min bound (the watcher records it in `artifacts/submission_timing.csv`) |
 
 ### Where things stand
 
@@ -29,8 +31,8 @@ off soon"** (read as `v08r` solo — see decisions). Commits `d76b05f` … (this
 | Public-notebook research | ✅ "0.943 Speedy Raptors CoAtNet D4" (haideptry) = our anchor's cells + Global96 + Repair-v1 readers; "< 30 min" = 3 studies in 238 s; not a lever (traps 35 addendum; 09-22 "superset" line CORRECTED) |
 | Tools | `src/watch_submission.py` (new) — polls a submission, records sent → scored time |
 | Committed renders | `rsna-knee-infer` = **v19** (`v08r` solo, submittable); `rsna-knee-fork` = **v9** (`v09r` alone, β 0.10); `rsna-knee-train` = `v09r` smoke render (never pushed); teacher kernels = done, never re-push |
-| RunPod | pod `lz8k55zvczmlr7` (A100 SXM 80 GB, US-MD-1, $1.59/h) 12:49:54 → ≈ 13:26 UTC ≈ **$0.95**, **deleted, `list-pods` empty** |
-| Quota | Kaggle GPU 3.08 h used / 26.92 h left (reset 2026-10-03 00:00 UTC; fork v9 + infer v19 not yet charged); submissions: 0 used today before these two; Kaggle token valid to 2026-09-28 00:48 UTC |
+| RunPod | pod `lz8k55zvczmlr7` (A100 SXM 80 GB, US-MD-1, $1.59/h) 12:49:54 → ≈ 13:26 UTC ≈ **$0.95**, **deleted; `list-pods` empty (re-verified 13:42 UTC)** — nothing billing |
+| Quota | Kaggle GPU 3.08 h used / 26.92 h left before v19 / fork v9 (reset 2026-10-03 00:00 UTC); **submissions: 1 used today (#21), 4 left** (UTC day); Kaggle token valid to 2026-09-28 00:48 UTC (then the ≥ 30 min self-refresh, traps 20) |
 | Repo | `main` pushed; the downloaded `rsna-knee-speedy-raptors-coatnet-d4-0943.ipynb` in the root is **untracked on purpose** (not asked to commit it) |
 
 ### What we talked about and decided
@@ -60,11 +62,11 @@ off soon"** (read as `v08r` solo — see decisions). Commits `d76b05f` … (this
 
 ### ⏭ Next action, in order
 
-1. **If either submission was not sent this session** (queue outlasted it), send it next session exactly as the in-flight table says —
-   the kernel versions stay submittable; check the placeholder first (green criteria in the table). Then start
-   `python src/watch_submission.py --ref <ref>` for each (background).
-2. **Read both** (`kaggle competitions submissions rsna-knee-abnormality-detection --csv | head -4`): fork vs 0.942 by the P-40 rule; `v08r`
-   solo vs `v09r` 0.927; P-41 timing from `artifacts/submission_timing.csv`. `/update` (Scoreboard + Submissions rows, P-40, P-41 → experiments.md).
+1. **Submit the fork (#22)** — it was not sent this session: `kaggle kernels status tiankljucanin/rsna-knee-fork` → COMPLETE → pull
+   `fork_diagnostics.json` (green criteria in the in-flight table) → `kaggle competitions submit rsna-knee-abnormality-detection -k tiankljucanin/rsna-knee-fork -v 9 -f submission.csv -m "P-40 step A: public 0.942 graph + v09r alone at beta 0.10; vs #13/#15 0.942"`
+   → `python src/watch_submission.py` in the background. If v9 is ERROR, read its log (`--file-pattern no_match`) before any re-push.
+2. **Read #21 and then #22** (`kaggle competitions submissions rsna-knee-abnormality-detection --csv | head -4`): `v08r` solo vs `v09r` 0.927;
+   P-41 timing from `artifacts/submission_timing.csv` (or, if the watcher died, the bound sent → first read); the fork vs 0.942 by the P-40 rule. `/update` (Scoreboard + Submissions rows, P-40, P-41 → experiments.md).
 3. **Then, by P-40:** fork ✅ or 🔁 and `v08r` solo ≥ ≈ 0.920 → `build_fork.py --members v09r v08r --member v09r=… --member v08r=tiankljucanin/rsna-knee-ckpt-v08r --beta 0.10`
    (DINOv2 backbone = the Model, no second `:` part) → placeholder → submit; fork ❌ → keep `v09r` as a solo-side asset, try β 0.15–0.20
    once (P-40 "If it fails"). A mix-1.0 arm / two-teacher table only after a fork ✅ (write the card first).
