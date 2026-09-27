@@ -395,6 +395,20 @@ for _a in (ARM_ONLY, os.environ.get("RSNA_ARM", ""), *PARALLEL_ARMS, *(a[0] for 
                          f"(it has {tuple(TEACHER_TABLES)!r})")
 
 
+def default_infer_workers():
+    """Decode-once workers at inference (P-41). The public 2xT4 harness decodes the test set on 12-32
+    threads; ours used 2 processes on the 4-vCPU T4 x2 box. Twice the usable CPUs (the reads wait on
+    FUSE, not only on the cores), capped at 8. 0 on Windows: spawn cannot pickle the loader's local
+    Dataset class, so a local run builds in-process (what smoke always did)."""
+    env = os.environ.get("RSNA_INFER_WORKERS")
+    if env not in (None, ""):
+        return max(0, int(env))
+    if os.name == "nt":
+        return 0
+    n = len(os.sched_getaffinity(0)) if hasattr(os, "sched_getaffinity") else (os.cpu_count() or 2)
+    return max(2, min(8, 2 * n))
+
+
 @dataclass
 class Config:
     smoke: bool = field(default_factory=lambda:
@@ -531,6 +545,9 @@ class Config:
     runtime_limit_hours: float = float(os.environ.get("RSNA_RUNTIME_H", 8.3))   # headroom under Kaggle's 9 h
     seed: int = 42
     num_workers: int = int(os.environ.get("RSNA_WORKERS", 2))     # 8 on a local-NVMe box
+    # Worker processes of the inference decode-once pass only (P-41): DICOM reads on the FUSE mount +
+    # pixel decode, one test study per item. RSNA_INFER_WORKERS overrides (2 = the pre-P-41 value).
+    infer_workers: int = field(default_factory=lambda: default_infer_workers())
     # Which epoch `_best.pt` holds. "best_oof": the epoch with the highest OOF-vs-teacher
     # macro-AUC so far (P-22: +0.013 split-half for the concat head, ~0 for attn, gold flat).
     # "last": EMA weights after the last completed epoch (fixed-epoch, used through v05).
@@ -1100,10 +1117,58 @@ def study_side(sdf, dead_zone_mm):
     return side, tag, geo, conflict
 
 
+def _scan_one_series(r, image_root):
+    """One `scan_series` row for series record `r`, or None (missing dir, no parseable header)."""
+    d = os.path.join(image_root, r.StudyInstanceUID, r.SeriesInstanceUID)
+    if not os.path.isdir(d):
+        return None
+    files = sorted(f for f in os.listdir(d) if f.endswith(".dcm"))
+    if not files:
+        # Do not assume the hidden test tree keeps the .dcm extension.
+        files = sorted(f for f in os.listdir(d)
+                       if os.path.isfile(os.path.join(d, f)))
+    if not files:
+        return None
+    h = None
+    for f in files[:5]:            # first file that parses, not blindly files[0]
+        try:
+            h = pydicom.dcmread(os.path.join(d, f), stop_before_pixels=True)
+            break
+        except Exception:
+            continue
+    if h is None:
+        return None
+    desc = " ".join(str(getattr(h, k, "") or "") for k in
+                    ("SeriesDescription", "SequenceName", "ScanOptions", "ProtocolName"))
+    trv = getattr(h, "RepetitionTime", None)
+    tev = getattr(h, "EchoTime", None)
+    w = classify_weighting(float(trv) if trv is not None else None,
+                           float(tev) if tev is not None else None,
+                           str(getattr(h, "ScanningSequence", "") or ""), desc)
+    plane = getattr(r, "Anatomical_Plane", None)
+    if not isinstance(plane, str) or plane not in ("Sagittal", "Coronal", "Axial"):
+        plane = plane_from_iop(getattr(h, "ImageOrientationPatient", None))
+    return {
+        "StudyInstanceUID": r.StudyInstanceUID,
+        "SeriesInstanceUID": r.SeriesInstanceUID,
+        "n_slices": len(files),
+        "plane": plane,
+        "weighting": w,
+        "fat_sat": int(has_token(desc, FATSAT_TOKENS)),
+        "fluid": int(w in ("T2", "PD") or has_token(desc, FLUID_TOKENS)),
+        "laterality_tag": (str(getattr(h, "Laterality", "") or getattr(h, "ImageLaterality", "") or "").upper()
+                           if str(getattr(h, "Laterality", "") or getattr(h, "ImageLaterality", "") or "").upper() in ("L", "R") else ""),
+        "centre_x_mm": centre_x_mm(h),
+    }
+
+
 def scan_series(series_csv: str, image_root: str, cache: str,
-                max_studies: int = 0) -> pd.DataFrame:
+                max_studies: int = 0, threads: int = None) -> pd.DataFrame:
     """One row per series with header-derived properties. Cached, because reading
-    ~24k headers is slow and a resumed session must not pay for it twice."""
+    ~24k headers is slow and a resumed session must not pay for it twice.
+    The reads are I/O-bound (one small header per series on Kaggle's FUSE mount), so they run
+    on `threads` threads (P-41; RSNA_SCAN_THREADS, default 16 -- the public anchor's HDR_THREADS);
+    `pool.map` keeps meta order, so the frame is identical to the one-thread scan."""
     if max_studies:                    # a smoke scan must never be mistaken for a full one
         cache = cache.replace(".csv", f"_smoke{max_studies}.csv")
     if os.path.exists(cache):
@@ -1115,56 +1180,22 @@ def scan_series(series_csv: str, image_root: str, cache: str,
         keep = meta.StudyInstanceUID.drop_duplicates().head(max_studies)
         meta = meta[meta.StudyInstanceUID.isin(set(keep))]
         print(f"  smoke: scanning {len(meta)} series from {len(keep)} studies only")
+    if threads is None:
+        threads = int(os.environ.get("RSNA_SCAN_THREADS", 16))
+    from concurrent.futures import ThreadPoolExecutor
     rows = []
     t0 = time.time()
-    for i, r in enumerate(meta.itertuples(index=False)):
-        d = os.path.join(image_root, r.StudyInstanceUID, r.SeriesInstanceUID)
-        if not os.path.isdir(d):
-            continue
-        files = sorted(f for f in os.listdir(d) if f.endswith(".dcm"))
-        if not files:
-            # Do not assume the hidden test tree keeps the .dcm extension.
-            files = sorted(f for f in os.listdir(d)
-                           if os.path.isfile(os.path.join(d, f)))
-        if not files:
-            continue
-        h = None
-        for f in files[:5]:            # first file that parses, not blindly files[0]
-            try:
-                h = pydicom.dcmread(os.path.join(d, f), stop_before_pixels=True)
-                break
-            except Exception:
-                continue
-        if h is None:
-            continue
-        desc = " ".join(str(getattr(h, k, "") or "") for k in
-                        ("SeriesDescription", "SequenceName", "ScanOptions", "ProtocolName"))
-        trv = getattr(h, "RepetitionTime", None)
-        tev = getattr(h, "EchoTime", None)
-        w = classify_weighting(float(trv) if trv is not None else None,
-                               float(tev) if tev is not None else None,
-                               str(getattr(h, "ScanningSequence", "") or ""), desc)
-        plane = getattr(r, "Anatomical_Plane", None)
-        if not isinstance(plane, str) or plane not in ("Sagittal", "Coronal", "Axial"):
-            plane = plane_from_iop(getattr(h, "ImageOrientationPatient", None))
-        rows.append({
-            "StudyInstanceUID": r.StudyInstanceUID,
-            "SeriesInstanceUID": r.SeriesInstanceUID,
-            "n_slices": len(files),
-            "plane": plane,
-            "weighting": w,
-            "fat_sat": int(has_token(desc, FATSAT_TOKENS)),
-            "fluid": int(w in ("T2", "PD") or has_token(desc, FLUID_TOKENS)),
-            "laterality_tag": (str(getattr(h, "Laterality", "") or getattr(h, "ImageLaterality", "") or "").upper()
-                               if str(getattr(h, "Laterality", "") or getattr(h, "ImageLaterality", "") or "").upper() in ("L", "R") else ""),
-            "centre_x_mm": centre_x_mm(h),
-        })
-        if (i + 1) % 2000 == 0:
-            print(f"    {i+1}/{len(meta)} series  {time.time()-t0:.0f}s")
+    with ThreadPoolExecutor(max_workers=max(1, threads)) as pool:
+        for i, row in enumerate(pool.map(lambda r: _scan_one_series(r, image_root),
+                                         meta.itertuples(index=False))):
+            if row is not None:
+                rows.append(row)
+            if (i + 1) % 2000 == 0:
+                print(f"    {i+1}/{len(meta)} series  {time.time()-t0:.0f}s")
     df = pd.DataFrame(rows)
     if len(df):
         df.to_csv(cache, index=False)
-        print(f"  scanned {len(df)} series in {time.time()-t0:.0f}s -> {cache}")
+        print(f"  scanned {len(df)} series in {time.time()-t0:.0f}s ({max(1, threads)} threads) -> {cache}")
     else:
         # Never cache an empty scan: a resumed session would hit the empty cache and
         # silently train on nothing.
@@ -3310,9 +3341,13 @@ else:
 
         t_dec = time.time()
         masks, index = {}, {}
+        # P-41: a Kaggle smoke uses the real worker count too, so the process-pool path it ships with is
+        # the one the verify-by-equality below checks (traps 12d); locally smoke stays in-process.
+        n_dec = group_cfg.infer_workers if (ON_KAGGLE or not group_cfg.smoke) else 0
+        print(f"  decode-once workers: {n_dec} (cpus {os.cpu_count()}, "
+              f"usable {len(os.sched_getaffinity(0)) if hasattr(os, 'sched_getaffinity') else '?'})")
         dec_loader = DataLoader(_BuildOnce(manifest_df, studies), batch_size=1, shuffle=False,
-                                num_workers=0 if group_cfg.smoke else group_cfg.num_workers,
-                                collate_fn=lambda b: b[0])
+                                num_workers=n_dec, collate_fn=lambda b: b[0])
         for k, (study, path, mk) in enumerate(dec_loader):
             index[study] = path
             masks[study] = mk
