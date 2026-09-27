@@ -292,6 +292,16 @@ SHIPPED_ARMS = [
     # P-39 "if it works": the v08a recipe (DINOv2-S) on the same Raptor teacher -- train only after v09r reads KEEP, then the
     # fork at beta 0.10 with v09r / v08r in the member slots.
     ("v08r", {**PROD, "backbone": "dinov2", "img_size": 224}),
+    # 2026-09-27 (P-43 + P-44, one PARALLEL_ARMS session on rsna-knee-train, both with TEACHER_TABLES=("raptor_teacher",)
+    # sed'd in, mix 0.5 -- the two children must share the table set and the mix). `v09x` = v09r at 320 px: the student
+    # sees the detail of its 384-px teacher (timm img_size 320 loads the 224 weights strictly; 336 is not /32). One study
+    # per BatchNorm batch x accum 4 keeps 4 studies per step (two studies at 320 ~13-14 GiB on a 15 GB T4; P-32 priced the
+    # batch composition at +0.0008). `v09u` = v09r exactly, seed 43: the first same-platform retrain of the recipe, i.e.
+    # one draw of the Kaggle-retrain LB spread, and the second seed of the production member. Read both SOLO (P-43 / P-44).
+    ("v09x", {**PROD, "backbone": "timm:coatnet_rmlp_1_rw_224", "img_size": 320, "lr_backbone": 1e-4,
+              "batch_studies": 1, "grad_accum": 4, "aug": "light"}),
+    ("v09u", {**PROD, "backbone": "timm:coatnet_rmlp_1_rw_224", "img_size": 224, "lr_backbone": 1e-4,
+              "batch_studies": 2, "grad_accum": 2, "aug": "light", "seed": 43}),
 ]
 ARM_V10C = ("v10c", {**C02, "backbone": "timm:coatnet_rmlp_2_rw_384", "img_size": 384,
                      "lr_backbone": 1e-4, "eval_windows": 42, "grad_checkpoint": True})
@@ -359,6 +369,12 @@ if PARALLEL_ARMS and not os.environ.get("RSNA_CHILD"):
     if _bad:
         raise SystemExit(f"PARALLEL_ARMS {_bad} not among the defined arms {sorted(_known)}")
     print(f"PARALLEL_ARMS: {list(PARALLEL_ARMS)} (one child process per GPU; this process only launches and waits)")
+    # 2026-09-27: the session's arm list IS the parallel list. Before, the sequential fallback (< 2 GPUs, or off Kaggle)
+    # trained the default ARMS -- with a teacher table sed'd in, the LLM-target members v09a / v08a would have trained on
+    # distilled targets under their names, and a local check of a PARALLEL build never ran the arms it was built for.
+    _by_name = {a[0]: a for a in list(ARMS) + list(SHIPPED_ARMS) + [ARM_V10C]}
+    ARMS = [_by_name[a] for a in PARALLEL_ARMS]
+    PRIMARY_ARM = PARALLEL_ARMS[0]          # the fallback's inference smoke must name an arm it trained
 
 # ┌──────────────────────────────────────────────────────────────────────────┐
 # │ TEACHER_TABLES (2026-09-23, spec docs/superpowers/specs/2026-09-23-      │
@@ -387,12 +403,24 @@ TEACHER_PATHS = {
 # 2026-09-26 (P-39): arm -> the EXACT table set it must train on, so `v09r` can train neither on the plain teacher nor on
 # the dead self-distill table under its name.
 DISTILLED_ARMS = {"v09s": ("selfdistill_v1",), "v09t": ("selfdistill_v1",),
-                  "v09r": ("raptor_teacher",), "v08r": ("raptor_teacher",)}
+                  "v09r": ("raptor_teacher",), "v08r": ("raptor_teacher",),
+                  "v09x": ("raptor_teacher",), "v09u": ("raptor_teacher",)}
 # Every arm this session can train: the filters, and the sequential loop's list itself (a run with no filter).
 for _a in (ARM_ONLY, os.environ.get("RSNA_ARM", ""), *PARALLEL_ARMS, *(a[0] for a in (ARMS or []))):
     if _a in DISTILLED_ARMS and tuple(TEACHER_TABLES) != DISTILLED_ARMS[_a]:
         raise SystemExit(f"{_a} is a distilled arm: sed TEACHER_TABLES = {DISTILLED_ARMS[_a]!r} into the copy you run "
                          f"(it has {tuple(TEACHER_TABLES)!r})")
+    # 2026-09-27: the converse -- a table sed'd in must not train an arm whose name promises the plain LLM targets.
+    if _a and TEACHER_TABLES and _a not in DISTILLED_ARMS:
+        raise SystemExit(f"TEACHER_TABLES = {tuple(TEACHER_TABLES)!r} is set but {_a} is not a distilled arm "
+                         f"(DISTILLED_ARMS) -- it would train on distilled targets under an LLM-target name")
+# Targets and the seed stream are per SESSION (built / drawn once, at import), not per arm: an arm dict that sets
+# `teacher_mix` / `teacher_tables` would be recorded in the checkpoint and silently ignored in training. Refuse it.
+# (`seed` IS honoured per arm since 2026-09-27: the arm loop reseeds when an arm's seed differs, P-44.)
+for _a, _ov in list(ARMS) + list(SHIPPED_ARMS) + [ARM_V10C]:
+    _inert = sorted({"teacher_mix", "teacher_tables"} & set(_ov))
+    if _inert:
+        raise SystemExit(f"arm {_a} sets {_inert} in its dict: those are per-session (sed TEACHER_MIX / TEACHER_TABLES)")
 
 
 def default_infer_workers():
@@ -1953,13 +1981,17 @@ def augment_light(x, p=0.8):
     return out
 
 
-def load_timm_backbone(arch, backbone_dir, grad_checkpoint=False):
+def load_timm_backbone(arch, backbone_dir, grad_checkpoint=False, img_size=None):
     """timm model built offline from <backbone_dir>/model.safetensors (the HF timm repo files,
     mounted as a Kaggle Dataset). Loads strictly except for the classifier head, and REFUSES a
-    silent architecture mismatch -- `strict=False` alone would happily train from scratch."""
+    silent architecture mismatch -- `strict=False` alone would happily train from scratch.
+    `img_size` (P-43) builds the model for that input: CoAtNet's attention windows are sized at
+    construction, so the 224 model crashes on a 320 input (400 vs 196 tokens); its relative-position
+    MLP takes the 224 weights strictly at 320. Must be a multiple of 32 (336 is not)."""
     import timm
     from safetensors.torch import load_file
-    enc = timm.create_model(arch, pretrained=False, num_classes=0)
+    kw = {} if img_size is None else {"img_size": int(img_size)}
+    enc = timm.create_model(arch, pretrained=False, num_classes=0, **kw)
     sd = load_file(os.path.join(backbone_dir, "model.safetensors"))
     head_keys = [k for k in sd if k.startswith("head.fc")]        # ImageNet classifier
     for k in head_keys:
@@ -1972,7 +2004,7 @@ def load_timm_backbone(arch, backbone_dir, grad_checkpoint=False):
                          f"{bad_unexpected[:5]} ({len(bad_unexpected)})")
     print(f"  timm {arch}: loaded {len(sd)} tensors from {backbone_dir} (dropped head "
           f"{len(head_keys)}); num_features {enc.num_features}, {len(enc.stages)} stages, "
-          f"grad_checkpoint={grad_checkpoint}")
+          f"img_size {img_size or 'default'}, grad_checkpoint={grad_checkpoint}")
     if grad_checkpoint and hasattr(enc, "set_grad_checkpointing"):
         enc.set_grad_checkpointing(True)
     return enc
@@ -1992,7 +2024,7 @@ class KneeNet(nn.Module):
             self.enc = ConvNextModel.from_pretrained(backbone_dir)
             self.dim = self.enc.config.hidden_sizes[-1]          # 768 for Tiny
         elif str(backbone).startswith("timm:"):
-            self.enc = load_timm_backbone(backbone.split(":", 1)[1], backbone_dir, grad_checkpoint)
+            self.enc = load_timm_backbone(backbone.split(":", 1)[1], backbone_dir, grad_checkpoint, img_size)
             self.dim = self.enc.num_features
         else:
             from transformers import Dinov2Model
@@ -3107,6 +3139,12 @@ elif mode == "train":
         cfg = replace(base_cfg, version=arm_version, **_ov)
         cfg.backbone_dir = resolve_backbone_dir(cfg.backbone)   # an arm may switch family (P-10)
         globals()["cfg"] = cfg
+        # P-44: seed_all ran once, at import, with the base seed -- an arm-dict `seed` changed only the banner, and
+        # every production member trained on the seed-42 stream. Reseed when the arm asks for another seed (init,
+        # data order and the loader workers' base seeds all draw from it); base-seed arms keep their old stream.
+        if cfg.seed != base_cfg.seed:
+            seed_all(cfg.seed)
+            print(f"  reseeded {cfg.seed} for arm {arm_version} (base seed {base_cfg.seed})")
         # Resume is PER ARM (traps 31): copy this arm's mounted `_last.pt` / `_best.pt` into WORK
         # so train_fold continues at epoch+1. Shallow glob, seconds. Smoke never resumes (traps 19).
         if not cfg.smoke:

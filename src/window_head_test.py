@@ -103,7 +103,8 @@ def main():
     print("\n== backbones / build_model / param_groups")
     device = torch.device("cpu")
     for bb, img in (("dinov2", 224), ("convnext_tiny", 224),
-                    ("timm:coatnet_rmlp_1_rw_224", 224), ("timm:coatnet_rmlp_2_rw_384", 384)):
+                    ("timm:coatnet_rmlp_1_rw_224", 224), ("timm:coatnet_rmlp_1_rw_224", 320),   # P-43 v09x
+                    ("timm:coatnet_rmlp_2_rw_384", 384)):
         try:
             K["resolve_backbone_dir"](bb)
         except SystemExit as e:

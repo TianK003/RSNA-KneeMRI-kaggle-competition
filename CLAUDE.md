@@ -19,7 +19,7 @@ Competition: https://www.kaggle.com/competitions/rsna-knee-abnormality-detection
 | [docs/handoff.md](docs/handoff.md) | Session state, what changed last, next action | **First, always** |
 | [docs/traps.md](docs/traps.md) | Bugs and **silent** failure modes, tiered by damage | Before writing pipeline code |
 | [docs/experiments.md](docs/experiments.md) | Every measurement, with a verdict | Before proposing an experiment |
-| [docs/proposals.md](docs/proposals.md) | **Ranked backlog as testable cards P-00…P-39** (hypothesis, evidence, measure, noise floor, cost) | When choosing what to do next |
+| [docs/proposals.md](docs/proposals.md) | **Ranked backlog as testable cards** — live cards (P-40…P-51, P-18) on top with full bodies, P-00…P-42 closed as one-line pointers (rewritten 2026-09-27 after a four-reviewer audit) | When choosing what to do next |
 | [docs/research.md](docs/research.md) | Literature + prior-competition research behind the cards (18-agent workflow, critic-fixed) | Before changing a training parameter or model |
 | [docs/brainstorm.md](docs/brainstorm.md) | Open questions and strategy notes only | When a question needs a browser |
 | [docs/setup.md](docs/setup.md) | Bootstrapping a new machine | New clone / new laptop |

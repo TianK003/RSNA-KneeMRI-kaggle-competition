@@ -1490,6 +1490,9 @@ green first; pushed 09:05 on Tian's go; both children rc 0, `-> {arm}_fold0_best
    are training data under `train_all` (weight 8), so this number is optimistic by construction. It cannot separate the
    epoch budget from the S1 knobs on `v09a` either (two changes, one number; the fold-0 A/B already priced the knobs at
    +0.005). The measurement that counts is the fork at β 0.10 vs 0.942 (#17).
+   **CORRECTED 2026-09-27:** gold rows are *not* trained under `train_all` — `split_studies` (`kaggle_pipeline.py`) trains
+   `is_gold == 0` only and the 58 gold rows are the held-out validation (`window_head_test.py`: "train 7 non-gold, val … gold");
+   production members' gold-58 is held out, not optimistic by construction (found by the 2026-09-27 proposals review).
 3. **P-31 in production**: the pair that took 7.5 session-hours in two sessions took 2.64 h in one — 2.8× the arms per quota hour.
 4. Shipped at 11:44 as new versions of the Datasets `tiankljucanin/rsna-knee-ckpt-v09a` / `-v08a` (`_best.pt` = SWA +
    gold-58 `_oof.csv`; `kaggle datasets status` ready, files re-listed); the fork mounts them unversioned, so #17 reads the
@@ -1749,6 +1752,8 @@ cache), so a ✅ read drops straight into `v09a`'s slot in the fork. (3) The mea
 pre-registered: **≥ 0.923 ✅ self-distillation transfers to the production member (retrain `v08a` the same way as `v08t`, both
 distilled members into the fork at β 0.10) / 0.919–0.922 🔁 / < 0.918 ❌ (the production member keeps the LLM targets; the Raptor
 teacher, P-39, is the remaining lever).**
+**CORRECTED 2026-09-27:** gold rows are not trained under `train_all` (`split_studies` trains `is_gold == 0` only) — the gold-58
+read above is held out, not optimistic by construction (see the same correction in the S2 entry).
 
 **Verdict: ✅ the run (the production regime end to end in 35 min on a 4090, ≈ $0.5 of GPU for the training itself); ⏳ PENDING the
 LB (#19).** Submissions table row 19.
@@ -2024,6 +2029,62 @@ stays out of the fork, and a second Raptor-distilled backbone on the same input 
 min** with **two** members (the DINOv2-S pass adds ≈ 29 s / 100 studies to CoAtNet-1's ≈ 88 s). Caveats: the baseline (#19, one
 member, 2 decode workers) is an upper bound (≤ 42 min), never an exact time, so the size of the speed-up is unknown; Kaggle's own
 queue time sits inside both numbers. A solo read is now **≈ 30 min** send-to-score — four member reads fit in two hours.
+
+### 2026-09-27 — Four-reviewer audit of proposals.md: gold-58 diagnostics computed during the review · 🔁 direction only, but they set the next session
+
+Four read-only reviewer agents (auditor / strategist / skeptic / Kaggle feasibility), two rounds with cross-critique, scripts in the
+session scratchpad. None of this is an LB read; it re-ranked the backlog (proposals.md rewritten, P-43…P-51) and chose the next
+Kaggle session (`v09x` 320 px ‖ `v09u` seed 43). **Verdict: 🔁 INCONCLUSIVE as evidence (gold-58 / proxies) — recorded because the
+plan now rests on it.**
+
+**1. Paired study-level bootstrap on gold-58 (reviewer C, 4,000 reps; the members' `_fold0_oof.csv` = gold predictions):**
+
+| pair | Δ gold-58 | bootstrap SD | P(Δ ≤ 0) | what the LB said |
+|---|---|---|---|---|
+| `v09r` − `v09a` | +0.0172 | 0.0076 | 1.0 % | +0.009 (#20 vs #18) |
+| `v09t` − `v09a` | +0.0087 | 0.0061 | 7.6 % | −0.001 (#19 vs #18) |
+| `v08r` − `v08a` | +0.0131 | 0.0086 | 6.5 % | never read |
+
+For near-identical members the paired SD is ≈ 0.007, far tighter than the unpaired 0.05 rule — but it covers test sampling only,
+not seed noise, and `v09t` shows a 7.6 % tail that the LB then contradicted. The public-LB "0.005 floor" is the top-ten span, not a
+noise estimate; with ≈ 400 public studies (unverified) the sampling SD of a paired delta would be ≈ 0.003, and with an unmeasured
+seed spread one solo-vs-solo delta is plausibly SD 0.004–0.006 → +0.009 ≈ 1.5–2σ (→ P-44).
+
+**2. Error correlation within each true class on gold-58 (reviewer C; reproduced by A):** `v09r` / `v08r` (Raptor targets, two
+families) **0.861** vs `v09a` / `v08a` (LLM targets) **0.777** (+0.084, SD 0.020, higher on 12/12 labels); same family, two teachers
+`v09r` / `v09a` 0.883; both differ 0.773 / 0.799. Reading (A's correction of C): the shared teacher raised cross-family agreement,
+but architecture still matters (0.883 > 0.861 on 11/12 labels). It explains P-42 (#23 = `v09r`) and predicts #22 ≈ 0.942.
+
+**3. Gold-58 "teacher-mix analogs" (reviewer B; bootstrapped by D).** Rank-space mixes of the LLM blend (0.8948 alone) with a held-out
+public CoAt reader (their gold references were pulled from the public Datasets; both readers' epochs were gold-selected, so the
+image side is optimistic):
+
+| image teacher | LLM 50 / image 50 | 25 / 75 | image only | mix 1.0 − 0.5 (SD) | mix 0.75 − 0.5 (SD) |
+|---|---|---|---|---|---|
+| resgated top-3 | 0.9275 | 0.9257 | 0.9095 | −0.018 (0.010) | −0.002 (0.005) |
+| D4 | 0.9346 | 0.9383 | 0.9302 | −0.004 (0.008) | +0.004 (0.005) |
+
+A teacher proxy, not a student and not Raptor (Raptor has no gold predictions in our hands — P-49); still, it moved the mix
+bracket from 1.0 to 0.75 (P-47). Mix 1.0 is not "Raptor-only" either: `w__` stays LLM-agreement and quantile matching uses the LLM
+marginals.
+
+**4. `pilkwang/rsna-knee-weights` ships `oof.npz`** — honest 5-fold DINOv2-S@336 OOF over all 4,407 studies: gold-58 **0.840**; added
+at 0.15–0.25 to LLM + CoAt it *lowers* gold 0.003–0.007 (a weaker honest teacher dilutes). Raptor agrees with it far more than
+with the reports (ρ 0.819 vs 0.652 with the LLM blend).
+
+**5. Is Raptor copying the dread labels (its likely training labels)?** Overall no: Raptor ~ dread ρ 0.661, ~ LLM 0.652; partial
+ρ(Raptor, dread | LLM) 0.285. The Synovitis dispute resolved: positive rates on the 4,349 report-only studies are LLM 12.4 %, dread
+24.5 %, raw Raptor 41.0 %; on LLM/dread disagreements Raptor "sides with dread" 78–80 % at a raw 0.5 cut, 52 % at the LLM's
+positive rate, 50 % rank vs rank (A: an operating-point effect, which quantile matching removes); within the disagreements Raptor
+ranks dread-positive above LLM-positive cases with AUC 0.71 on Synovitis, 0.74 MCL, 0.72 Effusion, 0.50–0.67 elsewhere (C: a lean to
+dread on every label); dread's Synovitis column has only 7 distinct values, which caps its global ρ (B). So the in-sample channel
+is real but modest and not Synovitis-specific.
+
+**6. Two facts about our own comparisons.** (a) #18 (`v09a`, Kaggle T4, 2 loader workers) vs #20 (`v09r`, RunPod 4090, 8 workers)
+— the headline +0.009 — was cross-platform: the window draws are per-worker numpy streams, so worker count changes them, while
+init / data order / GPU augmentation share the seed-42 torch stream. (b) Every production member trained on the seed-42 stream
+(an arm-dict `seed` was inert — traps 42), and gold rows are held out under `train_all` (the S2 and `v09t` entries' "optimistic by
+construction" lines are CORRECTED above).
 
 ## Infrastructure
 

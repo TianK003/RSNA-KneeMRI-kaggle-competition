@@ -1,6 +1,6 @@
 # Brainstorming and backlog
 
-**The ranked backlog now lives in [proposals.md](proposals.md)** (cards P-00 … P-20, each with
+**The ranked backlog now lives in [proposals.md](proposals.md)** (live cards ranked on top, closed cards as pointers — rewritten 2026-09-27; each live card has
 hypothesis, evidence, measure, noise floor and cost, built from [research.md](research.md)).
 This file keeps only the open questions and the strategy notes. Once a card is measured it
 moves to [experiments.md](experiments.md) with a verdict.

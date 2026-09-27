@@ -823,3 +823,27 @@ start again at the back of the queue); read "hours since push" as an upper bound
 UTC (**≈ 3 h 40 min**), while `rsna-knee-infer` v19, pushed 49 min *after* it (13:37), started within a minute — so the queue is not
 first-in-first-out per account. Why is unknown (the fork mounts far more inputs than
 the infer kernel; that is a guess, not a finding). Once it ran, the placeholder took 6 min. Unchanged rule: never re-push a queued version.
+
+### 42. Arm-dict fields that look per-arm are per-session — `seed` changed only the banner, `teacher_mix` / `teacher_tables` would be recorded and ignored, and the `PARALLEL_ARMS` fallback trained the default arms (Tier 1, found in the 2026-09-27 review, never ran)
+
+Three silent gaps, found by two of the four reviewers independently and confirmed in the code:
+1. **`seed`.** `seed_all(cfg.seed)` ran once, at import, with the module config's 42. The arm loop rebinds `cfg` but never
+   reseeded, and `PARALLEL_ARMS` children re-import and seed 42 again. `("vNN", {..., "seed": 43})` printed `seed 43` in the arm
+   banner and trained on the seed-42 stream — every production member so far (`v09a`, `v09t`, `v09r`, `v08a`, `v08r`) shares it.
+   A "seed twin" would have been a near-copy that *understates* the spread it was built to measure.
+2. **`teacher_mix` / `teacher_tables`.** They are `Config` fields, so an arm dict accepts them and the checkpoint records them — but
+   the training targets are built once per process from the module globals `TEACHER_MIX` / `TEACHER_TABLES`. An arm dict with
+   `"teacher_mix": 1.0` would record 1.0 and train on 0.5 (the traps 40 mislabel, one level down). The distilled-arm guard compares
+   the table *set* only, never the mix.
+3. **The sequential fallback.** When `run_parallel_arms` declines (< 2 GPUs, or not on Kaggle — i.e. every local check), the
+   sequential loop ran the default `ARMS` (`v09a`, `v08a`), not `PARALLEL_ARMS`. With a teacher table sed'd in, those LLM-target
+   names would have trained on distilled targets, and a local smoke of a `PARALLEL_ARMS` build never exercised the arms it was
+   built for. (Its inference smoke also named `PRIMARY_ARM = "v09a"`.)
+
+**Fixed 2026-09-27 (P-43 / P-44 commit):** the arm loop reseeds when an arm's `seed` differs from the base config's (base-seed arms
+keep their old stream; the log prints `reseeded 43 for arm v09u`); an arm dict that sets `teacher_mix` / `teacher_tables` is refused
+at import; `PARALLEL_ARMS` narrows `ARMS` (and `PRIMARY_ARM`) to the parallel list in the parent, so the fallback trains exactly
+those arms; and the converse guard — a sed'd `TEACHER_TABLES` with any session arm that is not in `DISTILLED_ARMS` — refuses to
+run (probed: default arms + table → refused; parallel distilled arms without the table → refused; the real build → passes).
+**Do:** two arms that need different target tables or mixes cannot share one session without new code; a per-arm knob that is
+not in the arm banner's printed fields should be grepped for where it is actually read before trusting it.
