@@ -163,7 +163,9 @@ Evidence:     every verdict since P-39 is a sub-0.01 solo delta judged against a
               window draws depend on the worker count (per-worker numpy seeds), so `v09u` is the first same-platform twin of
               `v09a`'s setting. On fold 0 the same config moved 0.004–0.008 OOF on seed alone (P-02).
 Measure:      (1) `v09u` solo → s = |`v09u` − 0.927| = one draw of the Kaggle-retrain spread (seed + platform); (2) a third
-              submission: the `v09r` + `v09u` rank-mean solo.
+              submission: the `v09r` + `v09u` rank-mean solo. **Submission order (after v30, on Tian's go): `v09u` → `v09x` →
+              the `v09r` + `v09u` blend** — `v09u` first, because the `v09x` read needs its s; each ≈ 30 min to score, 3 of the
+              day's 5. Ship first: `rsna-knee-ckpt-v09x` / `-v09u` Datasets, added to `rsna-knee-infer`'s `dataset_sources`.
 Noise floor:  s ≤ 0.002 → one-seed deltas need ≥ 0.004; 0.003–0.005 → ≥ 0.008 or two seeds per side; ≥ 0.006 → nothing under
               ≈ 0.01 is readable from one seed, and P-39 stands only if mean(`v09r`, `v09u`) − 0.918 ≥ 0.006. **If `v09u` ≤
               0.920 → re-open P-39.** Blend: **≥ 0.930 ✅** seed ensembling is a lever; otherwise 🔁. Caveat: a 3-point range
