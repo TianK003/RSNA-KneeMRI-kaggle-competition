@@ -58,8 +58,8 @@ result*, per unit of cost. "Depends on" lists hard blockers only. EVs are solo-L
 
 | rank | id | title | status | expected value | cost | depends on |
 |---|---|---|---|---|---|---|
-| 1 | P-43 | Student resolution: CoAtNet-1 @320 on the `v09r` targets (`v09x`) | 🔧 implemented, Kaggle smoke pending | +0.002..0.006 solo — the only input-side lever left | one ≈ 6.2 GPU-h session shared with P-44; 1 solo | P-39 ✅, P-31, P-44 (its read) |
-| 2 | P-44 | Kaggle-retrain seed spread + a 2-seed production member (`v09u`) | 🔧 implemented (per-arm reseed fix), same session as P-43 | sets the floor every later read needs; 2-seed rank-mean +0.001..0.003 | ≈ 2.8 h on the second T4 (≈ 0 extra quota); 2 solos | — |
+| 1 | P-43 | Student resolution: CoAtNet-1 @320 on the `v09r` targets (`v09x`) | ⏳ **running** — `rsna-knee-train` v30 (pushed 2026-09-27 18:08 UTC; smoke v29 green: img 320, peak 7.03 GiB) | +0.002..0.006 solo — the only input-side lever left | one ≈ 6.2 GPU-h session shared with P-44; 1 solo | P-39 ✅, P-31, P-44 (its read) |
+| 2 | P-44 | Kaggle-retrain seed spread + a 2-seed production member (`v09u`) | ⏳ **running** — same session, cuda:1 (smoke v29: `reseeded 43`, 6.84 GiB) | sets the floor every later read needs; 2-seed rank-mean +0.001..0.003 | ≈ 2.8 h on the second T4 (≈ 0 extra quota); 2 solos | — |
 | 3 | P-40 | Raptor-distilled members into the fork | ⏳ #22 sent 2026-09-27 16:36 UTC | low — prior 0.942 ± 0.001, P(≥ 0.947) < 10 % | spent (≤ 8 h 06 min to score) | P-39 ✅, P-27 |
 | 4 | P-49 | Raptor over the 58 gold studies — a correlation diagnostic | 💡 | validity: fork redundancy without an 8-h fork read; gates P-45 / P-47 | ≈ 20 lines + 0.2 h T4 (second slot) | P-39 (`build_teacher_pass.py`) |
 | 5 | P-50 | Final selection and publishability | 💡 decide by 2026-10-15 | decides what the private LB scores | a browser session; ≤ 1 fork check | P-40 (#22), Rules page |
@@ -121,7 +121,9 @@ result*, per unit of cost. "Depends on" lists hard blockers only. EVs are solo-L
 ## Cards
 
 ### P-43 Student resolution: CoAtNet-1 @320 on the `v09r` targets (`v09x`)
-Status:       🔧 implemented 2026-09-27 (arm `v09x` = the `v09r` dict at `img_size` 320), Kaggle smoke pending. Runs in ONE
+Status:       ⏳ running: `rsna-knee-train` v30 pushed 2026-09-27 18:08 UTC (smoke v29 green: both children read `raptor_teacher:
+              4349 studies`, `v09x` img 320 / batch 1 × accum 4 / peak 7.03 GiB on cuda:0, `ok  arm` ×2). Arm `v09x` = the `v09r`
+              dict at `img_size` 320. Runs in ONE
               `PARALLEL_ARMS = ("v09x", "v09u")` session with P-44 (`rsna-knee-train`, both children on
               `TEACHER_TABLES=("raptor_teacher",)`, mix 0.5 — the two children of a session share the table set and the mix).
 Hypothesis:   now that half the target comes from a 384-px image teacher (Raptor = CoAtNet-2 @384), the student's 224-px input
@@ -150,7 +152,8 @@ If it fails:  ❌ / 🔁 → stay at 224; resolution is not the lever.
 Depends on:   P-39 ✅ (the table), P-31 (two children), P-44 (`v09u` is half the baseline). Supersedes P-11.
 
 ### P-44 Kaggle-retrain seed spread + a 2-seed production member (`v09u`)
-Status:       🔧 implemented 2026-09-27: `v09u` = the exact `v09r` dict with `"seed": 43`, plus the per-arm reseed fix
+Status:       ⏳ running (`rsna-knee-train` v30, cuda:1; smoke v29 printed `reseeded 43 for arm v09u`). `v09u` = the exact `v09r`
+              dict with `"seed": 43`, plus the per-arm reseed fix
               (`seed_all(cfg.seed)` in the arm loop when the arm's seed differs from the base config's — before it an arm-dict
               `seed` only changed the banner, and every production member trained on the seed-42 stream). Same session as P-43.
 Hypothesis:   the retrain spread of a production member on the public LB is < 0.004, and a 2-seed rank-mean adds ≥ +0.002.
