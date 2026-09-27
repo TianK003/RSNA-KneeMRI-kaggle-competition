@@ -6,6 +6,104 @@ to read first after a break.
 
 ---
 
+## 2026-09-27 (19:20 → 20:20 local = 17:20 → 18:20 UTC) — four-reviewer audit → **`proposals.md` rewritten** (1,292 → 386 lines, 11 live cards); **traps 42** (per-arm `seed` / `teacher_mix` were inert; PARALLEL fallback trained the default arms) fixed; **`v09x` (320 px) ‖ `v09u` (seed 43) training = `rsna-knee-train` v30** (⏳); #22 still scoring
+
+Tian: "brainstorm and read the suggested proposals … compare them to what is already implemented … scratch really old ideas …
+spin up multiple review agents that compare their work and opinions … then pick a single best chance to improve the model and start
+training it if possible — use kaggle gpu not runpod"; then "what do you want to submit now and why" (answered in chat); then "write
+all of this information in docs and run /handoff so i can close my laptop". Commits `fae359b` … (this one). The 19:20 entry below
+(same session) holds the #21–#23 reads and the #22 fill-in checklist.
+
+### ⏳ Still in flight as this was written (20:20 local = 18:20 UTC)
+
+| In flight | What it is | Started | How to check | How to read it |
+|---|---|---|---|---|
+| **`rsna-knee-train` v30** (P-43 + P-44, REAL) | `PARALLEL_ARMS = ("v09x", "v09u")`, `TEACHER_TABLES = ("raptor_teacher",)`, mix 0.5 (`artifacts/train_xu_real.py` = committed src + 3 seds). **cuda:0 `v09x`** = the `v09r` recipe at **img 320**, batch 1 × accum 4; **cuda:1 `v09u`** = `v09r` exactly, **seed 43** | pushed 18:08:24, **RUNNING 18:08:48 UTC** (no queue). Expect `v09u` ≈ 21:00 UTC (≈ 2.8 h), `v09x` ≈ 23:30–00:30 UTC (5.3–6.1 h est.); the kernel ends when both children end; child guard ≈ 8.0 h → hard stop ≈ 02:15 UTC | `kaggle kernels status tiankljucanin/rsna-knee-train` (output is unreadable while RUNNING, traps 12e; `kaggle kernels logs` returned nothing at +7 min). When COMPLETE: `kaggle kernels output tiankljucanin/rsna-knee-train -p artifacts/kaggle_out/train_v30 --file-pattern "(v09x\|v09u)_fold0_(best\.pt\|oof\.csv)$\|\.log$"` | **Green** = parent log `ok  arm v09x` + `ok  arm v09u`; each child log (`v09x.log`, `v09u.log`) shows `teacher table raptor_teacher: 4349 studies`, `SWA of last 3 EMA snapshot(s)` and `-> v09*_fold0_best.pt = SWA`; `v09u.log` has `reseeded 43 for arm v09u`; `v09x.log` has `img 320 \| batch 1 x accum 4` and its `train … s/study` (≤ 0.80 fits the guard). **Red flags:** `stopping: runtime guard` in `v09x.log` → its `_best.pt` is the last epoch, NOT SWA → **never submit it** (resume in `rsna-knee-folds`, which first needs `tiankljucanin/rsna-knee-train` in its `kernel_sources`, traps 31); a `_best.pt` much smaller than ≈ 157 MB → delete and re-pull (traps 38). Gold-58 per-epoch lines are direction only |
+| **Submission #22 = `rsna-knee-fork` v9**, ref 56614068 | the public 0.942 graph + `v09r` alone at β 0.10 (P-40 step A) | sent 16:36:17 UTC; forks score in ≤ 8 h 06 min → ≈ 00:30–02:30 UTC | `kaggle competitions submissions rsna-knee-abnormality-detection --csv \| head -3`; watcher task `buiay90kx` dies with the laptop (then the time is only a bound) | **vs 0.942: ≥ 0.947 ✅ / 0.940–0.946 🔁 / ≤ 0.939 ❌** (P-40); the fill-in checklist is Next action 1 of the 19:20 entry below |
+
+### Where things stand
+
+| | Status |
+|---|---|
+| Best LB | **0.942** (#13 / #15); best member of ours `v09r` 0.927 solo (#20); #22 ⏳ |
+| `docs/proposals.md` | ✅ **rewritten** by a four-reviewer, two-round audit: live cards ranked P-43, P-44, P-40, P-49, P-50, P-18, P-47, P-45, P-46, P-48, P-51; P-00…P-42 closed as one-line pointers (pre-rewrite text: `git show 8304c96:docs/proposals.md`); decision-metric table fixed (solo LB judges target changes; fork = final candidates only) |
+| P-43 / P-44 | ⏳ running (v30); smoke v29 green — `v09x` peak **7.03 GiB** at 320 px, `v09u` 6.84 GiB, both read the Raptor table, `ok  arm` ×2 (experiments.md Scoreboard 2026-09-27 "P-43 + P-44") |
+| Code | ✅ `load_timm_backbone(img_size)`; per-arm reseed; `PARALLEL_ARMS` narrows `ARMS` / `PRIMARY_ARM`; guards: an arm dict setting `teacher_mix` / `teacher_tables` is refused, a sed'd table with a non-distilled session arm is refused (traps 42); `window_head_test.py` builds CoAtNet-1 at 320 (all green); local CPU smoke of the exact build green |
+| Docs also | traps 42; experiments.md "Four-reviewer audit … gold-58 diagnostics" (paired bootstrap, within-class ρ, teacher-mix analogs, pilkwang `oof.npz`, Raptor-vs-dread) + **CORRECTED**: gold rows are held out under `train_all` |
+| Committed renders | `rsna-knee-train` = **v30 REAL** (`FORCE_SMOKE = False`, never re-push as is); `rsna-knee-infer` = v20 (P-42 pair); `rsna-knee-fork` = v9 (= #22) |
+| Quota / money | Kaggle GPU 3.42 h used / 26.58 h left at 18:16 UTC → ≈ 20.4 h after v30 (reset 2026-10-03 00:00 UTC); submissions: 5 fresh after 00:00 UTC; RunPod: none this session (`list-pods` empty 17:18 UTC); Kaggle token valid to **2026-09-28 00:48 UTC** |
+| Repo | `main` pushed; `rsna-knee-speedy-raptors-coatnet-d4-0943.ipynb` still untracked on purpose |
+
+### What we talked about and decided
+
+- **Audit method:** four read-only reviewer agents with different lenses (auditor, strategist, skeptic, Kaggle feasibility), then a
+  cross-critique round on a written digest; the rewrite itself was delegated to a doc agent from a written spec and reviewed here (one
+  over-read fixed: "the teacher, not the architecture, sets the errors" → the shared teacher *raised* cross-family agreement, 0.883 vs
+  0.861 says architecture still matters).
+- **The pick, and why this pair:** round 1 split (mix 1.0 ×2, 320 px + twin, two seed twins); round 2 converged 4/4 on `v09x` ‖ `v09u`.
+  Mix 1.0 dropped (the gold-58 analogs: image-only −0.004…−0.018 vs 50/50, and it is not "Raptor-only" anyway); a measurement-only
+  2-seed session rejected (the ask was to *improve*; a lever + twin gives both reads); CoAtNet-2 @384 rejected on Kaggle (9–15 GPU-h,
+  OOM at batch 2); both arms share one table + mix, so no per-arm target code was written.
+- **Kaggle GPU, not RunPod** (Tian) — one ≈ 6.2 GPU-h session; the second T4's arm rides free inside the longer one's wall-clock.
+- **Submissions of the three reads were asked for, not yet explicitly given** ("Ok, write all of this in docs") — confirm next session.
+
+### What we figured out
+
+1. **Every production member trained on the seed-42 stream** — an arm-dict `seed` changed only the banner; `teacher_mix` in an arm dict
+   would have been recorded and ignored; the PARALLEL fallback trained `v09a` / `v08a` (traps 42, fixed).
+2. **Gold-58 is held out for production members** (`split_studies` trains `is_gold == 0` only) — two old "optimistic by construction"
+   lines CORRECTED; paired gold bootstrap SD ≈ 0.007 (experiments.md "Four-reviewer audit").
+3. **#18 vs #20 (the +0.009) was cross-platform** (Kaggle T4 / 2 workers vs RunPod / 8) — why `v09u` is on Kaggle.
+4. **320 px fits a T4 at batch 1:** 7.03 GiB peak with all 24 windows; timm loads the 224 weights strictly at 320.
+
+### ⏭ Next action, in order
+
+1. **Read #22** and `/update` it — the fill-in checklist is Next action 1 of the 19:20 entry below.
+2. **When v30 is COMPLETE:** pull (command in the in-flight table), check the green criteria. Record gold-58 SWA of both arms
+   (direction only) in `/update` (Scoreboard row "P-43 + P-44").
+3. **Ship both** (from the repo root, Git Bash):
+   ```bash
+   export PYTHONUTF8=1; KG=$PWD/.venv/Scripts/kaggle.exe
+   for a in v09x v09u; do d=artifacts/ship_$a; rm -rf $d; mkdir -p $d; cp artifacts/kaggle_out/train_v30/${a}_fold0_{best.pt,oof.csv} $d/
+     printf '{"title": "RSNA knee ckpt %s", "id": "tiankljucanin/rsna-knee-ckpt-%s", "licenses": [{"name": "other"}]}\n' $a $a > $d/dataset-metadata.json
+     (cd $d && $KG datasets create -p .); done          # run from inside the dir (traps 21); then `datasets status` = ready
+   ```
+   Add `tiankljucanin/rsna-knee-ckpt-v09x` and `tiankljucanin/rsna-knee-ckpt-v09u` to `kaggle/rsna-knee-infer/kernel-metadata.json`
+   `dataset_sources` (never mount `rsna-knee-train`'s output directly — same file names, latest version).
+4. **Three infer placeholders, in this order** (one slug, one version each; `N` = the member list):
+   ```bash
+   sed -e 's/^FORCE_SMOKE = True/FORCE_SMOKE = False/' -e 's/^MODE = "auto"/MODE = "infer"/' \
+       -e 's/^INFER_MEMBERS = \[.*\]/INFER_MEMBERS = ["v09u"]/' src/kaggle_pipeline.py > artifacts/infer_solo_v09u.py
+   .venv/Scripts/python.exe src/nbgen.py artifacts/infer_solo_v09u.py kaggle/rsna-knee-infer/rsna-knee-infer.ipynb
+   timeout 90 .venv/Scripts/kaggle.exe kernels push -p kaggle/rsna-knee-infer          # then ["v09x"], then ["v09r", "v09u"]
+   ```
+   Placeholder green = `smoke False`, `infer members (n): …/fold0 … [epoch 7, score …, ema True]`, `decode-once verified`, `constant
+   labels 0`; for `v09x` also `img_size 320` in the timm line.
+5. **Submit on Tian's go** (`kaggle competitions submit rsna-knee-abnormality-detection -k tiankljucanin/rsna-knee-infer -v <v> -f
+   submission.csv -m "..."`), each followed by `python src/watch_submission.py --ref <ref> --every 60` in the background (≈ 30 min;
+   keep the machine awake). **Order `v09u` → `v09x` → `v09r` + `v09u`.** Reads (P-43 / P-44): s = |`v09u` − 0.927| (≤ 0.920 → re-open
+   P-39); `v09x` ✅ if ≥ m + max(0.005, 2s) with m = mean(0.927, `v09u`), ❌ if ≤ m − max(0.005, 2s); blend ≥ 0.930 ✅ (it becomes the
+   production member either way). `/update` after each.
+6. **Then by the cards:** `v09x` ✅ → read `v09x` + `v09r` (+ `v09u`) as a blend; P-49 (Raptor over gold-58, ≈ 0.2 h) is the cheapest next
+   Kaggle job; P-45 / P-47 wait for the floor from P-44. `/handoff` at the end.
+
+### Open decisions for Tian
+
+- **Go for the three solo submissions** (`v09u`, `v09x`, `v09r` + `v09u`) — asked, not explicitly given.
+- **If #22 reads 🔁:** the pre-registered β 0.20 retry, or drop fork member reads (reviewers B / C) and keep the fork for finals (P-50)?
+- **P-49** (Raptor over the 58 gold studies, ≈ 20 lines + 0.2 h T4) next in the second slot?
+- Final selection / publishability (P-50: never #13 + #15 together; never publish `rsna-knee-teacher-tables`), RadImageNet licence.
+
+### Things that will bite if forgotten
+
+- **Every background watcher dies with the laptop** (v30 completion, #22 timing, the 35-min log check) — the runs themselves continue.
+- **Token expires 2026-09-28 00:48 UTC**, inside both v30's and #22's finish window: CLI calls fail until the first call ≥ 30 min after
+  expiry (traps 20).
+- **A guard-stopped arm is not SWA** — grep `SWA of last 3` before shipping; never submit one.
+- **`rsna-knee-train`'s committed render is the REAL v30** — any new edit needs a `FORCE_SMOKE = True` push first; `rsna-knee-infer`'s is
+  v20 (the P-42 pair) — re-render before each solo.
+- **Two arms of one session share `TEACHER_TABLES` and `TEACHER_MIX`** (traps 42); a mix-0.75 arm (P-47) needs per-arm code first.
+
 ## 2026-09-27 (18:24 → 19:20 local = 16:24 → 17:20 UTC) — **#21 `v08r` solo = 0.918** (not a fork member); fork v9 left the queue after ≈ 3 h 40 min → **#22 sent** (⏳, read vs 0.942); **#23 P-42 `v09r` + `v08r` = 0.927 = `v09r` alone** (🔁); **P-41 ✅ — a solo scores in 28–29 min**
 
 *Written before #22 scored, at Tian's request ("write the handoff now … and prepare to put in the #22 score") — the fill-in checklist is Next action 1.*
