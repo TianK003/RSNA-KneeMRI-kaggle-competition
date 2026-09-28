@@ -23,7 +23,7 @@ full pre-rewrite text is `git show 8304c96:docs/proposals.md`.
 
 | Metric | Set | Floor | Used for |
 |---|---|---|---|
-| **Public LB, solo** (`rsna-knee-infer`, one member or our own blend; **≈ 30 min** send→score, P-41) | hidden test (public part) | **0.005 by rule — the seed/retrain spread of a production member is UNMEASURED** (P-44 measures it; reviewer C: a paired gold-58 bootstrap scaled to ≈ 400 public studies (unverified) plus an unknown seed spread puts the SD of one solo-vs-solo delta at ≈ 0.004–0.006) | member quality and **every target-source change** (traps 39) |
+| **Public LB, solo** (`rsna-knee-infer`, one member or our own blend; **≈ 30 min** send→score, P-41) | hidden test (public part) | **0.004 for one-seed deltas** — P-44 measured the Kaggle-retrain spread once: `v09u` (seed 43) = `v09r` = 0.927, s = 0.000 (#24); one draw, σ poorly estimated, LB rounded to 3 decimals — keep **0.005** for cross-recipe claims | member quality and **every target-source change** (traps 39) |
 | Public LB, fork (`rsna-knee-fork`, ≤ 8 h 06 min to score + hours of queue) | same | 0.005 | final candidates only — at β 0.10 it cannot read member quality (#13 = #15 = 0.942, #17 0.941) |
 | Fold-0 OOF vs LLM teacher | 882 fold-0 studies | 0.008 macro / ~0.03 per label, measured (P-02) | recipe A/Bs **on LLM targets only**; inadmissible for target changes (traps 39); production (`train_all`) members have none (traps 32) |
 | Gold-58 | 58 labelled studies (held out for production members: `split_studies` trains `is_gold == 0` only) | 0.05 macro unpaired rule; paired study-level bootstrap SD ≈ 0.007 for near-identical members | direction only, never a gate |
@@ -58,17 +58,16 @@ result*, per unit of cost. "Depends on" lists hard blockers only. EVs are solo-L
 
 | rank | id | title | status | expected value | cost | depends on |
 |---|---|---|---|---|---|---|
-| 1 | P-43 | Student resolution: CoAtNet-1 @320 on the `v09r` targets (`v09x`) | ⏳ **trained** — `rsna-knee-train` v30 COMPLETE (5.88 h, SWA, 0.59 s/study); gold-58 0.9094 (= `v09r`, +0.005 over mean(`v09r`, `v09u`), 10/12 labels up); shipped `rsna-knee-ckpt-v09x`; **solo read next** | +0.002..0.006 solo — the only input-side lever left | one ≈ 6.2 GPU-h session shared with P-44; 1 solo | P-39 ✅, P-31, P-44 (its read) |
-| 2 | P-44 | Kaggle-retrain seed spread + a 2-seed production member (`v09u`) | ⏳ **trained** — same session, cuda:1, gold-58 0.8995 (−0.010 vs `v09r`); shipped `rsna-knee-ckpt-v09u`; **solo + blend reads next** | sets the floor every later read needs; 2-seed rank-mean +0.001..0.003 | ≈ 2.8 h on the second T4 (≈ 0 extra quota); 2 solos | — |
-| 3 | P-40 | Raptor-distilled members into the fork | 🔁 **#22 = 0.942** (= #13 / #15); β 0.20 retry is an open decision for Tian | low — the fork at β 0.10 is flat over member strength 0.913 → 0.927 | spent; a β 0.20 retry = 1 fork submission (hours) | P-39 ✅, P-27 |
-| 4 | P-49 | Raptor over the 58 gold studies — a correlation diagnostic | 💡 | validity: fork redundancy without an 8-h fork read; gates P-45 / P-47 | ≈ 20 lines + 0.2 h T4 (second slot) | P-39 (`build_teacher_pass.py`) |
-| 5 | P-50 | Final selection and publishability | 💡 decide by 2026-10-15 | decides what the private LB scores | a browser session; ≤ 1 fork check | P-40 (#22), Rules page |
-| 6 | P-18 | Efficiency track with the solo member | 💡 (robustness half shipped) | a separate prize; unknown until the formula is read | 0 GPU h (CLI + browser) | Efficiency formula (browser) |
-| 7 | P-47 | Teacher-mix bracket: mix 0.75 only | 💡 low | ≈ 0 (+0.000..0.002) | per-arm `TEACHER_MIX` code + ≈ 2.8 h; 1 solo | P-44 floor, an idle slot |
-| 8 | P-45 | Second image teacher | 💡 deferred to after 2026-10-03 | +0.001..0.004 (CoAt family) / −0.002..+0.004 (DINO + A5); fork ≈ 0 | spike 0.2–0.3 h, pass ≈ 8 GPU-h, 100–490 lines, 2.8 h arm | P-49, P-44, the 10-03 reset |
-| 9 | P-46 | Upgrade the LLM half of the targets (absorbs P-16, P-30) | 💡 low | 0..+0.002 (dread vote) / +0.001..0.003 (re-label) | ≈ 2.8 h per arm; step 2 a new kernel | P-44 floor |
-| 10 | P-48 | Final-member polish: gold-58 as training rows + seed averaging | 💡 contested, parked | +0.001..0.002, unreadable by construction | part of the final retrain | P-50 decision |
-| 11 | P-51 | Teacher-aware confidence weights | 💡 low | 0..+0.002 | ≈ 20 lines + 2.8 h; 1 solo | P-44 floor |
+| 1 | P-52 | Three-member production blend `v09r` + `v09u` + `v09x` | 💡 new 2026-09-28 — no training; the checkpoints are shipped | +0.001..0.004 solo over #26 (0.930); gold-58: all three 0.9110 vs pair 0.9065 | ≈ 0.1 h T4 placeholder + 1 solo (≈ 30 min) | P-43 / P-44 (both read) |
+| 2 | P-40 | Raptor-distilled members into the fork | ⏳ **β 0.20 retry sent as #27** (2026-09-28 09:40 UTC, Tian's go) after #22 = 0.942 at β 0.10 (🔁) | low — the fork at β 0.10 is flat over member strength 0.913 → 0.927 | spent (#27 scoring, forks ≤ 8 h 06 min) | P-39 ✅, P-27 |
+| 3 | P-49 | Raptor over the 58 gold studies — a correlation diagnostic | 💡 | validity: fork redundancy without an 8-h fork read; gates P-45 / P-47 | ≈ 20 lines + 0.2 h T4 (second slot) | P-39 (`build_teacher_pass.py`) |
+| 4 | P-50 | Final selection and publishability | 💡 decide by 2026-10-15 | decides what the private LB scores | a browser session; ≤ 1 fork check | P-40 (#22), Rules page |
+| 5 | P-18 | Efficiency track with the solo member | 💡 (robustness half shipped) | a separate prize; unknown until the formula is read | 0 GPU h (CLI + browser) | Efficiency formula (browser) |
+| 6 | P-47 | Teacher-mix bracket: mix 0.75 only | 💡 low | ≈ 0 (+0.000..0.002) | per-arm `TEACHER_MIX` code + ≈ 2.8 h; 1 solo | P-44 floor, an idle slot |
+| 7 | P-45 | Second image teacher | 💡 deferred to after 2026-10-03 | +0.001..0.004 (CoAt family) / −0.002..+0.004 (DINO + A5); fork ≈ 0 | spike 0.2–0.3 h, pass ≈ 8 GPU-h, 100–490 lines, 2.8 h arm | P-49, P-44, the 10-03 reset |
+| 8 | P-46 | Upgrade the LLM half of the targets (absorbs P-16, P-30) | 💡 low | 0..+0.002 (dread vote) / +0.001..0.003 (re-label) | ≈ 2.8 h per arm; step 2 a new kernel | P-44 floor |
+| 9 | P-48 | Final-member polish: gold-58 as training rows + seed averaging | 💡 contested, parked | +0.001..0.002, unreadable by construction | part of the final retrain | P-50 decision |
+| 10 | P-51 | Teacher-aware confidence weights | 💡 low | 0..+0.002 | ≈ 20 lines + 2.8 h; 1 solo | P-44 floor |
 
 ### Closed cards
 
@@ -115,72 +114,36 @@ result*, per unit of cost. "Depends on" lists hard blockers only. EVs are solo-L
 | P-39 | Raptor teacher pass | ✅ #20 `v09r` 0.927 vs #18 0.918; the pass took 7.76 GPU-h. Note: pilkwang's public `oof.npz` = honest 5-fold DINOv2-S@336 OOF on all 4,407 studies, gold 0.840 — a free sanity reference for any future image teacher | experiments.md 2026-09-26 "Raptor teacher pass complete"; 2026-09-27 "Submission #20" |
 | P-41 | Faster solo scoring (threaded scan + 8 decode workers) | ✅ solo scores in 28.3–29.3 min (#19: ≤ 42 min) | experiments.md Infrastructure 2026-09-27; 2026-09-27 "Submission #23" |
 | P-42 | Two-family Raptor-distilled solo blend | 🔁 #23 = 0.927 = `v09r` alone; gold within-class ρ 0.861 vs 0.777 for the LLM-target pair | experiments.md 2026-09-27 "Submission #23" |
+| P-43 | Student resolution: CoAtNet-1 @320 on the `v09r` targets (`v09x`) | 🔁 #25 `v09x` 0.929 vs m 0.927 (✅ needed ≥ 0.932); 224 stays the production resolution; `v09x` = our strongest single member, 1.4× inference / 2.1× training | experiments.md 2026-09-28 "rsna-knee-train v30", "Submissions #24–#26" |
+| P-44 | Kaggle-retrain seed spread + a 2-seed production member (`v09u`) | ✅ s = 0.000 (#24 `v09u` 0.927 = `v09r`) → one-seed deltas need ≥ 0.004; P-39 re-confirmed on Kaggle; #26 `v09r` + `v09u` 0.930 = the production member (+0.003, under the floor — adopted, not proven) | experiments.md 2026-09-28 "Submissions #24–#26"; traps 42 |
 
 ---
 
 ## Cards
 
-### P-43 Student resolution: CoAtNet-1 @320 on the `v09r` targets (`v09x`)
-Status:       ⏳ trained: `rsna-knee-train` v30 COMPLETE 2026-09-28 (5.88 h, SWA, no guard stop, 0.59 s/study); gold-58 SWA
-              0.9094 vs `v09r` 0.9093 / `v09u` 0.8995 (direction only; Lateral Meniscus 0.901); shipped as Dataset
-              `rsna-knee-ckpt-v09x`; solo read after `v09u`'s (experiments.md 2026-09-28 "rsna-knee-train v30"). Arm `v09x` = the `v09r`
-              dict at `img_size` 320. Runs in ONE
-              `PARALLEL_ARMS = ("v09x", "v09u")` session with P-44 (`rsna-knee-train`, both children on
-              `TEACHER_TABLES=("raptor_teacher",)`, mix 0.5 — the two children of a session share the table set and the mix).
-Hypothesis:   now that half the target comes from a 384-px image teacher (Raptor = CoAtNet-2 @384), the student's 224-px input
-              (the 336-px c02 cache downsampled) is the binding student-side constraint: `v09x` reads ≥ the P-44 baseline +
-              max(0.005, 2s) solo.
-Origin:       reviewer B (2026-09-27 audit); our hypothesis.
-Evidence:     for: `v10c` @384 was the meniscus specialist (Lateral Meniscus 0.858) and still rising at epoch 7; the only earlier
-              resolution read (P-11: `v10c` CoAtNet-2 @384 0.8641 vs `v09h` CoAtNet-1 @224 0.8683) confounded backbone size, was
-              fold-0, under-trained and on LLM targets — and report-derived targets cannot reward image detail the reports never
-              mention. Against: P-11; the public 0.924 member at 384 is no better than our 224 member on better targets;
-              resolution's LB effect was never isolated.
-Mechanics:    (verified by the reviewers) `timm.create_model(..., img_size=320)` loads the 224 weights strictly (RelPosMlp `cr`
-              mode, 0 missing / unexpected); without `img_size` a 320 input crashes (400 vs 196 positions); 336 is not /32;
-              windows are resized on the GPU (`KneeNet`); inference rebuilds from the saved cfg and shares `v09r`'s c02 decode.
-              `batch_studies` 1 × `grad_accum` 4 (≈ 7 GiB; batch 2 @320 ≈ 13–14 GiB = OOM risk; P-32 priced batch composition
-              at +0.0008).
-Measure:      `v09x` solo (`rsna-knee-infer`) vs m = mean(#20 `v09r` 0.927, `v09u`), with s = |`v09u` − 0.927| from P-44;
-              gold-58 direction only.
-Noise floor:  pre-registered: **✅ `v09x` − m ≥ max(0.005, 2s) / ❌ `v09x` − m ≤ −max(0.005, 2s) / 🔁 otherwise.**
-Cost:         ≈ 0.55–0.63 s/study ≈ 5.3–6.1 h for 8 epochs on one T4, under the ≈ 8.0 h child budget (break-even ≈ 0.80
-              s/study); the session costs ≈ 6.2 GPU-h (quota charges session wall-clock); 1 solo. Inference ≈ 2.1–2.3× the
-              member's model pass; a fork rerun +≈ 25 min. A smoke trains 4 studies, so it cannot time the real run; a
-              guard-stopped `_best.pt` is the last epoch, not SWA — never submit one (check the log for the `SWA of last` line).
-If it works:  read `v09x` + `v09r` (+ `v09u`) as a blend next; 320 becomes the production resolution.
-If it fails:  ❌ / 🔁 → stay at 224; resolution is not the lever.
-Depends on:   P-39 ✅ (the table), P-31 (two children), P-44 (`v09u` is half the baseline). Supersedes P-11.
-
-### P-44 Kaggle-retrain seed spread + a 2-seed production member (`v09u`)
-Status:       ⏳ trained (`rsna-knee-train` v30, cuda:1, `reseeded 43 for arm v09u`; gold-58 SWA 0.8995 vs `v09r` 0.9093, rank-mean
-              0.9065; shipped as Dataset `rsna-knee-ckpt-v09u`); solo + blend reads next (experiments.md 2026-09-28 "rsna-knee-train v30"). `v09u` = the exact `v09r`
-              dict with `"seed": 43`, plus the per-arm reseed fix
-              (`seed_all(cfg.seed)` in the arm loop when the arm's seed differs from the base config's — before it an arm-dict
-              `seed` only changed the banner, and every production member trained on the seed-42 stream). Same session as P-43.
-Hypothesis:   the retrain spread of a production member on the public LB is < 0.004, and a 2-seed rank-mean adds ≥ +0.002.
-Origin:       three of the four 2026-09-27 reviewers picked a seed twin; reviewer C's paired gold-58 bootstrap.
-Evidence:     every verdict since P-39 is a sub-0.01 solo delta judged against an unmeasured floor. #18 (`v09a`, Kaggle T4, 2
-              loader workers) vs #20 (`v09r`, RunPod 4090, 8 workers) — the headline +0.009 — was itself cross-platform, and
-              window draws depend on the worker count (per-worker numpy seeds), so `v09u` is the first same-platform twin of
-              `v09a`'s setting. On fold 0 the same config moved 0.004–0.008 OOF on seed alone (P-02).
-Measure:      (1) `v09u` solo → s = |`v09u` − 0.927| = one draw of the Kaggle-retrain spread (seed + platform); (2) a third
-              submission: the `v09r` + `v09u` rank-mean solo. **Submission order (after v30, on Tian's go): `v09u` → `v09x` →
-              the `v09r` + `v09u` blend** — `v09u` first, because the `v09x` read needs its s; each ≈ 30 min to score, 3 of the
-              day's 5. Ship first: `rsna-knee-ckpt-v09x` / `-v09u` Datasets, added to `rsna-knee-infer`'s `dataset_sources`.
-Noise floor:  s ≤ 0.002 → one-seed deltas need ≥ 0.004; 0.003–0.005 → ≥ 0.008 or two seeds per side; ≥ 0.006 → nothing under
-              ≈ 0.01 is readable from one seed, and P-39 stands only if mean(`v09r`, `v09u`) − 0.918 ≥ 0.006. **If `v09u` ≤
-              0.920 → re-open P-39.** Blend: **≥ 0.930 ✅** seed ensembling is a lever; otherwise 🔁. Caveat: a 3-point range
-              estimates σ poorly (≈ 50 % CV) and LB scores are rounded to 3 decimals.
-Cost:         ≈ 2.8 h on the second T4, inside P-43's wall-clock (≈ 0 extra quota); 2 submissions (solo + blend).
-If it works:  the floor for every later read is known; the 2-seed rank-mean becomes the production member.
-If it fails:  blend 🔁 → it becomes the production member anyway (lower private-LB variance; no LB tuning).
-Depends on:   nothing (the reseed fix is in). Supersedes P-02 step 1 at LB level and P-13.
+### P-52 Three-member production blend `v09r` + `v09u` + `v09x`
+Status:       💡 new 2026-09-28 — no training needed; all three checkpoints are shipped (`rsna-knee-ckpt-v09r` / `-v09u` / `-v09x`,
+              all mounted on `rsna-knee-infer`).
+Hypothesis:   adding the 320-px member to the 2-seed pair lifts the solo read above #26 (0.930): the 320 student sees detail the
+              224 pair does not (Lateral Meniscus 0.901 vs 0.853 / 0.870 on gold), so it adds more than a third seed would.
+Origin:       P-43 "If it works" (read `v09x` + `v09r` (+ `v09u`) as a blend); #24–#26.
+Evidence:     for: #25 `v09x` 0.929 is our strongest single member; #26 showed same-recipe averaging reads +0.003; gold-58 rank-means
+              `v09r` + `v09x` 0.9126, all three 0.9110 vs the pair 0.9065 (direction only, and gold-58 has had same-recipe
+              directions wrong — traps 39). Against: P-43 was 🔁 (+0.002); ρ(`v09x`, `v09r`) 0.949 ≈ the seed twins' 0.952, so
+              `v09x` may be just another seed; 320 raises the member's inference 1.4×.
+Measure:      `INFER_MEMBERS = ["v09r", "v09u", "v09x"]` (flat rank-mean, `by_version`, one vote each), solo vs #26 0.930.
+Noise floor:  the P-44 floor: **≥ 0.934 ✅ the 3-member blend is the production member / 0.927–0.933 🔁 (keep #26's pair — cheaper at
+              inference) / ≤ 0.926 ❌.**
+Cost:         ≈ 0.1 h T4 placeholder (one c02 decode shared by all three) + 1 solo (≈ 30 min to score).
+If it works:  the 3-member blend is the production member and the fork candidate for P-50.
+If it fails:  🔁 → the pair (#26) stays; resolution adds nothing a seed does not.
+Depends on:   P-43 / P-44 (both read).
 
 ### P-40 Raptor-distilled members into the fork
-Status:       🔁 **#22 = 0.942** (read 2026-09-28) — fork v9 = the public 0.942 graph + `v09r` alone at β 0.10 (ref 56614068,
-              sent 2026-09-27 16:36 UTC after a ≈ 3 h 40 min queue, traps 41) = #13 / #15; the "If it fails" branch (β 0.20 once,
-              or drop fork member reads) is **open for Tian** (experiments.md 2026-09-27 "Submission #22"). Step B done: `v08r` 0.918 solo (#21), below the ≈ 0.920 bar → not a fork
+Status:       ⏳ **β 0.20 retry = #27** (`rsna-knee-fork` v10, ref 56636712, sent 2026-09-28 09:40 UTC on Tian's go; placeholder
+              green: `status beta0.20`, `members [v09r]`, rc 0). Step A: 🔁 **#22 = 0.942** — fork v9 = the public 0.942 graph +
+              `v09r` alone at β 0.10 (ref 56614068) = #13 / #15 (experiments.md 2026-09-27 "Submission #22"). Same read bands for
+              #27; compare #12 (β 0.20, 0.87-level members) 0.939. Step B done: `v08r` 0.918 solo (#21), below the ≈ 0.920 bar → not a fork
               member; P-42: `v09r` + `v08r` = 0.927.
 Hypothesis:   the fork registers a member of ours once it is at the public stack's best-member level: β 0.10 with `v09r`
               (0.927 solo) reads ≥ 0.947, where #17 (the 0.918-level `v09a` / `v08a`) read 0.941.
@@ -262,7 +225,7 @@ Evidence:     reviewer B's gold-58 analogs (rank-space LLM + a held-out CoAt rea
               1.0 − 0.5 = −0.018 (SD 0.010), D4 −0.004 (SD 0.008); mix 0.75 − 0.5 = −0.002 / +0.004. Mix 1.0 is not
               "Raptor-only" anyway: the `w__` weights stay LLM-agreement weights and quantile matching uses the LLM marginals.
 Measure:      the mix-0.75 arm solo vs #20 0.927 (and `v09u`).
-Noise floor:  the P-44 floor (≥ 0.005 by rule).
+Noise floor:  the P-44 floor (0.004 for a one-seed delta, #24).
 Cost:         needs code: a per-arm `TEACHER_MIX` (today module-level; targets are built once per process) and a guard that also
               checks the mix (the distilled-arm guard checks the table set only — traps 40); ≈ 2.8 h T4 + 1 solo.
 If it works:  Raptor-heavier targets become the production mix; mix 1.0 is read next.

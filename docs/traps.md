@@ -787,6 +787,11 @@ gold-58 direction (floor 0.05, 58 studies) and the solo public LB (floor 0.005) 
 or against the teacher that produced its inputs. Recipe changes (LR, augmentation, batch composition, epochs) may still use OOF vs the
 unchanged teacher. Related: 32 (production members have no OOF), experiments.md 2026-09-24 "Submission #19", P-38 / P-39.
 
+**Extended 2026-09-28:** between members of **one recipe** (seed twins, a blend of them), gold-58 is not even direction for gaps under
+≈ 0.01 — `v09u` (seed 43) read −0.010 vs `v09r` on gold and ±0.000 on the LB (#24); the `v09r` + `v09u` pair read −0.003 on gold and
++0.003 on the LB (#26). Across families it has been right in direction (#21, #23). So a same-recipe comparison is read on the solo LB
+alone (experiments.md 2026-09-28 "Submissions #24–#26").
+
 ### 40. A distilled arm left in `ARMS` trains on the *plain* teacher under its distilled name when no arm filter is set (Tier 1, found in review 2026-09-26, never ran)
 
 The P-38 guard (`DISTILLED_ARMS`) refused a distilled arm without `TEACHER_TABLES` — but it only looked at the arm *filters*
