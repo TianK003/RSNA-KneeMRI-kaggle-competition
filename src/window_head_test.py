@@ -104,7 +104,7 @@ def main():
     device = torch.device("cpu")
     for bb, img in (("dinov2", 224), ("convnext_tiny", 224),
                     ("timm:coatnet_rmlp_1_rw_224", 224), ("timm:coatnet_rmlp_1_rw_224", 320),   # P-43 v09x
-                    ("timm:coatnet_rmlp_2_rw_384", 384)):
+                    ("timm:coatnet_rmlp_2_rw_384", 384), ("timm:resnet34", 224)):          # P-57 v13a
         try:
             K["resolve_backbone_dir"](bb)
         except SystemExit as e:
@@ -119,13 +119,19 @@ def main():
         ids = [id(p) for g in groups for p in g["params"]]
         check(n_grp == n_all and len(ids) == len(set(ids)), f"{bb}: param_groups cover {n_grp:,} == {n_all:,} params once")
         lrs = sorted({g["lr"] for g in groups})
-        check(lrs[-1] == cfg.lr_head and any(abs(l - cfg.lr_backbone) < 1e-12 for l in lrs),
+        # a ResNet has no final norm above its last stage, so its top group is layer4 at lr_backbone * llrd_decay -- the
+        # rate CoAtNet's last stage gets too (only CoAtNet's `norm.*` sits at lr_backbone itself)
+        top = cfg.lr_backbone * (cfg.llrd_decay if bb == "timm:resnet34" else 1.0)
+        check(lrs[-1] == cfg.lr_head and any(abs(l - top) < 1e-12 for l in lrs),
               f"{bb}: LR set {['%.1e' % l for l in lrs]}")
         model.eval()
         with torch.no_grad():
             x = torch.randn(2, 3, img, img)
             f = model.encode(x)
             check(f.shape == (2, model.dim), f"{bb}: encode {tuple(x.shape)} -> {tuple(f.shape)}")
+        if bb == "timm:resnet34":
+            # P-57: the stem and layer1..4 are decayed per stage, not all lumped into the top LR
+            check(len(lrs) >= 6, f"{bb}: {len(lrs)} distinct LRs (stem + 4 layers + head)")
 
     print("\n== train_all / swa (P-28)")
     import pandas as pd
@@ -462,6 +468,46 @@ def main():
     check(torch.allclose(K["weighted_bce"](lg, yy, ww), K["weighted_bce"](lg, yy, ww, pos_weight=None)), "weighted_bce: pos_weight=None is the old loss")
     check(float(K["weighted_bce"](lg, yy, ww, pos_weight=torch.full((12,), 3.0))) > float(K["weighted_bce"](lg, yy, ww)), "weighted_bce: pos_weight > 1 raises the loss")
     check(K["Config"]().pos_weight_max == 0.0, "Config.pos_weight_max defaults to 0 (off)")
+
+    # ---- 2026-09-28 arms (P-54 cross-fit, P-56 c03, P-55 student, P-57 ResNet) ------------------------
+    print("\n== 2026-09-28 arms")
+    arms = dict(K["SHIPPED_ARMS"])
+    Config = K["Config"]
+    for k in range(5):
+        c = Config(smoke=False, version=f"v09k{k}", **arms[f"v09k{k}"])
+        check(c.folds == (k,) and not c.train_all and c.eval_final_only and c.swa_last == 3 and c.ckpt_policy == "last"
+              and c.backbone == "timm:coatnet_rmlp_1_rw_224" and c.batch_studies == 2 and c.aug == "light",
+              f"v09k{k}: fold {c.folds}, train_all {c.train_all}, eval_final_only, SWA 3, the v09r model keys")
+    c_sm = Config(smoke=True, version="v09k3", **arms["v09k3"])
+    check(c_sm.folds == (0,), "a SMOKE cross-fit arm is forced to fold 0 (so folds 1-4 are only checked here, not by a smoke)")
+    try:
+        Config(smoke=False, eval_final_only=True, ckpt_policy="best_oof")
+        efo_raised = False
+    except SystemExit:
+        efo_raised = True
+    check(efo_raised, "eval_final_only with ckpt_policy='best_oof' is refused")
+    tg = pd.DataFrame({"StudyInstanceUID": [f"u{i}" for i in range(50)], "fold": [i % 5 for i in range(50)],
+                       "is_gold": [1 if i % 7 == 0 else 0 for i in range(50)]})
+    ti = tg.set_index("StudyInstanceUID")
+    for k in range(5):
+        tr, va = K["split_studies"](tg, k, Config(smoke=False, **arms[f"v09k{k}"]))
+        ftr, fva = set(ti.loc[tr, "fold"]), set(ti.loc[va, "fold"])
+        gold_va = int(ti.loc[va, "is_gold"].sum())
+        check(k not in ftr and fva == {k} and not (set(tr) & set(va)) and len(tr) + len(va) == 50 and gold_va > 0,
+              f"split fold {k}: train folds {sorted(ftr)}, val = fold {k} incl. {gold_va} gold rows, disjoint")
+    c3 = Config(smoke=False, version="v11a", **arms["v11a"])
+    check(K["cache_version_for"](c3) == "c02_p336_b24-24-24-14-8-8_band2-98_crop150_lat20" and c3.train_windows == 34,
+          f"v11a reads c03 = {K['cache_version_for'](c3)}, train_windows {c3.train_windows}")
+    check(Config(smoke=False, **arms["v11b"]).seed == 43 and Config(smoke=False, **arms["v09o2"]).seed == 43,
+          "v11b / v09o2 are the seed-43 twins")
+    c13 = Config(smoke=False, **arms["v13a"])
+    check(c13.backbone == "timm:resnet34" and c13.train_all, "v13a = the production recipe on timm:resnet34")
+    dm, da = K["DISTILLED_MIX"], K["DISTILLED_ARMS"]
+    check(da["v09o"] == ("raptor_teacher", "xfit_v09k") and dm.get("v09o") == 0.75 and dm.get("v09o2") == 0.75
+          and all(da[a] == ("raptor_teacher",) and a not in dm for a in ("v09k0", "v09k4", "v11a", "v13a")),
+          "DISTILLED_ARMS / DISTILLED_MIX: the student trains on Raptor + xfit at 0.75, the rest on Raptor at 0.5")
+    check("xfit_v09k" in K["TEACHER_PATHS"] and K["PROBE_CONST_LABELS"] == (),
+          "TEACHER_PATHS has xfit_v09k; PROBE_CONST_LABELS off by default")
 
     print("\n" + ("UNIT CHECKS PASSED" if not fails else f"UNIT CHECKS FAILED ({len(fails)}):\n  - " + "\n  - ".join(fails)))
     sys.exit(1 if fails else 0)

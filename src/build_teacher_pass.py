@@ -111,6 +111,15 @@ def chunk_study_ids(train_csv, shard, n_shards, limit):
     ids = ids[shard::n_shards]
     return ids[:limit] if limit > 0 else ids
 
+def gold_study_ids(train_csv):
+    """P-49 (--gold): the 58 radiologist-labelled studies, sorted by UID -- the Raptor teacher's quality on held-out
+    truth. Never a training table: the pipeline masks every teacher table on gold rows."""
+    import pandas as pd
+    tr = pd.read_csv(train_csv, dtype={"StudyInstanceUID": str})
+    ids = sorted(tr.loc[tr[LABELS].notna().all(axis=1), "StudyInstanceUID"].tolist())
+    assert len(ids) == 58, len(ids)
+    return ids
+
 _SKIP_TOPS = ("rsna-knee-abnormality-detection", "competitions")
 
 def _teacher_npz_paths(input_root="/kaggle/input", skip_tops=_SKIP_TOPS):
@@ -360,12 +369,21 @@ def extract(nb):
     return {"c16": c16, "c12": c12, "c14": c14, "c45": c45}, table
 
 
-def render_teacher_py(nb, shard, n_shards, limit):
+GOLD_CALL = 'ids = gold_study_ids(f"{COMP_IN}/train.csv")   # --gold (P-49): the 58 gold studies, not a shard'
+CHUNK_CALL = 'ids = chunk_study_ids(f"{COMP_IN}/train.csv", SHARD, N_SHARDS, LIMIT)'
+
+
+def render_teacher_py(nb, shard, n_shards, limit, gold=False):
     if not (0 <= int(shard) < int(n_shards)) or int(limit) < 0:
         raise SystemExit(f"bad shard/n_shards/limit: {shard}/{n_shards}/{limit}")
+    if gold and (int(shard), int(n_shards), int(limit)) != (0, 1, 0):
+        raise SystemExit("--gold renders the 58 gold studies as one pass: leave --shard 0 --n-shards 1 --limit 0")
     blocks, _ = extract(nb)
     pre = (PREAMBLE_TEMPLATE.replace("__SHARD__", str(int(shard))).replace("__N_SHARDS__", str(int(n_shards)))
            .replace("__LIMIT__", str(int(limit))).replace("__PREAMBLE_FUNCS__", PREAMBLE_FUNCS.rstrip("\n")))
+    if gold:
+        assert pre.count(CHUNK_CALL) == 1
+        pre = pre.replace(CHUNK_CALL, GOLD_CALL)
     cells = [
         pre.rstrip("\n"),
         "# %%\n# --- notebook_score_0.942.ipynb cell 16 (verbatim slices): runtime-integrity helpers + rsna_phase\n" + blocks["c16"],
@@ -424,11 +442,11 @@ def build_metadata(slug=KERNEL_ID, kernel_sources=()):
     }
 
 
-def _render_files(shard, n_shards, limit, slug=KERNEL_ID, kernel_sources=(), notebook=NOTEBOOK):
+def _render_files(shard, n_shards, limit, slug=KERNEL_ID, kernel_sources=(), notebook=NOTEBOOK, gold=False):
     """{filename: text} for the kernel directory, built in a temp dir through nbgen (so --check is exact)."""
     name = slug_name(slug)
     meta = build_metadata(slug, kernel_sources)
-    src = render_teacher_py(load_notebook(notebook), shard, n_shards, limit)
+    src = render_teacher_py(load_notebook(notebook), shard, n_shards, limit, gold=gold)
     with tempfile.TemporaryDirectory() as d:
         py, ipynb = os.path.join(d, f"{name}.py"), os.path.join(d, f"{name}.ipynb")
         with open(py, "w", encoding="utf-8", newline="\n") as f:
@@ -439,9 +457,9 @@ def _render_files(shard, n_shards, limit, slug=KERNEL_ID, kernel_sources=(), not
     return {f"{name}.py": src, f"{name}.ipynb": nb_text, "kernel-metadata.json": json.dumps(meta, indent=2) + "\n"}
 
 
-def write_kernel(out_dir, shard, n_shards, limit, slug=KERNEL_ID, kernel_sources=()):
+def write_kernel(out_dir, shard, n_shards, limit, slug=KERNEL_ID, kernel_sources=(), gold=False):
     os.makedirs(out_dir, exist_ok=True)
-    for name, text in _render_files(shard, n_shards, limit, slug, kernel_sources).items():
+    for name, text in _render_files(shard, n_shards, limit, slug, kernel_sources, gold=gold).items():
         with open(os.path.join(out_dir, name), "w", encoding="utf-8", newline="\n") as f:
             f.write(text)
 
@@ -456,12 +474,15 @@ def main(argv=None):
                     help="a previous run's kernel slug to mount for a resume (repeatable; never --slug itself)")
     ap.add_argument("--out", default=None, help="kernel dir (default kaggle/<slug name>)")
     ap.add_argument("--check", action="store_true", help="render in memory and compare with the files on disk")
+    ap.add_argument("--gold", action="store_true",
+                    help="P-49: run the Raptor branch over the 58 gold studies only (use a slug of its own)")
     a = ap.parse_args(argv)
     os.chdir(ROOT)
     out = a.out or os.path.join("kaggle", slug_name(a.slug))
-    files = _render_files(a.shard, a.n_shards, a.limit, a.slug, a.kernel_source)
+    files = _render_files(a.shard, a.n_shards, a.limit, a.slug, a.kernel_source, gold=a.gold)
     _, table = extract(load_notebook(NOTEBOOK))
-    summary = (f"{out}: {a.slug} shard {a.shard}/{a.n_shards} limit {a.limit} kernel_sources {a.kernel_source}; "
+    summary = (f"{out}: {a.slug} " + ("GOLD-58 (P-49)" if a.gold else f"shard {a.shard}/{a.n_shards} limit {a.limit}")
+               + f" kernel_sources {a.kernel_source}; "
                + "; ".join(f"{lab} c{c} {s}..{e}" for lab, c, s, e, _, _ in table))
     if a.check:
         ok = True
@@ -481,7 +502,7 @@ def main(argv=None):
             ok = ok and same
         print(("check: " + ("ok" if ok else "FAILED")) + " -- " + summary)
         return 0 if ok else 1
-    write_kernel(out, a.shard, a.n_shards, a.limit, a.slug, a.kernel_source)
+    write_kernel(out, a.shard, a.n_shards, a.limit, a.slug, a.kernel_source, gold=a.gold)
     print("wrote " + summary)
     return 0
 

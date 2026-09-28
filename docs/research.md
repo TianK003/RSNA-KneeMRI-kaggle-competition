@@ -288,6 +288,49 @@ members: 0.8722 → 0.8820 (ρ ≈ 0.84 among the three — one family). Row 3 o
 ViT-B first; compute goes to data") and row 7 (wide band) are confirmed; row 10's "5 folds of one family"
 should now be five folds of `v09h`, not of DINOv2 on c01.
 
+#### 2.7.2 The "Best single-model score" discussion (thread 735304), mined 2026-09-28
+
+Source: `discussion_735304.xml` (105 comments, 2026-08-14 → 09-28, saved by Tian; Kaggle pages are JS-rendered). Mined by an
+8-agent read-only workflow (4 readers → 2 planners → 2 adversarial reviewers, run `wf_f5888f5c-2ed`); every quote below is from the
+thread, every "ours" number was recomputed locally. The public LB that day: top 0.960, Scott Willis 0.958 (3rd), 20th 0.955; us 0.942.
+
+**Who reports what (single model unless said).** Scott Willis: small ResNet/EfficientNet @224, own Gemma-4 labels (≈ 0.89 gold),
+single fold **0.949**, ≈ 0.930 on gold, ≈ 5-min scoring (efficiency #1); earlier 0.938 single / 0.947 5-fold; "spent a lot of time
+trying to figure out how to work around the low quality labels" (method never stated). CoolinLai: "A five-fold ResNet with a
+resolution of 224px — 0.954" (nothing else). Archit Konde: single-fold 2.5D CoAtNet @224, **0.950**, OOF gold 0.930 (Synovitis 0.797,
+Lat OA 0.816, PF OA 0.874). Raymond Yuen: full-train CoAtNet @288, 0.938 → 0.949 "still label", multi-source teachers → pseudo-labels,
+"different teachers seem to help different targets", API cost < $5. NguyenThanhNhan: Qwen 3.5 2B (LoRA + vision encoder) @384, 0.950
+single fold. Prateek Grover: CoAtNet-2 @352 0.940 single / 0.942 4 cross-fitted folds / 0.945 in the public stack. tennogh: 288 px
+0.942 (+0.001 TTA), "OOF pseudo-labels have been pretty well correlated with LB". Tucker Arrants: ResNet/EffNet @224 5-fold 0.943,
+crude labels (≈ 0.89 gold); report-label CV tracks the LB; "correct them, no change in LB"; "student consistently outperforms teacher".
+Yann Majewski: small ResNet @224 0.936 (+0.015 from combining labels with a public set; pretraining + longer + more regularisation).
+Less: CoAtNet @384 0.937, "fusion is ineffective". Tom Aindow: DINOv2 392 px / 150 mm / bag of 32 slices, 0.915. Chris Deotte:
+pseudo-labelled single models match ensemble CV — reporting them as "single" hides that.
+
+**The recipe the thread converges on (Archit, 09-17..21).** (1) Check whether your OOF predictions beat the extracted labels on the
+58 gold ("my OOF predictions were already closer to the radiologists than the extracted labels"); if they do and bigger models do not
+help, the labels are the bottleneck. (2) Keep the label and **mix the OUT-OF-FOLD prediction into it** — "Replacing them with the
+model's predictions came out worse than mixing"; "only because the predictions were properly out of fold. In fold ones just parrot
+the labels back"; "50/50 already jumped, going heavier on the model added a bit more". (3) Keep labels soft ("Rounding the labels to
+0/1 also hurt"); look at calibration on the 58. **Counter-evidence:** Nicolai Karcher (50/50 soft bootstrapping: "clear lift on both
+gold and … local CV but … doesn't translate to LB at all"), Tom Aindow ("didn't have much luck"), and our own P-38 (`v09t` 0.917 vs
+0.918 — but its table read 0.873 on gold, *below* the labels, so Archit's precondition failed).
+
+**Consensus negatives (do not spend GPU):** masking noisy / low-confidence cells (Tom, Archit); replacing labels outright; in-fold
+pseudo-labels; better extraction or prompt fixes (Tucker, tennogh, Salem, Cody_Null); tuning extraction on the 58 gold reports;
+higher resolution as the lever (nothing above 288 px beats 0.940 in the thread); architecture sweeps (Berat: seven ablations within
+0.008 at 0.924).
+
+**What it implies for us (verified 2026-09-28).** Our gold→LB offset (+0.021 over six members) equals Scott's (+0.019) and Archit's
+(+0.020), so the ≈ 0.02 gap is visible on gold (ours 0.904–0.909 vs ≈ 0.930). Seed-averaged v09r + v09u trails its *own* LLM labels
+on report-explicit structure — ACL 0.951 vs 0.990, MCL 0.916 vs 0.980, PF OA 0.814 vs 0.903, Lat Men 0.861 vs 0.881 — in every one
+of our 8 members, while beating them on Effusion (+0.080), Fracture (+0.101), Contusion (+0.062), Med OA (+0.045), Synovitis (+0.032).
+The thread's students beat ≈ 0.89 labels by ≈ 0.04; our LLM-only `v09a` merely tied them. Census (c02 manifest): the fluid series
+have ≈ 30 native slices at 3 mm; c02 keeps 12 on cor/ax (7.5–9 mm stored spacing) and crops 130 mm of a median 160 mm FOV. So two
+levers: the **input** (P-56 c03: 24/24/24/14/8/8 slices, 150 mm) and **honest OOF targets** (P-54 cross-fit → P-55 student).
+Backbone is not the separator (Archit uses our model class) but gets one free-riding arm (P-57, ResNet-34). The per-label public
+probe (P-53) checks the structural deficit on ≈ 400 public studies. Open questions for the thread are in brainstorm.md.
+
 ### 2.8 Data-pipeline engineering
 
 **What we learned**

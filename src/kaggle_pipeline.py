@@ -194,6 +194,10 @@ INFER_BLEND = "by_version"
 # can change how a member reads the decoded array, never which array is decoded. Example:
 #   INFER_OVERRIDES = {"v05a": {"tta_offsets": (-1, 0, 1), "tta_pool": "focal"}}
 INFER_OVERRIDES = {}
+# P-53 (2026-09-28): a DIAGNOSTIC submission only -- these label columns are written as a constant 0.5
+# (AUC exactly 0.5), so public macro = (4 * 0.5 + sum of the other 8) / 12 and the group's public AUC is
+# 0.5 + 3 * (full - probe) for 4 labels. Never set in a real submission. Sed'd in at build time.
+PROBE_CONST_LABELS = ()
 
 # ┌──────────────────────────────────────────────────────────────────────────┐
 # │ ARMS: run several fold-0 configurations back to back in ONE session.     │
@@ -226,6 +230,12 @@ C02 = {"cache_scheme": "c02", "window_mode": "random", "head_type": "window_attn
 # 2026-09-22 (P-29): 16 epochs over-train -- the fold-0 twin `v09p` peaked at epoch 8 (OOF 0.8731) and ended at 0.8607
 # (11/12 labels down); SWA over the tail did not rescue it. Production members therefore train 8 epochs, SWA over 5-7.
 PROD = {**C02, "epochs": 8, "train_all": True, "swa_last": 3, "ckpt_policy": "last"}
+# 2026-09-28: the production recipe's model/optimiser keys (v09a / v09r), shared by the arms below; XFIT = PROD on a fold
+# (train_all False: fold k is held out and scored, the other folds train); C03_KW = the dense-slice, 150 mm input (P-56).
+V09R_KW = {"backbone": "timm:coatnet_rmlp_1_rw_224", "img_size": 224, "lr_backbone": 1e-4,
+           "batch_studies": 2, "grad_accum": 2, "aug": "light"}
+XFIT = {**PROD, "train_all": False}
+C03_KW = {"cache_slot_slices": (24, 24, 24, 14, 8, 8), "crop_mm": 150.0, "train_windows": 34}
 ARMS = [
     # 2026-09-23 (S2): the CoAtNet production member carries the S1 knobs -- two studies per BatchNorm batch (P-32,
     # `v09b` 0.8690) and light train-time augmentation (P-33, `v09c` 0.8730), both read against `v09h` 0.8683 on fold 0.
@@ -302,6 +312,24 @@ SHIPPED_ARMS = [
               "batch_studies": 1, "grad_accum": 4, "aug": "light"}),
     ("v09u", {**PROD, "backbone": "timm:coatnet_rmlp_1_rw_224", "img_size": 224, "lr_backbone": 1e-4,
               "batch_studies": 2, "grad_accum": 2, "aug": "light", "seed": 43}),
+    # 2026-09-28 (Kaggle discussion 735304 plan; docs/proposals.md P-54..P-57). All train on TEACHER_TABLES=("raptor_teacher",)
+    # mix 0.5 unless noted, so any two of them can share a PARALLEL_ARMS session.
+    # P-54: 5-fold CROSS-FIT of the exact v09r recipe on the existing fold column -- honest out-of-fold predictions for every
+    # report-labelled study (Archit Konde's precondition for soft bootstrapping) and a 5-fold ensemble member. Fold k's model
+    # trains on the other four folds (their gold rows included, ~1.3 % of the loss) and is scored once, on its SWA weights.
+    *[(f"v09k{k}", {**XFIT, **V09R_KW, "folds": (k,), "eval_final_only": True}) for k in range(5)],
+    # P-57: the v09r recipe on a small CNN (Scott Willis / CoolinLai run ResNets at 224) -- timm resnet34.a1_in1k weights
+    # from the private Dataset timm-resnet34-a1; same window_attn head, input and targets, so only the backbone changes.
+    ("v13a", {**PROD, **V09R_KW, "backbone": "timm:resnet34"}),
+    # P-56: the v09r recipe on the dense-slice input "c03" = the c02 scheme with the fluid-sensitive slots at 24 slices
+    # (native median ~30 at 3 mm; c02 kept 12 on cor/ax = 7.5-9 mm stored spacing) and a 150 mm crop (median FOV 160 mm;
+    # c02 cropped 130). 42 % more windows, so train_windows 24 -> 34 keeps the train/eval attention ratio. Two seeds.
+    ("v11a", {**PROD, **V09R_KW, **C03_KW}),
+    ("v11b", {**PROD, **V09R_KW, **C03_KW, "seed": 43}),
+    # P-55: the OOF soft-bootstrapped student -- run with TEACHER_TABLES=("raptor_teacher", "xfit_v09k") and TEACHER_MIX=0.75
+    # sed'd in: 0.25 LLM + 0.375 Raptor + 0.375 honest cross-fit OOF (mix_teacher means the matched tables). Two seeds.
+    ("v09o", {**PROD, **V09R_KW}),
+    ("v09o2", {**PROD, **V09R_KW, "seed": 43}),
 ]
 ARM_V10C = ("v10c", {**C02, "backbone": "timm:coatnet_rmlp_2_rw_384", "img_size": 384,
                      "lr_backbone": 1e-4, "eval_windows": 42, "grad_checkpoint": True})
@@ -395,6 +423,9 @@ TEACHER_MIX = 0.5
 TEACHER_PATHS = {
     "selfdistill_v1": ["/kaggle/input/rsna-knee-teacher-tables/selfdistill_v1.csv", "artifacts/teacher/selfdistill_v1.csv"],
     "raptor_teacher": ["/kaggle/input/rsna-knee-teacher-tables/raptor_teacher.csv", "artifacts/teacher/raptor_teacher.csv"],
+    # P-55: the per-fold-ranked OOF of the P-54 cross-fit (src/build_distill_table.py --per-fold-rank); only needs to be
+    # mounted when listed.
+    "xfit_v09k": ["/kaggle/input/rsna-knee-teacher-tables/xfit_v09k.csv", "artifacts/teacher/xfit_v09k.csv"],
 }
 # P-38: a distilled arm (`v09s` = the fold-0 probe, `v09t` = the production member) is what its name says only when its
 # targets are distilled, and the arm dict cannot carry TEACHER_TABLES (targets are built once per session) -- never train
@@ -404,12 +435,20 @@ TEACHER_PATHS = {
 # the dead self-distill table under its name.
 DISTILLED_ARMS = {"v09s": ("selfdistill_v1",), "v09t": ("selfdistill_v1",),
                   "v09r": ("raptor_teacher",), "v08r": ("raptor_teacher",),
-                  "v09x": ("raptor_teacher",), "v09u": ("raptor_teacher",)}
+                  "v09x": ("raptor_teacher",), "v09u": ("raptor_teacher",),
+                  **{f"v09k{k}": ("raptor_teacher",) for k in range(5)},
+                  "v13a": ("raptor_teacher",), "v11a": ("raptor_teacher",), "v11b": ("raptor_teacher",),
+                  "v09o": ("raptor_teacher", "xfit_v09k"), "v09o2": ("raptor_teacher", "xfit_v09k")}
+# 2026-09-28 (traps 40's second gap): the mix a distilled arm must train with; every other distilled arm trains at 0.5.
+DISTILLED_MIX = {"v09o": 0.75, "v09o2": 0.75}
 # Every arm this session can train: the filters, and the sequential loop's list itself (a run with no filter).
 for _a in (ARM_ONLY, os.environ.get("RSNA_ARM", ""), *PARALLEL_ARMS, *(a[0] for a in (ARMS or []))):
     if _a in DISTILLED_ARMS and tuple(TEACHER_TABLES) != DISTILLED_ARMS[_a]:
         raise SystemExit(f"{_a} is a distilled arm: sed TEACHER_TABLES = {DISTILLED_ARMS[_a]!r} into the copy you run "
                          f"(it has {tuple(TEACHER_TABLES)!r})")
+    if _a in DISTILLED_ARMS and abs(float(TEACHER_MIX) - DISTILLED_MIX.get(_a, 0.5)) > 1e-9:
+        raise SystemExit(f"{_a} trains at TEACHER_MIX = {DISTILLED_MIX.get(_a, 0.5)} (DISTILLED_MIX); "
+                         f"the copy you run has {TEACHER_MIX}")
     # 2026-09-27: the converse -- a table sed'd in must not train an arm whose name promises the plain LLM targets.
     if _a and TEACHER_TABLES and _a not in DISTILLED_ARMS:
         raise SystemExit(f"TEACHER_TABLES = {tuple(TEACHER_TABLES)!r} is set but {_a} is not a distilled arm "
@@ -590,6 +629,9 @@ class Config:
     # so a resumed session averages the same N) and write their element-wise mean as _best.pt;
     # the final-epoch EMA is kept as `_lastema.pt` for the A/B. 0 = plain ckpt_policy.
     swa_last: int = 0
+    # P-54 (2026-09-28): skip the held-out pass on every epoch but the final one (and skip that too when swa_last > 0:
+    # the SWA pass is the one that writes `_oof.csv`). Only for ckpt_policy="last", which selects nothing.
+    eval_final_only: bool = False
     # Smoke only: cap the header scan so a verification run does not spend minutes
     # reading all ~24k series headers before it reaches the training loop.
     smoke_max_studies: int = 24
@@ -636,6 +678,8 @@ class Config:
             self.swa_last = min(int(self.swa_last), int(self.epochs))
             if self.ema_decay <= 0:
                 raise SystemExit("swa_last averages EMA snapshots; set ema_decay > 0")
+        if self.eval_final_only and self.ckpt_policy != "last":
+            raise SystemExit("eval_final_only needs ckpt_policy='last' (best_oof selects on the per-epoch pass)")
 
 
 CACHE_BAND ={"Sagittal": (0.08, 0.92), "Axial": (0.10, 0.90), "Coronal": (0.20, 0.80)}
@@ -726,6 +770,12 @@ BACKBONES = {
         "/kaggle/input/timm-coatnet-rmlp-2-rw-384",
         "models/coatnet_rmlp_2_rw_384",
     ], "tiankljucanin/timm-coatnet-rmlp-2-rw-384 as a Dataset input"),
+    # P-57 (2026-09-28): timm resnet34.a1_in1k (HF timm repo files) for the small-CNN arm v13a.
+    "timm:resnet34": ([
+        "/kaggle/input/datasets/tiankljucanin/timm-resnet34-a1",
+        "/kaggle/input/timm-resnet34-a1",
+        "models/resnet34_a1",
+    ], "tiankljucanin/timm-resnet34-a1 as a Dataset input"),
 }
 
 
@@ -1981,6 +2031,13 @@ def augment_light(x, p=0.8):
     return out
 
 
+def timm_stage_names(enc):
+    """Top-level feature stages of a timm encoder, in depth order: CoAtNet/ConvNeXt `stages.<s>`, ResNet `layer1..4`."""
+    if hasattr(enc, "stages"):
+        return [f"stages.{i}" for i in range(len(enc.stages))]
+    return [n for n in ("layer1", "layer2", "layer3", "layer4") if hasattr(enc, n)]
+
+
 def load_timm_backbone(arch, backbone_dir, grad_checkpoint=False, img_size=None):
     """timm model built offline from <backbone_dir>/model.safetensors (the HF timm repo files,
     mounted as a Kaggle Dataset). Loads strictly except for the classifier head, and REFUSES a
@@ -1990,10 +2047,17 @@ def load_timm_backbone(arch, backbone_dir, grad_checkpoint=False, img_size=None)
     MLP takes the 224 weights strictly at 320. Must be a multiple of 32 (336 is not)."""
     import timm
     from safetensors.torch import load_file
-    kw = {} if img_size is None else {"img_size": int(img_size)}
+    # P-57: only the fixed-token-grid families take img_size at construction; a CNN (ResNet, EfficientNet) takes any
+    # input size and its create_model raises TypeError on the keyword.
+    sized = arch.startswith(("coatnet", "coatnext", "maxvit", "maxxvit", "vit_"))
+    kw = {"img_size": int(img_size)} if (img_size is not None and sized) else {}
     enc = timm.create_model(arch, pretrained=False, num_classes=0, **kw)
     sd = load_file(os.path.join(backbone_dir, "model.safetensors"))
-    head_keys = [k for k in sd if k.startswith("head.fc")]        # ImageNet classifier
+    # The ImageNet classifier's key prefix comes from the model's own pretrained_cfg ("head.fc" for CoAtNet, "fc" for
+    # ResNet, "classifier" for EfficientNet), so a CNN's head is dropped instead of being flagged as unexpected.
+    cls = (getattr(enc, "pretrained_cfg", None) or {}).get("classifier") or "head.fc"
+    cls = cls if isinstance(cls, str) else cls[0]
+    head_keys = [k for k in sd if k == cls or k.startswith(cls + ".")]        # ImageNet classifier
     for k in head_keys:
         sd.pop(k)
     res = enc.load_state_dict(sd, strict=False)
@@ -2003,8 +2067,8 @@ def load_timm_backbone(arch, backbone_dir, grad_checkpoint=False, img_size=None)
                          f"{res.missing_keys[:5]} ({len(res.missing_keys)}), unexpected "
                          f"{bad_unexpected[:5]} ({len(bad_unexpected)})")
     print(f"  timm {arch}: loaded {len(sd)} tensors from {backbone_dir} (dropped head "
-          f"{len(head_keys)}); num_features {enc.num_features}, {len(enc.stages)} stages, "
-          f"img_size {img_size or 'default'}, grad_checkpoint={grad_checkpoint}")
+          f"{len(head_keys)} '{cls}'); num_features {enc.num_features}, {len(timm_stage_names(enc))} stages, "
+          f"img_size {kw.get('img_size', 'any' if not sized else 'default')}, grad_checkpoint={grad_checkpoint}")
     if grad_checkpoint and hasattr(enc, "set_grad_checkpointing"):
         enc.set_grad_checkpointing(True)
     return enc
@@ -2426,7 +2490,8 @@ def param_groups(model, cfg):
     is_cnn = getattr(model, "backbone", "dinov2") == "convnext_tiny"
     is_timm = str(getattr(model, "backbone", "dinov2")).startswith("timm:")
     if is_timm:
-        n_blocks = len(model.enc.stages)
+        stage_names = timm_stage_names(model.enc)
+        n_blocks = len(stage_names)
     else:
         n_blocks = (len(model.enc.config.hidden_sizes) if is_cnn
                     else model.enc.config.num_hidden_layers)
@@ -2452,6 +2517,10 @@ def param_groups(model, cfg):
             depth = int(name.split(".")[2]) + 1
         elif name.startswith("stages."):                 # timm: stages.<s>.blocks.<j>...
             depth = int(name.split(".")[1]) + 1
+        elif is_timm and name.split(".")[0] in ("layer1", "layer2", "layer3", "layer4"):   # timm ResNet (P-57)
+            depth = stage_names.index(name.split(".")[0]) + 1
+        elif is_timm and name.split(".")[0] in ("conv1", "bn1"):                           # timm ResNet stem
+            depth = 0
         else:                       # final layernorm
             depth = n_blocks + 1
         lr = cfg.lr_backbone * (cfg.llrd_decay ** (n_blocks + 1 - depth))
@@ -2620,9 +2689,18 @@ def train_fold(fold, manifest, targets, image_root, cfg, device):
             swa_ring = (swa_ring + [{k: v.detach().to("cpu", copy=True)
                                      for k, v in ema.module.state_dict().items()}])[-cfg.swa_last:]
         t_eval = time.time()
-        metrics, oof = evaluate(eval_model, va_loader, device, cfg)
+        # P-54 (2026-09-28): a cross-fit fold model is scored once, on its SWA weights, after the last epoch -- the
+        # per-epoch held-out pass (~7 min per 882 studies on a T4) selects nothing under ckpt_policy="last". The last
+        # epoch is still evaluated when there is no SWA to evaluate, and a guard-stopped epoch always is.
+        skip_eval = (cfg.eval_final_only and not guard_hit
+                     and (epoch < cfg.epochs - 1 or cfg.swa_last > 0))
+        if skip_eval:
+            metrics, oof = {}, None
+        else:
+            metrics, oof = evaluate(eval_model, va_loader, device, cfg)
         per_label = metrics.pop("per_label", {})
-        print(f"  fold {fold} epoch {epoch}: loss {running/max(nb,1):.4f}  {metrics}")
+        print(f"  fold {fold} epoch {epoch}: loss {running/max(nb,1):.4f}  "
+              + ("(held-out eval deferred to the SWA pass: eval_final_only)" if skip_eval else f"{metrics}"))
         print(f"    train {train_secs/60:.1f} min ({train_secs/max(n_studies,1):.2f} s/study), "
               f"val {(time.time()-t_eval)/60:.1f} min")
         if per_label:
@@ -3036,8 +3114,9 @@ def run_parallel_arms(arms, results):
     WORK/<arm>.log -- ipykernel captures Python-level stdout only, so an inherited fd would never reach
     the Kaggle log -- and the parent prints a heartbeat with each log's tail, GPU memory / utilisation
     and host RAM, kills the process groups at the session deadline, and judges each child by its
-    ARTEFACTS (`{arm}_fold0_best.pt`), not its exit code (traps 14). Returns True when the children ran
+    ARTEFACTS (`{arm}_fold*_best.pt`), not its exit code (traps 14). Returns True when the children ran
     (the parent then trains and infers nothing), False to fall through to the sequential loop."""
+    import glob
     import subprocess
     import sys
     n_gpu = torch.cuda.device_count()           # NVML-backed: creates no CUDA context in this process
@@ -3103,14 +3182,19 @@ def run_parallel_arms(arms, results):
     for arm, (p, log) in procs.items():
         log.close()
         rc = p.poll()
-        best = os.path.exists(os.path.join(WORK, f"{arm}_fold0_best.pt"))
-        last = os.path.exists(os.path.join(WORK, f"{arm}_fold0_last.pt"))
+        # 2026-09-28 (P-54): a child may train any fold (a cross-fit arm pins "folds": (k,); smoke forces fold 0), so the
+        # artefacts are globbed, not assumed to be fold 0.
+        bests = sorted(glob.glob(os.path.join(WORK, f"{arm}_fold[0-9]_best.pt")))
+        lasts = sorted(glob.glob(os.path.join(WORK, f"{arm}_fold[0-9]_last.pt")))
+        best, last = bool(bests), bool(lasts)
+        fold_ids = [int(_re.search(r"_fold(\d)_best\.pt$", b).group(1)) for b in bests] or [0]
         ep_lines = [ln for ln in tail(arm, 400)
                     if _re.search(r"epoch \d+ EMA score|stopping: runtime guard|FAILED|Error|SWA of last", ln)]
-        results[f"{arm}/0"] = {"best": float("nan"), "completed": bool(best and rc == 0)}
+        for k in fold_ids:
+            results[f"{arm}/{k}"] = {"best": float("nan"), "completed": bool(best and rc == 0)}
         tag = "ok  " if (rc == 0 and best) else "!!  "
-        print(f"  {tag}arm {arm}: rc={rc}, _best.pt {'written' if best else 'MISSING'}, _last.pt "
-              f"{'present' if last else 'missing'}; last lines: {[ln.strip()[:120] for ln in ep_lines[-2:]]}")
+        print(f"  {tag}arm {arm}: rc={rc}, _best.pt {'written (folds ' + str(fold_ids) + ')' if best else 'MISSING'}, "
+              f"_last.pt {'present' if last else 'missing'}; last lines: {[ln.strip()[:120] for ln in ep_lines[-2:]]}")
         if not best:
             print(f"      -> {arm} did not finish: resume it in the sibling slug with this output in kernel_sources "
                   f"(traps 31); {arm}.log has the cause")
@@ -3486,6 +3570,13 @@ else:
     for l in LABELS:
         sub[l] = sub[l].fillna(0.5)
     sub = sub[["StudyInstanceUID"] + LABELS]
+    if PROBE_CONST_LABELS:
+        _bad = [l for l in PROBE_CONST_LABELS if l not in LABELS]
+        if _bad or len(set(PROBE_CONST_LABELS)) > len(LABELS) // 2:
+            raise SystemExit(f"PROBE_CONST_LABELS {PROBE_CONST_LABELS!r}: unknown labels {_bad} or more than 6")
+        for l in PROBE_CONST_LABELS:
+            sub[l] = 0.5
+        print(f"  probe: constant 0.5 in {list(PROBE_CONST_LABELS)} -- DIAGNOSTIC submission (P-53)")
 
     assert list(sub.columns) == list(ref.columns), "column mismatch vs sample_submission"
     assert len(sub) == len(ref), f"row count {len(sub)} != {len(ref)}"

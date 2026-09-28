@@ -16,7 +16,8 @@
     "tiankljucanin/convnext-tiny-224-hf",
     "tiankljucanin/timm-coatnet-rmlp-1-rw-224",
     "tiankljucanin/timm-coatnet-rmlp-2-rw-384",
-    "tiankljucanin/rsna-knee-teacher-tables"
+    "tiankljucanin/rsna-knee-teacher-tables",
+    "tiankljucanin/timm-resnet34-a1"
   ],
   "kernel_sources": [
     "tiankljucanin/rsna-knee-cache-a",

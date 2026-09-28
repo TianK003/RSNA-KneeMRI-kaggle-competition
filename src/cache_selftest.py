@@ -58,18 +58,24 @@ def main():
     series_k = K["scan_series"](series_csv, image_root, os.path.join(tmp, "meta_k.csv"))
     check(len(series_c) == len(series_k) > 0, f"both scans see {len(series_c)} series")
 
-    for scheme in ("c01", "c02"):
-        print(f"\n== scheme {scheme}")
-        ccfg = C["CacheConfig"](scheme=scheme, workers=1)
-        kcfg = K["Config"](cache_scheme=scheme)
+    # 2026-09-28 (P-56): "c03" = the c02 scheme at the dense-slice / 150 mm geometry -- builder and pipeline must agree on
+    # it exactly as on c02 (the local-blob read-back below stays c02-only: no c03 blob is built locally).
+    C03 = {"slot_slices": (24, 24, 24, 14, 8, 8), "crop_mm": 150.0}
+    for label, scheme, geo in (("c01", "c01", {}), ("c02", "c02", {}), ("c03", "c02", C03)):
+        print(f"\n== scheme {label}")
+        ccfg = C["CacheConfig"](scheme=scheme, workers=1, **geo)
+        kcfg = K["Config"](cache_scheme=scheme, **({"cache_slot_slices": geo["slot_slices"], "crop_mm": geo["crop_mm"]}
+                                                    if geo else {}))
         v_c = C["cache_version_of"](ccfg.scheme, ccfg.px, ccfg.slot_slices, ccfg.band,
                                     ccfg.crop_mm, ccfg.lat_dead_zone_mm)
         v_k = K["cache_version_for"](kcfg)
         check(v_c == v_k, f"version string {v_c}")
-        if scheme == "c01":
+        if label == "c01":
             check(v_c == "c01_p224_s16_crop130_lat20", "c01 string unchanged from the built cache")
-        else:
+        elif label == "c02":
             check(v_c == "c02_p336_b18-12-12-14-8-8_band2-98_crop130_lat20", "c02 string as planned")
+        else:
+            check(v_c == "c02_p336_b24-24-24-14-8-8_band2-98_crop150_lat20", "c03 string as planned")
         off_c = C["slot_offsets"](ccfg.slot_slices)
         off_k = K["slot_offsets"](K["cache_geom"](kcfg)[2])
         check(off_c == off_k, f"slot offsets {off_c}")
@@ -78,7 +84,7 @@ def main():
         check(all(tuple(g[3][p]) == tuple(ccfg.band[p]) for p in ccfg.band), f"bands {g[3]}")
 
         man_c = C["build_manifest"](series_c, ccfg)
-        man_k = K["build_manifest"](series_k, os.path.join(tmp, f"man_k_{scheme}.csv"))
+        man_k = K["build_manifest"](series_k, os.path.join(tmp, f"man_k_{label}.csv"))
         cols = list(C["SLOTS"]) + ["side"]
         a = man_c.set_index("StudyInstanceUID")[cols].fillna("").astype(str)
         b = man_k.set_index("StudyInstanceUID")[cols].fillna("").astype(str).loc[a.index]
@@ -104,7 +110,7 @@ def main():
                 exp = sum(n - 2 for n, m in zip(g[2], mask_k) if m > 0)
                 check(len(cen) == exp, f"{study[-12:]}: {len(cen)} valid windows (expected {exp})")
 
-        if scheme == "c02":
+        if label == "c02":
             # a study read out of the LOCAL blob (built by the real Section 4 run) == fresh build
             local = os.path.join("artifacts", "cache_local", v_c)
             side = [f for f in sorted(os.listdir(local)) if f.endswith(".csv")] if os.path.isdir(local) else []

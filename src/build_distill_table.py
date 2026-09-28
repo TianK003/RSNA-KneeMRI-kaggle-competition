@@ -19,18 +19,28 @@ DEFAULT_SETS = ["artifacts/kaggle_out/pod_v09h_5fold/v09h_fold[0-9]_oof.csv",   
                 "artifacts/kaggle_out/folds_v4/v05g_fold[0-9]_oof.csv"]         # pooled OOF 0.8467
 
 
-def _load_set(pattern: str) -> pd.DataFrame:
+def _load_set(pattern: str, per_fold_rank: bool = False) -> pd.DataFrame:
+    """One complete OOF set = one csv per fold. per_fold_rank (P-54, 2026-09-28): each fold's predictions become rank
+    percentiles WITHIN that fold before pooling, so a fold model that is calibrated higher or lower than its siblings does
+    not shift its fifth of the table (the pooled rank then compares studies across folds on equal terms)."""
     files = sorted(glob.glob(pattern))
     if not files:
         raise SystemExit(f"no OOF csvs match {pattern}")
-    d = pd.concat([pd.read_csv(f, dtype={"StudyInstanceUID": str}) for f in files], ignore_index=True)
+    parts = []
+    for f in files:
+        d = pd.read_csv(f, dtype={"StudyInstanceUID": str})
+        if per_fold_rank:
+            for l in LABELS:
+                d[f"pred__{l}"] = d[f"pred__{l}"].rank(pct=True)
+        parts.append(d)
+    d = pd.concat(parts, ignore_index=True)
     if d.StudyInstanceUID.duplicated().any():
         raise SystemExit(f"{pattern}: a study appears in more than one fold's OOF")
     return d.set_index("StudyInstanceUID")[[f"pred__{l}" for l in LABELS]]
 
 
-def build_distill_table(oof_globs: list[str], out_csv: str) -> pd.DataFrame:
-    sets = [_load_set(p) for p in oof_globs]
+def build_distill_table(oof_globs: list[str], out_csv: str, per_fold_rank: bool = False) -> pd.DataFrame:
+    sets = [_load_set(p, per_fold_rank) for p in oof_globs]
     ids = set(sets[0].index)
     for s, pat in zip(sets[1:], oof_globs[1:]):
         if set(s.index) != ids:
@@ -46,7 +56,8 @@ def build_distill_table(oof_globs: list[str], out_csv: str) -> pd.DataFrame:
     out.insert(0, "StudyInstanceUID", index)
     os.makedirs(os.path.dirname(out_csv) or ".", exist_ok=True)
     out.to_csv(out_csv, index=False)
-    print(f"wrote {out_csv}: {len(out)} studies from {len(sets)} OOF sets")
+    print(f"wrote {out_csv}: {len(out)} studies from {len(sets)} OOF sets"
+          + (" (ranked within each fold first)" if per_fold_rank else ""))
     return out
 
 
@@ -54,5 +65,7 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--sets", nargs="+", default=DEFAULT_SETS)
     ap.add_argument("--out", default="artifacts/teacher/selfdistill_v1.csv")
+    ap.add_argument("--per-fold-rank", action="store_true",
+                    help="rank each fold's predictions within the fold before pooling (P-54 cross-fit table)")
     a = ap.parse_args()
-    build_distill_table(a.sets, a.out)
+    build_distill_table(a.sets, a.out, per_fold_rank=a.per_fold_rank)

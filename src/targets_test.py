@@ -121,6 +121,20 @@ def test_distill_table_builder():
             check(False, "distill table: an OOF set that does not cover every study of another set is rejected")
         except SystemExit:
             check(True, "distill table: partial coverage rejected")
+        # P-54: per-fold ranking removes a fold-level calibration offset -- fold 1 predicts +0.5 on everything, so a plain
+        # pooled rank puts all of fold 1 above fold 0, while per-fold ranking interleaves them
+        for k in (0, 1):
+            rows = ids[k * 3:(k + 1) * 3]
+            df = pd.DataFrame({"StudyInstanceUID": rows, "epoch": 7, "is_gold": 0})
+            for l in bt.LABELS:
+                df[f"pred__{l}"] = np.array([0.1, 0.2, 0.3]) + 0.5 * k; df[f"y__{l}"] = 0.5; df[f"w__{l}"] = 1.0
+            df.to_csv(os.path.join(d, f"x_fold{k}_oof.csv"), index=False)
+        plain = bd.build_distill_table([os.path.join(d, "x_fold[0-9]_oof.csv")], os.path.join(d, "tx.csv"))
+        pfr = bd.build_distill_table([os.path.join(d, "x_fold[0-9]_oof.csv")], os.path.join(d, "ty.csv"), per_fold_rank=True)
+        a0, a1 = plain.set_index("StudyInstanceUID").ACL, pfr.set_index("StudyInstanceUID").ACL
+        check(a0[ids[3:]].min() > a0[ids[:3]].max(), "distill table: a plain pooled rank keeps a fold's calibration offset")
+        check(abs(a1[ids[0]] - a1[ids[3]]) < 1e-9 and abs(a1[ids[2]] - a1[ids[5]]) < 1e-9,
+              "distill table --per-fold-rank: equal within-fold ranks get equal table values across folds")
         dup_rows = [ids[0:3], ids[2:5]]
         for k, rows in enumerate(dup_rows):
             df = pd.DataFrame({"StudyInstanceUID": rows, "epoch": 7, "is_gold": 0})

@@ -117,6 +117,13 @@ SCHEME = "c02"          # "c01" = the original 224/16 cache; "c02" = wide-band 3
 SHARD = int(os.environ.get("RSNA_SHARD", SHARD))
 N_SHARDS = int(os.environ.get("RSNA_N_SHARDS", N_SHARDS))
 SCHEME = os.environ.get("RSNA_CACHE_SCHEME", SCHEME)
+# P-56 (2026-09-28): the "c03" input = the c02 scheme with denser fluid-sensitive slots and a wider crop, sed'd per kernel
+# (rsna-knee-cache3-*) or set through the environment for the local selftest. () / 130 = the scheme default.
+SLOT_SLICES = ()        # c03: (24, 24, 24, 14, 8, 8)
+CROP_MM = 130.0         # c03: 150.0
+if os.environ.get("RSNA_SLOT_SLICES"):
+    SLOT_SLICES = tuple(int(x) for x in os.environ["RSNA_SLOT_SLICES"].split(","))
+CROP_MM = float(os.environ.get("RSNA_CROP_MM", CROP_MM))
 
 LABELS = ["ACL", "MCL", "Medial Meniscus", "Lateral Meniscus", "Medial OA", "Lateral OA",
           "PF OA", "Effusion", "Synovitis", "Baker's", "Contusion", "Fracture"]
@@ -140,8 +147,8 @@ class CacheConfig:
     smoke: bool = (not ON_KAGGLE) if SMOKE is None else bool(SMOKE)
     scheme: str = SCHEME
     px: int = 0                   # stored resolution; 0 -> scheme default
-    slot_slices: tuple = ()       # stored slices per slot, order = SLOTS; () -> scheme default
-    crop_mm: float = 130.0        # physical centre crop; 0 disables
+    slot_slices: tuple = SLOT_SLICES   # stored slices per slot, order = SLOTS; () -> scheme default
+    crop_mm: float = CROP_MM           # physical centre crop; 0 disables
     # Central band per plane (fraction of the ordered stack); None -> scheme default.
     band: dict = None
     lat_dead_zone_mm: float = 20.0

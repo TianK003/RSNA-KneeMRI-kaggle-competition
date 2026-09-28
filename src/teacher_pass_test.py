@@ -31,6 +31,15 @@ check(len(a) + len(b) + len(c) == 4349 and not (set(a) & set(b)) and not (set(b)
 tr = pd.read_csv("data/train.csv", dtype={"StudyInstanceUID": str}); gold = set(tr.loc[tr[tp.LABELS].notna().all(axis=1), "StudyInstanceUID"])
 check(not (set(a) | set(b) | set(c)) & gold, "no gold study in any shard")
 check(ns["chunk_study_ids"]("data/train.csv", 0, 1, 100) == sorted(set(a) | set(b) | set(c))[:100], "LIMIT takes the first N of the sorted shard")
+g = ns["gold_study_ids"]("data/train.csv")
+check(len(g) == 58 and not (set(g) & (set(a) | set(b) | set(c))) and g == sorted(g), "--gold (P-49): the 58 gold studies, disjoint from every training shard")
+_gsrc = tp.render_teacher_py(tp.load_notebook(tp.NOTEBOOK), 0, 1, 0, gold=True)
+check(tp.GOLD_CALL in _gsrc and tp.CHUNK_CALL not in _gsrc, "--gold render calls gold_study_ids, not the shard chunker")
+try:
+    tp.render_teacher_py(tp.load_notebook(tp.NOTEBOOK), 1, 3, 0, gold=True)
+    check(False, "--gold with a shard is refused")
+except SystemExit:
+    check(True, "--gold with a shard is refused")
 
 with tempfile.TemporaryDirectory() as d:
     tp.write_kernel(d, shard=1, n_shards=4, limit=6)
