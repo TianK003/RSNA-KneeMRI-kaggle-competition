@@ -852,3 +852,17 @@ those arms; and the converse guard — a sed'd `TEACHER_TABLES` with any session
 run (probed: default arms + table → refused; parallel distilled arms without the table → refused; the real build → passes).
 **Do:** two arms that need different target tables or mixes cannot share one session without new code; a per-arm knob that is
 not in the arm banner's printed fields should be grepped for where it is actually read before trusting it.
+
+### 43. A local c03 cache build overwrites the local c02 manifest — the c02 default cache then "is not mounted" in a local smoke (Tier 3, 2026-09-28)
+
+`src/cache_pipeline.py` names a shard manifest `manifest_shard{k}_{scheme}.csv` so a local run of two *schemes* into
+`artifacts/cache_local` never collides. c03 is not a scheme — it is scheme `c02` with `SLOT_SLICES` / `CROP_MM` overrides — so its
+local build (the c03 `cache_selftest` work, 2026-09-28 14:07) wrote `manifest_shard0_c02.csv` over the c02 one. The c02 *blobs*
+were untouched; only the index moved, so the next local smoke of a c02 arm (the session-E student build) stopped with
+`use_cache=True but cache c02_p336_b18-12-12-14-8-8_band2-98_crop130_lat20 is not mounted (mounted: [... b24-24-24-14-8-8 ...])`.
+It is loud, not silent, and cannot happen on Kaggle (every cache kernel writes into its own `/kaggle/working`; a training kernel
+mounts each shard under its own directory and the loader keys on the `cache_version` column, not the file name).
+**Fix used:** rename the c03 manifest and log to `manifest_shard0_c03.csv` / `cache_log_shard0_c03.csv` (any `manifest_shard*.csv`
+name is globbed), then `RSNA_N_SHARDS=1 python src/cache_pipeline.py` rebuilds the 3-study local c02 index in seconds (the default
+`N_SHARDS = 4` caches only the 1 sample study that falls in shard 0). **Do:** after any local override build, `ls
+artifacts/cache_local/manifest_shard*` and check each file's `cache_version` before a local smoke.

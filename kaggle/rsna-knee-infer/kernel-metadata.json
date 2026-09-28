@@ -27,7 +27,8 @@
     "tiankljucanin/rsna-knee-ckpt-v09r",
     "tiankljucanin/rsna-knee-ckpt-v08r",
     "tiankljucanin/rsna-knee-ckpt-v09x",
-    "tiankljucanin/rsna-knee-ckpt-v09u"
+    "tiankljucanin/rsna-knee-ckpt-v09u",
+    "tiankljucanin/timm-resnet34-a1"
   ],
   "kernel_sources": [],
   "competition_sources": [
