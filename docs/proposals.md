@@ -58,9 +58,9 @@ result*, per unit of cost. "Depends on" lists hard blockers only. EVs are solo-L
 
 | rank | id | title | status | expected value | cost | depends on |
 |---|---|---|---|---|---|---|
-| 1 | P-43 | Student resolution: CoAtNet-1 @320 on the `v09r` targets (`v09x`) | ⏳ **running** — `rsna-knee-train` v30 (pushed 2026-09-27 18:08 UTC; smoke v29 green: img 320, peak 7.03 GiB) | +0.002..0.006 solo — the only input-side lever left | one ≈ 6.2 GPU-h session shared with P-44; 1 solo | P-39 ✅, P-31, P-44 (its read) |
-| 2 | P-44 | Kaggle-retrain seed spread + a 2-seed production member (`v09u`) | ⏳ **running** — same session, cuda:1 (smoke v29: `reseeded 43`, 6.84 GiB) | sets the floor every later read needs; 2-seed rank-mean +0.001..0.003 | ≈ 2.8 h on the second T4 (≈ 0 extra quota); 2 solos | — |
-| 3 | P-40 | Raptor-distilled members into the fork | ⏳ #22 sent 2026-09-27 16:36 UTC | low — prior 0.942 ± 0.001, P(≥ 0.947) < 10 % | spent (≤ 8 h 06 min to score) | P-39 ✅, P-27 |
+| 1 | P-43 | Student resolution: CoAtNet-1 @320 on the `v09r` targets (`v09x`) | ⏳ **trained** — `rsna-knee-train` v30 COMPLETE (5.88 h, SWA, 0.59 s/study); gold-58 0.9094 (= `v09r`, +0.005 over mean(`v09r`, `v09u`), 10/12 labels up); shipped `rsna-knee-ckpt-v09x`; **solo read next** | +0.002..0.006 solo — the only input-side lever left | one ≈ 6.2 GPU-h session shared with P-44; 1 solo | P-39 ✅, P-31, P-44 (its read) |
+| 2 | P-44 | Kaggle-retrain seed spread + a 2-seed production member (`v09u`) | ⏳ **trained** — same session, cuda:1, gold-58 0.8995 (−0.010 vs `v09r`); shipped `rsna-knee-ckpt-v09u`; **solo + blend reads next** | sets the floor every later read needs; 2-seed rank-mean +0.001..0.003 | ≈ 2.8 h on the second T4 (≈ 0 extra quota); 2 solos | — |
+| 3 | P-40 | Raptor-distilled members into the fork | 🔁 **#22 = 0.942** (= #13 / #15); β 0.20 retry is an open decision for Tian | low — the fork at β 0.10 is flat over member strength 0.913 → 0.927 | spent; a β 0.20 retry = 1 fork submission (hours) | P-39 ✅, P-27 |
 | 4 | P-49 | Raptor over the 58 gold studies — a correlation diagnostic | 💡 | validity: fork redundancy without an 8-h fork read; gates P-45 / P-47 | ≈ 20 lines + 0.2 h T4 (second slot) | P-39 (`build_teacher_pass.py`) |
 | 5 | P-50 | Final selection and publishability | 💡 decide by 2026-10-15 | decides what the private LB scores | a browser session; ≤ 1 fork check | P-40 (#22), Rules page |
 | 6 | P-18 | Efficiency track with the solo member | 💡 (robustness half shipped) | a separate prize; unknown until the formula is read | 0 GPU h (CLI + browser) | Efficiency formula (browser) |
@@ -121,8 +121,9 @@ result*, per unit of cost. "Depends on" lists hard blockers only. EVs are solo-L
 ## Cards
 
 ### P-43 Student resolution: CoAtNet-1 @320 on the `v09r` targets (`v09x`)
-Status:       ⏳ running: `rsna-knee-train` v30 pushed 2026-09-27 18:08 UTC (smoke v29 green: both children read `raptor_teacher:
-              4349 studies`, `v09x` img 320 / batch 1 × accum 4 / peak 7.03 GiB on cuda:0, `ok  arm` ×2). Arm `v09x` = the `v09r`
+Status:       ⏳ trained: `rsna-knee-train` v30 COMPLETE 2026-09-28 (5.88 h, SWA, no guard stop, 0.59 s/study); gold-58 SWA
+              0.9094 vs `v09r` 0.9093 / `v09u` 0.8995 (direction only; Lateral Meniscus 0.901); shipped as Dataset
+              `rsna-knee-ckpt-v09x`; solo read after `v09u`'s (experiments.md 2026-09-28 "rsna-knee-train v30"). Arm `v09x` = the `v09r`
               dict at `img_size` 320. Runs in ONE
               `PARALLEL_ARMS = ("v09x", "v09u")` session with P-44 (`rsna-knee-train`, both children on
               `TEACHER_TABLES=("raptor_teacher",)`, mix 0.5 — the two children of a session share the table set and the mix).
@@ -152,7 +153,8 @@ If it fails:  ❌ / 🔁 → stay at 224; resolution is not the lever.
 Depends on:   P-39 ✅ (the table), P-31 (two children), P-44 (`v09u` is half the baseline). Supersedes P-11.
 
 ### P-44 Kaggle-retrain seed spread + a 2-seed production member (`v09u`)
-Status:       ⏳ running (`rsna-knee-train` v30, cuda:1; smoke v29 printed `reseeded 43 for arm v09u`). `v09u` = the exact `v09r`
+Status:       ⏳ trained (`rsna-knee-train` v30, cuda:1, `reseeded 43 for arm v09u`; gold-58 SWA 0.8995 vs `v09r` 0.9093, rank-mean
+              0.9065; shipped as Dataset `rsna-knee-ckpt-v09u`); solo + blend reads next (experiments.md 2026-09-28 "rsna-knee-train v30"). `v09u` = the exact `v09r`
               dict with `"seed": 43`, plus the per-arm reseed fix
               (`seed_all(cfg.seed)` in the arm loop when the arm's seed differs from the base config's — before it an arm-dict
               `seed` only changed the banner, and every production member trained on the seed-42 stream). Same session as P-43.
@@ -176,8 +178,9 @@ If it fails:  blend 🔁 → it becomes the production member anyway (lower priv
 Depends on:   nothing (the reseed fix is in). Supersedes P-02 step 1 at LB level and P-13.
 
 ### P-40 Raptor-distilled members into the fork
-Status:       ⏳ **#22 sent** — fork v9 = the public 0.942 graph + `v09r` alone at β 0.10 (ref 56614068, 2026-09-27 16:36 UTC,
-              after a ≈ 3 h 40 min queue, traps 41). Step B done: `v08r` 0.918 solo (#21), below the ≈ 0.920 bar → not a fork
+Status:       🔁 **#22 = 0.942** (read 2026-09-28) — fork v9 = the public 0.942 graph + `v09r` alone at β 0.10 (ref 56614068,
+              sent 2026-09-27 16:36 UTC after a ≈ 3 h 40 min queue, traps 41) = #13 / #15; the "If it fails" branch (β 0.20 once,
+              or drop fork member reads) is **open for Tian** (experiments.md 2026-09-27 "Submission #22"). Step B done: `v08r` 0.918 solo (#21), below the ≈ 0.920 bar → not a fork
               member; P-42: `v09r` + `v08r` = 0.927.
 Hypothesis:   the fork registers a member of ours once it is at the public stack's best-member level: β 0.10 with `v09r`
               (0.927 solo) reads ≥ 0.947, where #17 (the 0.918-level `v09a` / `v08a`) read 0.941.

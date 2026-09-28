@@ -83,7 +83,8 @@ Judge label changes on **coverage** (does the rule fire at all, per language) an
 | 2026-09-26 | **`v09r` (P-39 / Task 12): the S2 `v09a` recipe (CoAtNet-1 @224, c02, window_attn, all 4,349 studies, 8 ep, SWA 5–7, `batch_studies=2, grad_accum=2, aug="light"`) trained on `TEACHER_TABLES=("raptor_teacher",)`, mix 0.5 — own version name; RunPod RTX 4090 (EUR-IS-1), 5.9 min/epoch, job 23:33 → 00:30** | gold-58 (all 58, reported only): **SWA 0.9093** (CI95 0.879–0.936; epochs 0–7 EMA: 0.770 · 0.860 · 0.887 · 0.898 · 0.904 · 0.910 · 0.909 · 0.908) vs `v09a` 0.8922 / `v09t` 0.9009 → +0.017 / +0.008, direction only; 9/12 labels up vs `v09a` (Synovitis 0.744 → 0.823, Fracture 0.897 → 0.943) | **0.927** (#20, `rsna-knee-infer` v17, read 2026-09-27 09:28) | **✅ KEEP — +0.009 vs #18 0.918 (1.8× the 0.005 floor; above the pre-registered 0.923 line): the first target-source change that transfers to the LB; our best single member, ≈ the best public member (0.928)** (entry "Submission #20") |
 | 2026-09-27 | **`v08r` (P-40 step B): the S2 `v08a` recipe (DINOv2-S @224, c02, window_attn, all 4,349 studies, 8 ep, SWA 5–7, batch 1 × accum 4, aug none) on `TEACHER_TABLES=("raptor_teacher",)`, mix 0.5 — RunPod A100 SXM 80 GB (US-MD-1), 3.2 min/epoch, job 12:52 → 13:23 UTC** | gold-58 (all 58, reported only): **SWA 0.8981** (CI95 0.865–0.926; epochs 0–7 EMA 0.768 · 0.839 · 0.873 · 0.889 · 0.897 · 0.898 · 0.898 · 0.899) vs `v08a` 0.8850 → +0.013, direction only | **0.918** (#21, solo, `rsna-knee-infer` v19, ref 56610108, read 2026-09-27 16:24 UTC) | ✅ the run: shipped as Dataset `rsna-knee-ckpt-v08r` (ready); pod ≈ 36 min ≈ $0.95, deleted. 🔁 on gold (floor 0.05). **LB: −0.009 vs `v09r` 0.927 (same targets, CoAtNet-1; 1.8× the floor) and 0.002 under P-40's ≈ 0.920 bar for a second fork member → does not join the fork on solo strength (the pre-registered branch does not fire); = `v09a` 0.918 (#18). No `v08a` solo exists, so the Raptor gain on DINOv2 is unmeasured** (entry "Submission #21") |
 | 2026-09-27 | **P-42 solo blend, submission #23 (`rsna-knee-infer` v20)**: flat rank-mean of the two Raptor-distilled families `v09r` (CoAtNet-1, 0.927 solo) + `v08r` (DINOv2-S, 0.918 solo), one vote each | gold-58 (hand-computed, direction only): rank-mean 0.9085 vs `v09r` 0.9093; ρ 0.924 | **0.927** (read 17:05 UTC) | **🔁 INCONCLUSIVE: ±0.000 vs `v09r` alone (the pre-registered 0.923–0.931 band)** — the second family neither lifts nor dilutes; `v08r` stays out of the fork. **P-41 ✅: scored 28.3–29.3 min after sending** (two members, 8 decode workers) vs #19's ≤ 42 min (entry "Submission #23") |
-| 2026-09-27 | **P-43 + P-44 — `v09x` (the `v09r` recipe at **320 px**, batch 1 × accum 4) ‖ `v09u` (`v09r` exactly, **seed 43** — the first honoured per-arm seed, traps 42), one `PARALLEL_ARMS` session on `rsna-knee-train`, both on `TEACHER_TABLES=("raptor_teacher",)` mix 0.5** — smoke v29 (17:59 → ≈ 18:05 UTC) green: both children `teacher table raptor_teacher: 4349 studies` (the first Kaggle training kernel to read it), `v09x` img 320 on cuda:0 **peak 7.03 GiB** (batch 1 × 24 windows), `v09u` `reseeded 43` on cuda:1 6.84 GiB, `ok  arm` ×2; **real run v30 pushed 18:08:24 UTC, RUNNING 18:08:48** (no queue) | — | ⏳ solo reads after ≈ 00:30 UTC | ⏳ PENDING — pre-registered in P-43 / P-44: `v09u` s = \|`v09u` − 0.927\| (≤ 0.920 → re-open P-39); `v09x` vs m = mean(0.927, `v09u`): ✅ ≥ m + max(0.005, 2s) / ❌ ≤ m − max(0.005, 2s); `v09r` + `v09u` blend ≥ 0.930 ✅ (production member either way). Est. 5.3–6.1 h for `v09x` (break-even 0.80 s/study under the ≈ 8.0 h child guard), ≈ 2.8 h for `v09u`; ≈ 6.2 GPU-h |
+| 2026-09-27 | **P-40 step A, submission #22 (`rsna-knee-fork` v9)**: the public 0.942 graph + `v09r` alone at β 0.10 | gold-58 of `v09r` 0.9093 | **0.942** (first seen 2026-09-28 09:12 UTC) | **🔁 INCONCLUSIVE: ±0.000 vs #13 / #15 (0.942), inside the pre-registered 0.940–0.946 band** — a 0.927 member at β 0.10 moves the fork no more than #17's 0.918-level members (0.941) did; the fork does not read member quality at this weight (entry "Submission #22") |
+| 2026-09-27 | **P-43 + P-44 — `v09x` (the `v09r` recipe at **320 px**, batch 1 × accum 4) ‖ `v09u` (`v09r` exactly, **seed 43** — the first honoured per-arm seed, traps 42), one `PARALLEL_ARMS` session on `rsna-knee-train`, both on `TEACHER_TABLES=("raptor_teacher",)` mix 0.5** — smoke v29 (17:59 → ≈ 18:05 UTC) green: both children `teacher table raptor_teacher: 4349 studies` (the first Kaggle training kernel to read it), `v09x` img 320 on cuda:0 **peak 7.03 GiB** (batch 1 × 24 windows), `v09u` `reseeded 43` on cuda:1 6.84 GiB, `ok  arm` ×2; **real run v30 pushed 18:08:24 UTC, RUNNING 18:08:48** (no queue); **COMPLETE in 5.88 h** (both `ok  arm`, SWA, no guard stop; `v09x` 0.59 s/study ≈ 43 min/epoch, `v09u` 0.27 s/study ≈ 19.5 min/epoch) | gold-58 SWA (direction only): **`v09x` 0.9094** (last EMA 0.9108), **`v09u` 0.8995** (last EMA 0.8984) vs `v09r` 0.9093; rank-mean `v09r` + `v09u` 0.9065, `v09r` + `v09x` 0.9126 (entry "rsna-knee-train v30") | ⏳ solo reads (shipped as `rsna-knee-ckpt-v09x` / `-v09u`, 2026-09-28) | ⏳ PENDING — pre-registered in P-43 / P-44: `v09u` s = \|`v09u` − 0.927\| (≤ 0.920 → re-open P-39); `v09x` vs m = mean(0.927, `v09u`): ✅ ≥ m + max(0.005, 2s) / ❌ ≤ m − max(0.005, 2s); `v09r` + `v09u` blend ≥ 0.930 ✅ (production member either way). Est. 5.3–6.1 h for `v09x` (break-even 0.80 s/study under the ≈ 8.0 h child guard), ≈ 2.8 h for `v09u`; ≈ 6.2 GPU-h |
 
 **External reference points** (not ours — for calibrating ambition):
 
@@ -2087,6 +2088,81 @@ init / data order / GPU augmentation share the seed-42 torch stream. (b) Every p
 (an arm-dict `seed` was inert — traps 42), and gold rows are held out under `train_all` (the S2 and `v09t` entries' "optimistic by
 construction" lines are CORRECTED above).
 
+### 2026-09-27 — Submission #22 (P-40 step A): the public 0.942 graph + `v09r` alone at β 0.10 reads **0.942** → 🔁 · the fork at β 0.10 does not register a 0.927 member either
+
+`rsna-knee-fork` v9 (`build_fork.py --members v09r --member v09r=tiankljucanin/rsna-knee-ckpt-v09r:tiankljucanin/timm-coatnet-rmlp-1-rw-224
+--beta 0.10`), sent 2026-09-27 16:36:17 UTC after ≈ 3 h 40 min in the Kaggle GPU queue, ref 56614068; first seen COMPLETE at
+2026-09-28 09:12 UTC. The watcher (`watch_submission.py`, task `buiay90kx`) died with the laptop and wrote no row to
+`artifacts/submission_timing.csv`, so the scoring time is only bounded (≤ 16 h 36 min) — no information beyond #17's ≤ 8 h 06 min.
+
+| # | our arm in the fork (β) | our member(s)' strength | public LB |
+|---|---|---|---|
+| 15 | none (the anchor alone) | — | 0.942 |
+| 13 | `v08w` + `v09h` (β 0.10) | our 12-member blend read 0.913 (#11) | 0.942 |
+| 17 | S2 `v09a` + `v08a` beside `v08w` + `v09h` (β 0.10) | `v09a` 0.918 solo (#18) | 0.941 |
+| **22** | **`v09r` alone (β 0.10)** | **0.927 solo (#20)** | **0.942** |
+
+**Verdict (P-40): 🔁 INCONCLUSIVE — ±0.000 vs #13 / #15, inside the pre-registered 0.940–0.946 band** (✅ needed ≥ 0.947). The
+reviewers' prior (0.942 ± 0.001) was right.
+
+**What it says.**
+1. **At β 0.10 the fork is flat across a 0.014 range of member strength** (0.913-level blend → 0.918 → 0.927 all read 0.941–0.942).
+   A 10 % rank-weight on a member 0.015 below the anchor cannot move a 0.942 stack by a readable amount — the same lesson as #17
+   ("the fork at β 0.10 does not read member quality, the solo submission does"), now with our best member.
+2. **The "Against" point in P-40 stands, not refuted:** `v09r`'s errors track Raptor (within-class ρ 0.861 vs 0.777 for the
+   LLM-target pair, 2026-09-27 audit), and the anchor already carries Raptor at 0.40–0.60 weight, so our arm adds little the anchor
+   does not have. P-49 (Raptor over gold-58) would measure that redundancy directly without another 8-h fork read.
+3. **Consequence for the plan:** member quality is read by solo submissions only (≈ 30 min, P-41); the fork is for final-selection
+   builds (P-50). The pre-registered 🔁 branch (β 0.20 once) is an open decision — reviewers B and C recommend dropping it
+   (expected ≤ 0.002, and it is weight tuning on the public LB).
+
+### 2026-09-28 — `rsna-knee-train` v30 (P-43 + P-44): `v09x` (the `v09r` recipe at 320 px) gold-58 SWA **0.9094**, `v09u` (`v09r`, seed 43, Kaggle T4) **0.8995** vs `v09r` 0.9093 · 🔁 direction only · shipped, solo reads next
+
+One `PARALLEL_ARMS = ("v09x", "v09u")` session, `TEACHER_TABLES = ("raptor_teacher",)`, mix 0.5, pushed 2026-09-27 18:08:24 UTC,
+**COMPLETE in 5.88 h** (no queue). Green on every pre-registered criterion: parent `ok  arm v09x` + `ok  arm v09u` (rc 0,
+`_best.pt` written); both children `teacher table raptor_teacher: 4349 studies`, `SWA of last 3 EMA snapshot(s)`, `-> v09*_fold0_best.pt =
+SWA`, no `runtime guard`; `v09u.log` `reseeded 43 for arm v09u (base seed 42)`; `v09x.log` `img 320 | batch 1 x accum 4`. Timing:
+**`v09x` 0.59 s/study = 43 min/epoch** (P-43 estimated 0.55–0.63; break-even was 0.80), `v09u` 0.27 s/study = 19.5 min/epoch.
+Both `_best.pt` 164,789,267 bytes; shipped as Datasets **`rsna-knee-ckpt-v09x`** and **`rsna-knee-ckpt-v09u`** (ready 2026-09-28
+09:14 UTC). Outputs: `artifacts/kaggle_out/train_v30/`.
+
+Gold-58 (all 58 held out under `train_all`; `v09r` from `artifacts/kaggle_out/pod_v09r/`, RunPod 4090, seed 42):
+
+| label | `v09r` (224, seed 42, RunPod) | `v09u` (224, seed 43, Kaggle) | `v09x` (320, seed 42, Kaggle) |
+|---|---|---|---|
+| ACL | 0.953 | 0.949 | 0.961 |
+| MCL | 0.925 | 0.907 | 0.934 |
+| Medial Meniscus | 0.958 | 0.970 | 0.968 |
+| Lateral Meniscus | 0.853 | 0.870 | **0.901** |
+| Medial OA | 0.967 | 0.984 | 0.988 |
+| Lateral OA | 0.805 | 0.807 | 0.810 |
+| PF OA | 0.816 | 0.812 | 0.816 |
+| Effusion | 0.974 | 0.944 | 0.937 |
+| Synovitis | 0.823 | 0.816 | 0.823 |
+| Baker's | 0.960 | 0.933 | 0.960 |
+| Contusion | 0.934 | 0.912 | 0.927 |
+| Fracture | 0.943 | 0.890 | 0.889 |
+| **macro (SWA)** | **0.9093** | **0.8995** | **0.9094** |
+| epochs 0–7 EMA | — | 0.772 · 0.854 · 0.890 · 0.899 · 0.899 · 0.898 · 0.900 · 0.898 | 0.759 · 0.853 · 0.881 · 0.906 · 0.908 · 0.909 · 0.911 · 0.911 |
+
+Pairs (mean per-label Spearman ρ on gold-58; flat rank-means, hand-computed): ρ(`v09r`, `v09u`) 0.952, ρ(`v09r`, `v09x`) 0.949,
+ρ(`v09u`, `v09x`) 0.947; rank-mean `v09r` + `v09u` **0.9065**, `v09r` + `v09x` **0.9126**, `v09u` + `v09x` 0.9072, all three 0.9110.
+
+**Verdict: 🔁 INCONCLUSIVE on gold-58 (floor 0.05), by design — the LB reads are pre-registered in P-43 / P-44.** Direction only
+(traps 39):
+1. **The seed/platform twin is 0.010 below its parent on gold-58** (`v09u` − `v09r` = −0.0098, 4 labels up / 8 down, Fracture
+   −0.053, Effusion −0.030, Baker's −0.027) — 1.4× the audit's paired-bootstrap SD (≈ 0.007). The same recipe on another seed and
+   platform moves gold-58 by about the size of every recent delta we have read, which is the question P-44's solo read answers on
+   the LB.
+2. **320 px lands where the P-43 hypothesis pointed:** `v09x` = `v09r` on macro (+0.0001) but +0.010 over the same-platform
+   `v09u` (which also differs in seed; 9 / 3 labels), and +0.005 over mean(`v09r`, `v09u`) with **10 of 12 labels up**; the
+   biggest move is **Lateral Meniscus +0.040** over that mean (0.901, the best any member of ours has read on it), then MCL and ACL
+   — small structures, as P-43 argued. A consistent sign across labels is the kind of evidence the per-label floor allows; the
+   size is not.
+3. **Blend priors:** the seed-twin pair does not help on gold-58 (0.9065 < `v09r`; ρ 0.952 — the twins agree more than any two
+   families did), while `v09r` + `v09x` reads 0.9126 (+0.003, sub-floor). #23 showed gold-58 predicts pair blends' LB direction
+   well (−0.001 → ±0.000).
+
 ## Infrastructure
 
 ### 2026-09-27 — The "0.943 Speedy Raptors CoAtNet D4" notebook is our anchor **plus two CoAt readers**, not a faster graph; its "< 30 min" is a 3-study commit run · P-41 (threaded scan + 8 decode workers) smoke-green and byte-identical
@@ -2555,5 +2631,5 @@ and public LB score, so a public/private divergence can be traced to a specific 
 | 19 | 2026-09-23 | rsna-knee-infer v16 (v15's mounts + Dataset `rsna-knee-ckpt-v09t`) | **Self-distilled production member, solo (P-38 in production)**: `INFER_MEMBERS = ["v09t"]` — the `v09a` recipe trained on 0.5 · LLM + 0.5 · quantile-matched `selfdistill_v1` (RunPod 4090, 35 min), gold-58 SWA 0.9009 (`v09a`: 0.8922) | none (production member — traps 32) | **0.917** | **read 2026-09-24 00:07 → ❌ by the pre-registered rule (< 0.918): −0.001 vs #18, sub-floor — no transfer** (entry "Submission #19"). sent 23:25, ref 56504077; placeholder 2 min (`infer members (1): v09t/fold0 … [epoch 7, score 0.9009]`, `constant labels 0`). **Read vs #18 (0.918): ≥ 0.923 ✅ self-distillation transfers to the production member → retrain `v08a` the same way and put both into the fork; 0.919–0.922 🔁; < 0.918 ❌.** 2 submissions left today |
 | 20 | 2026-09-26 | rsna-knee-infer v17 (v16's mounts + Dataset `rsna-knee-ckpt-v09r`) | **Raptor-distilled production member, solo (P-39 / Task 12)**: `INFER_MEMBERS = ["v09r"]` — the `v09a` recipe trained on 0.5 · LLM + 0.5 · quantile-matched `raptor_teacher` (RunPod 4090, 48 min), gold-58 SWA 0.9093 (`v09a`: 0.8922, `v09t`: 0.9009) | none (production member — traps 32) | **0.927** | **read 2026-09-27 09:28 → ✅ KEEP: +0.009 vs #18 (0.918), above the 0.923 line** (entry "Submission #20"). sent 2026-09-27 00:36, ref 56590282; placeholder 4 min after an immediate start (`infer members (1): v09r/fold0 … [epoch 7, score 0.9093, ema True]`, `decode-once verified`, `constant labels 0`; outputs `artifacts/kaggle_out/infer_solo_v09r/`). **Read vs #18 (0.918): ≥ 0.923 ✅ the Raptor teacher transfers → `v08r` + the fork at β 0.10; 0.919–0.922 🔁; < 0.918 ❌.** 4 submissions left today |
 | 21 | 2026-09-27 | rsna-knee-infer v19 (v17's mounts + Dataset `rsna-knee-ckpt-v08r`) | **Raptor-distilled DINOv2-S member, solo (P-40 step B)**: `INFER_MEMBERS = ["v08r"]` — the S2 `v08a` recipe (DINOv2-S @224, c02, window_attn, 8 ep SWA 5–7) trained on 0.5 · LLM + 0.5 · quantile-matched `raptor_teacher` (RunPod A100, 31 min), gold-58 SWA 0.8981 (`v08a`: 0.8850); **first solo with P-41** (16-thread scan, 8 decode workers) | none (production member — traps 32) | **0.918** | **read 2026-09-27 16:24 UTC → −0.009 vs `v09r` (#20, 0.927), 0.002 under the ≈ 0.920 fork-member bar; P-41 speed unread (the watcher died with the laptop: PENDING at 13:43, first seen COMPLETE 14:24 → ≤ 2 h 43 min, no information vs #19's ≤ 42)** (entry "Submission #21"). sent 13:41:35 UTC, ref 56610108; placeholder green (`smoke False`, `infer members (1): v08r/fold0 … [epoch 7, score 0.8981, ema True]`, `decode-once workers: 8 (cpus 4, usable 4)`, `decode-once verified`, `constant labels 0`; outputs `artifacts/kaggle_out/infer_solo_v08r/`); scoring timed by `src/watch_submission.py` (60 s polls → `artifacts/submission_timing.csv`). **Reads:** LB vs `v09r` 0.927 (no `v08a` solo baseline exists); P-41 speed **≤ 30 min ✅ / 30–42 🔁 / > 42 ❌** vs #19's ≤ 42 min bound. 4 submissions left today |
-| 22 | 2026-09-27 | rsna-knee-fork v9 (the anchor's 16 public sources — 13 Datasets, 1 Model, 2 kernels — + Datasets `rsna-knee-ckpt-v09r`, `timm-coatnet-rmlp-1-rw-224`) | **P-40 step A**: the public 0.942 graph (cells 0–49 verbatim) + our arm = **`v09r` alone** (Raptor-distilled CoAtNet-1, solo 0.927 #20) at **β 0.10** — `build_fork.py --members v09r --member v09r=… --beta 0.10` | none (production member — traps 32) | ⏳ | sent 16:36:17 UTC, ref 56614068, after **≈ 3 h 40 min QUEUED** (pushed 12:48; traps 41 second instance); placeholder green (`fork_diagnostics.json`: `status beta0.10`, `members [v09r]`, subprocess rc 0 in 104 s, `v09r/fold0 … [epoch 7, score 0.9093, ema True]`, `decode-once workers: 8`, anchor sha = submission sha `7c6dfe8b…` as expected at β 0.10 on 3 studies, elapsed 0.10 h; outputs `artifacts/kaggle_out/fork_v9/`); watched by `watch_submission.py` (120 s). **Read vs #13 / #15 (0.942): ≥ 0.947 ✅ our member counts / 0.940–0.946 🔁 / ≤ 0.939 ❌** (P-40) |
+| 22 | 2026-09-27 | rsna-knee-fork v9 (the anchor's 16 public sources — 13 Datasets, 1 Model, 2 kernels — + Datasets `rsna-knee-ckpt-v09r`, `timm-coatnet-rmlp-1-rw-224`) | **P-40 step A**: the public 0.942 graph (cells 0–49 verbatim) + our arm = **`v09r` alone** (Raptor-distilled CoAtNet-1, solo 0.927 #20) at **β 0.10** — `build_fork.py --members v09r --member v09r=… --beta 0.10` | none (production member — traps 32) | **0.942** | **read 2026-09-28 09:12 UTC (first look) → 🔁 ±0.000 vs 0.942 (P-40)**; scoring time unknown — the watcher died with the laptop and wrote no row, so the only bound is ≤ 16 h 36 min after sending (entry "Submission #22"). sent 16:36:17 UTC, ref 56614068, after **≈ 3 h 40 min QUEUED** (pushed 12:48; traps 41 second instance); placeholder green (`fork_diagnostics.json`: `status beta0.10`, `members [v09r]`, subprocess rc 0 in 104 s, `v09r/fold0 … [epoch 7, score 0.9093, ema True]`, `decode-once workers: 8`, anchor sha = submission sha `7c6dfe8b…` as expected at β 0.10 on 3 studies, elapsed 0.10 h; outputs `artifacts/kaggle_out/fork_v9/`); watched by `watch_submission.py` (120 s). **Read vs #13 / #15 (0.942): ≥ 0.947 ✅ our member counts / 0.940–0.946 🔁 / ≤ 0.939 ❌** (P-40) |
 | 23 | 2026-09-27 | rsna-knee-infer v20 (v19's mounts) | **P-42**: `INFER_MEMBERS = ["v09r", "v08r"]` — flat rank-mean of the two Raptor-distilled families (CoAtNet-1 solo 0.927 + DINOv2-S solo 0.918), one vote each, one shared decode (`artifacts/infer_pair_v09r_v08r.py` = `src` + 3 seds) | none (production members — traps 32); gold-58 hand-computed: ρ 0.924, rank-mean 0.9085 vs `v09r` 0.9093 | **0.927** | **read 17:05:54 UTC → 🔁 ±0.000 vs `v09r` (P-42); scored within [28.3, 29.3] min of sending → P-41 ✅** (`artifacts/submission_timing.csv`; entry "Submission #23"). sent 16:36:38 UTC, ref 56614080; placeholder green (`smoke False`, `infer members (2): v09r/fold0, v08r/fold0`, 1 geometry group, `decode-once workers: 8 (cpus 4, usable 4)`, `decode-once verified`, scores 0.9093 / 0.8981, `blend: by_version -> v09r (1 fold), v08r (1 fold)`, `constant labels 0`, inference 0.6 min; outputs `artifacts/kaggle_out/infer_pair_v09r_v08r/`); **the P-41 timed solo** — `watch_submission.py` 60 s polls, laptop awake. **Reads:** LB vs `v09r` 0.927: **≥ 0.932 ✅ / 0.923–0.931 🔁 / ≤ 0.922 ❌** (P-42); P-41 speed **≤ 30 min ✅ / 30–42 🔁 / > 42 ❌**. 2 submissions left today |
