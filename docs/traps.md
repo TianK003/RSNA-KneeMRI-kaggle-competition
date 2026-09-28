@@ -866,3 +866,22 @@ mounts each shard under its own directory and the loader keys on the `cache_vers
 name is globbed), then `RSNA_N_SHARDS=1 python src/cache_pipeline.py` rebuilds the 3-study local c02 index in seconds (the default
 `N_SHARDS = 4` caches only the 1 sample study that falls in shard 0). **Do:** after any local override build, `ls
 artifacts/cache_local/manifest_shard*` and check each file's `cache_version` before a local smoke.
+
+### 44. A training session can die from outside with `ERROR`, an empty failure message, a log cut mid-run and ZERO saved files — a child that had already finished is lost with it (Tier 2, 2026-09-28)
+
+Session C (`rsna-knee-train` v33, `PARALLEL_ARMS = ("v09k4", "v13a")`, started 15:40 UTC): `v13a` (ResNet-34) finished all 8
+epochs at ≈ 0.7 h (`RSNA_TRAIN_ONLY is set -- stopping before inference`, GPU 1 idle from then on); `v09k4` finished epoch 7 at
+2.21 h and entered its SWA held-out pass (GPU 0 7,651 → 9,141 MiB). **The log ends there** — the last event is the 2.21 h heartbeat
+(host RAM 3/31 GB), no traceback, no `ok  arm` / `FAIL` line, no nbconvert lines, no next heartbeat (180 s cadence). Status
+`ERROR`, `failureMessage` empty (API), and `list_kernel_session_output` returns **0 files**: no child logs, not even `v13a`'s
+finished `_best.pt`.
+**Why it is not our code (evidence, 2026-09-28):** sessions A and B ran the identical recipe and sat in the same SWA pass at the
+same readings (GPU 9,141 MiB, host RAM 3/31 GB) for 2–3 further heartbeats and completed (2.29 / 2.26 h); a child crash (CUDA OOM,
+DataLoader OOM-kill, exception) kills only the child — the parent keeps heartbeating and writes `FAIL arm …` (traps 28's OOM
+left a traceback); a notebook exception still saves `/kaggle/working`. Zero files + a log cut between heartbeats = the container
+was terminated from outside (VM / hardware / platform), which Kaggle does not report. GPU quota was not it (`kaggle quota`: 19.33 h
+used, 10.67 h left; session D kept running). Not reproducible from here.
+**Cost:** ≈ 2.2 GPU-h and both arms (the cross-fit's fold 4 and the ResNet-34 arm), because outputs persist only when the whole
+session ends. **Do:** re-push the same build (it is `src` + seds; nothing to fix); when a short arm shares a session with a long
+one, its result is hostage to the long one — pair arms of similar length where possible, and read `kaggle kernels status` + the
+API `failureMessage` + the output file list before concluding anything from a missing child log.
