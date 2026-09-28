@@ -58,10 +58,10 @@ result*, per unit of cost. "Depends on" lists hard blockers only. EVs are solo-L
 
 | rank | id | title | status | expected value | cost | depends on |
 |---|---|---|---|---|---|---|
-| 0b | P-54 | 5-fold cross-fit of the v09r recipe (`v09k0-4`): honest OOF + a 5-fold member | ⏳ folds 0–3 ✅ (sessions A ‖ B, 2.29 / 2.26 h, 2026-09-28); **fold 4 = session C (`rsna-knee-train` v33, pushed 15:35 UTC)** | enables P-55; fold ensemble +0.000..0.005 | ~7.7 GPU-h (3 sessions) | — |
+| 0b | P-54 | 5-fold cross-fit of the v09r recipe (`v09k0-4`): honest OOF + a 5-fold member | ⏳ folds 0–3 ✅ (sessions A ‖ B, 2.29 / 2.26 h, 2026-09-28); **fold 4 LOST: session C (`rsna-knee-train` v33) died from outside at 2.2 h with 0 saved files (traps 44) → re-push C** | enables P-55; fold ensemble +0.000..0.005 | ~7.7 GPU-h (3 sessions) | — |
 | 0c | P-55 | OOF soft-bootstrapped student `v09o` / `v09o2` (0.25 LLM + 0.375 Raptor + 0.375 xfit, mix 0.75) | 🔧 arms + `DISTILLED_MIX` guard in; needs fold 4 → the xfit table → the loose gate | 0..+0.005 (Nicolai: no LB transfer) | ~2.9 GPU-h, 3 submissions | P-54; loose gate |
 | 0d | P-56 | Dense-slice input c03 (24/24/24/14/8/8, 150 mm) `v11a` / `v11b` | ⏳ **session D (`rsna-knee-folds` v10, c03 mounted alone, pushed 15:36 UTC)**; cache3 green (4,407 studies, 50.7 GB, 0 failures); prior lowered by #28 (the gold deficit is gold-specific) | the only untested input axis since c02 | ~3.7-4.4 GPU-h, 3 submissions | — |
-| 0e | P-57 | ResNet-34 on the v09r recipe (`v13a`) | ⏳ **in session C** (`rsna-knee-train` v33, beside `v09k4`) | tests the Scott Willis / CoolinLai route | ~0 extra (rides with `v09k4`) | — |
+| 0e | P-57 | ResNet-34 on the v09r recipe (`v13a`) | ⏳ **LOST with session C** (8 epochs done in 0.7 h; the container died at 2.2 h before saving — traps 44) → re-push C | tests the Scott Willis / CoolinLai route | ~0 extra (rides with `v09k4`) | — |
 | 0f | P-58 | Local-CPU open-weights LLM relabel as a 4th vote (Scott's Gemma route) | 💡 future, not scheduled (Tian 2026-09-28) | 0..+0.002 | 0 GPU; overnight CPU | — |
 | 1 | P-52 | Three-member production blend `v09r` + `v09u` + `v09x` | 💡 new 2026-09-28 — no training; the checkpoints are shipped | +0.001..0.004 solo over #26 (0.930); gold-58: all three 0.9110 vs pair 0.9065 | ≈ 0.1 h T4 placeholder + 1 solo (≈ 30 min) | P-43 / P-44 (both read) |
 | 4 | P-50 | Final selection and publishability | 💡 decide by 2026-10-15 | decides what the private LB scores | a browser session; ≤ 1 fork check | P-40 ✅ closed (#22 / #27), Rules page |
@@ -148,7 +148,7 @@ Depends on:   P-43 / P-44 (both read).
 
 ### P-54 5-fold cross-fit of the `v09r` recipe (`v09k0` … `v09k4`)
 Status:       ⏳ folds 0–3 ✅ (sessions A ‖ B = `rsna-knee-train` v32 ‖ `rsna-knee-folds` v9, 2026-09-28, 2.29 / 2.26 h; experiments.md
-              2026-09-28 "P-54 sessions A ‖ B"); **fold 4 = `v09k4` in session C** (`rsna-knee-train` v33, pushed 15:35 UTC).
+              2026-09-28 "P-54 sessions A ‖ B"); **fold 4 = `v09k4`: session C (`rsna-knee-train` v33) died from outside at 2.2 h, 0 files saved (traps 44) — re-push.**
 Hypothesis:   a 5-fold cross-fit of the production recipe gives honest out-of-fold predictions for every training study — the
               precondition for OOF soft bootstrapping (P-55) — and its 5-fold flat rank-mean reads above the #26 pair solo.
 Origin:       Archit Konde, Kaggle discussion 735304 (out-of-fold soft bootstrapping); research.md 2.7.2.
@@ -202,7 +202,7 @@ If it fails:  c02 stays; the input axis closes.
 Depends on:   —.
 
 ### P-57 ResNet-34 on the `v09r` recipe (`v13a`)
-Status:       ⏳ **in session C** (`rsna-knee-train` v33, beside `v09k4`); weights = private Dataset `timm-resnet34-a1`
+Status:       ⏳ **lost with session C** (`rsna-knee-train` v33 died at 2.2 h, 0 files saved — traps 44; re-push); weights = private Dataset `timm-resnet34-a1`
               (`timm/resnet34.a1_in1k`); ResNet support in `load_timm_backbone` / `param_groups`, smoke v31 green.
 Hypothesis:   the backbone class is not what separates us from the thread's single models: `v13a` reads ≥ `v09r` solo.
 Origin:       discussion 735304 — Scott Willis (small ResNet, single fold, 0.949), CoolinLai (5-fold ResNet @224, 0.954).
