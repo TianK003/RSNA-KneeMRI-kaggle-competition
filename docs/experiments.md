@@ -88,6 +88,10 @@ Judge label changes on **coverage** (does the rule fire at all, per language) an
 | 2026-09-28 | **P-44, submission #24 (`rsna-knee-infer` v21)**: `v09u` solo — the `v09r` recipe exactly, seed 43, Kaggle T4 | gold-58 SWA 0.8995 (−0.010 vs `v09r`) | **0.927** (read 09:48 UTC) | **✅ KEEP (a measurement): s = \|`v09u` − 0.927\| = 0.000 → by the card's rule one-seed deltas need ≥ 0.004 from now on** (one draw; LB rounded to 3 decimals). P-39 re-confirmed on the same platform as #18 (mean 0.927 − 0.918 = 0.009 ≥ 0.006) — the +0.009 was the targets, not RunPod. Gold-58's −0.010 did not transfer (entry "Submissions #24–#26") |
 | 2026-09-28 | **P-43, submission #25 (`rsna-knee-infer` v22)**: `v09x` solo — the `v09r` recipe at 320 px | gold-58 SWA 0.9094 | **0.929** (read 09:59 UTC) | **🔁 INCONCLUSIVE: +0.002 vs m = mean(0.927, 0.927); ✅ needed ≥ 0.932 (m + max(0.005, 2s)), ❌ ≤ 0.922.** Our best single member, not by a readable margin; 1.4× the inference time of a 224 member (136 vs 98 s / 100 studies) |
 | 2026-09-28 | **P-44, submission #26 (`rsna-knee-infer` v23)**: `v09r` + `v09u` flat rank-mean (seed 42 RunPod + seed 43 Kaggle, one recipe) | gold-58 rank-mean 0.9065 (−0.003 vs `v09r`); ρ 0.952 | **0.930** (read 10:01 UTC) — **our best solo** | **✅ KEEP as the production member — the pre-registered line (≥ 0.930) met exactly; 🔁 as evidence that seed averaging is a lever: +0.003 vs either member is under the 0.004 floor #24 sets.** Gold-58 had the sign wrong (−0.003) |
+| 2026-09-28 | **P-40 β 0.20 retry, submission #27 (`rsna-knee-fork` v10)**: the public 0.942 graph + `v09r` alone at β 0.20 | gold-58 of `v09r` 0.9093 | **0.941** | **🔁 INCONCLUSIVE: −0.001 vs #13 / #15 (0.942), inside 0.940–0.946** — neither β 0.10 (#22 0.942) nor β 0.20 registers a 0.927 member; +0.002 over #12 (β 0.20, 0.87-level members) is sub-floor. **P-40 closes: the fork is for final-selection builds only (P-50)** (entry "Submissions #27–#28") |
+| 2026-09-28 | **P-53 per-label probe, submission #28 (`rsna-knee-infer` v24)**: the #26 pair with ACL / MCL / PF OA / Lat Men = constant 0.5 — a diagnostic, never a candidate | gold-58: those 4 labels 0.886 vs the other 8 0.914 (Δ +0.028) | **0.785** | **✅ KEEP (a measurement): on the public test the 4 "structural" labels average 0.935 ± 0.003 and the other 8 0.9275 → Δ −0.0075: the gold-58 deficit is gold-specific (pre-registered: mean4 ≥ mean8 − 0.01).** The c03 input (P-56) keeps running on a lower prior (entry "Submissions #27–#28") |
+| 2026-09-28 | **P-49 Raptor over the 58 gold studies (`rsna-knee-teacher-gold` v1, 58/58, 4.7 s/study, 0 failed)** | **Raptor 0.9254** (optimistic: its authors picked epochs on gold) · LLM blend 0.8948 · **the 0.5/0.5 training target 0.9268 (12/12 labels above the LLM; paired bootstrap +0.032, SD 0.008)**; within-class ρ `v09r` ~ Raptor **0.835** vs `v09r` ~ LLM 0.408 | — | **🔁 direction only (a correlation read, never a verdict):** our member is closer to Raptor than to anything else we have measured except its own seed twin (0.916) → the fork cannot read it (P-40 ✅ closed); matched-mix analogs on Raptor itself: 0.25 → 0.9187, **0.5 → 0.9268**, 0.75 → 0.9252 (−0.002, SD 0.003), 1.0 → 0.9098 (−0.017, SD 0.009) → mix 0.5 stays, P-47 priced at ≈ 0; the student trails its own target by 0.018 on gold (entry "P-49") |
+| 2026-09-28 | **P-54 cross-fit, sessions A ‖ B (`rsna-knee-train` v32 ‖ `rsna-knee-folds` v9)**: the `v09r` recipe with `train_all` False on folds 0–3 (`v09k0` … `v09k3`), SWA 5–7, held-out eval once (`eval_final_only`), Raptor mix 0.5 | per-fold gold (11–12 studies each, noise): 0.9272 / 0.9136 / 0.8582 / 0.8883; OOF-vs-LLM (`auc_soft`, 881–882 each): 0.8816 / 0.8728 / 0.8707 / 0.8679 | — | ✅ **the runs** (`ok  arm` ×4, `fold k: train 3525–3526 / val 881–882`, `SWA of last 3`, no guard; 2.29 h / 2.26 h wall; checkpoints 157 MiB) — ⏳ fold 4 (`v09k4`, session C = `rsna-knee-train` v33) before the table; the OOF-vs-LLM numbers are not a verdict on anything (traps 39) (entry "P-54 sessions A ‖ B") |
 
 **External reference points** (not ours — for calibrating ambition):
 
@@ -2223,6 +2227,113 @@ at 20-22 was wrong: sagittal is also ~30 native). cache_selftest: c03 arrays bit
 **Verdict: 🔁 direction only (58 studies, labels picked after looking) — the probe (#28) re-reads it on ~400 public studies.** Source
 thread synthesis: research.md 2.7.2; plan: docs/superpowers/plans/2026-09-28-single-model-plan.md.
 
+**CORRECTED 2026-09-28 (15:33 UTC, #28):** on the public test the four labels are *not* weak — they average 0.935 vs 0.9275 for the
+other eight (entry "Submissions #27–#28"). The gold-58 deficit is gold-specific; the census facts above still stand.
+
+### 2026-09-28 — Submissions #27–#28: the fork at β 0.20 reads **0.941** (🔁, P-40 closes) · the per-label probe reads **0.785** → the "structural deficit" is gold-specific (P-53)
+
+Both first seen scored at 15:33 UTC; the watchers died with the laptop, so the times are bounds (#27 was still pending at 12:12).
+
+**#27 — `rsna-knee-fork` v10, `v09r` alone at β 0.20, sent 09:40 UTC → 0.941, scored within (2 h 32 min, 5 h 53 min].**
+
+| # | our arm | β | public LB |
+|---|---|---|---|
+| 15 | none (anchor control) | 0 | 0.942 |
+| 12 | `v08w` + 5-fold `v09h` (0.87-level) | 0.20 | 0.939 |
+| 13 | `v08w` + 5-fold `v09h` | 0.10 | 0.942 |
+| 17 | + `v09a` + `v08a` (0.918-level) | 0.10 | 0.941 |
+| 22 | `v09r` alone (0.927 solo) | 0.10 | 0.942 |
+| **27** | **`v09r` alone** | **0.20** | **0.941** |
+
+**Verdict: 🔁 INCONCLUSIVE** by the P-40 bands (≥ 0.947 ✅ / 0.940–0.946 🔁 / ≤ 0.939 ❌). The pre-registered branch after #22 was "β 0.20
+once" — done, so **P-40 closes**: at β 0.10 or 0.20 the fork does not register a member of ours between 0.87 and 0.927 solo, and
+P-49 (entry below) gives the reason — `v09r`'s within-class errors track Raptor (ρ 0.835), which the anchor already carries. The fork
+is for final-selection builds only (P-50).
+
+**#28 — the P-53 probe, sent 11:56 UTC → 0.785, scored within (15 min, 3 h 36 min].** The #26 pair (0.930) with ACL, MCL, PF OA and
+Lateral Meniscus written as a constant 0.5 (each of those AUCs is then exactly 0.5). With S = 12 × 0.930:
+
+- mean4 = 0.5 + 3 × (0.930 − 0.785) = **0.935** (± 0.003 from the 3-decimal rounding of both scores);
+- mean8 = (S − 4 · mean4) / 8 = 1.5 × 0.785 − 0.25 = **0.9275** (± 0.001);
+- mean8 − mean4 = **−0.0075** (gold-58 for the same pair: 0.914 − 0.886 = **+0.028**).
+
+**Verdict: ✅ KEEP (a measurement), by the rule written before the read:** mean4 ≥ mean8 − 0.01 → **the deficit is gold-specific.** On
+≈ 400 public studies our four "structural" labels are, if anything, *stronger* than the other eight. What the probe cannot say: the
+gold diagnosis was *relative to the LLM labels* (which do not exist on the test), so "we trail the reports on these labels" is
+neither confirmed nor refuted — only "these labels are where we are weak" is refuted. Consequences: the c03 input arm (P-56, session
+D, already running) loses its main motivation and runs on the census argument alone (lower prior); the probe is diagnosis only and is
+never used to weight labels.
+
+### 2026-09-28 — P-49: Raptor over the 58 gold studies — Raptor 0.9254, the 0.5/0.5 target 0.9268; `v09r` tracks Raptor (within-class ρ 0.835) · 🔁 direction only
+
+`rsna-knee-teacher-gold` v1 (`build_teacher_pass.py --gold`): 58/58 studies, 0 failed, 4.7 s/study (263 s over both T4s). Merged
+with `merge_teacher.py --expect-n 58` → `artifacts/teacher/raptor_gold.csv` (a name `TEACHER_PATHS` never reads — gold rows cannot
+reach training). The 0.5/0.5 target is computed as training computes it: each gold Raptor value is mapped through the 4,349-study
+Raptor ECDF onto the LLM blend's report-only distribution, then averaged with the gold study's LLM value (scratch `p49_gold.py` /
+`p49_rho.py`, session scratchpad).
+
+| label | pos | LLM blend | Raptor | 0.5/0.5 target |
+|---|---|---|---|---|
+| ACL | 24 | 0.990 | 0.980 | 0.995 |
+| MCL | 9 | 0.980 | 0.993 | 0.997 |
+| Medial Meniscus | 26 | 0.955 | 0.969 | 0.980 |
+| Lateral Meniscus | 23 | 0.881 | 0.863 | 0.928 |
+| Medial OA | 15 | 0.931 | 0.985 | 0.978 |
+| Lateral OA | 11 | 0.808 | 0.836 | 0.819 |
+| PF OA | 21 | 0.903 | 0.835 | 0.909 |
+| Effusion | 35 | 0.880 | 0.973 | 0.944 |
+| Synovitis | 27 | 0.788 | 0.824 | 0.830 |
+| Baker's | 12 | 0.947 | 0.978 | 0.957 |
+| Contusion | 19 | 0.861 | 0.931 | 0.913 |
+| Fracture | 18 | 0.815 | 0.938 | 0.872 |
+| **macro** | | **0.8948** | **0.9254** | **0.9268** |
+
+Paired study bootstrap (2,000 reps): Raptor − LLM +0.031 (SD 0.015); target − LLM **+0.032 (SD 0.008), 12/12 labels up**. Raptor alone
+is optimistic (its public authors chose epochs / SWA on these 58), the LLM blend is not.
+
+**Within-class ρ on gold-58** (per label, mean of the Spearman ρ inside positives and inside negatives, then macro; the definition
+reproduces the audit's `v09r` ~ `v08r` 0.861 as 0.860):
+
+| pair | ρ | pair | ρ |
+|---|---|---|---|
+| `v09r` ~ `v09u` (seed twins) | 0.916 | `v09a` ~ Raptor (LLM targets) | 0.742 |
+| `v09r` ~ `v09a` | 0.888 | LLM ~ Raptor | 0.441 |
+| `v09r` ~ Raptor | **0.835** | `v09r` ~ LLM | 0.408 |
+| `v09u` / `v09x` / `v08r` ~ Raptor | 0.826 / 0.806 / 0.780 | `v09r` ~ `v08r` | 0.860 |
+
+**Matched-mix analogs on Raptor itself** (yt = (1 − w) · LLM + w · matched Raptor, gold macro): w 0 → 0.8948, 0.25 → 0.9187, **0.5 →
+0.9268**, 0.75 → 0.9252 (−0.0017 vs 0.5, SD 0.003), 1.0 → 0.9098 (−0.017, SD 0.009).
+
+**Verdict: 🔁 direction only — a correlation read, as the card pre-registered, never a verdict.** What it says:
+1. **Distillation moved our member most of the way onto Raptor:** `v09a` (LLM targets) ~ Raptor 0.742 → `v09r` 0.835 (+0.09), while
+   `v09r` ~ LLM is 0.408. The card's "If it works" fires: a high ρ → the fork cannot read `v09r` (consistent with #22 / #27) → P-40
+   closed, the fork is for final builds (P-50).
+2. **Mix 0.5 is the best matched mix on gold** → P-47 (mix 0.75) is priced at ≈ 0 (−0.002); mix 1.0 is worse (−0.017, 1.9 SD), as the
+   D4 / resgated analogs said. Not a reason to change the P-55 student (its 0.75 includes the cross-fit OOF, a different table).
+3. **The student trails its own target by 0.018 on gold** (`v09r` 0.9093 vs 0.9268; the seed twin 0.8995). The gap between what the
+   targets know and what the student learns is at least as large as any target change we have measured — the P-54 / P-55 cross-fit
+   and the P-56 input are both attempts at it.
+
+### 2026-09-28 — P-54 cross-fit sessions A ‖ B: folds 0–3 of the `v09r` recipe (`v09k0` … `v09k3`) trained and scored · ✅ runs green, ⏳ fold 4
+
+`rsna-knee-train` v32 (`v09k0` ‖ `v09k1`, 2.29 h wall) and `rsna-knee-folds` v9 (`v09k2` ‖ `v09k3`, 2.26 h), pushed 12:10 UTC, both
+`artifacts/train_xf_{A,B}.py` = `src` + 3 seds (`FORCE_SMOKE = False`, `PARALLEL_ARMS`, `TEACHER_TABLES = ("raptor_teacher",)`).
+Every child: `teacher table raptor_teacher: 4349 studies`, `fold k: train 3525–3526 / val 881–882`, 8 epochs with `(held-out eval
+deferred to the SWA pass: eval_final_only)`, `SWA of last 3 EMA snapshot(s)`, `-> v09k*_fold*_best.pt = SWA`, no runtime guard; the
+parents judged each child by its fold's `_best.pt` (`ok  arm v09kN … (folds [N])` ×4). Pulled to `artifacts/kaggle_out/xf_A|B/`
+(4 × 157 MiB checkpoints, 881–882-row OOF csvs incl. 11–12 gold rows each).
+
+| fold | arm | train / val | final loss | OOF vs LLM (`auc_soft`) | gold (n) | val pass |
+|---|---|---|---|---|---|---|
+| 0 | `v09k0` | 3,525 / 882 | 0.3825 | 0.8816 | 0.9272 (11) | 6.9 min |
+| 1 | `v09k1` | 3,525 / 882 | 0.3854 | 0.8728 | 0.9136 (12) | 6.2 min |
+| 2 | `v09k2` | 3,526 / 881 | 0.3824 | 0.8707 | 0.8582 (12) | 6.8 min |
+| 3 | `v09k3` | 3,526 / 881 | 0.3847 | 0.8679 | 0.8883 (12) | 6.2 min |
+
+**Verdict: ✅ the runs (the cross-fit pipeline works on folds 1–3, which no smoke can reach); no verdict on anything else.** OOF vs the
+LLM targets rewards agreement with the teacher (traps 39); per-fold gold on 11–12 studies is noise. Fold 4 (`v09k4`) is session C
+(`rsna-knee-train` v33, with `v13a`, pushed 15:35 UTC); then the table (`build_distill_table.py --per-fold-rank`) and the loose gate.
+
 ## Infrastructure
 
 ### 2026-09-27 — The "0.943 Speedy Raptors CoAtNet D4" notebook is our anchor **plus two CoAt readers**, not a faster graph; its "< 30 min" is a 3-study commit run · P-41 (threaded scan + 8 decode workers) smoke-green and byte-identical
@@ -2696,5 +2807,5 @@ and public LB score, so a public/private divergence can be traced to a specific 
 | 24 | 2026-09-28 | rsna-knee-infer v21 (v20's mounts + Datasets `rsna-knee-ckpt-v09x`, `rsna-knee-ckpt-v09u`) | **P-44, the seed/platform twin solo**: `INFER_MEMBERS = ["v09u"]` — the `v09r` recipe exactly, **seed 43**, trained on a Kaggle T4 (`rsna-knee-train` v30), gold-58 SWA 0.8995 (`v09r`: 0.9093) (`artifacts/infer_solo_v09u.py` = `src` + 3 seds) | none (production member — traps 32) | **0.927** | **read 09:48:00 UTC → s = \|0.927 − 0.927\| = 0.000 (P-44 ✅: one-seed deltas now need ≥ 0.004; P-39 re-confirmed); scored within [20.4, 21.4] min of sending** (entry "Submissions #24–#26"). sent 09:26:38 UTC, ref 56636408; placeholder green (`smoke False`, `infer members (1): v09u/fold0`, `img_size 224`, `decode-once workers: 8`, `decode-once verified`, `[epoch 7, score 0.8995, ema True]`, `constant labels 0`, 98 s / 100 studies; outputs `artifacts/kaggle_out/infer_solo_v09u/`); watched by `watch_submission.py` (60 s). **Read (P-44):** s = \|`v09u` − 0.927\| = one draw of the Kaggle-retrain spread; **`v09u` ≤ 0.920 → re-open P-39** |
 | 25 | 2026-09-28 | rsna-knee-infer v22 (v21's mounts) | **P-43, the 320-px student solo**: `INFER_MEMBERS = ["v09x"]` — the `v09r` recipe at **img_size 320** (batch 1 × accum 4), seed 42, Kaggle T4 (`rsna-knee-train` v30), gold-58 SWA 0.9094 (`artifacts/infer_solo_v09x.py`) | none (production member — traps 32) | **0.929** | **read 09:59:07 UTC → 🔁 +0.002 vs m = 0.927 (needed ≥ 0.932, P-43); the best solo single member of ours; scored within [29.3, 30.3] min** (entry "Submissions #24–#26"). sent 09:28:50 UTC, ref 56636467; placeholder green (`infer members (1): v09x/fold0`, timm `img_size 320` (445 tensors), `decode-once verified`, `[epoch 7, score 0.9094, ema True]`, `constant labels 0`, **136 s / 100 studies** = 1.4× `v09u`; outputs `artifacts/kaggle_out/infer_solo_v09x/`); watched (60 s). **Read (P-43):** vs m = mean(0.927, #24), s from #24: **✅ ≥ m + max(0.005, 2s) / ❌ ≤ m − max(0.005, 2s) / 🔁 otherwise** |
 | 26 | 2026-09-28 | rsna-knee-infer v23 (v21's mounts) | **P-44, the 2-seed production member**: `INFER_MEMBERS = ["v09r", "v09u"]` — flat rank-mean of the seed-42 (RunPod) and seed-43 (Kaggle) copies of one recipe (`artifacts/infer_pair_v09r_v09u.py`) | none (production members — traps 32); gold-58 hand-computed: ρ 0.952, rank-mean 0.9065 vs `v09r` 0.9093 | **0.930** | **read 10:01:41 UTC → the pre-registered ≥ 0.930 line met exactly (+0.003 vs either member, under the 0.004 floor #24 sets) → the production member; scored within [28.3, 29.3] min** (entry "Submissions #24–#26"). sent 09:32:25 UTC, ref 56636549; placeholder green (`infer members (2): v09r/fold0, v09u/fold0`, 1 geometry group, `decode-once verified`, scores 0.9093 / 0.8995, `blend: by_version -> v09r (1 fold), v09u (1 fold)`, `constant labels 0`; outputs `artifacts/kaggle_out/infer_pair_v09r_v09u/`); watched (60 s). **Read (P-44):** **≥ 0.930 ✅ seed ensembling is a lever / otherwise 🔁** — it becomes the production member either way. 2 submissions left today (1 after the fork) |
-| 27 | 2026-09-28 | rsna-knee-fork v10 (v9's 19 sources) | **P-40 β 0.20 retry** (Tian's go after #22 🔁): the public 0.942 graph (cells 0–49 verbatim) + **`v09r` alone** at **β 0.20** — `build_fork.py --members v09r --member v09r=… --beta 0.20` (only the β and the pipeline payload, now carrying the P-43 code, differ from v9) | none (production member — traps 32) | ⏳ | sent 09:40:09 UTC, ref 56636712; pushed 09:27 and RUNNING at once (no queue); placeholder green (`fork_diagnostics.json`: `status beta0.20`, `members [v09r]`, subprocess rc 0 in 286 s, `[epoch 7, score 0.9093, ema True]`, `decode-once verified`, anchor sha = submission sha `7c6dfe8b…` on 3 studies as at #12 (β 0.20), elapsed 0.18 h; outputs `artifacts/kaggle_out/fork_v10/`); watched (120 s). **Read vs #13 / #15 (0.942): ≥ 0.947 ✅ / 0.940–0.946 🔁 / ≤ 0.939 ❌** (P-40); compare #12 (β 0.20, 0.87-level members) 0.939. 1 submission left today |
-| 28 | 2026-09-28 | rsna-knee-infer v24 (v23 + `PROBE_CONST_LABELS`) | **P-53 DIAGNOSTIC probe, not a candidate**: the #26 pair (`v09r` + `v09u`) with ACL, MCL, PF OA, Lateral Meniscus written as a constant 0.5 | none | ⏳ | sent 11:56:44 UTC, ref 56639910; placeholder verified (the 4 columns = 0.5, the other 8 identical to v23, `constant labels 4`, the guard allows <= 6). **Read:** mean4 = 0.5 + 3 x (0.930 - probe) (+-0.003), mean8 = (12 x 0.930 - 4 x mean4) / 8; structural weakness confirmed on the test if mean8 - mean4 >= 0.03 (gold-58 says 0.028); if mean4 >= mean8 - 0.01 the gold deficit is gold-specific. 0 submissions left today |
+| 27 | 2026-09-28 | rsna-knee-fork v10 (v9's 19 sources) | **P-40 β 0.20 retry** (Tian's go after #22 🔁): the public 0.942 graph (cells 0–49 verbatim) + **`v09r` alone** at **β 0.20** — `build_fork.py --members v09r --member v09r=… --beta 0.20` (only the β and the pipeline payload, now carrying the P-43 code, differ from v9) | none (production member — traps 32) | **0.941** | **read (first seen) 15:33 UTC → 🔁 −0.001 vs #13 / #15 0.942, inside the pre-registered 0.940–0.946 band (P-40 closes); +0.002 over #12 (β 0.20, 0.87-level members, 0.939) is sub-floor; the watcher died with the laptop → scored within (2 h 32 min, 5 h 53 min] of sending** (entry "Submissions #27–#28"). sent 09:40:09 UTC, ref 56636712; pushed 09:27 and RUNNING at once (no queue); placeholder green (`fork_diagnostics.json`: `status beta0.20`, `members [v09r]`, subprocess rc 0 in 286 s, `[epoch 7, score 0.9093, ema True]`, `decode-once verified`, anchor sha = submission sha `7c6dfe8b…` on 3 studies as at #12 (β 0.20), elapsed 0.18 h; outputs `artifacts/kaggle_out/fork_v10/`); watched (120 s). **Read vs #13 / #15 (0.942): ≥ 0.947 ✅ / 0.940–0.946 🔁 / ≤ 0.939 ❌** (P-40); compare #12 (β 0.20, 0.87-level members) 0.939. 1 submission left today |
+| 28 | 2026-09-28 | rsna-knee-infer v24 (v23 + `PROBE_CONST_LABELS`) | **P-53 DIAGNOSTIC probe, not a candidate**: the #26 pair (`v09r` + `v09u`) with ACL, MCL, PF OA, Lateral Meniscus written as a constant 0.5 | none | **0.785** | **read (first seen) 15:33 UTC → mean4 = 0.5 + 3 × (0.930 − 0.785) = 0.935 (± 0.003), mean8 = 1.5 × 0.785 − 0.25 = 0.9275 (± 0.001): mean8 − mean4 = −0.0075 → the gold-58 structural deficit (+0.028) does NOT replicate on the public test — gold-specific by the pre-registered rule (mean4 ≥ mean8 − 0.01); c03 (P-56) runs with a lower prior; scored within (15 min, 3 h 36 min]** (entry "Submissions #27–#28"). sent 11:56:44 UTC, ref 56639910; placeholder verified (the 4 columns = 0.5, the other 8 identical to v23, `constant labels 4`, the guard allows <= 6). **Read:** mean4 = 0.5 + 3 x (0.930 - probe) (+-0.003), mean8 = (12 x 0.930 - 4 x mean4) / 8; structural weakness confirmed on the test if mean8 - mean4 >= 0.03 (gold-58 says 0.028); if mean4 >= mean8 - 0.01 the gold deficit is gold-specific. 0 submissions left today |

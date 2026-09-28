@@ -58,18 +58,15 @@ result*, per unit of cost. "Depends on" lists hard blockers only. EVs are solo-L
 
 | rank | id | title | status | expected value | cost | depends on |
 |---|---|---|---|---|---|---|
-| 0a | P-53 | Per-label public probe (structural 4 labels at 0.5) | ⏳ #28 sent 2026-09-28 11:56 UTC | diagnosis: structural deficit on ~400 public studies | 0 GPU, 1 submission | — |
-| 0b | P-54 | 5-fold cross-fit of the v09r recipe (`v09k0-4`): honest OOF + a 5-fold member | 🔧 code in (`eval_final_only`, fold glob); Kaggle smoke v31 running; sessions A/B next | enables P-55; fold ensemble +0.000..0.005 | ~7.7 GPU-h (3 sessions) | smoke green |
-| 0c | P-55 | OOF soft-bootstrapped student `v09o` / `v09o2` (0.25 LLM + 0.375 Raptor + 0.375 xfit, mix 0.75) | 🔧 arms + `DISTILLED_MIX` guard in; needs the xfit table | 0..+0.005 (Nicolai: no LB transfer) | ~2.9 GPU-h, 3 submissions | P-54; loose gate |
-| 0d | P-56 | Dense-slice input c03 (24/24/24/14/8/8, 150 mm) `v11a` / `v11b` | 🔧 cache3-a..d building (CPU) | the only untested input axis since c02 | ~3.7-4.4 GPU-h, 3 submissions | cache3 done |
-| 0e | P-57 | ResNet-34 on the v09r recipe (`v13a`) | 🔧 weights Dataset `timm-resnet34-a1` ready; in the smoke | tests the Scott Willis / CoolinLai route | ~0 extra (rides with `v09k4`) | smoke green |
+| 0b | P-54 | 5-fold cross-fit of the v09r recipe (`v09k0-4`): honest OOF + a 5-fold member | ⏳ folds 0–3 ✅ (sessions A ‖ B, 2.29 / 2.26 h, 2026-09-28); **fold 4 = session C (`rsna-knee-train` v33, pushed 15:35 UTC)** | enables P-55; fold ensemble +0.000..0.005 | ~7.7 GPU-h (3 sessions) | — |
+| 0c | P-55 | OOF soft-bootstrapped student `v09o` / `v09o2` (0.25 LLM + 0.375 Raptor + 0.375 xfit, mix 0.75) | 🔧 arms + `DISTILLED_MIX` guard in; needs fold 4 → the xfit table → the loose gate | 0..+0.005 (Nicolai: no LB transfer) | ~2.9 GPU-h, 3 submissions | P-54; loose gate |
+| 0d | P-56 | Dense-slice input c03 (24/24/24/14/8/8, 150 mm) `v11a` / `v11b` | ⏳ **session D (`rsna-knee-folds` v10, c03 mounted alone, pushed 15:36 UTC)**; cache3 green (4,407 studies, 50.7 GB, 0 failures); prior lowered by #28 (the gold deficit is gold-specific) | the only untested input axis since c02 | ~3.7-4.4 GPU-h, 3 submissions | — |
+| 0e | P-57 | ResNet-34 on the v09r recipe (`v13a`) | ⏳ **in session C** (`rsna-knee-train` v33, beside `v09k4`) | tests the Scott Willis / CoolinLai route | ~0 extra (rides with `v09k4`) | — |
 | 0f | P-58 | Local-CPU open-weights LLM relabel as a 4th vote (Scott's Gemma route) | 💡 future, not scheduled (Tian 2026-09-28) | 0..+0.002 | 0 GPU; overnight CPU | — |
 | 1 | P-52 | Three-member production blend `v09r` + `v09u` + `v09x` | 💡 new 2026-09-28 — no training; the checkpoints are shipped | +0.001..0.004 solo over #26 (0.930); gold-58: all three 0.9110 vs pair 0.9065 | ≈ 0.1 h T4 placeholder + 1 solo (≈ 30 min) | P-43 / P-44 (both read) |
-| 2 | P-40 | Raptor-distilled members into the fork | ⏳ **β 0.20 retry sent as #27** (2026-09-28 09:40 UTC, Tian's go) after #22 = 0.942 at β 0.10 (🔁) | low — the fork at β 0.10 is flat over member strength 0.913 → 0.927 | spent (#27 scoring, forks ≤ 8 h 06 min) | P-39 ✅, P-27 |
-| 3 | P-49 | Raptor over the 58 gold studies — a correlation diagnostic | ⏳ `rsna-knee-teacher-gold` v1 COMPLETE 2026-09-28 (not pulled yet) | validity: fork redundancy without an 8-h fork read; gates P-45 / P-47 | ≈ 20 lines + 0.2 h T4 (second slot) | P-39 (`build_teacher_pass.py`) |
-| 4 | P-50 | Final selection and publishability | 💡 decide by 2026-10-15 | decides what the private LB scores | a browser session; ≤ 1 fork check | P-40 (#22), Rules page |
+| 4 | P-50 | Final selection and publishability | 💡 decide by 2026-10-15 | decides what the private LB scores | a browser session; ≤ 1 fork check | P-40 ✅ closed (#22 / #27), Rules page |
 | 5 | P-18 | Efficiency track with the solo member | 💡 (robustness half shipped) | a separate prize; unknown until the formula is read | 0 GPU h (CLI + browser) | Efficiency formula (browser) |
-| 6 | P-47 | Teacher-mix bracket: mix 0.75 only | 💡 low | ≈ 0 (+0.000..0.002) | per-arm `TEACHER_MIX` code + ≈ 2.8 h; 1 solo | P-44 floor, an idle slot |
+| 6 | P-47 | Teacher-mix bracket: mix 0.75 only | 💡 low — P-49 priced it on Raptor itself: matched mix 0.75 − 0.5 = −0.002 (SD 0.003) on gold | ≈ 0 (+0.000..0.002) | per-arm `TEACHER_MIX` code + ≈ 2.8 h; 1 solo | P-44 floor, an idle slot |
 | 7 | P-45 | Second image teacher | 💡 deferred to after 2026-10-03 | +0.001..0.004 (CoAt family) / −0.002..+0.004 (DINO + A5); fork ≈ 0 | spike 0.2–0.3 h, pass ≈ 8 GPU-h, 100–490 lines, 2.8 h arm | P-49, P-44, the 10-03 reset |
 | 8 | P-46 | Upgrade the LLM half of the targets (absorbs P-16, P-30) | 💡 low | 0..+0.002 (dread vote) / +0.001..0.003 (re-label) | ≈ 2.8 h per arm; step 2 a new kernel | P-44 floor |
 | 9 | P-48 | Final-member polish: gold-58 as training rows + seed averaging | 💡 contested, parked | +0.001..0.002, unreadable by construction | part of the final retrain | P-50 decision |
@@ -122,6 +119,9 @@ result*, per unit of cost. "Depends on" lists hard blockers only. EVs are solo-L
 | P-42 | Two-family Raptor-distilled solo blend | 🔁 #23 = 0.927 = `v09r` alone; gold within-class ρ 0.861 vs 0.777 for the LLM-target pair | experiments.md 2026-09-27 "Submission #23" |
 | P-43 | Student resolution: CoAtNet-1 @320 on the `v09r` targets (`v09x`) | 🔁 #25 `v09x` 0.929 vs m 0.927 (✅ needed ≥ 0.932); 224 stays the production resolution; `v09x` = our strongest single member, 1.4× inference / 2.1× training | experiments.md 2026-09-28 "rsna-knee-train v30", "Submissions #24–#26" |
 | P-44 | Kaggle-retrain seed spread + a 2-seed production member (`v09u`) | ✅ s = 0.000 (#24 `v09u` 0.927 = `v09r`) → one-seed deltas need ≥ 0.004; P-39 re-confirmed on Kaggle; #26 `v09r` + `v09u` 0.930 = the production member (+0.003, under the floor — adopted, not proven) | experiments.md 2026-09-28 "Submissions #24–#26"; traps 42 |
+| P-40 | Raptor-distilled members into the fork | 🔁 closed: #22 (β 0.10) 0.942, #27 (β 0.20) 0.941 vs 0.942 — the fork does not register a 0.927 member at either weight; the pre-registered β 0.20 retry is spent → the fork is for final-selection builds only (P-50). Step B: `v08r` 0.918 solo (#21), not a fork member | experiments.md 2026-09-27 "Submission #22"; 2026-09-28 "Submissions #27–#28" |
+| P-49 | Raptor over the 58 gold studies | 🔁 read (direction only): Raptor 0.9254, the 0.5/0.5 target 0.9268 (12/12 above the LLM), within-class ρ `v09r` ~ Raptor 0.835 (`v09a` ~ Raptor 0.742, `v09r` ~ LLM 0.408) → the fork cannot read `v09r`; matched mix 0.5 is the best on gold (0.75 −0.002, 1.0 −0.017) | experiments.md 2026-09-28 "P-49" |
+| P-53 | Per-label public probe (ACL / MCL / PF OA / Lat Men at 0.5) | ✅ a measurement: #28 = 0.785 → those four average 0.935 on the public test vs 0.9275 for the other eight — the gold-58 "structural deficit" (+0.028) is gold-specific | experiments.md 2026-09-28 "Submissions #27–#28" |
 
 ---
 
@@ -138,52 +138,94 @@ Evidence:     for: #25 `v09x` 0.929 is our strongest single member; #26 showed s
               directions wrong — traps 39). Against: P-43 was 🔁 (+0.002); ρ(`v09x`, `v09r`) 0.949 ≈ the seed twins' 0.952, so
               `v09x` may be just another seed; 320 raises the member's inference 1.4×.
 Measure:      `INFER_MEMBERS = ["v09r", "v09u", "v09x"]` (flat rank-mean, `by_version`, one vote each), solo vs #26 0.930.
-Noise floor:  the P-44 floor: **≥ 0.934 ✅ the 3-member blend is the production member / 0.927–0.933 🔁 (keep #26's pair — cheaper at
-              inference) / ≤ 0.926 ❌.**
+Noise floor:  the P-44 floor: **≥ 0.934 ✅ the 3-member blend is the production member / 0.931–0.933 🔁 (keep #26's pair — cheaper at
+              inference) / ≤ 0.930 ❌** (bands as restated in the 2026-09-28 single-model plan, Step 5, before any read; the
+              card's first draft had 0.927–0.933 / ≤ 0.926).
 Cost:         ≈ 0.1 h T4 placeholder (one c02 decode shared by all three) + 1 solo (≈ 30 min to score).
 If it works:  the 3-member blend is the production member and the fork candidate for P-50.
 If it fails:  🔁 → the pair (#26) stays; resolution adds nothing a seed does not.
 Depends on:   P-43 / P-44 (both read).
 
-### P-40 Raptor-distilled members into the fork
-Status:       ⏳ **β 0.20 retry = #27** (`rsna-knee-fork` v10, ref 56636712, sent 2026-09-28 09:40 UTC on Tian's go; placeholder
-              green: `status beta0.20`, `members [v09r]`, rc 0). Step A: 🔁 **#22 = 0.942** — fork v9 = the public 0.942 graph +
-              `v09r` alone at β 0.10 (ref 56614068) = #13 / #15 (experiments.md 2026-09-27 "Submission #22"). Same read bands for
-              #27; compare #12 (β 0.20, 0.87-level members) 0.939. Step B done: `v08r` 0.918 solo (#21), below the ≈ 0.920 bar → not a fork
-              member; P-42: `v09r` + `v08r` = 0.927.
-Hypothesis:   the fork registers a member of ours once it is at the public stack's best-member level: β 0.10 with `v09r`
-              (0.927 solo) reads ≥ 0.947, where #17 (the 0.918-level `v09a` / `v08a`) read 0.941.
-Origin:       P-39 "If it works"; #20.
-Evidence:     for: #20's +0.009 solo from the targets alone. Against: #17 — the fork did not move with members 0.024 below the
-              anchor; reviewer C: within-class ρ `v09r` / `v08r` 0.861 vs 0.777 for the LLM-target pair → `v09r`'s errors track
-              Raptor, which the anchor already carries at 0.40–0.60. Reviewer prior: #22 ≈ 0.942 ± 0.001.
-Measure:      #22 (`v09r` alone in our arm, β 0.10) public LB vs #13 / #15 0.942.
-Noise floor:  **≥ 0.947 ✅ / 0.940–0.946 🔁 / ≤ 0.939 ❌**.
-Cost:         spent: `v08r` 31 min on a RunPod A100 (≈ $0.95 for the pod); fork placeholder ≈ 0.2 h T4; 1 submission (forks
-              score in ≤ 8 h 06 min, plus hours of queue).
-If it works:  our arm counts → a final-selection candidate (P-50).
-If it fails:  🔁 → the pre-registered branch is β 0.20 once; reviewers B and C recommend dropping it (expected ≤ 0.002; it is
-              weight-tuning on the public LB) and using the fork only for final-selection builds (P-50) — **open decision for
-              Tian**. ❌ → our arm hurts even at 0.927. The old "If it works" items (mix 1.0, a second teacher) live in P-47 / P-45.
-Depends on:   P-39 ✅, P-27 (`src/build_fork.py`), traps 39 / 40.
+### P-54 5-fold cross-fit of the `v09r` recipe (`v09k0` … `v09k4`)
+Status:       ⏳ folds 0–3 ✅ (sessions A ‖ B = `rsna-knee-train` v32 ‖ `rsna-knee-folds` v9, 2026-09-28, 2.29 / 2.26 h; experiments.md
+              2026-09-28 "P-54 sessions A ‖ B"); **fold 4 = `v09k4` in session C** (`rsna-knee-train` v33, pushed 15:35 UTC).
+Hypothesis:   a 5-fold cross-fit of the production recipe gives honest out-of-fold predictions for every training study — the
+              precondition for OOF soft bootstrapping (P-55) — and its 5-fold flat rank-mean reads above the #26 pair solo.
+Origin:       Archit Konde, Kaggle discussion 735304 (out-of-fold soft bootstrapping); research.md 2.7.2.
+Evidence:     for: Archit's single-fold CoAtNet @224 at 0.950 used OOF targets. Against: P-38 ❌ — our first self-distillation used
+              a teacher weaker than the labels (gold 0.873 < 0.895); this is the first cross-fit of a `v09r`-generation member.
+              Each fold model sees 80 % of the data, so a fold ensemble starts below a `train_all` member's prior.
+Measure:      (a) the table: `build_distill_table.py --sets "artifacts/kaggle_out/xf_*/v09k[0-4]_fold[0-9]_oof.csv" --per-fold-rank
+              --out artifacts/teacher/xfit_v09k.csv` (one set of five folds, 4,407 rows); gold diagnostic — pooled per-label
+              AUC vs the LLM blend (0.8948), Raptor (0.9254) and the 0.5/0.5 target (0.9268) from P-49; ρ vs Raptor. (b) the
+              fold ensemble solo, `INFER_MEMBERS = ["v09k0", …, "v09k4"]`, vs #26 0.930.
+Noise floor:  (b) **≥ 0.935 ✅ / 0.931–0.934 🔁 / ≤ 0.930 ❌** (five members ≈ 1–1.5 h to score). (a) is never a verdict (traps 39).
+Cost:         ≈ 7 GPU-h (A ‖ B + half of C); 1 solo; every fold arm `eval_final_only` (the per-epoch held-out pass costs ≈ 1 h a session).
+If it works:  the fold ensemble is a production / final candidate; the table feeds P-55.
+If it fails:  the table still feeds P-55 — the loose gate decides.
+Depends on:   —.
 
-### P-49 Raptor over the 58 gold studies — a correlation diagnostic
-Status:       💡 untested (new 2026-09-27).
-Hypothesis:   within-class ρ(`v09r`, Raptor) on gold-58 says how redundant our member is inside the anchor — without an 8-h fork read.
-Origin:       reviewer C (the Raptor-on-gold diagnostic); reviewer B (the gate for a second teacher).
-Evidence:     the Raptor-distilled pair `v09r` / `v08r` is within-class ρ 0.861 vs 0.777 for the LLM-target pair (12/12 labels) —
-              the shared teacher raised cross-family agreement (the same backbone on two teachers, `v09r` / `v09a`, is still 0.883, so
-              the architecture has not stopped mattering — reviewer A's round-2 check); the teacher table has no gold rows (the pass excluded them), so Raptor's own
-              gold predictions have never been in our hands.
-Measure:      Raptor's view-weighted gold-58 predictions → within-class ρ vs `v09r` (and `v09a`, `v08r`) per label; and reviewer
-              B's gold-58 "teacher-mix analogs" (E1) computed on Raptor itself, before any mix or second-teacher spend.
-Noise floor:  correlation read only, never a verdict: Raptor's epoch / SWA were chosen on gold-58, so its gold AUC is optimistic.
-Cost:         ≈ 20 lines (the `build_teacher_pass.py` pattern over the gold UIDs only) + ≈ 0.2 h T4; the output goes to a file
-              name `TEACHER_PATHS` never reads, so gold rows cannot reach training. Can run in the second Kaggle slot.
-If it works:  a high within-class ρ confirms the fork cannot read `v09r` → the fork is for final-selection builds only (P-50);
-              the analogs price P-47 / P-45 on Raptor before any GPU spend.
-If it fails:  a low ρ says our member is not redundant inside the anchor → one more fork read is worth a submission.
-Depends on:   P-39 (`src/build_teacher_pass.py`, the Raptor checkpoints).
+### P-55 OOF soft-bootstrapped student (`v09o` / `v09o2`)
+Status:       🔧 arms `v09o` (seed 42) / `v09o2` (seed 43), `TEACHER_PATHS["xfit_v09k"]`, `DISTILLED_ARMS` + the `DISTILLED_MIX` guard
+              (refuses any mix but 0.75 for these arms) in `src/`; waits for P-54's fold 4 and table.
+Hypothesis:   the `v09r` recipe on 0.25 LLM + 0.375 Raptor + 0.375 honest cross-fit OOF reads above `v09r` / `v09u` solo by more
+              than the one-seed floor.
+Origin:       Archit Konde's OOF soft bootstrapping, "heavier than 50/50" (discussion 735304).
+Evidence:     for: Archit ("50/50 jumped" — LB or CV unknown; question in brainstorm). Against: P-38 ❌ (#19), Nicolai Karcher (gold /
+              CV up, LB flat), and P-49: on Raptor alone the matched mix 0.75 is −0.002 vs 0.5 on gold (the xfit table is a
+              different teacher, so this prices only the Raptor half).
+Measure:      session E = `PARALLEL_ARMS = ("v09o", "v09o2")` with `TEACHER_TABLES = ("raptor_teacher", "xfit_v09k")`,
+              `TEACHER_MIX = 0.75` (mix_teacher averages the two matched tables); m = mean of the two solos vs 0.927; the pair vs 0.930.
+Noise floor:  **✅ m ≥ 0.9315 / 🔁 0.9285 ≤ m < 0.9315 / ❌ m < 0.9285**; pair ✅ ≥ 0.935.
+              **Loose gate (Tian, 2026-09-28):** E runs unless the pooled cross-fit gold < 0.875 AND ≥ 8/12 labels below the LLM.
+Cost:         ≈ 2.9 GPU-h (two seeds in one session) + 3 solos; a new PRIVATE version of `rsna-knee-teacher-tables`.
+If it works:  an attribution control (0.25 LLM + 0.75 Raptor) in week 2; a second cross-fit round on the student.
+If it fails:  the third null (P-38, Nicolai) → the OOF-target line closes.
+Depends on:   P-54 (the table), the loose gate.
+
+### P-56 Dense-slice input c03 (`v11a` / `v11b`)
+Status:       ⏳ **session D = `rsna-knee-folds` v10** (pushed 15:36 UTC; `kernel_sources` = `rsna-knee-cache3-a..d` only, so c02 and c03 are
+              never mounted together). Cache `c02_p336_b24-24-24-14-8-8_band2-98_crop150_lat20`: 4,407 studies over 4 shards,
+              12.1–13.4 GB each (50.7 GB), 0 decode failures, 14–43 min per shard (CPU).
+Hypothesis:   the c03 input (fluid slots 24 / 24 / 24, SAG no-FS 14, T1 8 / 8, 150 mm crop; `train_windows` 34) lifts the `v09r` recipe
+              solo above `v09r` / `v09u`.
+Origin:       our census (experiments.md 2026-09-28 "Gold-58 per-label diagnosis + c02 slice census": c02 keeps 12 of ≈ 30 native cor/ax
+              fluid slices → 7.5–9 mm stored spacing; median FOV 160 mm vs the 130 mm crop).
+Evidence:     for: the one input axis untested since c02 (the c02 lane was +0.009 LB, #9). Against: **#28 — the four labels c03 was
+              aimed at (ACL / MCL / PF OA / Lat Men) are already our strongest on the public test (0.935 vs 0.9275)**; `v09x` (320
+              px) read only +0.002 — more pixels have not paid so far.
+Measure:      m = mean(`v11a`, `v11b`) solo vs 0.927; the c03 pair vs 0.930.
+Noise floor:  **✅ m ≥ 0.9315 / 🔁 0.9285 ≤ m < 0.9315 / ❌ m < 0.9285**.
+Cost:         ≈ 3.7–4.4 GPU-h + 3 solos; a c03 member decodes the test at its own geometry (a second decode pass beside c02 members).
+If it works:  c03 becomes the production input; a 320-px member and seeds follow in week 2.
+If it fails:  c02 stays; the input axis closes.
+Depends on:   —.
+
+### P-57 ResNet-34 on the `v09r` recipe (`v13a`)
+Status:       ⏳ **in session C** (`rsna-knee-train` v33, beside `v09k4`); weights = private Dataset `timm-resnet34-a1`
+              (`timm/resnet34.a1_in1k`); ResNet support in `load_timm_backbone` / `param_groups`, smoke v31 green.
+Hypothesis:   the backbone class is not what separates us from the thread's single models: `v13a` reads ≥ `v09r` solo.
+Origin:       discussion 735304 — Scott Willis (small ResNet, single fold, 0.949), CoolinLai (5-fold ResNet @224, 0.954).
+Evidence:     against: P-42 (a second backbone on the same targets added nothing); Archit Konde reaches 0.950 with our model class.
+Measure:      `v13a` solo vs 0.927.
+Noise floor:  **✅ ≥ 0.932 / 🔁 0.923–0.931 / ❌ ≤ 0.922**.
+Cost:         ≈ 0 extra wall (rides with `v09k4`); 1 solo.
+If it works:  a cheaper member (efficiency, P-18) and a family for the blend.
+If it fails:  the small-CNN route closes.
+Depends on:   —.
+
+### P-58 Local-CPU open-weights LLM relabel as a 4th vote
+Status:       💡 future, not scheduled (Tian 2026-09-28: written down only).
+Hypothesis:   a fourth label vote from an open-weights LLM run locally (Scott Willis's Gemma route) lifts the LLM half of the targets.
+Origin:       Scott Willis, discussion 735304; P-46 step 2.
+Evidence:     a 14B open model reached 0.881 gold vs our blend's 0.8948 (P-46); the three sources are ≈ 1.5 effective votes (φ 0.88).
+Measure:      gold-58 of the 4-vote blend (direction only), then a `v09r`-recipe arm solo vs 0.927.
+Noise floor:  the P-44 floor.
+Cost:         0 GPU; an overnight CPU run over 4,349 reports. The report text stays on this machine or inside Kaggle — never a hosted
+              API (Tian, 2026-09-28; CLAUDE.md "Rules").
+If it works:  → P-46 (the LLM half upgraded).
+If it fails:  the LLM half stays three sources.
+Depends on:   a free machine for a night; P-46.
 
 ### P-50 Final selection and publishability
 Status:       💡 new 2026-09-27; decide by the 2026-10-15 entry deadline.
@@ -254,7 +296,7 @@ Cost:         spike 0.2–0.3 h; a pass ≈ 8 GPU-h (the Raptor pass took 7.76);
               solo. Fork value ≈ 0 (the teacher is inside the anchor).
 If it works:  a two-teacher table in `rsna-knee-teacher-tables`; the production member retrains on it.
 If it fails:  Raptor stays the only image half.
-Depends on:   P-49 (Raptor on gold, analogs first), P-44 (the floor), the 2026-10-03 reset.
+Depends on:   P-49 ✅ read (Raptor on gold: 0.9254; the analogs are in experiments.md 2026-09-28 "P-49"), P-44 (the floor), the 2026-10-03 reset.
 
 ### P-46 Upgrade the LLM half of the targets (absorbs P-16 and P-30)
 Status:       💡 low (new 2026-09-27).
