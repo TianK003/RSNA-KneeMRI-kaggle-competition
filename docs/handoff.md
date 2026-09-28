@@ -6,6 +6,90 @@ to read first after a break.
 
 ---
 
+## 2026-09-28 (09:12 → 12:12 UTC) — #22 = 0.942 (🔁); v30 shipped; **solo reads #24 `v09u` 0.927 / #25 `v09x` 0.929 / #26 pair 0.930**; #27 fork β 0.20 sent; the Kaggle "best single-model" thread mined → the **single-model plan** (probe #28, cross-fit A ‖ B running, c03 cache building, ResNet arm, P-49 done)
+
+Tian: "read the handoff … record the scores, run /update and then submit the latest work"; then "retry with 20%"; then "improve our single
+model scores … read the discussion … dynamic workflow … plan out implementation … 20h of gpu"; answered 4 questions (below); approved the
+plan; "finish as soon as possible … /handoff". Commits `b2eda60` … (this one). **The plan:** `docs/superpowers/plans/2026-09-28-single-model-plan.md`
+(steps, sessions, pre-registered reads); the thread synthesis: research.md 2.7.2.
+
+### ⏳ Still in flight as this was written (12:12 UTC)
+
+| In flight | What it is | Started | How to check | How to read it |
+|---|---|---|---|---|
+| **XF session A = `rsna-knee-train` v32** | P-54 cross-fit folds `v09k0` ‖ `v09k1` (v09r recipe, `train_all` False, `eval_final_only`, Raptor 0.5; `artifacts/train_xf_A.py`) | RUNNING 12:10 UTC | `kaggle kernels status tiankljucanin/rsna-knee-train`; when COMPLETE: `kaggle kernels output tiankljucanin/rsna-knee-train -p artifacts/kaggle_out/xf_A --file-pattern "(v09k[0-4]_fold[0-9]_(best\.pt\|oof\.csv))$\|\.log$"` | expect ≈ 14:40 UTC (≈ 2.45 h). Green = parent `ok  arm v09k0: … written (folds [0])` and `ok  arm v09k1: … (folds [1])`; each child log: `fold k: train ≈ 3,5xx / val ≈ 88x`, `teacher table raptor_teacher: 4349`, `(held-out eval deferred …)` on epochs 0–7, then `SWA of last 3` + `-> v09k*_fold*_best.pt = SWA`; no `runtime guard`. The OOF csv has ≈ 882 rows incl. 11–12 gold |
+| **XF session B = `rsna-knee-folds` v9** | `v09k2` ‖ `v09k3` (`artifacts/train_xf_B.py`) | RUNNING 12:10 UTC | same, slug `rsna-knee-folds`, dir `artifacts/kaggle_out/xf_B` | same criteria, folds [2] / [3] |
+| **#28 = the P-53 probe**, ref 56639910 | the #26 pair with ACL / MCL / PF OA / Lat Men = constant 0.5 (`rsna-knee-infer` v24) | sent 11:56:44 UTC | `kaggle competitions submissions … --csv \| head -3`; watcher task `b3jhyh0bj` → `artifacts/submission_timing.csv` (dies with the laptop) | mean4 = 0.5 + 3·(0.930 − probe) (± 0.003); mean8 = (11.16 − 4·mean4)/8. **mean8 − mean4 ≥ 0.03 → the structural deficit is real on the test** (the c03 arm is well aimed); mean4 ≥ mean8 − 0.01 → gold-specific (c03 still runs, lower prior). A probe ≈ 0.80 ↔ mean4 ≈ 0.89 |
+| **#27 = fork v10 at β 0.20**, ref 56636712 | the public 0.942 graph + `v09r` at β 0.20 (P-40 retry, Tian's go) | sent 09:40 UTC | same; watcher `bdra1ljs2` (dies with the laptop) | vs 0.942: **≥ 0.947 ✅ / 0.940–0.946 🔁 / ≤ 0.939 ❌**; #12 (β 0.20, 0.87-level members) read 0.939 |
+| **c03 cache** `rsna-knee-cache3-a..d` v1 (CPU, 0 GPU) | the c02 scheme at 24/24/24/14/8/8 slices, 150 mm crop → version `c02_p336_b24-24-24-14-8-8_band2-98_crop150_lat20` (≈ 13 GB/shard) | pushed ≈ 12:02 UTC | `kaggle kernels status tiankljucanin/rsna-knee-cache3-a` (…-d); log: `kaggle kernels output … --file-pattern "no_match"` | green = `cached N/N studies … decode failures 0` in each; ≈ 20–30 min. Needed before session D |
+| **P-49 = `rsna-knee-teacher-gold` v1** | Raptor over the 58 gold studies | COMPLETE ≈ 12:08 | not pulled yet: `kaggle kernels output tiankljucanin/rsna-knee-teacher-gold -p artifacts/kaggle_out/teacher_gold --file-pattern "raptor_teacher_shard0\.(npz\|csv)$"`, then `python src/merge_teacher.py --expect-n 58 …` → a gold table (never a training table) | gold AUC of Raptor and of the 0.5 LLM + 0.5 matched-Raptor target (the reference the XF OOF is compared with — logged, not gating) |
+
+### Where things stand
+
+| | Status |
+|---|---|
+| Best LB | 0.942 (fork); **best solo 0.930** (#26 `v09r` + `v09u`, the production member); best single 0.929 (`v09x`) |
+| Solo reads today | #24 `v09u` 0.927 = `v09r` → retrain spread ≈ 0, one-seed floor 0.004 (P-44 ✅); #25 `v09x` 0.929 → 🔁 (P-43); #26 0.930 → production (+0.003, under the floor) — experiments.md 2026-09-28 "Submissions #24–#26" |
+| Code | ✅ one batch, all tests green (window_head, targets, teacher_pass, cache_selftest), local CPU smoke + Kaggle smoke v31 green (`v09k1` ‖ `v13a`: ok ×2, ResNet loads, deferred eval, SWA): `PROBE_CONST_LABELS`; arms `v09k0-4` / `v13a` / `v11a` / `v11b` / `v09o` / `v09o2`; `eval_final_only`; fold-agnostic parent check; `DISTILLED_MIX` guard; ResNet in `load_timm_backbone` / `param_groups`; cache overrides `SLOT_SLICES` / `CROP_MM`; `build_distill_table --per-fold-rank`; `build_teacher_pass --gold` |
+| Datasets | `rsna-knee-ckpt-v09x`, `-v09u`, `timm-resnet34-a1` (private, ready); `rsna-knee-train` mounts the ResNet weights |
+| Committed renders | `rsna-knee-train` = v32 REAL (XF A); `rsna-knee-folds` = v9 REAL (XF B); `rsna-knee-infer` = v24 = the PROBE (never resubmit it as a candidate — rebuild without the sed); `rsna-knee-fork` = v10 (#27) |
+| Quota | Kaggle GPU ≈ 9.9 h used before A/B → ≈ 15.8 h left after A ‖ B (4.9 h); reset 2026-10-03 00:00 UTC. Submissions: 5/5 used today (#24–#28) |
+| Docs | experiments.md: #22 entry, v30 entry, #24–#26 entry, gold/census diagnostic, rows 24–28; proposals.md: P-43/P-44 closed, P-52 card, index rows P-53..P-58 (**full cards not written — the plan file holds them**); traps 39 extended; research.md 2.7.2 |
+
+### What we talked about and decided
+
+- **Tian's answers (plan questions):** today's last submission → the per-label probe (not P-52); **input changes back in scope** (c03);
+  the cross-fit runs with a **loose gate** (student runs unless the XF OOF is clearly P-38-shaped: pooled gold < 0.875 AND ≥ 8/12 labels below
+  the LLM); extras = P-49 and a ResNet-34 arm; the local-CPU LLM relabel only as a future card (P-58); **no hosted-API labels**.
+- **#27:** Tian asked for the β 0.20 retry after #22 = 0.942 — sent.
+- **Rejected (thread + reviewers):** Qwen VLM, higher resolution as the lever, CoAtNet-2@384, masking noisy cells, hard labels, re-extraction,
+  per-label weights tuned on gold, TTA, the D4 second teacher before the reset (Tian's 09-23 exclusion still stands — re-ask after Oct 3).
+- **Sessions pair arms of ONE target spec** (session-level `TEACHER_TABLES` / `TEACHER_MIX`) — no per-arm teacher code (traps 40/42).
+
+### What we figured out
+
+1. **The single-model gap is visible on gold:** our gold→LB offset (+0.021) equals Scott's / Archit's, and every member trails its own LLM
+   labels on ACL / MCL / PF OA / Lat Men while beating them on image-visible findings (experiments.md 2026-09-28 "Gold-58 per-label diagnosis").
+2. **c02 throws away most of the slices:** fluid series ≈ 30 native at 3 mm, c02 keeps 12 on cor/ax (7.5–9 mm spacing); median FOV 160 mm vs
+   the 130 mm crop → c03 = 24/24/24/14/8/8, 150 mm (same entry).
+3. **Gold-58 had the LB direction wrong twice for same-recipe members** (#24, #26) — traps 39 extended.
+4. **Heredocs in this Git Bash halve `\\`** — Python patches with `\n` / `\d` in strings must be written as files (scratchpad) and run.
+
+### ⏭ Next action, in order
+
+1. **Read #28 (probe) and #27** → `/update` (rows 27 / 28; the probe read by the rule in the in-flight table).
+2. **Pull P-49** (command above) → `python src/merge_teacher.py` with `--expect-n 58` into `artifacts/teacher/raptor_gold.csv` (a name
+   `TEACHER_PATHS` never reads); log Raptor's gold AUC and the 0.5/0.5 target's gold AUC (direction only).
+3. **When A and B are COMPLETE:** pull both (commands above), check the green criteria, then push **session C** on `rsna-knee-train`:
+   `PARALLEL_ARMS = ("v09k4", "v13a")`, `TEACHER_TABLES = ("raptor_teacher",)`, `FORCE_SMOKE = False` (sed-only build, no smoke needed —
+   the code is smoke-tested). **Session D** on `rsna-knee-folds` once cache3-a..d are green: first edit
+   `kaggle/rsna-knee-folds/kernel-metadata.json` → `kernel_sources` = the four `rsna-knee-cache3-*` (drop cache-a/-b and cache2-*, so c02
+   and c03 are never both mounted), then `PARALLEL_ARMS = ("v11a", "v11b")`, same table, `FORCE_SMOKE = False`. Grep every build for
+   `^(FORCE_SMOKE|PARALLEL_ARMS|ARM_ONLY|TEACHER_TABLES|TEACHER_MIX) =` before pushing.
+4. **Tomorrow's submissions** (5): P-52 (`INFER_MEMBERS = ["v09r", "v09u", "v09x"]`, vs 0.930: ≥ 0.934 ✅ / 0.931–0.933 🔁 / ≤ 0.930 ❌);
+   then as C / D land: `v13a` solo (vs 0.927: ≥ 0.932 ✅ / 0.923–0.931 🔁 / ≤ 0.922 ❌), `v11a`, `v11b`, the c03 pair (m = mean of the two:
+   ✅ m ≥ 0.9315 / 🔁 0.9285 ≤ m < 0.9315 / ❌ m < 0.9285). Ship each as `rsna-knee-ckpt-<arm>` and add to `rsna-knee-infer`'s metadata.
+5. **After all five folds:** `python src/build_distill_table.py --sets "artifacts/kaggle_out/xf_*/v09k[0-4]_fold[0-9]_oof.csv" --per-fold-rank
+   --out artifacts/teacher/xfit_v09k.csv` (the five fold csvs are ONE set — check it has 4,407 rows); gold diagnostic; loose gate; a new
+   version of the PRIVATE Dataset `rsna-knee-teacher-tables` with `xfit_v09k.csv`; then **session E** = `("v09o", "v09o2")` with
+   `TEACHER_TABLES = ("raptor_teacher", "xfit_v09k")` and `TEACHER_MIX = 0.75` (the `DISTILLED_MIX` guard refuses anything else). Also the
+   5-fold ensemble solo (`INFER_MEMBERS = ["v09k0", …, "v09k4"]`, vs 0.930: ≥ 0.935 ✅ / 0.931–0.934 🔁 / ≤ 0.930 ❌; ≈ 1–1.5 h to score).
+6. **Write the full proposals.md cards P-53..P-58** from the plan file; `/update` after every read; `/handoff` at the end.
+
+### Open decisions for Tian
+
+- Post the thread questions (free): Scott (label-side or training-side fix?), CoolinLai (labels, gold score?), Archit ("50/50 jumped" = LB?
+  final weight? all cells or silent ones?), Nicolai (were the predictions OOF?), tennogh (OOF pseudo-labels as targets?).
+- After Oct 3: the second teacher (D4 exclusion), and a Friday quota-burn session F only if ≥ 3.5 h is left before the reset.
+
+### Things that will bite if forgotten
+
+- **`rsna-knee-infer` v24 is the PROBE** — its render has 4 constant columns; rebuild from `src` (without the `PROBE_CONST_LABELS` sed) before
+  any real submission.
+- **Session D must not mount c02 and c03 together** (input size unverified) — edit `rsna-knee-folds`'s `kernel_sources` first.
+- **A smoke forces fold 0** — the smoke cannot show folds 1–4; check each real child log's `fold k: train N / val M` line.
+- Watchers die with the laptop; queued Kaggle versions must never be re-pushed (traps 41).
+
 ## 2026-09-27 (19:20 → 20:20 local = 17:20 → 18:20 UTC) — four-reviewer audit → **`proposals.md` rewritten** (1,292 → 386 lines, 11 live cards); **traps 42** (per-arm `seed` / `teacher_mix` were inert; PARALLEL fallback trained the default arms) fixed; **`v09x` (320 px) ‖ `v09u` (seed 43) training = `rsna-knee-train` v30** (⏳); #22 still scoring
 
 Tian: "brainstorm and read the suggested proposals … compare them to what is already implemented … scratch really old ideas …

@@ -58,9 +58,15 @@ result*, per unit of cost. "Depends on" lists hard blockers only. EVs are solo-L
 
 | rank | id | title | status | expected value | cost | depends on |
 |---|---|---|---|---|---|---|
+| 0a | P-53 | Per-label public probe (structural 4 labels at 0.5) | ⏳ #28 sent 2026-09-28 11:56 UTC | diagnosis: structural deficit on ~400 public studies | 0 GPU, 1 submission | — |
+| 0b | P-54 | 5-fold cross-fit of the v09r recipe (`v09k0-4`): honest OOF + a 5-fold member | 🔧 code in (`eval_final_only`, fold glob); Kaggle smoke v31 running; sessions A/B next | enables P-55; fold ensemble +0.000..0.005 | ~7.7 GPU-h (3 sessions) | smoke green |
+| 0c | P-55 | OOF soft-bootstrapped student `v09o` / `v09o2` (0.25 LLM + 0.375 Raptor + 0.375 xfit, mix 0.75) | 🔧 arms + `DISTILLED_MIX` guard in; needs the xfit table | 0..+0.005 (Nicolai: no LB transfer) | ~2.9 GPU-h, 3 submissions | P-54; loose gate |
+| 0d | P-56 | Dense-slice input c03 (24/24/24/14/8/8, 150 mm) `v11a` / `v11b` | 🔧 cache3-a..d building (CPU) | the only untested input axis since c02 | ~3.7-4.4 GPU-h, 3 submissions | cache3 done |
+| 0e | P-57 | ResNet-34 on the v09r recipe (`v13a`) | 🔧 weights Dataset `timm-resnet34-a1` ready; in the smoke | tests the Scott Willis / CoolinLai route | ~0 extra (rides with `v09k4`) | smoke green |
+| 0f | P-58 | Local-CPU open-weights LLM relabel as a 4th vote (Scott's Gemma route) | 💡 future, not scheduled (Tian 2026-09-28) | 0..+0.002 | 0 GPU; overnight CPU | — |
 | 1 | P-52 | Three-member production blend `v09r` + `v09u` + `v09x` | 💡 new 2026-09-28 — no training; the checkpoints are shipped | +0.001..0.004 solo over #26 (0.930); gold-58: all three 0.9110 vs pair 0.9065 | ≈ 0.1 h T4 placeholder + 1 solo (≈ 30 min) | P-43 / P-44 (both read) |
 | 2 | P-40 | Raptor-distilled members into the fork | ⏳ **β 0.20 retry sent as #27** (2026-09-28 09:40 UTC, Tian's go) after #22 = 0.942 at β 0.10 (🔁) | low — the fork at β 0.10 is flat over member strength 0.913 → 0.927 | spent (#27 scoring, forks ≤ 8 h 06 min) | P-39 ✅, P-27 |
-| 3 | P-49 | Raptor over the 58 gold studies — a correlation diagnostic | 💡 | validity: fork redundancy without an 8-h fork read; gates P-45 / P-47 | ≈ 20 lines + 0.2 h T4 (second slot) | P-39 (`build_teacher_pass.py`) |
+| 3 | P-49 | Raptor over the 58 gold studies — a correlation diagnostic | ⏳ `rsna-knee-teacher-gold` v1 COMPLETE 2026-09-28 (not pulled yet) | validity: fork redundancy without an 8-h fork read; gates P-45 / P-47 | ≈ 20 lines + 0.2 h T4 (second slot) | P-39 (`build_teacher_pass.py`) |
 | 4 | P-50 | Final selection and publishability | 💡 decide by 2026-10-15 | decides what the private LB scores | a browser session; ≤ 1 fork check | P-40 (#22), Rules page |
 | 5 | P-18 | Efficiency track with the solo member | 💡 (robustness half shipped) | a separate prize; unknown until the formula is read | 0 GPU h (CLI + browser) | Efficiency formula (browser) |
 | 6 | P-47 | Teacher-mix bracket: mix 0.75 only | 💡 low | ≈ 0 (+0.000..0.002) | per-arm `TEACHER_MIX` code + ≈ 2.8 h; 1 solo | P-44 floor, an idle slot |
