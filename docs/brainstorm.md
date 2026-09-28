@@ -47,6 +47,7 @@ entries.
 | Does the winner-licence clause tolerate CC-BY-NC-SA weights? | Gates #3 for a *final* submission | Read the rules page |
 | How many folds are actually worth training? | 5 folds may be a poor use of compute vs. 3 folds + a second backbone | P-13, once the cache lands |
 | Does site-grouping change our conclusions, or just lower all numbers? | If it reorders which ideas look good, earlier comparisons need redoing | #2 |
+| **Questions for the "best single-model" thread (Kaggle discussion 735304), added 2026-09-28** — Scott Willis: was his fix label-side or training-side? CoolinLai: which labels, and what gold score? Archit Konde: did "50/50 jumped" mean the public LB or CV; what final OOF weight; applied to all cells or only report-silent ones? Nicolai Karcher: were his bootstrapping predictions out-of-fold? tennogh: were OOF pseudo-labels used as targets? | They price P-55 (the OOF student) and P-58 (a local LLM vote) before GPU is spent; Archit's answer decides whether "heavier than 50/50" is an LB claim. #28 already answered our own version of Scott's question — our weakness is not concentrated on the report-explicit labels on the public test | Tian posts in the thread (free, a browser); answers go to research.md 2.7.2 |
 
 ---
 
