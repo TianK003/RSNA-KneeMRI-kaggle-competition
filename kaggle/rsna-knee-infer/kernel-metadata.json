@@ -25,7 +25,9 @@
     "tiankljucanin/rsna-knee-ckpt-v09a",
     "tiankljucanin/rsna-knee-ckpt-v09t",
     "tiankljucanin/rsna-knee-ckpt-v09r",
-    "tiankljucanin/rsna-knee-ckpt-v08r"
+    "tiankljucanin/rsna-knee-ckpt-v08r",
+    "tiankljucanin/rsna-knee-ckpt-v09x",
+    "tiankljucanin/rsna-knee-ckpt-v09u"
   ],
   "kernel_sources": [],
   "competition_sources": [
