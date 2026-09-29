@@ -908,3 +908,9 @@ run ended at train loss 0.471 (CoAtNet 0.383) with gold still rising. P-59 chang
 **0.8992** (+0.069) — the backbone was never the problem. **Do:** when a card swaps the backbone *family*, set that family's own LR /
 LLRD / epochs and check the train loss reaches the old family's before reading the verdict; a verdict from an under-fit run (loss
 far above the baseline's, metric still rising at the last epoch) is 🔁, not ❌ (experiments.md 2026-09-29 "P-59").
+**Addendum (same night, pod 2):** the A100 pod in US-MD-1 pulled the 51 GB at ≈ 135 MB/s into `/dev/shm` and trained 5 epochs, then
+RunPod stopped and **removed** the container at 19:33 UTC — the account balance had run out (`402 Payment Required: Your account
+balance is too low` on `start`). Everything on the container disk and in `/dev/shm` (the cache, `/kaggle/working` with every
+`_last.pt`) was gone; the persistent volume held nothing. **Do:** check the balance covers the whole job (hours × $/h + margin) before
+creating a pod — there is no API read of the balance, so ask Tian; and put `/kaggle/working` on the persistent volume
+(`ln -s /workspace/kaggle /kaggle`) so a stop keeps `_last.pt` and a restart resumes instead of starting over.

@@ -64,7 +64,7 @@ result*, per unit of cost. "Depends on" lists hard blockers only. EVs are solo-L
 | 0e | P-57 | ResNet-34 on the v09r recipe (`v13a`) | ❌ **on gold-58 — but it was the recipe (P-59 ✅: a CNN LR reads 0.899 / 0.901)**: `v13a` 0.8306 vs `v09r` 0.9093 (−0.079, beyond the 0.05 floor; 8/12 labels down, ACL / MCL / both menisci 0.75–0.77); solo read deprioritised (Dataset `rsna-knee-ckpt-v13a` shipped, submit only into a spare slot) | tests the Scott Willis / CoolinLai route | ~0 extra (rides with `v09k4`) | — |
 | 0f | P-58 | Local-CPU open-weights LLM relabel as a 4th vote (Scott's Gemma route) | 💡 future, not scheduled (Tian 2026-09-28) | 0..+0.002 | 0 GPU; overnight CPU | — |
 | 0g | P-61 | CoAtNet learning-rate probe upward (`lr_backbone` 2e-4, LLRD 0.85) | 💡 new 2026-09-29 (from P-59) | 0..+0.005 — the CoAtNet trains under the LLRD that under-trained the ResNet by 0.069 on gold | ≈ 3 GPU-h (2 arms, c03) or ≈ $5 RunPod; 2 solos | — |
-| 0h | P-60 | "Noisy student" regularisation on the c03 CoAtNet (`v11n` / `v11n2`: drop-path 0.1, heavy aug, 12 epochs) | ⏳ training on a RunPod A100 80 GB, US-MD-1 (18:34 UTC; pod 1 had no bandwidth, traps 45) | +0.002..0.008 (literature + every prior RSNA winner) | ≈ $4 RunPod, 2 solos | — |
+| 0h | P-60 | "Noisy student" regularisation on the c03 CoAtNet (`v11n` / `v11n2`: drop-path 0.1, heavy aug, 12 epochs) | ⏸ blocked on compute: RunPod balance ran out at epoch 5 (EMA gold 0.911 / 0.912 there); Kaggle after the Oct 3 reset (≈ 5 GPU-h) | +0.002..0.008 (literature + every prior RSNA winner) | ≈ $4 RunPod, 2 solos | — |
 | 4 | P-50 | Final selection and publishability | 💡 decide by 2026-10-15 | decides what the private LB scores | a browser session; ≤ 1 fork check | P-40 ✅ closed (#22 / #27), Rules page |
 | 5 | P-18 | Efficiency track with the solo member | 💡 (robustness half shipped) | a separate prize; unknown until the formula is read | 0 GPU h (CLI + browser) | Efficiency formula (browser) |
 | 6 | P-47 | Teacher-mix bracket: mix 0.75 only | 💡 low — P-49 priced it on Raptor itself: matched mix 0.75 − 0.5 = −0.002 (SD 0.003) on gold | ≈ 0 (+0.000..0.002) | per-arm `TEACHER_MIX` code + ≈ 2.8 h; 1 solo | P-44 floor, an idle slot |
@@ -120,7 +120,7 @@ result*, per unit of cost. "Depends on" lists hard blockers only. EVs are solo-L
 | P-42 | Two-family Raptor-distilled solo blend | 🔁 #23 = 0.927 = `v09r` alone; gold within-class ρ 0.861 vs 0.777 for the LLM-target pair | experiments.md 2026-09-27 "Submission #23" |
 | P-43 | Student resolution: CoAtNet-1 @320 on the `v09r` targets (`v09x`) | 🔁 #25 `v09x` 0.929 vs m 0.927 (✅ needed ≥ 0.932); 224 stays the production resolution; `v09x` = our strongest single member, 1.4× inference / 2.1× training | experiments.md 2026-09-28 "rsna-knee-train v30", "Submissions #24–#26" |
 | P-44 | Kaggle-retrain seed spread + a 2-seed production member (`v09u`) | ✅ s = 0.000 (#24 `v09u` 0.927 = `v09r`) → one-seed deltas need ≥ 0.004; P-39 re-confirmed on Kaggle; #26 `v09r` + `v09u` 0.930 = the production member (+0.003, under the floor — adopted, not proven) | experiments.md 2026-09-28 "Submissions #24–#26"; traps 42 |
-| P-59 | ResNet-34 pipeline control: CNN learning rate (`v13b`) + frozen BatchNorm (`v13c`) | ✅ the optimiser was the defect: gold-58 `v13a` 0.8306 → `v13b` 0.8992 (uniform 3e-4, 12 ep; train loss 0.471 → 0.391); 🔁 frozen BN (`v13c` 0.9014, +0.002); ρ to `v09r` 0.86, gold blends flat — a solo / pair LB read is open (Datasets `rsna-knee-ckpt-v13b` / `-v13c`) | experiments.md 2026-09-29 "P-59" |
+| P-59 | ResNet-34 pipeline control: CNN learning rate (`v13b`) + frozen BatchNorm (`v13c`) | ✅ the optimiser was the defect: gold-58 `v13a` 0.8306 → `v13b` 0.8992 (uniform 3e-4, 12 ep; train loss 0.471 → 0.391); 🔁 frozen BN (`v13c` 0.9014, +0.002); ρ to `v09r` 0.86, gold blends flat — LB reads queued for 2026-09-30: `v13c` solo (`rsna-knee-infer` v33) and `v11a` + `v11b` + `v13c` (v34), both placeholders green (Datasets `rsna-knee-ckpt-v13b` / `-v13c`) | experiments.md 2026-09-29 "P-59" |
 | P-40 | Raptor-distilled members into the fork | 🔁 closed: #22 (β 0.10) 0.942, #27 (β 0.20) 0.941 vs 0.942 — the fork does not register a 0.927 member at either weight; the pre-registered β 0.20 retry is spent → the fork is for final-selection builds only (P-50). Step B: `v08r` 0.918 solo (#21), not a fork member | experiments.md 2026-09-27 "Submission #22"; 2026-09-28 "Submissions #27–#28" |
 | P-49 | Raptor over the 58 gold studies | 🔁 read (direction only): Raptor 0.9254, the 0.5/0.5 target 0.9268 (12/12 above the LLM), within-class ρ `v09r` ~ Raptor 0.835 (`v09a` ~ Raptor 0.742, `v09r` ~ LLM 0.408) → the fork cannot read `v09r`; matched mix 0.5 is the best on gold (0.75 −0.002, 1.0 −0.017) | experiments.md 2026-09-28 "P-49" |
 | P-52 | Three-member production blend `v09r` + `v09u` + `v09x` | 🔁 closed: #29 = 0.931 vs #26 0.930 (band 0.931–0.933) — the pair stays (the third member costs 1.4× inference and read like a seed) | experiments.md 2026-09-29 "Submissions #29–#32" |
@@ -253,10 +253,13 @@ If it fails:  the LLM half stays three sources.
 Depends on:   a free machine for a night; P-46.
 
 ### P-60 "Noisy student" regularisation on the c03 CoAtNet (`v11n` / `v11n2`)
-Status:       ⏳ **training on RunPod** — pod `rsna-p60-v11n` (1 × RTX 5090, secure, $0.99/h, created 18:01 UTC): 
-              `CACHE_PREFIX=rsna-knee-cache3 bash scripts/runpod_chain.sh v11n v11n2` (both arms share the GPU; ship as
-              `rsna-knee-ckpt-v11n` / `-v11n2`); unit + local CPU smoke green. **Pod 1 had no bandwidth (traps 45) → deleted after ≈ 35 min;
-              pod 2 = `rsna-p60-v11n-b`, 1 × A100 SXM 80 GB, US-MD-1, $1.59/h (18:30 UTC), cache on `/dev/shm` at ≈ 135 MB/s.** Tian: "brainstorm … what would make more sense and do that".
+Status:       ⏸ **blocked on compute (2026-09-29)**: the code and arms are in `src/` (unit + local CPU smoke green). Pod 1 (RTX 5090,
+              EU-RO-1) had no bandwidth (traps 45); pod 2 (A100 80 GB, US-MD-1) ran 5 epochs — EMA gold-58 by epoch `v11n` 0.776 ·
+              0.852 · 0.882 · 0.898 · 0.911, `v11n2` 0.773 · 0.842 · 0.881 · 0.900 · 0.912 (direction only; `v11a` ep 4 ≈ 0.906) —
+              until **the RunPod balance ran out** (19:33 UTC, container removed, nothing kept; `402 Payment Required` on restart).
+              Tian (2026-09-29): no top-up → run it on Kaggle after the 2026-10-03 quota reset (two c03 arms × 12 epochs ≈ 5 h on
+              2 × T4 = ≈ 5 GPU-h; `PARALLEL_ARMS = ("v11n", "v11n2")`, `TEACHER_TABLES = ("raptor_teacher",)`, `rsna-knee-folds`
+              with the c03 `kernel_sources`). Tian: "brainstorm … what would make more sense and do that".
 Hypothesis:   our student imitates its targets because it is barely regularised — no stochastic depth (`drop_path_rate`
               is never set), light augmentation, 8 epochs; with drop-path 0.1, heavier augmentation and 12 epochs the
               `v11a` recipe (c03, Raptor mix 0.5) reads above `v11a` / `v11b`.
