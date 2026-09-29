@@ -64,7 +64,7 @@ result*, per unit of cost. "Depends on" lists hard blockers only. EVs are solo-L
 | 0e | P-57 | ResNet-34 on the v09r recipe (`v13a`) | ❌ **on gold-58**: `v13a` 0.8306 vs `v09r` 0.9093 (−0.079, beyond the 0.05 floor; 8/12 labels down, ACL / MCL / both menisci 0.75–0.77); solo read deprioritised (Dataset `rsna-knee-ckpt-v13a` shipped, submit only into a spare slot) | tests the Scott Willis / CoolinLai route | ~0 extra (rides with `v09k4`) | — |
 | 0f | P-58 | Local-CPU open-weights LLM relabel as a 4th vote (Scott's Gemma route) | 💡 future, not scheduled (Tian 2026-09-28) | 0..+0.002 | 0 GPU; overnight CPU | — |
 | 0g | P-59 | ResNet-34 pipeline control: CNN learning rate (`v13b`) + frozen BatchNorm (`v13c`) | ⏳ `rsna-knee-train` v37 REAL running (pushed 18:10 UTC; smoke v36 green) | tells whether our optimiser / BN cost the CNN −0.079 on gold; a cheap decorrelated member if it recovers | ≈ 1.2 GPU-h, 0 solos | — |
-| 0h | P-60 | "Noisy student" regularisation on the c03 CoAtNet (`v11n` / `v11n2`: drop-path 0.1, heavy aug, 12 epochs) | ⏳ training on a RunPod RTX 5090 (18:13 UTC) | +0.002..0.008 (literature + every prior RSNA winner) | ≈ $4 RunPod, 2 solos | — |
+| 0h | P-60 | "Noisy student" regularisation on the c03 CoAtNet (`v11n` / `v11n2`: drop-path 0.1, heavy aug, 12 epochs) | ⏳ training on a RunPod A100 80 GB, US-MD-1 (18:34 UTC; pod 1 had no bandwidth, traps 45) | +0.002..0.008 (literature + every prior RSNA winner) | ≈ $4 RunPod, 2 solos | — |
 | 4 | P-50 | Final selection and publishability | 💡 decide by 2026-10-15 | decides what the private LB scores | a browser session; ≤ 1 fork check | P-40 ✅ closed (#22 / #27), Rules page |
 | 5 | P-18 | Efficiency track with the solo member | 💡 (robustness half shipped) | a separate prize; unknown until the formula is read | 0 GPU h (CLI + browser) | Efficiency formula (browser) |
 | 6 | P-47 | Teacher-mix bracket: mix 0.75 only | 💡 low — P-49 priced it on Raptor itself: matched mix 0.75 − 0.5 = −0.002 (SD 0.003) on gold | ≈ 0 (+0.000..0.002) | per-arm `TEACHER_MIX` code + ≈ 2.8 h; 1 solo | P-44 floor, an idle slot |
@@ -279,7 +279,8 @@ Depends on:   — .
 ### P-60 "Noisy student" regularisation on the c03 CoAtNet (`v11n` / `v11n2`)
 Status:       ⏳ **training on RunPod** — pod `rsna-p60-v11n` (1 × RTX 5090, secure, $0.99/h, created 18:01 UTC): 
               `CACHE_PREFIX=rsna-knee-cache3 bash scripts/runpod_chain.sh v11n v11n2` (both arms share the GPU; ship as
-              `rsna-knee-ckpt-v11n` / `-v11n2`); unit + local CPU smoke green. Tian: "brainstorm … what would make more sense and do that".
+              `rsna-knee-ckpt-v11n` / `-v11n2`); unit + local CPU smoke green. **Pod 1 had no bandwidth (traps 45) → deleted after ≈ 35 min;
+              pod 2 = `rsna-p60-v11n-b`, 1 × A100 SXM 80 GB, US-MD-1, $1.59/h (18:30 UTC), cache on `/dev/shm` at ≈ 135 MB/s.** Tian: "brainstorm … what would make more sense and do that".
 Hypothesis:   our student imitates its targets because it is barely regularised — no stochastic depth (`drop_path_rate`
               is never set), light augmentation, 8 epochs; with drop-path 0.1, heavier augmentation and 12 epochs the
               `v11a` recipe (c03, Raptor mix 0.5) reads above `v11a` / `v11b`.

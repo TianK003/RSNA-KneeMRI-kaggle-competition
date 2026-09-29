@@ -885,3 +885,17 @@ used, 10.67 h left; session D kept running). Not reproducible from here.
 session ends. **Do:** re-push the same build (it is `src` + seds; nothing to fix); when a short arm shares a session with a long
 one, its result is hostage to the long one — pair arms of similar length where possible, and read `kaggle kernels status` + the
 API `failureMessage` + the output file list before concluding anything from a missing child log.
+
+### 45. A RunPod pod can have almost no internet, and one 429 during the parallel cache pulls kills `runpod_chain.sh` under `set -e` (Tier 3, 2026-09-29)
+
+P-60 pod 1 (`rsna-p60-v11n`, 1 × RTX 5090, secure, data centre unreported — the only secure 5090 stock was EU-RO-1): the four
+parallel `kaggle kernels output` pulls of the c03 cache (≈ 51 GB) ran at ≈ 110–140 kB/s **each**, `blob00_000.npy` sat at
+0 bytes (the CLI buffers a file before writing it), and a small `kaggle competitions download … train_series.csv` got **429
+Too Many Requests** from `storage.googleapis.com`. That one failing command ended the chain (`set -euo pipefail`) while the four
+pull subshells kept running as orphans. With the pulls killed, the pod measured 128 kB/s from a public GCS object and ≈ 0 from
+Cloudflare — the machine itself had no usable bandwidth; 51 GB would have taken days. Terminated after ≈ 35 min (≈ $0.60).
+**Do:** (1) the chain now retries every small download with back-off (`retry` helper, commit `08b89ce`); (2) **measure the pod's
+bandwidth before launching the chain** — `curl -s -o /dev/null -w "%{speed_download}\n" --max-time 20 <public GCS object>` must
+read ≥ 20 MB/s — and delete the pod otherwise; (3) prefer a data centre that has pulled our caches before (US-MD-1, EUR-IS-1,
+EU-CZ-1); (4) `pkill -f <pattern>` over ssh matches the remote `bash -c` command line that contains the pattern and kills your
+own session — bracket one character (`pkill -f "[k]ernels output"`).
