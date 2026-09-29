@@ -12,7 +12,8 @@
 # `stat -f -c %T /workspace; df -h /dev/shm` first); /kaggle/input/<shard> is symlinked to it.
 # CACHE_PREFIX (default rsna-knee-cache2): the four cache kernels <prefix>-a..d -- rsna-knee-cache3 for the c03 input
 # (P-56 / P-60; ~51 GB, same manifest names). Several arms (`runpod_chain.sh v11n v11n2`) train IN PARALLEL, one per GPU
-# (CUDA_VISIBLE_DEVICES = the arm's position), then ship one by one -- a 2-GPU pod pulls the cache once for both.
+# (CUDA_VISIBLE_DEVICES = the arm's position modulo the pod's GPU count, so two arms share a 1-GPU pod), then ship
+# one by one -- the cache is pulled once for both.
 # EXPECT_TEACHER (default: every table named in RSNA_TEACHER_TABLES): each must be in the downloaded teacher-tables Dataset
 # with >= EXPECT_ROWS (4349) rows; TEACHER_WAIT_MIN (default 0) = minutes to keep re-downloading until it is.
 set -euo pipefail
@@ -131,9 +132,11 @@ done
 du -sh "${CACHE2[@]/#/$CACHE_ROOT/}"
 
 tpids=()
+n_gpu=$(nvidia-smi -L | wc -l)
+[ "$n_gpu" -ge 1 ] || n_gpu=1
 for i in "${!ARMS[@]}"; do
   ARM="${ARMS[$i]}"
-  gpu=$(( ${#ARMS[@]} > 1 ? i : 0 ))
+  gpu=$(( i % n_gpu ))                               # more arms than GPUs share one (a 1 x 5090 pod runs both)
   log "TRAIN $ARM on GPU $gpu (TEACHER_TABLES ${RSNA_TEACHER_TABLES:-()}) -> $WORK/job_train_$ARM.log"
   ( CUDA_VISIBLE_DEVICES=$gpu bash "$REPO/scripts/runpod_bootstrap.sh" train "$ARM" > "$WORK/job_train_$ARM.log" 2>&1 ) &
   tpids+=($!)
