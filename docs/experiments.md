@@ -92,6 +92,8 @@ Judge label changes on **coverage** (does the rule fire at all, per language) an
 | 2026-09-28 | **P-53 per-label probe, submission #28 (`rsna-knee-infer` v24)**: the #26 pair with ACL / MCL / PF OA / Lat Men = constant 0.5 — a diagnostic, never a candidate | gold-58: those 4 labels 0.886 vs the other 8 0.914 (Δ +0.028) | **0.785** | **✅ KEEP (a measurement): on the public test the 4 "structural" labels average 0.935 ± 0.003 and the other 8 0.9275 → Δ −0.0075: the gold-58 deficit is gold-specific (pre-registered: mean4 ≥ mean8 − 0.01).** The c03 input (P-56) keeps running on a lower prior (entry "Submissions #27–#28") |
 | 2026-09-28 | **P-49 Raptor over the 58 gold studies (`rsna-knee-teacher-gold` v1, 58/58, 4.7 s/study, 0 failed)** | **Raptor 0.9254** (optimistic: its authors picked epochs on gold) · LLM blend 0.8948 · **the 0.5/0.5 training target 0.9268 (12/12 labels above the LLM; paired bootstrap +0.032, SD 0.008)**; within-class ρ `v09r` ~ Raptor **0.835** vs `v09r` ~ LLM 0.408 | — | **🔁 direction only (a correlation read, never a verdict):** our member is closer to Raptor than to anything else we have measured except its own seed twin (0.916) → the fork cannot read it (P-40 ✅ closed); matched-mix analogs on Raptor itself: 0.25 → 0.9187, **0.5 → 0.9268**, 0.75 → 0.9252 (−0.002, SD 0.003), 1.0 → 0.9098 (−0.017, SD 0.009) → mix 0.5 stays, P-47 priced at ≈ 0; the student trails its own target by 0.018 on gold (entry "P-49") |
 | 2026-09-28 | **P-54 cross-fit, sessions A ‖ B (`rsna-knee-train` v32 ‖ `rsna-knee-folds` v9)**: the `v09r` recipe with `train_all` False on folds 0–3 (`v09k0` … `v09k3`), SWA 5–7, held-out eval once (`eval_final_only`), Raptor mix 0.5 | per-fold gold (11–12 studies each, noise): 0.9272 / 0.9136 / 0.8582 / 0.8883; OOF-vs-LLM (`auc_soft`, 881–882 each): 0.8816 / 0.8728 / 0.8707 / 0.8679 | — | ✅ **the runs** (`ok  arm` ×4, `fold k: train 3525–3526 / val 881–882`, `SWA of last 3`, no guard; 2.29 h / 2.26 h wall; checkpoints 157 MiB) — ⏳ fold 4 (`v09k4`, session C = `rsna-knee-train` v33) before the table; the OOF-vs-LLM numbers are not a verdict on anything (traps 39) (entry "P-54 sessions A ‖ B") |
+| 2026-09-29 | **Sessions C (re-push, `rsna-knee-train` v34, 2.39 h) ‖ D (`rsna-knee-folds` v10, 3.53 h)**: `v09k4` (P-54 fold 4) + `v13a` (P-57, ResNet-34 on the `v09r` recipe) ‖ `v11a` / `v11b` (P-56, the `v09r` recipe on the c03 input 24/24/24/14/8/8 at 150 mm, seeds 42 / 43) | gold-58 SWA: **`v11a` 0.9204, `v11b` 0.9167** (c03 pair 0.9207 vs c02 pair 0.9065: +0.014, SD 0.005, 10/12 up); **`v13a` 0.8306** (−0.079 vs `v09r`); `v09k4` OOF-vs-LLM 0.8811 | ⏳ solo reads | ✅ runs · 🔁 c03 direction only · **❌ `v13a` on gold-58** (beyond the 0.05 floor, 8/12 down) (entry "Sessions C ‖ D") |
+| 2026-09-29 | **P-54 table `xfit_v09k`** (5-fold cross-fit OOF, ranked within each fold, 4,407 rows) → P-55 loose gate | gold-58 pooled **0.9028** vs LLM 0.8948 (+0.008, SD 0.015), 4/12 below the LLM | — | 🔁 direction only; **loose gate OPEN → session E (`rsna-knee-train` v35, `v09o` ‖ `v09o2`, mix 0.75 over Raptor + xfit) pushed 11:37 UTC** (entry "P-54 cross-fit table") |
 
 **External reference points** (not ours — for calibrating ambition):
 
@@ -2333,6 +2335,87 @@ parents judged each child by its fold's `_best.pt` (`ok  arm v09kN … (folds [N
 **Verdict: ✅ the runs (the cross-fit pipeline works on folds 1–3, which no smoke can reach); no verdict on anything else.** OOF vs the
 LLM targets rewards agreement with the teacher (traps 39); per-fold gold on 11–12 studies is noise. Fold 4 (`v09k4`) is session C
 (`rsna-knee-train` v33, with `v13a`, pushed 15:35 UTC); then the table (`build_distill_table.py --per-fold-rank`) and the loose gate.
+
+### 2026-09-29 — Sessions C ‖ D: `v09k4` (fold 4) done · c03 `v11a` / `v11b` gold-58 **0.9204 / 0.9167** (pair 0.9207 vs the c02 pair 0.9065) · ResNet-34 `v13a` **0.8306** · ✅ runs green, 🔁 c03 direction only, ❌ `v13a` on gold
+
+**Session C, re-pushed** after v33 died from outside (traps 44) = `rsna-knee-train` v34 (pushed 2026-09-28 18:30 UTC, the same build
+`artifacts/train_xf_C.py`), COMPLETE in **2.39 h**: `v09k4` (fold 4, `train 3526 / val 881`, `eval_final_only`, SWA 5–7, 0.29 s/study)
+and `v13a` (ResNet-34, all 4,349, 8 epochs in 0.7 h at 0.07 s/study), both `ok  arm`, both `teacher table raptor_teacher: 4349`.
+**Session D** = `rsna-knee-folds` v10 (pushed 15:36 UTC, `kernel_sources` = `rsna-knee-cache3-a..d` only), COMPLETE in **3.53 h**:
+`v11a` (seed 42) ‖ `v11b` (`reseeded 43`), each on cache `c02_p336_b24-24-24-14-8-8_band2-98_crop150_lat20` (4 shards, 4,407
+studies), `train 34, eval all` windows, 0.35 s/study ≈ 25 min/epoch, SWA of the last 3, no runtime guard. Pulled to
+`artifacts/kaggle_out/xf_C2/` and `c03_D/` (`_best.pt` 164,789,727 / 164,789,267 bytes; `v13a` 85,857,013).
+
+Gold-58 (the `train_all` members' held-out 58; `v09k4` scores fold 4 only — 0.9432 on n = 11, noise), per label, with same-seed
+rank-means (scratch `cd_gold.py`):
+
+| label | `v09r` | `v09u` | `v11a` | `v11b` | `v13a` | c02 pair | c03 pair | c03 − c02 (pair means) |
+|---|---|---|---|---|---|---|---|---|
+| ACL | 0.953 | 0.949 | 0.962 | 0.961 | 0.772 | 0.953 | 0.961 | +0.010 |
+| MCL | 0.925 | 0.907 | 0.955 | 0.957 | 0.753 | 0.915 | 0.955 | +0.040 |
+| Medial Meniscus | 0.958 | 0.970 | 0.958 | 0.959 | 0.768 | 0.966 | 0.959 | −0.005 |
+| Lateral Meniscus | 0.853 | 0.870 | 0.896 | 0.872 | 0.752 | 0.868 | 0.889 | +0.022 |
+| Medial OA | 0.967 | 0.984 | 0.986 | 0.984 | 0.984 | 0.977 | 0.988 | +0.009 |
+| Lateral OA | 0.805 | 0.807 | 0.822 | 0.812 | 0.797 | 0.805 | 0.818 | +0.012 |
+| PF OA | 0.816 | 0.812 | 0.837 | 0.838 | 0.816 | 0.815 | 0.838 | +0.023 |
+| Effusion | 0.974 | 0.944 | 0.969 | 0.960 | 0.978 | 0.964 | 0.970 | +0.006 |
+| Synovitis | 0.823 | 0.816 | 0.806 | 0.811 | 0.748 | 0.823 | 0.812 | −0.011 |
+| Baker's | 0.960 | 0.933 | 0.966 | 0.971 | 0.982 | 0.951 | 0.970 | +0.022 |
+| Contusion | 0.934 | 0.912 | 0.947 | 0.937 | 0.823 | 0.928 | 0.941 | +0.019 |
+| Fracture | 0.943 | 0.890 | 0.942 | 0.938 | 0.794 | 0.913 | 0.948 | +0.023 |
+| **macro** | **0.9093** | **0.8995** | **0.9204** | **0.9167** | **0.8306** | **0.9065** | **0.9207** | **+0.014** |
+
+Paired study bootstrap (2,000 reps) c03 pair − c02 pair **+0.0142 (SD 0.0053)**; the 2-seed mean moves +0.0141 with 10/12 labels
+up. Within-class ρ: `v11a` ~ `v11b` 0.934 (the c02 seed twins: 0.916), `v11a` ~ `v09r` 0.908, `v11b` ~ `v09u` 0.894, `v13a` ~ `v09r`
+0.667. Rank-means: `v09r` + `v09u` + `v11a` + `v11b` 0.9182; the P-52 trio 0.9110.
+
+**Verdicts.**
+- **Runs: ✅** — both sessions green; P-54 now has all five folds (entry below).
+- **c03 (P-56): 🔁 direction only, the solo reads decide.** +0.014 is under the 0.05 gold floor, and gold-58 got two same-recipe
+  directions wrong (#24, #26 — traps 39); what is new is the *consistency* (both seeds above both c02 seeds, 10/12 labels, 3 SD on the
+  paired bootstrap). Note the gains sit on MCL / PF OA / Lat Men — the labels the c03 input was aimed at — although #28 says those are
+  not weak on the public test. Pre-registered reads (P-56): m = mean of the two solos vs 0.927 (✅ ≥ 0.9315 / 🔁 0.9285–0.9315 / ❌
+  < 0.9285), and the pair vs 0.930.
+- **ResNet-34 (P-57): ❌ DEAD END on gold-58** — −0.079 vs `v09r`, beyond the 0.05 floor (paired SD ≈ 0.007, audit), 8/12 labels
+  down, and the structure labels collapse to 0.75–0.77 while Medial OA / Effusion / Baker's hold. Scope: the `v09r` optimiser (backbone
+  LR 1e-4, 8 epochs, window-attention head) on `resnet34.a1_in1k` — this closes "a ResNet-34 on our recipe", not the thread's tuned
+  ResNets. The solo read is deprioritised (Dataset `rsna-knee-ckpt-v13a` shipped for a spare slot).
+
+### 2026-09-29 — P-54 cross-fit table `xfit_v09k` (5 folds, per-fold ranked): gold-58 **0.9028** vs the LLM blend 0.8948 · loose gate **OPEN** → session E pushed · 🔁 direction only
+
+`python src/build_distill_table.py --sets "artifacts/kaggle_out/xf_*/v09k[0-4]_fold[0-9]_oof.csv" --per-fold-rank --out
+artifacts/teacher/xfit_v09k.csv` → 4,407 studies from one set of five folds (881–882 rows each; 0 NaN, 0 duplicate UIDs), values =
+within-fold ranks in (0, 1). The gate script (scratch `xfit_gate.py`, the P-49 method) on the 58 gold rows — each an honest
+out-of-fold prediction:
+
+| label | pos | xfit | LLM | Raptor | 0.5/0.5 target | ρ_w vs Raptor | xfit − LLM |
+|---|---|---|---|---|---|---|---|
+| ACL | 24 | 0.934 | 0.990 | 0.980 | 0.995 | 0.69 | −0.056 |
+| MCL | 9 | 0.910 | 0.980 | 0.993 | 0.997 | 0.71 | −0.069 |
+| Medial Meniscus | 26 | 0.956 | 0.955 | 0.969 | 0.980 | 0.81 | +0.001 |
+| Lateral Meniscus | 23 | 0.810 | 0.881 | 0.863 | 0.928 | 0.76 | −0.071 |
+| Medial OA | 15 | 0.978 | 0.931 | 0.985 | 0.978 | 0.85 | +0.047 |
+| Lateral OA | 11 | 0.814 | 0.808 | 0.836 | 0.819 | 0.93 | +0.007 |
+| PF OA | 21 | 0.808 | 0.903 | 0.835 | 0.909 | 0.94 | −0.095 |
+| Effusion | 35 | 0.960 | 0.880 | 0.973 | 0.944 | 0.84 | +0.081 |
+| Synovitis | 27 | 0.816 | 0.788 | 0.824 | 0.830 | 0.83 | +0.028 |
+| Baker's | 12 | 0.971 | 0.947 | 0.978 | 0.957 | 0.85 | +0.025 |
+| Contusion | 19 | 0.949 | 0.861 | 0.931 | 0.913 | 0.71 | +0.088 |
+| Fracture | 18 | 0.926 | 0.815 | 0.938 | 0.872 | 0.89 | +0.111 |
+| **macro** | | **0.9028** | **0.8948** | **0.9254** | **0.9268** | **0.818** | **+0.008** |
+
+Paired bootstrap xfit − LLM **+0.0078 (SD 0.0146)**; 4/12 labels below the LLM (the same four "structural" labels as every member).
+**Loose gate (Tian, 2026-09-28): E runs unless pooled gold < 0.875 AND ≥ 8/12 below the LLM → 0.9028 ≥ 0.875, 4/12 → OPEN.** Unlike
+P-38's teacher (gold 0.873 < 0.895), this teacher is above the labels it is mixed with — the precondition the plan asked for.
+
+**Shipped:** a new version of the PRIVATE Dataset `rsna-knee-teacher-tables` (`raptor_teacher.csv` / `selfdistill_v1.csv` byte-identical
+by md5, + `xfit_v09k.csv`); checkpoint Datasets `rsna-knee-ckpt-v09k` (all five `v09k{k}_fold{k}_best.pt` + OOF csvs), `-v11a`,
+`-v11b`, `-v13a`, all `ready` 11:36 UTC and added to `kaggle/rsna-knee-infer/kernel-metadata.json`.
+**Session E** (P-55) = `rsna-knee-train` v35, `PARALLEL_ARMS = ("v09o", "v09o2")`, `TEACHER_TABLES = ("raptor_teacher", "xfit_v09k")`,
+`TEACHER_MIX = 0.75` (`artifacts/train_student_E.py` = `src` + 4 seds), pushed 11:37:33 UTC, RUNNING at once. Local CPU smoke of the
+same build (`MODE = "train"`, `FORCE_SMOKE = True`) green first: both tables read (xfit 4,407 rows), `training targets = (1 - 0.75) *
+LLM + 0.75 * quantile-matched ['raptor_teacher', 'xfit_v09k']`, `reseeded 43 for arm v09o2`, both `_best.pt` = SWA, exit 0.
+**Verdict: 🔁 direction only** — the table's gold is never a verdict (traps 39); the student's solo reads are.
 
 ## Infrastructure
 

@@ -58,12 +58,12 @@ result*, per unit of cost. "Depends on" lists hard blockers only. EVs are solo-L
 
 | rank | id | title | status | expected value | cost | depends on |
 |---|---|---|---|---|---|---|
-| 0b | P-54 | 5-fold cross-fit of the v09r recipe (`v09k0-4`): honest OOF + a 5-fold member | ⏳ folds 0–3 ✅ (sessions A ‖ B, 2.29 / 2.26 h, 2026-09-28); **fold 4 LOST: session C (`rsna-knee-train` v33) died from outside at 2.2 h with 0 saved files (traps 44) → re-push C** | enables P-55; fold ensemble +0.000..0.005 | ~7.7 GPU-h (3 sessions) | — |
-| 0c | P-55 | OOF soft-bootstrapped student `v09o` / `v09o2` (0.25 LLM + 0.375 Raptor + 0.375 xfit, mix 0.75) | 🔧 arms + `DISTILLED_MIX` guard in; needs fold 4 → the xfit table → the loose gate | 0..+0.005 (Nicolai: no LB transfer) | ~2.9 GPU-h, 3 submissions | P-54; loose gate |
-| 0d | P-56 | Dense-slice input c03 (24/24/24/14/8/8, 150 mm) `v11a` / `v11b` | ⏳ **session D (`rsna-knee-folds` v10, c03 mounted alone, pushed 15:36 UTC)**; cache3 green (4,407 studies, 50.7 GB, 0 failures); prior lowered by #28 (the gold deficit is gold-specific) | the only untested input axis since c02 | ~3.7-4.4 GPU-h, 3 submissions | — |
-| 0e | P-57 | ResNet-34 on the v09r recipe (`v13a`) | ⏳ **LOST with session C** (8 epochs done in 0.7 h; the container died at 2.2 h before saving — traps 44) → re-push C | tests the Scott Willis / CoolinLai route | ~0 extra (rides with `v09k4`) | — |
+| 0b | P-54 | 5-fold cross-fit of the v09r recipe (`v09k0-4`): honest OOF + a 5-fold member | ⏳ **all 5 folds ✅** (A ‖ B 2026-09-28; fold 4 = C re-push `rsna-knee-train` v34, 2.39 h); table `xfit_v09k` built (gold-58 0.9028 vs LLM 0.8948, 4/12 below → loose gate OPEN); Dataset `rsna-knee-ckpt-v09k` (5 ckpts); **fold-ensemble solo ⏳** | enables P-55; fold ensemble +0.000..0.005 | ~7.7 GPU-h (3 sessions) | — |
+| 0c | P-55 | OOF soft-bootstrapped student `v09o` / `v09o2` (0.25 LLM + 0.375 Raptor + 0.375 xfit, mix 0.75) | ⏳ **session E = `rsna-knee-train` v35 RUNNING** (pushed 2026-09-29 11:37 UTC; loose gate OPEN; `rsna-knee-teacher-tables` now carries `xfit_v09k.csv`; local CPU smoke of the exact build green) | 0..+0.005 (Nicolai: no LB transfer) | ~2.9 GPU-h, 3 submissions | P-54; loose gate |
+| 0d | P-56 | Dense-slice input c03 (24/24/24/14/8/8, 150 mm) `v11a` / `v11b` | ⏳ **trained** (session D = `rsna-knee-folds` v10, 3.53 h): gold-58 `v11a` 0.9204 / `v11b` 0.9167, c03 pair 0.9207 vs c02 pair 0.9065 (+0.014, SD 0.005, 10/12 up — direction only); Datasets `rsna-knee-ckpt-v11a` / `-v11b`; **3 solo reads ⏳ (2026-09-29)** | the only untested input axis since c02 | ~3.7-4.4 GPU-h, 3 submissions | — |
+| 0e | P-57 | ResNet-34 on the v09r recipe (`v13a`) | ❌ **on gold-58**: `v13a` 0.8306 vs `v09r` 0.9093 (−0.079, beyond the 0.05 floor; 8/12 labels down, ACL / MCL / both menisci 0.75–0.77); solo read deprioritised (Dataset `rsna-knee-ckpt-v13a` shipped, submit only into a spare slot) | tests the Scott Willis / CoolinLai route | ~0 extra (rides with `v09k4`) | — |
 | 0f | P-58 | Local-CPU open-weights LLM relabel as a 4th vote (Scott's Gemma route) | 💡 future, not scheduled (Tian 2026-09-28) | 0..+0.002 | 0 GPU; overnight CPU | — |
-| 1 | P-52 | Three-member production blend `v09r` + `v09u` + `v09x` | 💡 new 2026-09-28 — no training; the checkpoints are shipped | +0.001..0.004 solo over #26 (0.930); gold-58: all three 0.9110 vs pair 0.9065 | ≈ 0.1 h T4 placeholder + 1 solo (≈ 30 min) | P-43 / P-44 (both read) |
+| 1 | P-52 | Three-member production blend `v09r` + `v09u` + `v09x` | ⏳ placeholder `rsna-knee-infer` v25 pushed 2026-09-29 11:36 UTC (queued); submit when green | +0.001..0.004 solo over #26 (0.930); gold-58: all three 0.9110 vs pair 0.9065 | ≈ 0.1 h T4 placeholder + 1 solo (≈ 30 min) | P-43 / P-44 (both read) |
 | 4 | P-50 | Final selection and publishability | 💡 decide by 2026-10-15 | decides what the private LB scores | a browser session; ≤ 1 fork check | P-40 ✅ closed (#22 / #27), Rules page |
 | 5 | P-18 | Efficiency track with the solo member | 💡 (robustness half shipped) | a separate prize; unknown until the formula is read | 0 GPU h (CLI + browser) | Efficiency formula (browser) |
 | 6 | P-47 | Teacher-mix bracket: mix 0.75 only | 💡 low — P-49 priced it on Raptor itself: matched mix 0.75 − 0.5 = −0.002 (SD 0.003) on gold | ≈ 0 (+0.000..0.002) | per-arm `TEACHER_MIX` code + ≈ 2.8 h; 1 solo | P-44 floor, an idle slot |
@@ -129,7 +129,8 @@ result*, per unit of cost. "Depends on" lists hard blockers only. EVs are solo-L
 
 ### P-52 Three-member production blend `v09r` + `v09u` + `v09x`
 Status:       💡 new 2026-09-28 — no training needed; all three checkpoints are shipped (`rsna-knee-ckpt-v09r` / `-v09u` / `-v09x`,
-              all mounted on `rsna-knee-infer`).
+              all mounted on `rsna-knee-infer`). **2026-09-29: placeholder `rsna-knee-infer` v25 pushed 11:36 UTC**
+              (`artifacts/infer_p52_trio.py` = `src` + 3 seds).
 Hypothesis:   adding the 320-px member to the 2-seed pair lifts the solo read above #26 (0.930): the 320 student sees detail the
               224 pair does not (Lateral Meniscus 0.901 vs 0.853 / 0.870 on gold), so it adds more than a third seed would.
 Origin:       P-43 "If it works" (read `v09x` + `v09r` (+ `v09u`) as a blend); #24–#26.
@@ -149,6 +150,9 @@ Depends on:   P-43 / P-44 (both read).
 ### P-54 5-fold cross-fit of the `v09r` recipe (`v09k0` … `v09k4`)
 Status:       ⏳ folds 0–3 ✅ (sessions A ‖ B = `rsna-knee-train` v32 ‖ `rsna-knee-folds` v9, 2026-09-28, 2.29 / 2.26 h; experiments.md
               2026-09-28 "P-54 sessions A ‖ B"); **fold 4 = `v09k4`: session C (`rsna-knee-train` v33) died from outside at 2.2 h, 0 files saved (traps 44) — re-push.**
+              **2026-09-29: fold 4 ✅** (C re-push = `rsna-knee-train` v34, 2.39 h; OOF vs LLM 0.8811, gold 0.9432 on n = 11); (a) the table
+              `xfit_v09k.csv` built — gold-58 pooled **0.9028** vs LLM 0.8948 (+0.008, SD 0.015), 4/12 labels below the LLM → **loose gate
+              OPEN** (experiments.md 2026-09-29 "P-54 cross-fit table"); all five checkpoints in Dataset `rsna-knee-ckpt-v09k`; (b) ⏳.
 Hypothesis:   a 5-fold cross-fit of the production recipe gives honest out-of-fold predictions for every training study — the
               precondition for OOF soft bootstrapping (P-55) — and its 5-fold flat rank-mean reads above the #26 pair solo.
 Origin:       Archit Konde, Kaggle discussion 735304 (out-of-fold soft bootstrapping); research.md 2.7.2.
@@ -168,6 +172,9 @@ Depends on:   —.
 ### P-55 OOF soft-bootstrapped student (`v09o` / `v09o2`)
 Status:       🔧 arms `v09o` (seed 42) / `v09o2` (seed 43), `TEACHER_PATHS["xfit_v09k"]`, `DISTILLED_ARMS` + the `DISTILLED_MIX` guard
               (refuses any mix but 0.75 for these arms) in `src/`; waits for P-54's fold 4 and table.
+              **2026-09-29: session E = `rsna-knee-train` v35 RUNNING** (pushed 11:37 UTC; `artifacts/train_student_E.py` = `src` + 4
+              seds; loose gate OPEN; the new `rsna-knee-teacher-tables` version carries `xfit_v09k.csv`; local CPU smoke of the exact
+              build green — both tables read, `(1 - 0.75) * LLM + 0.75 * quantile-matched ['raptor_teacher', 'xfit_v09k']`).
 Hypothesis:   the `v09r` recipe on 0.25 LLM + 0.375 Raptor + 0.375 honest cross-fit OOF reads above `v09r` / `v09u` solo by more
               than the one-seed floor.
 Origin:       Archit Konde's OOF soft bootstrapping, "heavier than 50/50" (discussion 735304).
@@ -187,6 +194,9 @@ Depends on:   P-54 (the table), the loose gate.
 Status:       ⏳ **session D = `rsna-knee-folds` v10** (pushed 15:36 UTC; `kernel_sources` = `rsna-knee-cache3-a..d` only, so c02 and c03 are
               never mounted together). Cache `c02_p336_b24-24-24-14-8-8_band2-98_crop150_lat20`: 4,407 studies over 4 shards,
               12.1–13.4 GB each (50.7 GB), 0 decode failures, 14–43 min per shard (CPU).
+              **2026-09-29: trained** (3.53 h, both `ok  arm`, 0.35 s/study ≈ 25 min/epoch): gold-58 SWA `v11a` **0.9204**, `v11b`
+              **0.9167**; c03 pair 0.9207 vs the c02 pair (`v09r` + `v09u`) 0.9065 — +0.014 (paired SD 0.005), 10/12 labels up; direction
+              only (gold-58 had same-recipe directions wrong twice, traps 39). Datasets `rsna-knee-ckpt-v11a` / `-v11b`; solo reads ⏳.
 Hypothesis:   the c03 input (fluid slots 24 / 24 / 24, SAG no-FS 14, T1 8 / 8, 150 mm crop; `train_windows` 34) lifts the `v09r` recipe
               solo above `v09r` / `v09u`.
 Origin:       our census (experiments.md 2026-09-28 "Gold-58 per-label diagnosis + c02 slice census": c02 keeps 12 of ≈ 30 native cor/ax
@@ -202,8 +212,13 @@ If it fails:  c02 stays; the input axis closes.
 Depends on:   —.
 
 ### P-57 ResNet-34 on the `v09r` recipe (`v13a`)
-Status:       ⏳ **lost with session C** (`rsna-knee-train` v33 died at 2.2 h, 0 files saved — traps 44; re-push); weights = private Dataset `timm-resnet34-a1`
-              (`timm/resnet34.a1_in1k`); ResNet support in `load_timm_backbone` / `param_groups`, smoke v31 green.
+Status:       ❌ **on gold-58 (2026-09-29)**: `v13a` (C re-push, `rsna-knee-train` v34; 8 epochs in 0.7 h at 0.07 s/study) SWA **0.8306**
+              vs `v09r` 0.9093 — −0.079, beyond the 0.05 gold floor; 8/12 labels down, 3 up (Medial OA / Effusion / Baker's), and the
+              structure labels collapse (ACL 0.772, MCL 0.753, Med Men 0.768, Lat Men 0.752); within-class ρ with `v09r` 0.667. The
+              solo read is deprioritised: Dataset `rsna-knee-ckpt-v13a` is shipped and mounted, submit it only into a spare slot.
+              Caveat: the `v09r` optimiser (backbone LR 1e-4, 8 ep) was not re-tuned for a CNN — this closes "ResNet-34 on our
+              recipe", not "a small CNN" (experiments.md 2026-09-29 "Sessions C ‖ D").
+              (was: lost with session C v33, traps 44; weights = private Dataset `timm-resnet34-a1`, smoke v31 green.)
 Hypothesis:   the backbone class is not what separates us from the thread's single models: `v13a` reads ≥ `v09r` solo.
 Origin:       discussion 735304 — Scott Willis (small ResNet, single fold, 0.949), CoolinLai (5-fold ResNet @224, 0.954).
 Evidence:     against: P-42 (a second backbone on the same targets added nothing); Archit Konde reaches 0.950 with our model class.
