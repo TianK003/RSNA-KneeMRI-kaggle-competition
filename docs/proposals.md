@@ -61,9 +61,9 @@ result*, per unit of cost. "Depends on" lists hard blockers only. EVs are solo-L
 | 0b | P-54 | 5-fold cross-fit of the v09r recipe (`v09k0-4`): honest OOF + a 5-fold member | ⏳ **all 5 folds ✅** (A ‖ B 2026-09-28; fold 4 = C re-push `rsna-knee-train` v34, 2.39 h); table `xfit_v09k` built (gold-58 0.9028 vs LLM 0.8948, 4/12 below → loose gate OPEN); Dataset `rsna-knee-ckpt-v09k` (5 ckpts); **fold-ensemble solo #33 = 0.928 ❌ (≤ 0.930)** → the table's only job is P-55 | enables P-55; fold ensemble +0.000..0.005 | ~7.7 GPU-h (3 sessions) | — |
 | 0c | P-55 | OOF soft-bootstrapped student `v09o` / `v09o2` (0.25 LLM + 0.375 Raptor + 0.375 xfit, mix 0.75) | ⏳ **trained** (session E = `rsna-knee-train` v35, 2.94 h, green): gold-58 `v09o` 0.9121 / `v09o2` 0.9104, pair 0.9119 vs c02 pair 0.9065 (direction only); Datasets `rsna-knee-ckpt-v09o` / `-v09o2` ready; **three solos after 00:00 UTC 2026-09-30** | 0..+0.005 (Nicolai: no LB transfer) | ~2.9 GPU-h, 3 submissions | P-54; loose gate |
 | 0d | P-56 | Dense-slice input c03 (24/24/24/14/8/8, 150 mm) `v11a` / `v11b` | ⏳ **trained** (session D = `rsna-knee-folds` v10, 3.53 h): gold-58 `v11a` 0.9204 / `v11b` 0.9167, c03 pair 0.9207 vs c02 pair 0.9065 (+0.014, SD 0.005, 10/12 up — direction only); Datasets `rsna-knee-ckpt-v11a` / `-v11b`; **🔁 solo reads (2026-09-29): #30 `v11a` 0.932 (best single) / #31 `v11b` 0.929 → m = 0.9305 (✅ bar 0.9315); #32 c03 pair 0.932 vs the c02 pair 0.930** — consistent sign, under every floor; not the production input by rule, the axis stays open | the only untested input axis since c02 | ~3.7-4.4 GPU-h, 3 submissions | — |
-| 0e | P-57 | ResNet-34 on the v09r recipe (`v13a`) | ❌ **on gold-58**: `v13a` 0.8306 vs `v09r` 0.9093 (−0.079, beyond the 0.05 floor; 8/12 labels down, ACL / MCL / both menisci 0.75–0.77); solo read deprioritised (Dataset `rsna-knee-ckpt-v13a` shipped, submit only into a spare slot) | tests the Scott Willis / CoolinLai route | ~0 extra (rides with `v09k4`) | — |
+| 0e | P-57 | ResNet-34 on the v09r recipe (`v13a`) | ❌ **on gold-58 — but it was the recipe (P-59 ✅: a CNN LR reads 0.899 / 0.901)**: `v13a` 0.8306 vs `v09r` 0.9093 (−0.079, beyond the 0.05 floor; 8/12 labels down, ACL / MCL / both menisci 0.75–0.77); solo read deprioritised (Dataset `rsna-knee-ckpt-v13a` shipped, submit only into a spare slot) | tests the Scott Willis / CoolinLai route | ~0 extra (rides with `v09k4`) | — |
 | 0f | P-58 | Local-CPU open-weights LLM relabel as a 4th vote (Scott's Gemma route) | 💡 future, not scheduled (Tian 2026-09-28) | 0..+0.002 | 0 GPU; overnight CPU | — |
-| 0g | P-59 | ResNet-34 pipeline control: CNN learning rate (`v13b`) + frozen BatchNorm (`v13c`) | ⏳ `rsna-knee-train` v37 REAL running (pushed 18:10 UTC; smoke v36 green) | tells whether our optimiser / BN cost the CNN −0.079 on gold; a cheap decorrelated member if it recovers | ≈ 1.2 GPU-h, 0 solos | — |
+| 0g | P-61 | CoAtNet learning-rate probe upward (`lr_backbone` 2e-4, LLRD 0.85) | 💡 new 2026-09-29 (from P-59) | 0..+0.005 — the CoAtNet trains under the LLRD that under-trained the ResNet by 0.069 on gold | ≈ 3 GPU-h (2 arms, c03) or ≈ $5 RunPod; 2 solos | — |
 | 0h | P-60 | "Noisy student" regularisation on the c03 CoAtNet (`v11n` / `v11n2`: drop-path 0.1, heavy aug, 12 epochs) | ⏳ training on a RunPod A100 80 GB, US-MD-1 (18:34 UTC; pod 1 had no bandwidth, traps 45) | +0.002..0.008 (literature + every prior RSNA winner) | ≈ $4 RunPod, 2 solos | — |
 | 4 | P-50 | Final selection and publishability | 💡 decide by 2026-10-15 | decides what the private LB scores | a browser session; ≤ 1 fork check | P-40 ✅ closed (#22 / #27), Rules page |
 | 5 | P-18 | Efficiency track with the solo member | 💡 (robustness half shipped) | a separate prize; unknown until the formula is read | 0 GPU h (CLI + browser) | Efficiency formula (browser) |
@@ -120,6 +120,7 @@ result*, per unit of cost. "Depends on" lists hard blockers only. EVs are solo-L
 | P-42 | Two-family Raptor-distilled solo blend | 🔁 #23 = 0.927 = `v09r` alone; gold within-class ρ 0.861 vs 0.777 for the LLM-target pair | experiments.md 2026-09-27 "Submission #23" |
 | P-43 | Student resolution: CoAtNet-1 @320 on the `v09r` targets (`v09x`) | 🔁 #25 `v09x` 0.929 vs m 0.927 (✅ needed ≥ 0.932); 224 stays the production resolution; `v09x` = our strongest single member, 1.4× inference / 2.1× training | experiments.md 2026-09-28 "rsna-knee-train v30", "Submissions #24–#26" |
 | P-44 | Kaggle-retrain seed spread + a 2-seed production member (`v09u`) | ✅ s = 0.000 (#24 `v09u` 0.927 = `v09r`) → one-seed deltas need ≥ 0.004; P-39 re-confirmed on Kaggle; #26 `v09r` + `v09u` 0.930 = the production member (+0.003, under the floor — adopted, not proven) | experiments.md 2026-09-28 "Submissions #24–#26"; traps 42 |
+| P-59 | ResNet-34 pipeline control: CNN learning rate (`v13b`) + frozen BatchNorm (`v13c`) | ✅ the optimiser was the defect: gold-58 `v13a` 0.8306 → `v13b` 0.8992 (uniform 3e-4, 12 ep; train loss 0.471 → 0.391); 🔁 frozen BN (`v13c` 0.9014, +0.002); ρ to `v09r` 0.86, gold blends flat — a solo / pair LB read is open (Datasets `rsna-knee-ckpt-v13b` / `-v13c`) | experiments.md 2026-09-29 "P-59" |
 | P-40 | Raptor-distilled members into the fork | 🔁 closed: #22 (β 0.10) 0.942, #27 (β 0.20) 0.941 vs 0.942 — the fork does not register a 0.927 member at either weight; the pre-registered β 0.20 retry is spent → the fork is for final-selection builds only (P-50). Step B: `v08r` 0.918 solo (#21), not a fork member | experiments.md 2026-09-27 "Submission #22"; 2026-09-28 "Submissions #27–#28" |
 | P-49 | Raptor over the 58 gold studies | 🔁 read (direction only): Raptor 0.9254, the 0.5/0.5 target 0.9268 (12/12 above the LLM), within-class ρ `v09r` ~ Raptor 0.835 (`v09a` ~ Raptor 0.742, `v09r` ~ LLM 0.408) → the fork cannot read `v09r`; matched mix 0.5 is the best on gold (0.75 −0.002, 1.0 −0.017) | experiments.md 2026-09-28 "P-49" |
 | P-52 | Three-member production blend `v09r` + `v09u` + `v09x` | 🔁 closed: #29 = 0.931 vs #26 0.930 (band 0.931–0.933) — the pair stays (the third member costs 1.4× inference and read like a seed) | experiments.md 2026-09-29 "Submissions #29–#32" |
@@ -251,31 +252,6 @@ If it works:  → P-46 (the LLM half upgraded).
 If it fails:  the LLM half stays three sources.
 Depends on:   a free machine for a night; P-46.
 
-### P-59 ResNet-34 pipeline control: a CNN learning rate (`v13b`) and frozen BatchNorm (`v13c`)
-Status:       ⏳ **running** — `rsna-knee-train` v37 REAL pushed 2026-09-29 18:10 UTC (`artifacts/train_p59_real.py` = `src` +
-              3 seds); unit + local CPU smoke + Kaggle smoke v36 green (both `ok  arm`, `backbone LR range 3.00e-04 .. 3.00e-04`,
-              `freeze_bn: 36 encoder BatchNorm modules held in eval mode`). Tian's go: "lets do … [the ResNet control] tonight".
-Hypothesis:   `v13a`'s collapse (gold-58 0.8306; ACL / MCL / menisci 0.75–0.77) is our optimiser, not the backbone: the
-              recipe's LLRD 0.75 on `lr_backbone` 1e-4 trains the ResNet at 2.4e-5 (stem) … 7.5e-5 (layer4) — ViT rates —
-              and train-mode BatchNorm over 48 windows of 2 studies makes the ResNet's features batch-partner-dependent.
-Origin:       tonight's three research agents (discussion 735304 anecdotes: ResNets at 224 px read 0.910–0.954; prior RSNA
-              CNN winners train at 1e-4..2.3e-4 uniform for 20–75 epochs).
-Evidence:     `v13a` log: train loss 0.4708 at epoch 7 vs CoAtNet `v09u` 0.3829 (below 0.4708 after 2 epochs); its gold
-              curve still rising as the LR decays (+0.0027 / +0.0026 at epochs 6–7). Local CPU probe (3 sample studies,
-              direction only): swapping one batch partner changes `v13a`'s pooled features by 0.54 relative L2 (CoAtNet
-              0.32); eval- vs train-mode feature cosine 0.82 (CoAtNet 0.96). Wu & Johnson 2021: per-image BN 30.7 vs 41.5 AP.
-Measure:      one `PARALLEL_ARMS` session on `rsna-knee-train` (c02, Raptor mix 0.5, all 4,349): `v13b` = `v13a` +
-              `lr_backbone` 3e-4, `llrd_decay` 1.0, 12 epochs ‖ `v13c` = `v13b` + `freeze_bn` (every encoder BatchNorm in
-              eval mode during training; affine parameters still train). Read on gold-58 SWA + the final train loss.
-Noise floor:  gold-58 0.05 (the collapse itself was −0.079, so a recovery is readable). **`v13b` ≥ 0.88 (≥ +0.05 over
-              `v13a`) → the optimiser was the defect ✅; `v13c` − `v13b` ≥ +0.05 → BatchNorm ✅; both < 0.86 → a CNN
-              defect remains** (check the LR-group and BN-mode prints).
-Cost:         ≈ 1.2 GPU-h (ResNet 0.07 s/study, 12 epochs, two arms on two T4s); 0 submissions unless it recovers.
-If it works:  CNN families are viable members again (a cheap, decorrelated one); frozen BN ✅ → a frozen-BN fold-0 A/B on
-              the CoAtNet recipe (it has BN in its stem and stages 0–1).
-If it fails:  the ResNet route closes for our pipeline; the defect is looked for in the input path.
-Depends on:   — .
-
 ### P-60 "Noisy student" regularisation on the c03 CoAtNet (`v11n` / `v11n2`)
 Status:       ⏳ **training on RunPod** — pod `rsna-p60-v11n` (1 × RTX 5090, secure, $0.99/h, created 18:01 UTC): 
               `CACHE_PREFIX=rsna-knee-cache3 bash scripts/runpod_chain.sh v11n v11n2` (both arms share the GPU; ship as
@@ -301,6 +277,23 @@ If it works:  the production recipe gains the regularisation; next the P-55 stud
 If it fails:  regularisation is not the student-vs-teacher gap either; the recipe line closes and the label side (P-51,
               silence-aware mixing) is what is left.
 Depends on:   — .
+
+### P-61 CoAtNet learning-rate probe upward (`lr_backbone` 2e-4, `llrd_decay` 0.85)
+Status:       💡 new 2026-09-29 (from P-59).
+Hypothesis:   the CoAtNet is mildly under-trained by the same optimiser that under-trained the ResNet: LLRD 0.75 over its stages
+              puts the stem at 2.4e-5 and the top block at 7.5e-5 (the audit: the top block is one decay step below the documented
+              `lr_backbone`); a higher, flatter LR reads above the `v11a` recipe.
+Origin:       P-59 (a CNN LR lifted the ResNet +0.069 on gold); tonight's audit finding 5; only a LOWER CoAtNet LR was ever probed
+              (`v09d` 3e-5 ❌, −0.013 OOF).
+Evidence:     for: P-59; prior RSNA CoAtNet/EffNet winners at 1e-4..2.3e-4 uniform. Against: the CoAtNet's train loss already
+              reaches 0.383 (it is not visibly under-fit the way the ResNet was); TheoViel's 2023 CoAtNet ran at 2e-5 for 20 epochs.
+Measure:      `v11a` + `lr_backbone` 2e-4, `llrd_decay` 0.85, two seeds; fold-0 OOF would be a valid read for a recipe change, but
+              every current member is `train_all`, so read solo vs m(`v11a`, `v11b`) = 0.9305 (the P-60 band).
+Noise floor:  ✅ m ≥ 0.935 / 🔁 0.926 < m < 0.935 / ❌ m ≤ 0.926.
+Cost:         ≈ 3.5 GPU-h (c03, two T4s) or ≈ $5 on a RunPod A100; 2 solos.
+If it works:  the production recipe's LR moves up; re-read P-60 on it.
+If it fails:  the CoAtNet optimiser is settled at 1e-4 / 0.75.
+Depends on:   P-60's read (if P-60 ✅, probe on top of it).
 
 ### P-50 Final selection and publishability
 Status:       💡 new 2026-09-27; decide by the 2026-10-15 entry deadline.

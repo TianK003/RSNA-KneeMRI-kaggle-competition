@@ -99,6 +99,7 @@ Judge label changes on **coverage** (does the rule fire at all, per language) an
 | 2026-09-29 | **P-56, submission #32 (`rsna-knee-infer` v28)**: the c03 pair `v11a` + `v11b` | gold-58 0.9207 (c02 pair 0.9065) | **0.932** | **🔁 INCONCLUSIVE: +0.002 vs the c02 pair #26 0.930** — ties #30 as the best solo read; every c03 reading points the same way, none clears its floor |
 | 2026-09-29 | **P-54, submission #33 (`rsna-knee-infer` v29)**: the 5-fold cross-fit ensemble `v09k0` … `v09k4` (flat rank-mean, one vote per fold model) | — (OOF only vs the LLM, traps 39) | **0.928** | **❌ DEAD END as a member: −0.002 vs #26 0.930 (band ≤ 0.930)** — 5 × 80 %-data models ≈ one all-data member; the table still feeds P-55; scored in ≈ 66 min |
 | 2026-09-29 | **P-55 session E (`rsna-knee-train` v35, 2.94 h)**: the OOF soft-bootstrapped student `v09o` ‖ `v09o2` — the `v09r` recipe on 0.25 LLM + 0.375 Raptor + 0.375 `xfit_v09k` (`TEACHER_MIX = 0.75` over two matched tables), all 4,349, seeds 42 / 43 | gold-58 SWA **`v09o` 0.9121, `v09o2` 0.9104**; student pair 0.9119 vs the c02 pair 0.9065 (+0.006, SD 0.004, 9/12 up) and the c03 pair 0.9207; seed-twin ρ 0.946 | ⏳ three solos after 00:00 UTC — placeholders green: `rsna-knee-infer` **v30 = `v09o`, v31 = `v09o2`, v32 = the pair** (`smoke False`, `infer members` as named, decode-once verified, `constant labels 0`) | ✅ run · 🔁 direction only; shipped as `rsna-knee-ckpt-v09o` / `-v09o2` (entry "Session E") |
+| 2026-09-29 | **P-59 ResNet-34 control (`rsna-knee-train` v37, 1.08 h)**: `v13b` = `v13a` (ResNet-34, c02, Raptor 0.5) + uniform `lr_backbone` 3e-4 (`llrd_decay` 1.0) + 12 epochs ‖ `v13c` = `v13b` + frozen encoder BatchNorm | gold-58 SWA **`v13b` 0.8992 / `v13c` 0.9014** vs `v13a` 0.8306 (+0.069, beyond the 0.05 floor; train loss 0.471 → 0.391); ρ to `v09r` 0.86 | — (shipped `rsna-knee-ckpt-v13b` / `-v13c`) | **✅ the optimiser was the ResNet's defect (LLRD 0.75 on 1e-4 = ViT rates); 🔁 frozen BN (+0.002)**; gold blends flat (entry "P-59") |
 
 **External reference points** (not ours — for calibrating ambition):
 
@@ -2493,6 +2494,41 @@ up. Within-class ρ: `v09o` ~ `v09o2` **0.946** (c02 seed twins 0.916, c03 twins
   should do (0.75 of the target is shared across seeds, not 0.5) — and is the P-38 signature too, so it is not evidence of truth
   (traps 39). Pre-registered reads (P-55): m = mean(`v09o`, `v09o2`) vs 0.927: **✅ m ≥ 0.9315 / 🔁 0.9285 ≤ m < 0.9315 / ❌ m < 0.9285**;
   the pair ✅ ≥ 0.935.
+
+### 2026-09-29 — P-59 ResNet-34 pipeline control: a CNN learning rate lifts gold-58 **0.8306 → 0.8992** (`v13b`) · frozen BatchNorm **0.9014** (`v13c`) · ✅ the optimiser was the defect, 🔁 BatchNorm
+
+Origin: tonight's research (three agents: noisy-label literature, prior RSNA MRI/CT winners, an audit of our pipeline). The audit
+and agent 2 both traced `v13a`'s collapse to the recipe, not the backbone: `v13a` ended with train loss **0.4708** (CoAtNet `v09u`:
+0.3829, and below 0.4708 after 2 epochs) because LLRD 0.75 on `lr_backbone` 1e-4 trains the ResNet's stem at 2.4e-5 and layer4 at
+7.5e-5; the audit's local probe also found its train-mode BatchNorm batch-partner-dependent (feature change 0.54 relative L2 vs
+CoAtNet 0.32). `rsna-knee-train` v37 (`artifacts/train_p59_real.py` = `src` + 3 seds; smoke v36 green), `PARALLEL_ARMS =
+("v13b", "v13c")`, c02, Raptor mix 0.5, all 4,349, **1.08 h**: `v13b` = `v13a` + `lr_backbone` 3e-4, `llrd_decay` 1.0, 12 epochs
+(log: `backbone LR range 3.00e-04 .. 3.00e-04`); `v13c` = `v13b` + `freeze_bn` (`36 encoder BatchNorm modules held in eval mode`).
+
+| | train loss ep 7 / final | gold-58 by epoch (EMA) | **SWA 9–11** |
+|---|---|---|---|
+| `v13a` (8 ep, LLRD) | 0.4708 / — | 0.707 … 0.8309 (still rising) | **0.8306** |
+| `v13b` | 0.4086 / 0.3906 | 0.745 · 0.804 · 0.852 · 0.877 · 0.885 · 0.889 · 0.895 · 0.899 · 0.898 · 0.899 · 0.899 · 0.901 | **0.8992** |
+| `v13c` | 0.4233 / 0.4006 | 0.721 · 0.760 · 0.822 · 0.863 · 0.879 · 0.889 · 0.893 · 0.895 · 0.899 · 0.901 · 0.900 · 0.903 | **0.9014** |
+
+Per label (gold-58): `v13c` ACL 0.950, **MCL 0.844**, Med Men 0.953, Lat Men 0.870, Med OA 0.975, **Lat OA 0.826, PF OA 0.840**,
+Effusion 0.954, Synovitis 0.805, **Baker's 0.998**, Contusion 0.906, Fracture 0.896 — the structure labels recovered from 0.75–0.77
+to 0.84–0.95; weakest on MCL (9 positives) where every CoAtNet reads 0.91–0.96. Within-class ρ: `v13c` ~ `v09r` **0.860**, ~ `v11a`
+0.854, `v13b` ~ `v13c` 0.872 (the CoAtNet seed twins: 0.916; `v13a` ~ `v09r` 0.667) — the most decorrelated member at this
+strength we have. Rank-means on gold: `v09r` + `v13c` 0.9105 (vs `v09r` 0.9093), `v11a` + `v13c` 0.9172 (vs `v11a` 0.9204; paired
+bootstrap −0.0031, SD 0.0042), `v11a` + `v11b` + `v13c` 0.9189 (vs the c03 pair 0.9207). Speed: 0.12 s/study on a T4 (CoAtNet c02
+0.29, c03 0.35).
+
+**Verdicts.**
+- **`v13b` − `v13a` = +0.069 on gold-58 → ✅ KEEP (a pipeline finding): beyond the 0.05 floor, 10/12 labels up, and the train loss
+  fell from 0.471 to 0.391.** Our recipe's optimiser (LLRD 0.75 on 1e-4) was tuned for ViT / hybrid backbones and under-trains a
+  CNN; P-57's ❌ was the recipe, not the ResNet. Any CNN arm uses `llrd_decay` 1.0 and ≈ 3e-4 from now on.
+- **`v13c` − `v13b` = +0.002 → 🔁 INCONCLUSIVE**: frozen BatchNorm is not what cost the ResNet, despite the batch-partner probe.
+  Not ported to the CoAtNet on this evidence.
+- **The ResNet as a member: 🔁 (gold blends flat)** — a 0.90-gold member with ρ 0.86 to the CoAtNets and a quarter of their cost;
+  gold-58 cannot resolve a blend (traps 39), a solo / pair LB read can. Shipped as `rsna-knee-ckpt-v13b` / `-v13c`.
+- **Open question it raises (card P-61):** the CoAtNet trains under the same LLRD — its top block at 7.5e-5, stem 2.4e-5; only a
+  lower LR was ever probed (`v09d` 3e-5 ❌). An upward CoAtNet LR probe is the untested direction.
 
 ## Infrastructure
 

@@ -899,3 +899,12 @@ bandwidth before launching the chain** — `curl -s -o /dev/null -w "%{speed_dow
 read ≥ 20 MB/s — and delete the pod otherwise; (3) prefer a data centre that has pulled our caches before (US-MD-1, EUR-IS-1,
 EU-CZ-1); (4) `pkill -f <pattern>` over ssh matches the remote `bash -c` command line that contains the pattern and kills your
 own session — bracket one character (`pkill -f "[k]ernels output"`).
+
+### 46. A backbone swap inherits the old backbone's optimiser — the ViT-tuned LLRD under-trained a ResNet into a wrong ❌ (Tier 1: a wrong verdict, 2026-09-29)
+
+P-57 ran ResNet-34 as "`v09r` with only the backbone changed" and read gold-58 0.8306 → **❌ on gold**. The optimiser came along:
+`lr_backbone` 1e-4 with `llrd_decay` 0.75 (tuned for DINOv2 / CoAtNet) trains a ResNet's stem at 2.4e-5 and layer4 at 7.5e-5; the
+run ended at train loss 0.471 (CoAtNet 0.383) with gold still rising. P-59 changed only the optimiser (uniform 3e-4, 12 epochs):
+**0.8992** (+0.069) — the backbone was never the problem. **Do:** when a card swaps the backbone *family*, set that family's own LR /
+LLRD / epochs and check the train loss reaches the old family's before reading the verdict; a verdict from an under-fit run (loss
+far above the baseline's, metric still rising at the last epoch) is 🔁, not ❌ (experiments.md 2026-09-29 "P-59").
