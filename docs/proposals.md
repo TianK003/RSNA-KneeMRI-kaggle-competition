@@ -63,6 +63,8 @@ result*, per unit of cost. "Depends on" lists hard blockers only. EVs are solo-L
 | 0d | P-56 | Dense-slice input c03 (24/24/24/14/8/8, 150 mm) `v11a` / `v11b` | ⏳ **trained** (session D = `rsna-knee-folds` v10, 3.53 h): gold-58 `v11a` 0.9204 / `v11b` 0.9167, c03 pair 0.9207 vs c02 pair 0.9065 (+0.014, SD 0.005, 10/12 up — direction only); Datasets `rsna-knee-ckpt-v11a` / `-v11b`; **🔁 solo reads (2026-09-29): #30 `v11a` 0.932 (best single) / #31 `v11b` 0.929 → m = 0.9305 (✅ bar 0.9315); #32 c03 pair 0.932 vs the c02 pair 0.930** — consistent sign, under every floor; not the production input by rule, the axis stays open | the only untested input axis since c02 | ~3.7-4.4 GPU-h, 3 submissions | — |
 | 0e | P-57 | ResNet-34 on the v09r recipe (`v13a`) | ❌ **on gold-58**: `v13a` 0.8306 vs `v09r` 0.9093 (−0.079, beyond the 0.05 floor; 8/12 labels down, ACL / MCL / both menisci 0.75–0.77); solo read deprioritised (Dataset `rsna-knee-ckpt-v13a` shipped, submit only into a spare slot) | tests the Scott Willis / CoolinLai route | ~0 extra (rides with `v09k4`) | — |
 | 0f | P-58 | Local-CPU open-weights LLM relabel as a 4th vote (Scott's Gemma route) | 💡 future, not scheduled (Tian 2026-09-28) | 0..+0.002 | 0 GPU; overnight CPU | — |
+| 0g | P-59 | ResNet-34 pipeline control: CNN learning rate (`v13b`) + frozen BatchNorm (`v13c`) | 💡 new 2026-09-29 (Tian's go for tonight) | tells whether our optimiser / BN cost the CNN −0.079 on gold; a cheap decorrelated member if it recovers | ≈ 1.2 GPU-h, 0 solos | — |
+| 0h | P-60 | "Noisy student" regularisation on the c03 CoAtNet (`v11n` / `v11n2`: drop-path 0.1, heavy aug, 12 epochs) | 💡 new 2026-09-29 | +0.002..0.008 (literature + every prior RSNA winner) | ≈ $4 RunPod, 2 solos | — |
 | 4 | P-50 | Final selection and publishability | 💡 decide by 2026-10-15 | decides what the private LB scores | a browser session; ≤ 1 fork check | P-40 ✅ closed (#22 / #27), Rules page |
 | 5 | P-18 | Efficiency track with the solo member | 💡 (robustness half shipped) | a separate prize; unknown until the formula is read | 0 GPU h (CLI + browser) | Efficiency formula (browser) |
 | 6 | P-47 | Teacher-mix bracket: mix 0.75 only | 💡 low — P-49 priced it on Raptor itself: matched mix 0.75 − 0.5 = −0.002 (SD 0.003) on gold | ≈ 0 (+0.000..0.002) | per-arm `TEACHER_MIX` code + ≈ 2.8 h; 1 solo | P-44 floor, an idle slot |
@@ -248,6 +250,52 @@ Cost:         0 GPU; an overnight CPU run over 4,349 reports. The report text st
 If it works:  → P-46 (the LLM half upgraded).
 If it fails:  the LLM half stays three sources.
 Depends on:   a free machine for a night; P-46.
+
+### P-59 ResNet-34 pipeline control: a CNN learning rate (`v13b`) and frozen BatchNorm (`v13c`)
+Status:       💡 new 2026-09-29 (evening; Tian: "lets do … [the ResNet control] tonight").
+Hypothesis:   `v13a`'s collapse (gold-58 0.8306; ACL / MCL / menisci 0.75–0.77) is our optimiser, not the backbone: the
+              recipe's LLRD 0.75 on `lr_backbone` 1e-4 trains the ResNet at 2.4e-5 (stem) … 7.5e-5 (layer4) — ViT rates —
+              and train-mode BatchNorm over 48 windows of 2 studies makes the ResNet's features batch-partner-dependent.
+Origin:       tonight's three research agents (discussion 735304 anecdotes: ResNets at 224 px read 0.910–0.954; prior RSNA
+              CNN winners train at 1e-4..2.3e-4 uniform for 20–75 epochs).
+Evidence:     `v13a` log: train loss 0.4708 at epoch 7 vs CoAtNet `v09u` 0.3829 (below 0.4708 after 2 epochs); its gold
+              curve still rising as the LR decays (+0.0027 / +0.0026 at epochs 6–7). Local CPU probe (3 sample studies,
+              direction only): swapping one batch partner changes `v13a`'s pooled features by 0.54 relative L2 (CoAtNet
+              0.32); eval- vs train-mode feature cosine 0.82 (CoAtNet 0.96). Wu & Johnson 2021: per-image BN 30.7 vs 41.5 AP.
+Measure:      one `PARALLEL_ARMS` session on `rsna-knee-train` (c02, Raptor mix 0.5, all 4,349): `v13b` = `v13a` +
+              `lr_backbone` 3e-4, `llrd_decay` 1.0, 12 epochs ‖ `v13c` = `v13b` + `freeze_bn` (every encoder BatchNorm in
+              eval mode during training; affine parameters still train). Read on gold-58 SWA + the final train loss.
+Noise floor:  gold-58 0.05 (the collapse itself was −0.079, so a recovery is readable). **`v13b` ≥ 0.88 (≥ +0.05 over
+              `v13a`) → the optimiser was the defect ✅; `v13c` − `v13b` ≥ +0.05 → BatchNorm ✅; both < 0.86 → a CNN
+              defect remains** (check the LR-group and BN-mode prints).
+Cost:         ≈ 1.2 GPU-h (ResNet 0.07 s/study, 12 epochs, two arms on two T4s); 0 submissions unless it recovers.
+If it works:  CNN families are viable members again (a cheap, decorrelated one); frozen BN ✅ → a frozen-BN fold-0 A/B on
+              the CoAtNet recipe (it has BN in its stem and stages 0–1).
+If it fails:  the ResNet route closes for our pipeline; the defect is looked for in the input path.
+Depends on:   — .
+
+### P-60 "Noisy student" regularisation on the c03 CoAtNet (`v11n` / `v11n2`)
+Status:       💡 new 2026-09-29 (evening; Tian: "brainstorm … what would make more sense and do that").
+Hypothesis:   our student imitates its targets because it is barely regularised — no stochastic depth (`drop_path_rate`
+              is never set), light augmentation, 8 epochs; with drop-path 0.1, heavier augmentation and 12 epochs the
+              `v11a` recipe (c03, Raptor mix 0.5) reads above `v11a` / `v11b`.
+Origin:       research agent 1 (Xie 2020 Noisy Student, Table 6: removing student noise 85.1 → 84.3; Beyer 2022: long
+              schedules on teacher targets do not overfit); agent 2 (every prior RSNA MRI/CT winner: drop-path 0.1–0.2,
+              heavy augmentation / mixup / cutmix, 20–75 epochs); the thread (Yann Majewski: "training longer with more
+              regularization"; Tucker Arrants: "student consistently outperforms teacher").
+Evidence:     P-29 (16 epochs over-train) and P-33 (light aug ≈ 0) were measured on the plain LLM targets with no added
+              regularisation — neither tests "longer WITH more regularisation" on soft image-teacher targets. A bundle on
+              purpose: longer alone over-trains (P-29), aug alone was flat (P-33); ablate only if it works.
+Measure:      `v11n` = `v11a` + `drop_path` 0.1 + `aug` "heavy" (per window at p 0.9: rotation ±15°, zoom 0.90–1.15, shift
+              ±8 %, gamma 0.7–1.4, contrast 0.8–1.25, gain 0.85–1.15, one cutout ≤ 25 % of the area at p 0.3; no flips) +
+              12 epochs (SWA of 9–11); `v11n2` = the same, seed 43. RunPod RTX 4090 (c03 cache pulled to the pod). Solo
+              reads: m = mean(`v11n`, `v11n2`) vs m(`v11a`, `v11b`) = 0.9305.
+Noise floor:  **✅ m ≥ 0.935 / 🔁 0.926 < m < 0.935 / ❌ m ≤ 0.926** (the P-56 ±0.0045 band); gold-58 direction only.
+Cost:         two pods ≈ 2.5 h each on an RTX 4090 (≈ 7 min/epoch at c03 + ≈ 40 min set-up) ≈ $4; 0 Kaggle GPU-h; 2 solos.
+If it works:  the production recipe gains the regularisation; next the P-55 student targets on it, then an ablation.
+If it fails:  regularisation is not the student-vs-teacher gap either; the recipe line closes and the label side (P-51,
+              silence-aware mixing) is what is left.
+Depends on:   — .
 
 ### P-50 Final selection and publishability
 Status:       💡 new 2026-09-27; decide by the 2026-10-15 entry deadline.

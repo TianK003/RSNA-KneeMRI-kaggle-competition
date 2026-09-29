@@ -10,18 +10,23 @@
 #     nohup bash scripts/runpod_chain.sh v09r > /workspace/job_v09r.log 2>&1 &
 # CACHE_ROOT: where the 36 GB of blobs land (a local NVMe /workspace, or /dev/shm when it has > 40 GB free -- check
 # `stat -f -c %T /workspace; df -h /dev/shm` first); /kaggle/input/<shard> is symlinked to it.
+# CACHE_PREFIX (default rsna-knee-cache2): the four cache kernels <prefix>-a..d -- rsna-knee-cache3 for the c03 input
+# (P-56 / P-60; ~51 GB, same manifest names). Several arms (`runpod_chain.sh v11n v11n2`) train IN PARALLEL, one per GPU
+# (CUDA_VISIBLE_DEVICES = the arm's position), then ship one by one -- a 2-GPU pod pulls the cache once for both.
 # EXPECT_TEACHER (default: every table named in RSNA_TEACHER_TABLES): each must be in the downloaded teacher-tables Dataset
 # with >= EXPECT_ROWS (4349) rows; TEACHER_WAIT_MIN (default 0) = minutes to keep re-downloading until it is.
 set -euo pipefail
 
-ARM="${1:?usage: $0 <arm>}"
+ARMS=("$@")
+[ "${#ARMS[@]}" -ge 1 ] || { echo "usage: $0 <arm> [<arm> ...]"; exit 1; }
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 IN=/kaggle/input
 WORK=/kaggle/working
 COMP=rsna-knee-abnormality-detection
 OWNER=tiankljucanin
 CACHE_ROOT="${CACHE_ROOT:-/workspace/cache}"
-CACHE2=(rsna-knee-cache2-a rsna-knee-cache2-b rsna-knee-cache2-c rsna-knee-cache2-d)
+CACHE_PREFIX="${CACHE_PREFIX:-rsna-knee-cache2}"
+CACHE2=("$CACHE_PREFIX-a" "$CACHE_PREFIX-b" "$CACHE_PREFIX-c" "$CACHE_PREFIX-d")
 LABELS=(pilkwang/rsna-knee-llm-labels stevenleehans/rsna-knee-llm-report-labels lixin73/rsna-knee-llm-report-labels-sol56
         tiankljucanin/rsna-knee-teacher-tables)
 WEIGHTS=(timm-coatnet-rmlp-1-rw-224 timm-coatnet-rmlp-2-rw-384 convnext-tiny-224-hf)
@@ -125,15 +130,26 @@ for attempt in 1 2 3; do
 done
 du -sh "${CACHE2[@]/#/$CACHE_ROOT/}"
 
-log "TRAIN $ARM (TEACHER_TABLES ${RSNA_TEACHER_TABLES:-()})"
+tpids=()
+for i in "${!ARMS[@]}"; do
+  ARM="${ARMS[$i]}"
+  gpu=$(( ${#ARMS[@]} > 1 ? i : 0 ))
+  log "TRAIN $ARM on GPU $gpu (TEACHER_TABLES ${RSNA_TEACHER_TABLES:-()}) -> $WORK/job_train_$ARM.log"
+  ( CUDA_VISIBLE_DEVICES=$gpu bash "$REPO/scripts/runpod_bootstrap.sh" train "$ARM" > "$WORK/job_train_$ARM.log" 2>&1 ) &
+  tpids+=($!)
+done
 set +e
-bash "$REPO/scripts/runpod_bootstrap.sh" train "$ARM"
-rc=$?
+for p in "${tpids[@]}"; do wait "$p"; done
 set -e
-log "train exited rc=$rc"
-ls -la "$WORK" | grep "$ARM" || true
-[ -f "$WORK/${ARM}_fold0_best.pt" ] || { echo "!! no ${ARM}_fold0_best.pt -- not shipping"; exit 4; }
-
-log "SHIP $ARM"
-bash "$REPO/scripts/runpod_bootstrap.sh" ship "$ARM"
-log "job done"
+shipped=0
+for ARM in "${ARMS[@]}"; do
+  ls -la "$WORK" | grep "$ARM" || true
+  if [ -f "$WORK/${ARM}_fold0_best.pt" ]; then
+    log "SHIP $ARM"
+    bash "$REPO/scripts/runpod_bootstrap.sh" ship "$ARM" && shipped=$((shipped + 1))
+  else
+    echo "!! no ${ARM}_fold0_best.pt -- not shipping $ARM (tail of its log:)"; tail -20 "$WORK/job_train_$ARM.log" || true
+  fi
+done
+log "job done: shipped $shipped / ${#ARMS[@]}"
+[ "$shipped" -eq "${#ARMS[@]}" ] || exit 4

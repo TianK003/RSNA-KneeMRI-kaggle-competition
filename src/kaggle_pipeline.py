@@ -330,6 +330,16 @@ SHIPPED_ARMS = [
     # sed'd in: 0.25 LLM + 0.375 Raptor + 0.375 honest cross-fit OOF (mix_teacher means the matched tables). Two seeds.
     ("v09o", {**PROD, **V09R_KW}),
     ("v09o2", {**PROD, **V09R_KW, "seed": 43}),
+    # 2026-09-29 (evening research; docs/proposals.md P-59 / P-60). P-59: the ResNet-34 pipeline control -- `v13a` trained
+    # its ResNet at ViT rates (LLRD 0.75 on 1e-4 = 2.4e-5 .. 7.5e-5) and ended under-fit (train loss 0.471 vs CoAtNet 0.383);
+    # `v13b` = a CNN optimiser (uniform 3e-4, 12 epochs), `v13c` = v13b with the encoder's BatchNorm frozen. Same c02 input
+    # and Raptor targets as v13a. P-60: the "noisy student" c03 CoAtNet -- v11a + stochastic depth 0.1 + heavy
+    # augmentation + 12 epochs (SWA 9-11), two seeds.
+    ("v13b", {**PROD, **V09R_KW, "backbone": "timm:resnet34", "lr_backbone": 3e-4, "llrd_decay": 1.0, "epochs": 12}),
+    ("v13c", {**PROD, **V09R_KW, "backbone": "timm:resnet34", "lr_backbone": 3e-4, "llrd_decay": 1.0, "epochs": 12,
+              "freeze_bn": True}),
+    ("v11n", {**PROD, **V09R_KW, **C03_KW, "drop_path": 0.1, "aug": "heavy", "epochs": 12}),
+    ("v11n2", {**PROD, **V09R_KW, **C03_KW, "drop_path": 0.1, "aug": "heavy", "epochs": 12, "seed": 43}),
 ]
 ARM_V10C = ("v10c", {**C02, "backbone": "timm:coatnet_rmlp_2_rw_384", "img_size": 384,
                      "lr_backbone": 1e-4, "eval_windows": 42, "grad_checkpoint": True})
@@ -438,7 +448,9 @@ DISTILLED_ARMS = {"v09s": ("selfdistill_v1",), "v09t": ("selfdistill_v1",),
                   "v09x": ("raptor_teacher",), "v09u": ("raptor_teacher",),
                   **{f"v09k{k}": ("raptor_teacher",) for k in range(5)},
                   "v13a": ("raptor_teacher",), "v11a": ("raptor_teacher",), "v11b": ("raptor_teacher",),
-                  "v09o": ("raptor_teacher", "xfit_v09k"), "v09o2": ("raptor_teacher", "xfit_v09k")}
+                  "v09o": ("raptor_teacher", "xfit_v09k"), "v09o2": ("raptor_teacher", "xfit_v09k"),
+                  "v13b": ("raptor_teacher",), "v13c": ("raptor_teacher",),
+                  "v11n": ("raptor_teacher",), "v11n2": ("raptor_teacher",)}
 # 2026-09-28 (traps 40's second gap): the mix a distilled arm must train with; every other distilled arm trains at 0.5.
 DISTILLED_MIX = {"v09o": 0.75, "v09o2": 0.75}
 # Every arm this session can train: the filters, and the sequential loop's list itself (a run with no filter).
@@ -542,6 +554,9 @@ class Config:
     # padding), then gamma 0.8-1.25 and gain 0.9-1.1, clamped to [0, 1], all before the ImageNet
     # normalisation. No flips: medial != lateral (P-05). Training-only -- deliberately NOT an
     # INFER_MEMBER_KEY, so a checkpoint's saved `aug` never reaches inference.
+    # P-60 (2026-09-29). "heavy" = per window at p 0.9: rotation +-15 deg, zoom 0.90-1.15 (zoom-out pads with zeros),
+    # shift +-8 %, gamma 0.7-1.4, contrast 0.8-1.25 about the window mean, gain 0.85-1.15, and at p 0.3 one cutout
+    # rectangle (each side 20-50 % of the window) set to 0; still no flips. Its own function: "light" is untouched.
     aug: str = "none"
     # Slice-offset TTA for fixed-window members (P-12): the K centres are shifted by each offset
     # (clipped to the stack), one forward per offset, probabilities pooled per label.
@@ -569,6 +584,9 @@ class Config:
     # timm hybrids (P-23 #2): `backbone="timm:<arch>"` loads <dir>/model.safetensors offline.
     # Gradient checkpointing halves activation memory for coatnet_2 @384 x 24 windows on 24 GB.
     grad_checkpoint: bool = False
+    # P-60 (2026-09-29): timm stochastic depth (`drop_path_rate` at create_model). 0 = the call as before (the kwarg is
+    # not passed). Active only in train mode, so inference is unaffected (not an INFER_MEMBER_KEY).
+    drop_path: float = 0.0
 
     # optimisation
     folds: tuple = (0, 1, 2, 3, 4)
@@ -598,6 +616,10 @@ class Config:
     # The public 0.924 member trains with [1, 10]. Rejected earlier as "AUC ignores calibration" -- this measures
     # its effect on training dynamics, not on calibration.
     pos_weight_max: float = 0.0
+    # P-59 (2026-09-29): hold every BatchNorm of the ENCODER in eval mode while training (running stats frozen at the
+    # pretrained values, affine parameters still learn) -- a window batch is 24-48 windows of 1-2 studies, so train-mode
+    # BN makes a study's features depend on its batch partner. False = today's path.
+    freeze_bn: bool = False
     warmup_frac: float = 0.1
     max_grad_norm: float = 1.0
     amp: bool = True
@@ -646,8 +668,10 @@ class Config:
                 raise SystemExit("stack_mode='channels' and lat_undo are c01-only (v07s is dead, "
                                  "P-05 is closed); they were not ported to the flat c02 layout")
         self.tta_offsets = tuple(self.tta_offsets)
-        if self.aug not in ("none", "light"):
-            raise SystemExit(f"unknown aug {self.aug!r} (none | light)")
+        if self.aug not in ("none", "light", "heavy"):
+            raise SystemExit(f"unknown aug {self.aug!r} (none | light | heavy)")
+        if self.drop_path and not str(self.backbone).startswith("timm:"):
+            raise SystemExit("drop_path is wired for timm backbones only (it would be silently ignored)")
         if self.aug != "none" and self.window_mode != "random":
             raise SystemExit("aug runs inside forward_windows only: set window_mode='random' (a fixed-window arm "
                              "would otherwise claim an augmentation that never runs)")
@@ -2031,6 +2055,51 @@ def augment_light(x, p=0.8):
     return out
 
 
+def augment_heavy(x, p=0.9, cutout_p=0.3):
+    """P-60: the "noisy student" augmentation of gathered windows. x (W, C, H, W) floats in [0, 1]; returns the same
+    dtype and shape. Each window with probability p: an affine warp (rotation U(-15, 15) deg, zoom U(0.90, 1.15) --
+    below 1 zooms out and pads with zeros -- shift U(-8, 8) %), then gamma U(0.7, 1.4), contrast U(0.8, 1.25) about the
+    window's mean, gain U(0.85, 1.15), clamped to [0, 1]; then, at cutout_p, one axis-aligned rectangle with each side
+    U(0.2, 0.5) of the window set to 0. The same transform for a window's three channels. No flips (P-05)."""
+    n_win = x.shape[0]
+    if n_win == 0 or p <= 0:
+        return x
+    pick = torch.rand(n_win, device=x.device) < p
+    if not bool(pick.any()):
+        return x
+    n = int(pick.sum())
+    dev = x.device
+    with torch.autocast(device_type="cuda" if dev.type == "cuda" else "cpu", enabled=False):
+        xs = x[pick].float()
+        rot = (torch.rand(n, device=dev) * 2 - 1) * 15.0
+        zoom = 0.90 + torch.rand(n, device=dev) * 0.25
+        dx = (torch.rand(n, device=dev) * 2 - 1) * 0.08
+        dy = (torch.rand(n, device=dev) * 2 - 1) * 0.08
+        grid = F.affine_grid(affine_theta(rot, zoom, dx, dy), list(xs.shape), align_corners=False)
+        xs = F.grid_sample(xs, grid, mode="bilinear", padding_mode="zeros", align_corners=False)
+        gamma = 0.7 + torch.rand(n, 1, 1, 1, device=dev) * 0.7
+        xs = xs.clamp_min(0.0) ** gamma
+        contrast = 0.8 + torch.rand(n, 1, 1, 1, device=dev) * 0.45
+        mean = xs.mean(dim=(1, 2, 3), keepdim=True)
+        gain = 0.85 + torch.rand(n, 1, 1, 1, device=dev) * 0.30
+        xs = (((xs - mean) * contrast + mean) * gain).clamp(0.0, 1.0)
+        if cutout_p > 0:
+            H, Wd = xs.shape[-2], xs.shape[-1]
+            cut = (torch.rand(n, device=dev) < cutout_p).view(n, 1, 1)
+            h = (0.2 + torch.rand(n, device=dev) * 0.3) * H
+            w = (0.2 + torch.rand(n, device=dev) * 0.3) * Wd
+            y0 = torch.rand(n, device=dev) * (H - h)
+            x0 = torch.rand(n, device=dev) * (Wd - w)
+            yy = torch.arange(H, device=dev).view(1, H, 1).float()
+            xx = torch.arange(Wd, device=dev).view(1, 1, Wd).float()
+            box = ((yy >= y0.view(n, 1, 1)) & (yy < (y0 + h).view(n, 1, 1))
+                   & (xx >= x0.view(n, 1, 1)) & (xx < (x0 + w).view(n, 1, 1)) & cut)
+            xs = xs.masked_fill(box.unsqueeze(1), 0.0)
+    out = x.clone()
+    out[pick] = xs.to(x.dtype)
+    return out
+
+
 def timm_stage_names(enc):
     """Top-level feature stages of a timm encoder, in depth order: CoAtNet/ConvNeXt `stages.<s>`, ResNet `layer1..4`."""
     if hasattr(enc, "stages"):
@@ -2038,7 +2107,7 @@ def timm_stage_names(enc):
     return [n for n in ("layer1", "layer2", "layer3", "layer4") if hasattr(enc, n)]
 
 
-def load_timm_backbone(arch, backbone_dir, grad_checkpoint=False, img_size=None):
+def load_timm_backbone(arch, backbone_dir, grad_checkpoint=False, img_size=None, drop_path=0.0):
     """timm model built offline from <backbone_dir>/model.safetensors (the HF timm repo files,
     mounted as a Kaggle Dataset). Loads strictly except for the classifier head, and REFUSES a
     silent architecture mismatch -- `strict=False` alone would happily train from scratch.
@@ -2051,6 +2120,8 @@ def load_timm_backbone(arch, backbone_dir, grad_checkpoint=False, img_size=None)
     # input size and its create_model raises TypeError on the keyword.
     sized = arch.startswith(("coatnet", "coatnext", "maxvit", "maxxvit", "vit_"))
     kw = {"img_size": int(img_size)} if (img_size is not None and sized) else {}
+    if drop_path:
+        kw["drop_path_rate"] = float(drop_path)             # P-60; 0 -> the kwarg is not passed (as before)
     enc = timm.create_model(arch, pretrained=False, num_classes=0, **kw)
     sd = load_file(os.path.join(backbone_dir, "model.safetensors"))
     # The ImageNet classifier's key prefix comes from the model's own pretrained_cfg ("head.fc" for CoAtNet, "fc" for
@@ -2068,7 +2139,8 @@ def load_timm_backbone(arch, backbone_dir, grad_checkpoint=False, img_size=None)
                          f"{bad_unexpected[:5]} ({len(bad_unexpected)})")
     print(f"  timm {arch}: loaded {len(sd)} tensors from {backbone_dir} (dropped head "
           f"{len(head_keys)} '{cls}'); num_features {enc.num_features}, {len(timm_stage_names(enc))} stages, "
-          f"img_size {kw.get('img_size', 'any' if not sized else 'default')}, grad_checkpoint={grad_checkpoint}")
+          f"img_size {kw.get('img_size', 'any' if not sized else 'default')}, grad_checkpoint={grad_checkpoint}, "
+          f"drop_path_rate {kw.get('drop_path_rate', 0.0)}")
     if grad_checkpoint and hasattr(enc, "set_grad_checkpointing"):
         enc.set_grad_checkpointing(True)
     return enc
@@ -2077,7 +2149,7 @@ def load_timm_backbone(arch, backbone_dir, grad_checkpoint=False, img_size=None)
 class KneeNet(nn.Module):
     def __init__(self, backbone_dir: str, n_labels=len(LABELS), dropout=0.1,
                  head_type="concat", slot_dropout=0.0, backbone="dinov2", in_chans=3,
-                 slot_embed=True, grad_checkpoint=False, img_size=224, aug="none"):
+                 slot_embed=True, grad_checkpoint=False, img_size=224, aug="none", drop_path=0.0):
         super().__init__()
         self.backbone = backbone
         self.in_chans = in_chans
@@ -2088,7 +2160,8 @@ class KneeNet(nn.Module):
             self.enc = ConvNextModel.from_pretrained(backbone_dir)
             self.dim = self.enc.config.hidden_sizes[-1]          # 768 for Tiny
         elif str(backbone).startswith("timm:"):
-            self.enc = load_timm_backbone(backbone.split(":", 1)[1], backbone_dir, grad_checkpoint, img_size)
+            self.enc = load_timm_backbone(backbone.split(":", 1)[1], backbone_dir, grad_checkpoint, img_size,
+                                          drop_path)
             self.dim = self.enc.num_features
         else:
             from transformers import Dinov2Model
@@ -2169,7 +2242,7 @@ class KneeNet(nn.Module):
             x = F.interpolate(x, size=(self.img_size, self.img_size), mode="bilinear",
                               align_corners=False)
         if self.training and self.aug != "none":            # P-33: draws nothing when aug == "none"
-            x = augment_light(x)
+            x = augment_heavy(x) if self.aug == "heavy" else augment_light(x)
         x = (x - IMAGENET_MEAN.to(x.device)) / IMAGENET_STD.to(x.device)
         if self.training and torch.rand(()) < 0.5:
             x = x + torch.randn_like(x) * 0.01              # the Dataset's noise aug, moved here
@@ -2212,7 +2285,8 @@ def build_model(c, device):
                 head_type=g("head_type", "concat"), slot_dropout=float(g("slot_dropout", 0.0)),
                 backbone=backbone, in_chans=in_ch, slot_embed=bool(g("slot_embed", True)),
                 grad_checkpoint=bool(g("grad_checkpoint", False)), img_size=int(g("img_size", 224)),
-                aug=str(g("aug", "none")))          # old checkpoints predate the field -> "none"
+                aug=str(g("aug", "none")),          # old checkpoints predate the field -> "none"
+                drop_path=float(g("drop_path", 0.0)))
     return m.to(device)
 
 
@@ -2640,6 +2714,14 @@ def train_fold(fold, manifest, targets, image_root, cfg, device):
 
     for epoch in range(start_epoch, cfg.epochs):
         model.train()
+        if cfg.freeze_bn:                                   # P-59: encoder BN in eval mode, affine still trains
+            n_bn = 0
+            for mod in model.enc.modules():
+                if isinstance(mod, nn.modules.batchnorm._BatchNorm):
+                    mod.eval()
+                    n_bn += 1
+            if epoch == start_epoch:
+                print(f"  freeze_bn: {n_bn} encoder BatchNorm modules held in eval mode during training")
         running, nb = 0.0, 0
         t_epoch = time.time()
         n_studies = 0

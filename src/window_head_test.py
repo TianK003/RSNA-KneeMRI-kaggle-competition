@@ -195,6 +195,35 @@ def main():
     xh = torch.rand(4, 3, 32, 32).half()
     check(K["augment_light"](xh).dtype == torch.float16, "augment_light keeps a half input half (theta built in fp32)")
 
+    print("\n== heavy augmentation (P-60)")
+    torch.manual_seed(0)
+    xa = torch.rand(64, 3, 64, 64) * 0.8 + 0.1
+    y = K["augment_heavy"](xa)
+    check(y.shape == xa.shape and y.dtype == xa.dtype and float(y.min()) >= 0.0 and float(y.max()) <= 1.0
+          and torch.isfinite(y).all() and (y != xa).float().mean() > 0.5,
+          "augment_heavy: same shape / dtype, stays in [0, 1], changes most windows")
+    check(torch.equal(K["augment_heavy"](xa, p=0.0), xa), "augment_heavy p=0 is the identity")
+    check(K["augment_heavy"](xh).dtype == torch.float16, "augment_heavy keeps a half input half")
+    torch.manual_seed(1)
+    yc = K["augment_heavy"](torch.full((200, 3, 32, 32), 0.5), p=1.0, cutout_p=1.0)
+    zero_frac = (yc[:, 0] == 0).float().mean(dim=(1, 2))
+    check(bool(((zero_frac >= 0.03) & (zero_frac <= 0.40)).float().mean() > 0.9)
+          and bool(torch.equal(yc[:, 0] == 0, yc[:, 1] == 0)),
+          f"augment_heavy cutout: each window loses 4-25 % (+ zoom-out padding) to one box, the same box in every "
+          f"channel (median {float(zero_frac.median()):.3f})")
+    torch.manual_seed(2)
+    yn = K["augment_heavy"](torch.full((200, 3, 32, 32), 0.5), p=1.0, cutout_p=0.0)
+    check(float((yn[:, :, 8:24, 8:24] == 0).float().mean()) == 0.0,
+          "augment_heavy cutout_p=0: no zeroed centre pixels (the warp only pads the border)")
+    ok_cfg = K["Config"](aug="heavy", window_mode="random", head_type="window_attn", cache_scheme="c02",
+                         backbone="timm:coatnet_rmlp_1_rw_224")
+    check(ok_cfg.aug == "heavy", "Config accepts aug='heavy' in window mode")
+    try:
+        K["Config"](drop_path=0.1, backbone="dinov2")
+        check(False, "Config refuses drop_path on a non-timm backbone")
+    except SystemExit:
+        check(True, "Config refuses drop_path on a non-timm backbone")
+
     print("\n== weighted_bce per-study normalisation (P-32)")
     logits, yt = torch.randn(2, 12), torch.rand(2, 12)
     w = torch.stack([torch.full((12,), 0.5), torch.full((12,), 8.0)])
@@ -508,6 +537,36 @@ def main():
           "DISTILLED_ARMS / DISTILLED_MIX: the student trains on Raptor + xfit at 0.75, the rest on Raptor at 0.5")
     check("xfit_v09k" in K["TEACHER_PATHS"] and K["PROBE_CONST_LABELS"] == (),
           "TEACHER_PATHS has xfit_v09k; PROBE_CONST_LABELS off by default")
+
+    print("\n== P-59 / P-60 arms (2026-09-29)")
+    cb, cc = Config(smoke=False, **arms["v13b"]), Config(smoke=False, **arms["v13c"])
+    check(cb.backbone == cc.backbone == "timm:resnet34" and cb.lr_backbone == cc.lr_backbone == 3e-4
+          and cb.llrd_decay == cc.llrd_decay == 1.0 and cb.epochs == cc.epochs == 12 and not cb.freeze_bn and cc.freeze_bn
+          and K["cache_version_for"](cb) == K["cache_version_for"](Config(smoke=False, **arms["v13a"])),
+          "v13b = v13a + uniform 3e-4 x 12 epochs on v13a's c02 input; v13c = v13b + freeze_bn")
+    cn, cn2 = Config(smoke=False, **arms["v11n"]), Config(smoke=False, **arms["v11n2"])
+    check(cn.drop_path == cn2.drop_path == 0.1 and cn.aug == cn2.aug == "heavy" and cn.epochs == 12 and cn.swa_last == 3
+          and cn2.seed == 43 and cn.seed == 42 and K["cache_version_for"](cn) == K["cache_version_for"](c3)
+          and cn.train_windows == 34 and cn.lr_backbone == 1e-4 and cn.llrd_decay == 0.75,
+          "v11n / v11n2 = v11a (c03) + drop_path 0.1 + aug heavy + 12 epochs, seeds 42 / 43")
+    check(all(da[a] == ("raptor_teacher",) and a not in dm for a in ("v13b", "v13c", "v11n", "v11n2")),
+          "the four new arms train on Raptor at mix 0.5")
+    for bb in ("timm:resnet34", "timm:coatnet_rmlp_1_rw_224"):
+        try:
+            bdir = K["resolve_backbone_dir"](bb)
+        except SystemExit as e:
+            print(f"  skip drop_path check for {bb}: {e}")
+            continue
+        enc0 = K["load_timm_backbone"](bb.split(":", 1)[1], bdir, img_size=224)
+        enc1 = K["load_timm_backbone"](bb.split(":", 1)[1], bdir, img_size=224, drop_path=0.1)
+        dp0 = [float(getattr(m, "drop_prob", 0.0)) for m in enc0.modules() if type(m).__name__ == "DropPath"]
+        dp1 = [float(getattr(m, "drop_prob", 0.0)) for m in enc1.modules() if type(m).__name__ == "DropPath"]
+        check(max(dp0, default=0.0) == 0.0 and dp1 and 0.0 < max(dp1) <= 0.1 + 1e-6,
+              f"{bb}: drop_path 0 -> no active DropPath; 0.1 -> {len(dp1)} DropPath modules, max rate {max(dp1, default=0):.3f}")
+        enc1.eval()
+        with torch.no_grad():
+            xx = torch.randn(2, 3, 224, 224)
+            check(torch.allclose(enc1(xx), enc1(xx)), f"{bb}: drop_path is inert in eval mode (deterministic)")
 
     print("\n" + ("UNIT CHECKS PASSED" if not fails else f"UNIT CHECKS FAILED ({len(fails)}):\n  - " + "\n  - ".join(fails)))
     sys.exit(1 if fails else 0)
