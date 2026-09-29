@@ -6,6 +6,89 @@ to read first after a break.
 
 ---
 
+## 2026-09-29 (11:30 → 14:30 UTC) — C ‖ D pulled green; cross-fit table → gate OPEN → **session E running**; 5 reads: **c03 `v11a` 0.932 / pair 0.932 = best solo** (🔁), trio 0.931 (🔁), 5-fold XF 0.928 (❌); ResNet-34 ❌ on gold
+
+Tian: "read the handoff … continue work, pull results and submit whatever is necessary"; then asked why it was not done (E still
+training) and whether the laptop can be turned off (yes — E runs on Kaggle; nothing is submittable before 00:00 UTC). Commits
+`d9bcf00` … (this one). Authority for everything run: the approved 2026-09-28 plan (`docs/superpowers/plans/2026-09-28-single-model-plan.md`).
+
+### ⏳ Still in flight as this was written (14:30 UTC)
+
+| In flight | What it is | Started | How to check | How to read it |
+|---|---|---|---|---|
+| **Session E = `rsna-knee-train` v35** (P-55, REAL) | `PARALLEL_ARMS = ("v09o", "v09o2")`, `TEACHER_TABLES = ("raptor_teacher", "xfit_v09k")`, `TEACHER_MIX = 0.75` → targets 0.25 LLM + 0.375 Raptor + 0.375 cross-fit OOF; the `v09r` recipe, all 4,349, seeds 42 / 43 (`artifacts/train_student_E.py` = `src` + 4 seds) | pushed 11:37:33 UTC, RUNNING at once; expect COMPLETE ≈ 14:30–15:00 UTC (≈ 2.8–3.0 h, like `v09u`) | `kaggle kernels status tiankljucanin/rsna-knee-train`; then `kaggle kernels output tiankljucanin/rsna-knee-train -p artifacts/kaggle_out/student_E --file-pattern "(v09o\|v09o2)_fold0_(best\.pt\|oof\.csv)$\|\.log$"` | **Green** = parent `ok  arm v09o` + `ok  arm v09o2`; each child log: `teacher table raptor_teacher: 4349` **and** `teacher table xfit_v09k: 4407`, `training targets = (1 - 0.75) * LLM + 0.75 * quantile-matched ['raptor_teacher', 'xfit_v09k']`, `reseeded 43 for arm v09o2`, `SWA of last 3`, `-> v09o*_fold0_best.pt = SWA`, no `runtime guard`; `_best.pt` ≈ 164,789,xxx bytes. **Red flags:** `ERROR` with 0 files (traps 44 → re-push the same build); a missing `xfit_v09k` line (then the targets are wrong — do not ship). Gold-58 SWA is direction only (`v09r` 0.9093, c03 `v11a` 0.9204) |
+
+Nothing else is running (all five submissions scored; watchers done).
+
+### Where things stand
+
+| | Status |
+|---|---|
+| Best LB | 0.942 (fork); **best solo 0.932** — #30 `v11a` alone and #32 the c03 pair `v11a` + `v11b` (was #26 0.930) |
+| Today's reads | #29 P-52 trio 0.931 🔁 (P-52 closed, the pair stays) · #30 `v11a` 0.932 / #31 `v11b` 0.929 → c03 m = 0.9305 🔁 (bar 0.9315) · #32 c03 pair 0.932 vs c02 pair 0.930 🔁 · #33 5-fold XF 0.928 ❌ — experiments.md 2026-09-29 "Submissions #29–#32" (+ addendum) |
+| Training done | C re-push v34 (`v09k4` + `v13a`, 2.39 h) ‖ D v10 (`v11a` ‖ `v11b` on c03, 3.53 h) — experiments.md 2026-09-29 "Sessions C ‖ D"; **ResNet-34 `v13a` gold 0.8306 = ❌ on gold** (not submitted) |
+| P-55 table | `artifacts/teacher/xfit_v09k.csv` (4,407 rows, per-fold ranked) gold-58 0.9028 vs LLM 0.8948, 4/12 below → loose gate OPEN — experiments.md 2026-09-29 "P-54 cross-fit table" |
+| Datasets (private, ready) | `rsna-knee-teacher-tables` new version (+ `xfit_v09k.csv`, the two old tables md5-identical); `rsna-knee-ckpt-v09k` (5 ckpts), `-v11a`, `-v11b`, `-v13a` — all in `kaggle/rsna-knee-infer/kernel-metadata.json` |
+| Committed renders | `rsna-knee-train` = **v35 REAL (session E)** — never re-push as is unless re-running E; `rsna-knee-infer` = v29 (the 5-fold XF solo, #33) |
+| Staged builds | `artifacts/infer_solo_v09o.py`, `infer_solo_v09o2.py`, `infer_pair_v09o_v09o2.py` (each `src` + 3 seds, `INFER_MEMBERS` set) |
+| Quota | Kaggle GPU 25.45 h used / **4.55 h left** at 14:30 UTC (E still counting; ≈ 4.4 h after it), reset 2026-10-03 00:00 UTC. Submissions: 0 left today, 5 after 00:00 UTC |
+| Docs | ✅ all findings logged (experiments.md entries + Scoreboard + Submissions rows 29–33; proposals.md P-52 closed, P-54 / P-55 / P-56 / P-57 statuses + index; CLAUDE.md state line) |
+
+### What we talked about and decided
+
+- **Session E pushed without a Kaggle smoke** — `src` has not changed since the green smoke v31; E is a sed-only build (plan Step 2:
+  "every later push is a sed-only build"). A local CPU smoke of the exact build went first (both tables read, both arms SWA, exit 0),
+  and a missing table is fatal at start (loud, minutes).
+- **`v13a` was not given a solo slot** — gold −0.079 is beyond the 0.05 floor with the structure labels at 0.75–0.77; the five slots
+  went to the pre-registered P-52 / c03 / XF reads. Its Dataset is mounted if a spare slot ever appears.
+- **Pre-registered bands were applied as written** even where every c03 reading points one way (m = 0.9305 is 0.001 under ✅):
+  c03 is 🔁, not the production input by rule.
+
+### What we figured out
+
+1. **c03 (dense slices, 150 mm) is our best single-model input so far, but only by the sum of small signs** — `v11a` 0.932, `v11b`
+   0.929, pair 0.932 vs the c02 twins 0.927 / 0.927 and pair 0.930; gold +0.014 with 10/12 labels up (experiments.md 2026-09-29).
+2. **More fold models do not replace more data** — the 5-fold cross-fit ensemble (each on 80 %) reads 0.928 ≈ one all-data member.
+3. **A third same-input member reads like a seed** — the P-52 trio 0.931 (+0.001) at 1.4× inference and ≈ 54 min to score.
+4. **Scoring times:** a c02 solo 28–32 min, the c03 pair ≈ 46 min, the trio ≈ 54 min, five members ≈ 66 min.
+
+### ⏭ Next action, in order
+
+1. **Pull session E** (command in the in-flight table) → check the green criteria → gold-58 SWA of both (direction only) → ship:
+   ```bash
+   for a in v09o v09o2; do rm -rf artifacts/ship_$a; mkdir -p artifacts/ship_$a
+     cp artifacts/kaggle_out/student_E/${a}_fold0_{best.pt,oof.csv} artifacts/ship_$a/
+     echo "{\"title\": \"RSNA knee ckpt $a\", \"id\": \"tiankljucanin/rsna-knee-ckpt-$a\", \"licenses\": [{\"name\": \"other\"}]}" > artifacts/ship_$a/dataset-metadata.json
+     (cd artifacts/ship_$a && kaggle datasets create -p .); done
+   ```
+   then add `tiankljucanin/rsna-knee-ckpt-v09o` and `-v09o2` to `kaggle/rsna-knee-infer/kernel-metadata.json` `dataset_sources`, wait
+   for `kaggle datasets status … = ready`.
+2. **Three placeholders, one at a time** (each ≈ 3 min): `python src/nbgen.py artifacts/infer_solo_v09o.py kaggle/rsna-knee-infer/rsna-knee-infer.ipynb`
+   → `kaggle kernels push -p kaggle/rsna-knee-infer` → COMPLETE → pull the log (`--file-pattern "submission\.csv$"`) and check `smoke
+   False`, `infer members (1): v09o/fold0`, `decode-once verified`, `constant labels 0`; note the version number; same for `v09o2` and
+   the pair. After 00:00 UTC: `kaggle competitions submit rsna-knee-abnormality-detection -k tiankljucanin/rsna-knee-infer -v <N> -f
+   submission.csv -m "<what>"` ×3, each watched by `python src/watch_submission.py --ref <ref> --every 60`.
+3. **Read (P-55, pre-registered):** m = mean(`v09o`, `v09o2`) vs 0.927: **✅ m ≥ 0.9315 / 🔁 0.9285 ≤ m < 0.9315 / ❌ m < 0.9285**;
+   the pair ✅ ≥ 0.935. A ❌ = the third null (P-38, Nicolai) → the OOF-target line closes. `/update` after the reads.
+4. **Two spare submissions tomorrow** — Tian's call (below); otherwise leave them.
+
+### Open decisions for Tian
+
+- **What next with ≈ 4.4 GPU-h before the Oct 3 reset** (enough for one ≈ 3–3.5 h session). Options: (a) if the student ✅ →
+  the student targets on the c03 input (a new arm `v11o`, needs a 1-line arm + smoke); (b) if the student ❌ → a third c03 seed to
+  settle P-56 (m is 0.001 under the bar); (c) keep the quota as a buffer. The plan's session F was "seed twin of a KEEP winner" only.
+- **The two spare slots tomorrow:** e.g. the 4-member c02 + c03 blend (`v09r` + `v09u` + `v11a` + `v11b`; gold 0.9182 < the c03 pair
+  0.9207, so low prior), or `v13a` solo (dead on gold), or nothing.
+- Still open from 09-28: the discussion-735304 questions (brainstorm.md); the second teacher after Oct 3.
+
+### Things that will bite if forgotten
+
+- **`rsna-knee-train` v35 is a REAL session-E render** — re-pushing it starts another ≈ 3 GPU-h run.
+- **Kernel status right after a push can still show the previous version's COMPLETE** — always check the pulled log's `infer members`
+  line before submitting a version.
+- **Git Bash heredocs mangle backslashes** (again today) — use the Edit tool or a script file for doc patches with `\` in them.
+- A training session can die from outside with 0 files (traps 44) — if E shows `ERROR`, re-push the same build.
+
 ## 2026-09-28 (09:12 → 12:12 UTC) — #22 = 0.942 (🔁); v30 shipped; **solo reads #24 `v09u` 0.927 / #25 `v09x` 0.929 / #26 pair 0.930**; #27 fork β 0.20 sent; the Kaggle "best single-model" thread mined → the **single-model plan** (probe #28, cross-fit A ‖ B running, c03 cache building, ResNet arm, P-49 done)
 
 Tian: "read the handoff … record the scores, run /update and then submit the latest work"; then "retry with 20%"; then "improve our single
