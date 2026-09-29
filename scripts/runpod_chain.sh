@@ -33,6 +33,10 @@ LABELS=(pilkwang/rsna-knee-llm-labels stevenleehans/rsna-knee-llm-report-labels 
 WEIGHTS=(timm-coatnet-rmlp-1-rw-224 timm-coatnet-rmlp-2-rw-384 convnext-tiny-224-hf)
 
 log() { echo "[$(date +%H:%M:%S)] $*"; }
+# 2026-09-29: a 429 (Too Many Requests) on train_series.csv, while the four cache pulls ran, killed the job under set -e
+# (traps 45). Every small download now retries with back-off instead of aborting the chain.
+retry() { local n=0; until "$@"; do n=$((n + 1)); [ "$n" -ge 6 ] && { echo "!! gave up after $n tries: $*"; return 1; }
+          echo "  retry $n in $((30 * n)) s: $*"; sleep $((30 * n)); done; }
 
 mkdir -p "$IN/competitions/$COMP" "$IN/models/metaresearch/dinov2/pytorch/small/1" "$WORK" "$CACHE_ROOT"
 log "python deps (torch comes from the image)"
@@ -50,7 +54,7 @@ done
 
 log "competition CSVs"
 for f in train.csv train_series.csv test.csv test_series.csv sample_submission.csv; do
-  [ -f "$IN/competitions/$COMP/$f" ] || kaggle competitions download -c "$COMP" -f "$f" -p "$IN/competitions/$COMP" > /dev/null
+  [ -f "$IN/competitions/$COMP/$f" ] || retry kaggle competitions download -c "$COMP" -f "$f" -p "$IN/competitions/$COMP" > /dev/null
 done
 ( cd "$IN/competitions/$COMP" && for z in *.zip; do [ -f "$z" ] && unzip -oq "$z" && rm -f "$z"; done; true )
 ls "$IN/competitions/$COMP"
@@ -58,7 +62,7 @@ ls "$IN/competitions/$COMP"
 log "label + teacher tables (always re-downloaded: a stale teacher-tables copy would miss a new table)"
 for d in "${LABELS[@]}"; do
   slug="${d#*/}"; rm -rf "${IN:?}/$slug"
-  kaggle datasets download -d "$d" -p "$IN/$slug" --unzip > /dev/null
+  retry kaggle datasets download -d "$d" -p "$IN/$slug" --unzip > /dev/null
   echo "  $slug: $(find "$IN/$slug" -type f | wc -l) files"
 done
 # TEACHER_WAIT_MIN > 0: the pod may start before the table's Dataset version is published/processed -- re-download the
@@ -88,7 +92,7 @@ done
 log "backbone weights"
 kaggle models instances versions download metaresearch/dinov2/PyTorch/small/1 -p "$IN/models/metaresearch/dinov2/pytorch/small/1" --untar > /dev/null || true
 for w in "${WEIGHTS[@]}"; do
-  [ -d "$IN/$w" ] || kaggle datasets download -d "$OWNER/$w" -p "$IN/$w" --unzip > /dev/null
+  [ -d "$IN/$w" ] || retry kaggle datasets download -d "$OWNER/$w" -p "$IN/$w" --unzip > /dev/null
   echo "  $w: $(find "$IN/$w" -type f | wc -l) files"
 done
 
