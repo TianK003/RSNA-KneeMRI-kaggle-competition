@@ -98,6 +98,7 @@ Judge label changes on **coverage** (does the rule fire at all, per language) an
 | 2026-09-29 | **P-56, submissions #30 / #31 (`rsna-knee-infer` v26 / v27)**: `v11a` / `v11b` solo — the `v09r` recipe on the c03 input (24/24/24/14/8/8, 150 mm), seeds 42 / 43 | gold-58 0.9204 / 0.9167 | **0.932 / 0.929** | **🔁 INCONCLUSIVE: m = 0.9305 vs the ✅ bar 0.9315** (+0.0035 over the c02 twins 0.927 / 0.927); `v11a` = our best single member |
 | 2026-09-29 | **P-56, submission #32 (`rsna-knee-infer` v28)**: the c03 pair `v11a` + `v11b` | gold-58 0.9207 (c02 pair 0.9065) | **0.932** | **🔁 INCONCLUSIVE: +0.002 vs the c02 pair #26 0.930** — ties #30 as the best solo read; every c03 reading points the same way, none clears its floor |
 | 2026-09-29 | **P-54, submission #33 (`rsna-knee-infer` v29)**: the 5-fold cross-fit ensemble `v09k0` … `v09k4` (flat rank-mean, one vote per fold model) | — (OOF only vs the LLM, traps 39) | **0.928** | **❌ DEAD END as a member: −0.002 vs #26 0.930 (band ≤ 0.930)** — 5 × 80 %-data models ≈ one all-data member; the table still feeds P-55; scored in ≈ 66 min |
+| 2026-09-29 | **P-55 session E (`rsna-knee-train` v35, 2.94 h)**: the OOF soft-bootstrapped student `v09o` ‖ `v09o2` — the `v09r` recipe on 0.25 LLM + 0.375 Raptor + 0.375 `xfit_v09k` (`TEACHER_MIX = 0.75` over two matched tables), all 4,349, seeds 42 / 43 | gold-58 SWA **`v09o` 0.9121, `v09o2` 0.9104**; student pair 0.9119 vs the c02 pair 0.9065 (+0.006, SD 0.004, 9/12 up) and the c03 pair 0.9207; seed-twin ρ 0.946 | ⏳ three solos (`v09o`, `v09o2`, the pair) after 00:00 UTC | ✅ run · 🔁 direction only; shipped as `rsna-knee-ckpt-v09o` / `-v09o2` (entry "Session E") |
 
 **External reference points** (not ours — for calibrating ambition):
 
@@ -2452,6 +2453,46 @@ as a member**: five fold models, each trained on 80 % of the studies, rank-mean 
 (0.927) and under the all-data 2-seed pair (0.930). Fold count does not buy what data volume costs; a production member keeps training
 on all 4,349. The cross-fit's purpose is untouched: its OOF table `xfit_v09k` is the P-55 teacher (session E, running), and P-54 card
 branch "If it fails: the table still feeds P-55" is the one that fires.
+
+### 2026-09-29 — Session E (P-55): the OOF soft-bootstrapped student `v09o` / `v09o2` gold-58 SWA **0.9121 / 0.9104** (pair 0.9119 vs the c02 pair 0.9065) · ✅ run green, 🔁 direction only · solo reads next
+
+`rsna-knee-train` v35 (pushed 11:37:33 UTC, `artifacts/train_student_E.py`), COMPLETE in **2.94 h**: `PARALLEL_ARMS = ("v09o", "v09o2")`,
+the `v09r` recipe on all 4,349 studies (8 epochs, SWA of the last 3), seeds 42 / `reseeded 43`. Both children log `teacher table
+raptor_teacher: 4349` **and** `teacher table xfit_v09k: 4407`, then `training targets = (1 - 0.75) * LLM + 0.75 * quantile-matched
+['raptor_teacher', 'xfit_v09k']` (= 0.25 LLM + 0.375 Raptor + 0.375 cross-fit OOF); parent `ok  arm` ×2, no `runtime guard`, `_best.pt`
+164,789,267 / 164,789,727 bytes. Pulled to `artifacts/kaggle_out/student_E/`; shipped as the PRIVATE Datasets `rsna-knee-ckpt-v09o` /
+`-v09o2` (`ready`) and mounted in `kaggle/rsna-knee-infer/kernel-metadata.json`.
+
+Gold-58 per label (scratch `e_gold.py` = `cd_gold.py` + the two students; same-seed rank-means):
+
+| label | `v09r` | `v09u` | `v09o` | `v09o2` | c02 pair | student pair | c03 pair | student − c02 (pair means) |
+|---|---|---|---|---|---|---|---|---|
+| ACL | 0.953 | 0.949 | 0.968 | 0.929 | 0.953 | 0.950 | 0.961 | −0.002 |
+| MCL | 0.925 | 0.907 | 0.937 | 0.925 | 0.915 | 0.931 | 0.955 | +0.015 |
+| Medial Meniscus | 0.958 | 0.970 | 0.966 | 0.970 | 0.966 | 0.969 | 0.959 | +0.004 |
+| Lateral Meniscus | 0.853 | 0.870 | 0.867 | 0.886 | 0.868 | 0.878 | 0.889 | +0.015 |
+| Medial OA | 0.967 | 0.984 | 0.983 | 0.977 | 0.977 | 0.979 | 0.988 | +0.004 |
+| Lateral OA | 0.805 | 0.807 | 0.812 | 0.818 | 0.805 | 0.815 | 0.818 | +0.010 |
+| PF OA | 0.816 | 0.812 | 0.826 | 0.826 | 0.815 | 0.825 | 0.838 | +0.012 |
+| Effusion | 0.974 | 0.944 | 0.954 | 0.960 | 0.964 | 0.963 | 0.970 | −0.002 |
+| Synovitis | 0.823 | 0.816 | 0.834 | 0.828 | 0.823 | 0.830 | 0.812 | +0.011 |
+| Baker's | 0.960 | 0.933 | 0.960 | 0.962 | 0.951 | 0.964 | 0.970 | +0.014 |
+| Contusion | 0.934 | 0.912 | 0.918 | 0.937 | 0.928 | 0.928 | 0.941 | +0.004 |
+| Fracture | 0.943 | 0.890 | 0.919 | 0.907 | 0.913 | 0.912 | 0.948 | −0.003 |
+| **macro** | **0.9093** | **0.8995** | **0.9121** | **0.9104** | **0.9065** | **0.9119** | **0.9207** | **+0.007** |
+
+Paired study bootstrap (2,000 reps) student pair − c02 pair **+0.0056 (SD 0.0038)**; the 2-seed mean moves +0.007 with 9/12 labels
+up. Within-class ρ: `v09o` ~ `v09o2` **0.946** (c02 seed twins 0.916, c03 twins 0.934), `v09o` ~ `v09r` 0.927, `v09o2` ~ `v09u` 0.929,
+`v09o` ~ `v11a` 0.914. Epoch curve (EMA, `v09o`): 0.783 · 0.876 · 0.898 · 0.906 · 0.912 · 0.912 · 0.911 · 0.912 — flat from epoch 4.
+
+**Verdicts.**
+- **Run: ✅** — the first training session on a two-table target mix; every green criterion of the in-flight table met.
+- **Student (P-55): 🔁 direction only, the solo reads decide.** +0.007 is a seventh of the 0.05 gold floor and 1.5 SD on the paired
+  bootstrap — half the c03 edge (+0.014, 3 SD), and on the same four structure labels the c03 input moved (MCL / Lat Men / PF OA, plus
+  Lateral OA). The two seeds agree with each other more than any pair so far (ρ 0.946), which is what a heavier teacher weight
+  should do (0.75 of the target is shared across seeds, not 0.5) — and is the P-38 signature too, so it is not evidence of truth
+  (traps 39). Pre-registered reads (P-55): m = mean(`v09o`, `v09o2`) vs 0.927: **✅ m ≥ 0.9315 / 🔁 0.9285 ≤ m < 0.9315 / ❌ m < 0.9285**;
+  the pair ✅ ≥ 0.935.
 
 ## Infrastructure
 
