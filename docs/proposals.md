@@ -58,7 +58,7 @@ result*, per unit of cost. "Depends on" lists hard blockers only. EVs are solo-L
 
 | rank | id | title | status | expected value | cost | depends on |
 |---|---|---|---|---|---|---|
-| 0b | P-54 | 5-fold cross-fit of the v09r recipe (`v09k0-4`): honest OOF + a 5-fold member | ⏳ **all 5 folds ✅** (A ‖ B 2026-09-28; fold 4 = C re-push `rsna-knee-train` v34, 2.39 h); table `xfit_v09k` built (gold-58 0.9028 vs LLM 0.8948, 4/12 below → loose gate OPEN); Dataset `rsna-knee-ckpt-v09k` (5 ckpts); **fold-ensemble solo ⏳** | enables P-55; fold ensemble +0.000..0.005 | ~7.7 GPU-h (3 sessions) | — |
+| 0b | P-54 | 5-fold cross-fit of the v09r recipe (`v09k0-4`): honest OOF + a 5-fold member | ⏳ **all 5 folds ✅** (A ‖ B 2026-09-28; fold 4 = C re-push `rsna-knee-train` v34, 2.39 h); table `xfit_v09k` built (gold-58 0.9028 vs LLM 0.8948, 4/12 below → loose gate OPEN); Dataset `rsna-knee-ckpt-v09k` (5 ckpts); **fold-ensemble solo #33 = 0.928 ❌ (≤ 0.930)** → the table's only job is P-55 | enables P-55; fold ensemble +0.000..0.005 | ~7.7 GPU-h (3 sessions) | — |
 | 0c | P-55 | OOF soft-bootstrapped student `v09o` / `v09o2` (0.25 LLM + 0.375 Raptor + 0.375 xfit, mix 0.75) | ⏳ **session E = `rsna-knee-train` v35 RUNNING** (pushed 2026-09-29 11:37 UTC; loose gate OPEN; `rsna-knee-teacher-tables` now carries `xfit_v09k.csv`; local CPU smoke of the exact build green) | 0..+0.005 (Nicolai: no LB transfer) | ~2.9 GPU-h, 3 submissions | P-54; loose gate |
 | 0d | P-56 | Dense-slice input c03 (24/24/24/14/8/8, 150 mm) `v11a` / `v11b` | ⏳ **trained** (session D = `rsna-knee-folds` v10, 3.53 h): gold-58 `v11a` 0.9204 / `v11b` 0.9167, c03 pair 0.9207 vs c02 pair 0.9065 (+0.014, SD 0.005, 10/12 up — direction only); Datasets `rsna-knee-ckpt-v11a` / `-v11b`; **🔁 solo reads (2026-09-29): #30 `v11a` 0.932 (best single) / #31 `v11b` 0.929 → m = 0.9305 (✅ bar 0.9315); #32 c03 pair 0.932 vs the c02 pair 0.930** — consistent sign, under every floor; not the production input by rule, the axis stays open | the only untested input axis since c02 | ~3.7-4.4 GPU-h, 3 submissions | — |
 | 0e | P-57 | ResNet-34 on the v09r recipe (`v13a`) | ❌ **on gold-58**: `v13a` 0.8306 vs `v09r` 0.9093 (−0.079, beyond the 0.05 floor; 8/12 labels down, ACL / MCL / both menisci 0.75–0.77); solo read deprioritised (Dataset `rsna-knee-ckpt-v13a` shipped, submit only into a spare slot) | tests the Scott Willis / CoolinLai route | ~0 extra (rides with `v09k4`) | — |
@@ -152,7 +152,8 @@ Status:       ⏳ folds 0–3 ✅ (sessions A ‖ B = `rsna-knee-train` v32 ‖ 
               2026-09-28 "P-54 sessions A ‖ B"); **fold 4 = `v09k4`: session C (`rsna-knee-train` v33) died from outside at 2.2 h, 0 files saved (traps 44) — re-push.**
               **2026-09-29: fold 4 ✅** (C re-push = `rsna-knee-train` v34, 2.39 h; OOF vs LLM 0.8811, gold 0.9432 on n = 11); (a) the table
               `xfit_v09k.csv` built — gold-58 pooled **0.9028** vs LLM 0.8948 (+0.008, SD 0.015), 4/12 labels below the LLM → **loose gate
-              OPEN** (experiments.md 2026-09-29 "P-54 cross-fit table"); all five checkpoints in Dataset `rsna-knee-ckpt-v09k`; (b) ⏳.
+              OPEN** (experiments.md 2026-09-29 "P-54 cross-fit table"); all five checkpoints in Dataset `rsna-knee-ckpt-v09k`; (b) **#33 =
+              0.928 → ❌** (≤ 0.930; five 80 %-data fold models ≈ one all-data member) — "If it fails" fires: the table feeds P-55.
 Hypothesis:   a 5-fold cross-fit of the production recipe gives honest out-of-fold predictions for every training study — the
               precondition for OOF soft bootstrapping (P-55) — and its 5-fold flat rank-mean reads above the #26 pair solo.
 Origin:       Archit Konde, Kaggle discussion 735304 (out-of-fold soft bootstrapping); research.md 2.7.2.
