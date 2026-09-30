@@ -2568,6 +2568,25 @@ send had not happened), sent 11:06 UTC, each timed by `watch_submission.py` (90 
   every reading of it under its floor. Still live: P-60 (noisy-student regularisation on c03 — blocked on compute until the 2026-10-03
   reset), P-61 (CoAtNet LR upward), P-45 (a second image teacher), P-50 (final selection).
 
+### 2026-09-30 — P-18 step 1: the public Efficiency LB lists us at **rank 2,533 of 4,489** with the 0.942 fork · it seems to read the best-public-score submission, not the fastest · 🔁 the formula is still unread
+
+`kaggle kernels output ryanholbrook/rsna-knee-abnormalities-efficiency-lb` → `artifacts/efficiency_lb/full_leaderboard.csv` (4,489 teams;
+columns `EfficiencyRank, TeamName, PublicScore, DateSubmitted` only — no runtime; latest submission in the snapshot 2026-09-28 21:31
+UTC). The notebook only re-publishes `leaderboard.csv` from `ryanholbrook/rsna-knee-abnormalities-efficiency-data`, which the CLI
+cannot read (`kernels.get` denied — private), and points to the competition's "Efficiency Prize Evaluation" page for the formula.
+
+- **Our row: rank 2,533, public 0.942, dated 2026-09-27 16:36:17** = #22 (the fork, β 0.10 — hours to score). #26 (0.930, scored in
+  28 min, sent 2026-09-28 09:32) was already in the snapshot and is not what it lists, so the track appears to read each team's
+  best-public-score submission (the latest of our three 0.942s) or its selected ones — inference from one row, not a rule.
+- **Runtime weighs heavily:** in 1,996 of 4,488 adjacent pairs the lower-ranked team has the higher public score; the top 100 span
+  0.917–0.958 (median 0.940; top 10 median 0.9545), rank 32 = 0.936, rank 39 = 0.931. Scott Willis (0.958) is #1 on both boards.
+- **Candidates of ours** (inference cost only; the formula may also count CPU / wall time differently): `v11a` 0.932 (20–28 min to
+  score), `v13c` 0.921 (≈ 16 min, 0.12 s/study). Our slowest-possible entry (the fork) is what is listed now.
+
+**Verdict: 🔁 INCONCLUSIVE** — a placement read, not a measurement of ours; step 2 needs the Evaluation page (which submission counts,
+the formula) in a browser (brainstorm.md "Efficiency Prize"). Until then the Efficiency track is decided by what we *select* at the end
+(P-50), not by what we submit.
+
 ## Infrastructure
 
 ### 2026-09-27 — The "0.943 Speedy Raptors CoAtNet D4" notebook is our anchor **plus two CoAt readers**, not a faster graph; its "< 30 min" is a 3-study commit run · P-41 (threaded scan + 8 decode workers) smoke-green and byte-identical

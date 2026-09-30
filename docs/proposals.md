@@ -258,6 +258,8 @@ Status:       💡 untested. The submission-robustness half shipped long ago (`M
               exactly 0.500", 2026-08-29 "Cross-version rank blend + decode-once inference shipped").
               **2026-09-30:** two candidates now — `v11a` (c03 CoAtNet-1, 0.932, scored in 20–28 min) and `v13c` (ResNet-34 at
               a CNN LR, **0.921** at 0.12 s/study vs 0.29–0.35 for the CoAtNets, scored in ≈ 16 min — #37).
+              **Step 1 done 2026-09-30:** the Efficiency LB lists us at rank 2,533 with the 0.942 fork (#22) — it seems to read the
+              best-public-score (or selected) submission, not the fastest; top 100 span 0.917–0.958 (experiments.md 2026-09-30 "P-18 step 1").
 Hypothesis:   our solo member (`v09r`, 0.927, ≈ 29 min send→score with P-41) is competitive on the Efficiency LB with no model
               change — the candidate is the member we already have, not a lean DINOv2-S variant.
 Origin:       the Efficiency Prize track (CLAUDE.md); P-41.
