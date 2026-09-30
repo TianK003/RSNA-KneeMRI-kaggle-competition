@@ -920,3 +920,16 @@ balance is too low` on `start`). Everything on the container disk and in `/dev/s
 `_last.pt`) was gone; the persistent volume held nothing. **Do:** check the balance covers the whole job (hours × $/h + margin) before
 creating a pod — there is no API read of the balance, so ask Tian; and put `/kaggle/working` on the persistent volume
 (`ln -s /workspace/kaggle /kaggle`) so a stop keeps `_last.pt` and a restart resumes instead of starting over.
+
+### 47. A guard-stopped `PARALLEL_ARMS` child reports `ok  arm` and `"completed": true` — and its `_best.pt` is a mid-schedule EMA, not a member (Tier 1 if shipped, found 2026-09-30, did not bite)
+
+P-60 part 1 (`rsna-knee-folds` v11) stopped both children on purpose at the runtime guard in epoch 5 of 12. The parent printed
+`ok  arm v11n: rc=0, _best.pt written (folds [0]), _last.pt present` and `PARALLEL_ARMS done: {"v11n/0": {"best": NaN,
+"completed": true}}` for both arms. `run_parallel_arms` sets `completed = bool(_best.pt exists and rc == 0)`, and under
+`ckpt_policy="last"` every epoch overwrites `_best.pt` — so a child that trained 5.4 of 12 epochs looks finished. That `_best.pt`
+is the epoch-5 EMA (partial epoch, no SWA) at ≈ 70 % of peak LR; shipped as a Dataset it would read as a real member and give a
+wrong verdict. Only the parent's `last lines` field (`stopping: runtime guard`), the parent's `all folds complete: False`, and the
+child log (`completed: false`, no `SWA of last 3`) tell the truth. traps 34's "one `_best.pt` per arm at the end" is therefore
+not a green test on its own. **Do:** before shipping a `PARALLEL_ARMS` arm, check that its child log has `SWA of last N` and
+`-> <arm>_fold0_best.pt = SWA` and has no `runtime guard`, not just `ok  arm` (experiments.md 2026-09-30 "P-60 part 1"). A
+one-line code fix (fold the child's `stopping: runtime guard` line into `completed`) is open; no run depends on it.

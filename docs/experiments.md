@@ -103,6 +103,7 @@ Judge label changes on **coverage** (does the rule fire at all, per language) an
 | 2026-09-30 | **P-55, submissions #34 / #35 / #36 (`rsna-knee-infer` v30 / v31 / v32)**: the OOF soft-bootstrapped student `v09o` / `v09o2` solo and their pair | gold-58 0.9121 / 0.9104; pair 0.9119 (c02 pair 0.9065) | **0.927 / 0.927 / 0.928** | **❌ DEAD END: m = 0.927 < 0.9285 (= `v09r` / `v09u` exactly); the pair −0.002 vs the c02 pair #26 0.930** — the third null for OOF-derived targets (P-38, Nicolai); the OOF-target line closes; gold-58's +0.007 did not transfer (traps 39) (entry "Submissions #34–#38") |
 | 2026-09-30 | **P-59, submission #37 (`rsna-knee-infer` v33)**: ResNet-34 `v13c` (CNN LR 3e-4 uniform, 12 ep, frozen BN) solo | gold-58 0.9014 | **0.921** | **❌ as a member: −0.006 vs 0.927 (band ≤ 0.922)** — the small-CNN route closes for accuracy; an Efficiency-track candidate only (0.12 s/study, scored in ≈ 16 min) |
 | 2026-09-30 | **P-59, submission #38 (`rsna-knee-infer` v34)**: the c03 pair `v11a` + `v11b` + `v13c` (flat rank-mean, two decode passes) | gold-58 0.9189 (c03 pair 0.9207) | **0.932** | **❌ DEAD END: = the c03 pair #32 0.932 (band ≤ 0.932)** — a 0.921 third family at within-class ρ 0.86 neither adds nor subtracts |
+| 2026-09-30 | **P-60 part 1 (`rsna-knee-folds` v11, 2.61 h)**: `v11n` ‖ `v11n2` = the `v11a` recipe (c03, Raptor 0.5, all 4,349) + `drop_path` 0.1 + `aug` "heavy" + 12 epochs (SWA 9–11), seeds 42 / 43; runtime guard 2.75 h by design (quota) | gold-58 EMA at epoch 4: **`v11n` 0.9166 / `v11n2` 0.9129** vs `v11a` / `v11b` at their epoch 4 0.9156 / 0.9129 (pair +0.0005); guard stop in epoch 5 (0.9151 / 0.9148) | — (part 2 after the 2026-10-03 reset) | **✅ run (guard-stopped as planned, `_last.pt` ×2 for the resume) · ⏳ P-60** — direction only, the regularised arms caught up with the 8-epoch curve at a higher LR; the epoch-5 `_best.pt` files are not members (traps 47) (entry "P-60 part 1") |
 
 **External reference points** (not ours — for calibrating ambition):
 
@@ -2586,6 +2587,53 @@ cannot read (`kernels.get` denied — private), and points to the competition's 
 **Verdict: 🔁 INCONCLUSIVE** — a placement read, not a measurement of ours; step 2 needs the Evaluation page (which submission counts,
 the formula) in a browser (brainstorm.md "Efficiency Prize"). Until then the Efficiency track is decided by what we *select* at the end
 (P-50), not by what we submit.
+
+### 2026-09-30 — P-60 part 1 (`rsna-knee-folds` v11): `v11n` / `v11n2` guard-stopped in epoch 5 of 12 as planned · gold-58 EMA **0.9166 / 0.9129 at epoch 4** = `v11a` / `v11b` at their epoch 4 (0.9156 / 0.9129) · ✅ run green, ⏳ P-60 waits for part 2
+
+`rsna-knee-folds` v11 (pushed 12:10 UTC, `artifacts/train_p60_kaggle_part1.py` = `src` + 4 seds: `FORCE_SMOKE = False`,
+`PARALLEL_ARMS = ("v11n", "v11n2")`, `TEACHER_TABLES = ("raptor_teacher",)`, `runtime_limit_hours` 8.3 → 2.75), COMPLETE in **2.61 h**
+(9,398 s; children `RSNA_RUNTIME_H 2.56 h`). Both children: c03 cache (4 shards, 4,407 studies), `teacher table raptor_teacher: 4349`,
+`training targets = (1 - 0.5) * LLM + 0.5 * quantile-matched ['raptor_teacher']`, `drop_path_rate 0.1`, `aug heavy`, `epochs 12`,
+`swa_last 3`; `v11n2` `reseeded 43`; peak GPU memory 9.44 GiB each (batch 2 × 34 windows). Parent: `ok  arm` ×2, `_last.pt present`,
+last lines `stopping: runtime guard`; `all folds complete: False` → no inference. Pulled to `artifacts/kaggle_out/p60_part1/` (logs +
+per-epoch OOF csvs only; the checkpoints stay in the kernel output for part 2 to mount). `kaggle quota` after it: **29.42 h used,
+0.58 h left**, reset 2026-10-03 00:00 UTC.
+
+Throughput: `v11n` (cuda:0) 0.36 s/study = 26.2 min/epoch, `v11n2` (cuda:1) 0.38 s/study = 27.7 min/epoch, + 0.7–0.8 min held-out
+eval each — 3–8 % slower than session D's `v11a` / `v11b` (0.35 s/study, 25.0–25.6 min), the cost of drop-path + heavy GPU aug. The
+guard fired at 17.0 of 26.3 min into epoch 5 for `v11n` (≈ 65 % of the epoch) and at 10.2 of 27.7 min for `v11n2` (≈ 37 %).
+
+Gold-58 EMA per epoch (all 58, reported only; epoch 5 is the partial epoch):
+
+| epoch | `v11a` (8 ep) | `v11n` (12 ep + reg) | `v11b` (8 ep) | `v11n2` (12 ep + reg) | c03 pair mean | P-60 pair mean |
+|---|---|---|---|---|---|---|
+| 0 | 0.8031 | 0.7807 | 0.7838 | 0.7737 | 0.7935 | 0.7772 |
+| 1 | 0.8645 | 0.8535 | 0.8573 | 0.8505 | 0.8609 | 0.8520 |
+| 2 | 0.8946 | 0.8953 | 0.8923 | 0.8839 | 0.8935 | 0.8896 |
+| 3 | 0.9089 | 0.9052 | 0.9047 | 0.9028 | 0.9068 | 0.9040 |
+| 4 | 0.9156 | 0.9166 | 0.9129 | 0.9129 | 0.9143 | **0.9148** |
+| 5 | 0.9174 | 0.9151 (≈ 65 %) | 0.9141 | 0.9148 (≈ 37 %) | 0.9158 | 0.9150 |
+| SWA | 0.9204 | ⏳ | 0.9167 | ⏳ | 0.9186 | ⏳ |
+
+The same two arms on the RunPod A100 (2026-09-29, pod 2, killed at epoch 5 by the balance): `v11n` 0.776 · 0.852 · 0.882 · 0.898 ·
+0.911, `v11n2` 0.773 · 0.842 · 0.881 · 0.900 · 0.912 — Kaggle reproduces them within 0.006 at every epoch. (The card's "`v11a` ep 4 ≈
+0.906" was wrong; session D's log says 0.9156.)
+
+**Resume mechanics (read in `train_fold`, `src/kaggle_pipeline.py:2690–2832`):** a guard stop saves `_last.pt` with `epoch = 5` as if
+complete, so part 2 starts at epoch 6 and the unfinished rest of epoch 5 is never trained — ≈ 0.35 epoch for `v11n`, ≈ 0.63 epoch for
+`v11n2` (3 % / 5 % of the 12-epoch schedule). The cosine LR runs on optimiser steps and the scheduler state is restored, so the LR
+continues from the exact step; its last ≈ 3 % / 5 % is never reached (final LR ≈ 0.3 % / 0.8 % of peak instead of 0; warm-up 10 %). The partial
+epoch never enters the SWA ring (`not guard_hit`), and the ring saved in `_last.pt` (epochs 2–4) is pushed out by 9–11, so the
+registered SWA of epochs 9–11 holds. The twins end ≈ 0.3 epoch apart in data seen — well inside seed noise.
+
+**Verdicts.**
+- **Run: ✅** — every part-1 criterion met; the first Kaggle session that stops by design and hands `_last.pt` to a resume.
+- **P-60: ⏳ PENDING** — nothing is readable before part 2. Direction only: the regularised arms start slower (pair mean −0.016 at
+  epoch 0, −0.009 at epoch 1) and have caught up by epoch 4 (+0.0005) while their 12-epoch cosine is still at ≈ 72 % of peak LR vs
+  ≈ 37 % for the 8-epoch `v11a` / `v11b` — the shape the card predicts, but a same-recipe gold direction has been wrong before (traps
+  39), and ≈ 0.0005 is a hundredth of the gold floor. The epoch-5 `_best.pt` files in the v11 output are mid-schedule EMA snapshots,
+  **not members** (traps 47). Part 2 = `rsna-knee-train` resume after 2026-10-03 00:00 UTC, ≈ 3.0 h (6 epochs × 27–28.5 min + the
+  SWA pass); then two solo reads against the card's band (m vs 0.9305: ✅ ≥ 0.935 / ❌ ≤ 0.926).
 
 ## Infrastructure
 
