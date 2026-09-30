@@ -61,7 +61,7 @@ result*, per unit of cost. "Depends on" lists hard blockers only. EVs are solo-L
 | 0d | P-56 | Dense-slice input c03 (24/24/24/14/8/8, 150 mm) `v11a` / `v11b` | ⏳ **trained** (session D = `rsna-knee-folds` v10, 3.53 h): gold-58 `v11a` 0.9204 / `v11b` 0.9167, c03 pair 0.9207 vs c02 pair 0.9065 (+0.014, SD 0.005, 10/12 up — direction only); Datasets `rsna-knee-ckpt-v11a` / `-v11b`; **🔁 solo reads (2026-09-29): #30 `v11a` 0.932 (best single) / #31 `v11b` 0.929 → m = 0.9305 (✅ bar 0.9315); #32 c03 pair 0.932 vs the c02 pair 0.930** — consistent sign, under every floor; not the production input by rule, the axis stays open; #38 c03 pair + `v13c` 0.932 = the pair | the only untested input axis since c02 | ~3.7-4.4 GPU-h, 3 submissions | — |
 | 0f | P-58 | Local-CPU open-weights LLM relabel as a 4th vote (Scott's Gemma route) | 💡 future, not scheduled (Tian 2026-09-28) | 0..+0.002 | 0 GPU; overnight CPU | — |
 | 0g | P-61 | CoAtNet learning-rate probe upward (`lr_backbone` 2e-4, LLRD 0.85) | 💡 new 2026-09-29 (from P-59) | 0..+0.005 — the CoAtNet trains under the LLRD that under-trained the ResNet by 0.069 on gold | ≈ 3 GPU-h (2 arms, c03) or ≈ $5 RunPod; 2 solos | — |
-| 0h | P-60 | "Noisy student" regularisation on the c03 CoAtNet (`v11n` / `v11n2`: drop-path 0.1, heavy aug, 12 epochs) | ⏸ blocked on compute: RunPod balance ran out at epoch 5 (EMA gold 0.911 / 0.912 there); Kaggle after the Oct 3 reset (≈ 5 GPU-h) | +0.002..0.008 (literature + every prior RSNA winner) | ≈ $4 RunPod, 2 solos | — |
+| 0h | P-60 | "Noisy student" regularisation on the c03 CoAtNet (`v11n` / `v11n2`: drop-path 0.1, heavy aug, 12 epochs) | ⏳ **part 1 RUNNING = `rsna-knee-folds` v11** (pushed 2026-09-30 12:10 UTC; runtime guard 2.75 h ≈ 5.6 of 12 epochs, inside the 3.19 h left before the 10-03 reset — Tian's go); part 2 = resume in `rsna-knee-train` after 2026-10-03 00:00 UTC (≈ 2.7 h) | +0.002..0.008 (literature + every prior RSNA winner) | ≈ $4 RunPod, 2 solos | — |
 | 4 | P-50 | Final selection and publishability | 💡 decide by 2026-10-15 | decides what the private LB scores | a browser session; ≤ 1 fork check | P-40 ✅ closed (#22 / #27), Rules page |
 | 5 | P-18 | Efficiency track with the solo member | 💡 (robustness half shipped); candidates `v11a` 0.932 / `v13c` 0.921 at ⅓ the inference cost (#37) | a separate prize; unknown until the formula is read | 0 GPU h (CLI + browser) | Efficiency formula (browser) |
 | 6 | P-47 | Teacher-mix bracket: mix 0.75 only | 💡 low — P-49 priced it on Raptor itself: matched mix 0.75 − 0.5 = −0.002 (SD 0.003) on gold | ≈ 0 (+0.000..0.002) | per-arm `TEACHER_MIX` code + ≈ 2.8 h; 1 solo | P-44 floor, an idle slot |
@@ -194,6 +194,14 @@ Status:       ⏸ **blocked on compute (2026-09-29)**: the code and arms are in 
               Tian (2026-09-29): no top-up → run it on Kaggle after the 2026-10-03 quota reset (two c03 arms × 12 epochs ≈ 5 h on
               2 × T4 = ≈ 5 GPU-h; `PARALLEL_ARMS = ("v11n", "v11n2")`, `TEACHER_TABLES = ("raptor_teacher",)`, `rsna-knee-folds`
               with the c03 `kernel_sources`). Tian: "brainstorm … what would make more sense and do that".
+              **2026-09-30: part 1 = `rsna-knee-folds` v11, pushed 12:10 UTC, RUNNING** (Tian: start now, finish after the reset):
+              `artifacts/train_p60_kaggle_part1.py` = `src` + 4 seds (`FORCE_SMOKE = False`, `PARALLEL_ARMS = ("v11n", "v11n2")`,
+              `TEACHER_TABLES = ("raptor_teacher",)`, `runtime_limit_hours` default 8.3 → **2.75**), c03 `kernel_sources` only. At ≈ 25.5
+              min/epoch (session D) the children's guard fires ≈ ⅔ into epoch 5 (0-based); `_last.pt` keeps that partial epoch as done, so
+              the resume skips ≈ ⅓ of one epoch of 12 (LR schedule continuous in steps). **Part 2:** the same build with the 8.3 default in
+              `rsna-knee-train`, `kernel_sources` = the four c03 caches + `rsna-knee-folds` (traps 31: a kernel cannot mount its own output);
+              green = `resume: copied v11n_fold0_last.pt` / `v11n2_fold0_last.pt` and `resumed fold 0 at epoch 6` in each child log — the first
+              Kaggle resume ever (traps 31).
 Hypothesis:   our student imitates its targets because it is barely regularised — no stochastic depth (`drop_path_rate`
               is never set), light augmentation, 8 epochs; with drop-path 0.1, heavier augmentation and 12 epochs the
               `v11a` recipe (c03, Raptor mix 0.5) reads above `v11a` / `v11b`.
