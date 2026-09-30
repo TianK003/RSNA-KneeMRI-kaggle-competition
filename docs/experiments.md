@@ -104,6 +104,7 @@ Judge label changes on **coverage** (does the rule fire at all, per language) an
 | 2026-09-30 | **P-59, submission #37 (`rsna-knee-infer` v33)**: ResNet-34 `v13c` (CNN LR 3e-4 uniform, 12 ep, frozen BN) solo | gold-58 0.9014 | **0.921** | **❌ as a member: −0.006 vs 0.927 (band ≤ 0.922)** — the small-CNN route closes for accuracy; an Efficiency-track candidate only (0.12 s/study, scored in ≈ 16 min) |
 | 2026-09-30 | **P-59, submission #38 (`rsna-knee-infer` v34)**: the c03 pair `v11a` + `v11b` + `v13c` (flat rank-mean, two decode passes) | gold-58 0.9189 (c03 pair 0.9207) | **0.932** | **❌ DEAD END: = the c03 pair #32 0.932 (band ≤ 0.932)** — a 0.921 third family at within-class ρ 0.86 neither adds nor subtracts |
 | 2026-09-30 | **P-60 part 1 (`rsna-knee-folds` v11, 2.61 h)**: `v11n` ‖ `v11n2` = the `v11a` recipe (c03, Raptor 0.5, all 4,349) + `drop_path` 0.1 + `aug` "heavy" + 12 epochs (SWA 9–11), seeds 42 / 43; runtime guard 2.75 h by design (quota) | gold-58 EMA at epoch 4: **`v11n` 0.9166 / `v11n2` 0.9129** vs `v11a` / `v11b` at their epoch 4 0.9156 / 0.9129 (pair +0.0005); guard stop in epoch 5 (0.9151 / 0.9148) | — (part 2 after the 2026-10-03 reset) | **✅ run (guard-stopped as planned, `_last.pt` ×2 for the resume) · ⏳ P-60** — direction only, the regularised arms caught up with the 8-epoch curve at a higher LR; the epoch-5 `_best.pt` files are not members (traps 47) (entry "P-60 part 1") |
+| 2026-09-30 | **Silence-aware teacher mix, priced on gold-58 at target level (0 GPU)**: Raptor weight 0.75 on pilkwang-`UNK` cells, 0.5 on addressed cells | target gold **0.9300 vs flat 0.5 0.9268** (+0.0032, SD 0.0018, 5 / 1 labels); flat mixes at the same mean Raptor weight +0.0004 | — | **🔁 direction only** — the gain is where Raptor speaks, not how much; Raptor is optimistic on gold and the student shrinks target gains → card P-62 (entry "Silence-aware teacher mix") |
 
 **External reference points** (not ours — for calibrating ambition):
 
@@ -2634,6 +2635,39 @@ registered SWA of epochs 9–11 holds. The twins end ≈ 0.3 epoch apart in data
   39), and ≈ 0.0005 is a hundredth of the gold floor. The epoch-5 `_best.pt` files in the v11 output are mid-schedule EMA snapshots,
   **not members** (traps 47). Part 2 = `rsna-knee-train` resume after 2026-10-03 00:00 UTC, ≈ 3.0 h (6 epochs × 27–28.5 min + the
   SWA pass); then two solo reads against the card's band (m vs 0.9305: ✅ ≥ 0.935 / ❌ ≤ 0.926).
+
+### 2026-09-30 — Silence-aware teacher mix priced on gold-58 (target level, P-49's method): Raptor 0.75 where the report is silent, 0.5 where it speaks → **0.9300 vs 0.9268** (+0.0032, SD 0.0018, 5 up / 1 down); flat mixes at the same mean Raptor weight +0.0004 · 🔁 direction only → card P-62
+
+Question (Tian: "anything we could do in the meantime, the labels?"): the LLM half turns a *silent* report into a confident-looking
+negative (label audit 2026-08-28: blend ≈ 0.18, weight 0.69 on UNK cells; 14 of the 41 Synovitis-silent gold studies are positive),
+so does the image teacher deserve more weight exactly there? Scratch `silence_mix.py` (session scratchpad), 0 GPU: yt = (1 − w) · LLM
+blend + w · matched Raptor on the 58 gold, with w = `w_sil` where pilkwang's verdict is `UNK` and `w_addr` where it is YES / NO; gold
+Raptor (`artifacts/teacher/raptor_gold.csv`) mapped through the 4,349-study Raptor ECDF onto the LLM blend's report-only values, as
+training does. The flat-0.5 baseline reproduces P-49's **0.9268** exactly. Paired study bootstrap (2,000 reps) against it.
+
+| `w_addr` / `w_sil` | mean Raptor w (gold) | macro | vs flat 0.5 | SD | labels up / down |
+|---|---|---|---|---|---|
+| 0.5 / 0.5 (= today) | 0.500 | 0.9268 | — | — | — |
+| **0.5 / 0.75** | 0.564 | **0.9300** | **+0.0032** | 0.0018 | 5 / 1 |
+| 0.5 / 1.0 | 0.627 | 0.9291 | +0.0023 | 0.0037 | 4 / 4 |
+| 0.4 / 0.8 | 0.502 | 0.9280 | +0.0012 | 0.0026 | 4 / 6 |
+| 0.25 / 0.75 | 0.377 | 0.9258 | −0.0010 | 0.0031 | 4 / 6 |
+| 0.25 / 1.0 | 0.441 | 0.9260 | −0.0008 | 0.0045 | 3 / 7 |
+| flat 0.6 / 0.65 / 0.7 (controls) | 0.60 / 0.65 / 0.70 | 0.9272 / 0.9263 / 0.9260 | +0.0004 / −0.0005 / −0.0008 | 0.002–0.003 | 5/6 · 5/6 · 5/5 |
+
+Silent cells on gold: Synovitis 41, Baker's 29, Fracture 26, Lateral OA 22, Medial OA 14, PF OA 14, Contusion 10, ≤ 7 elsewhere
+(training rows: Synovitis 84 %, Fracture 57 %, Baker's 46 %, Lateral OA 33 %, Medial OA 26 %). Inside the silent cells the LLM
+ranks gold positives no better than chance or worse — Fracture **0.170** (4 positives of 26), Baker's 0.482 (1 of 29), Synovitis
+0.749 (14 of 41) — and Raptor 0.744 / 0.696 / 0.824. Per label at 0.5 / 1.0: Fracture 0.872 → **0.913**, PF OA 0.909 → 0.920,
+Contusion 0.913 → 0.919, Lateral OA 0.819 → **0.798** (22 silent, none positive: more Raptor lifts silent negatives over addressed
+positives), Synovitis 0.830 → 0.821.
+
+**Verdict: 🔁 direction only — a target-level analog, never a verdict.** It is the first label-side re-weighting that beats the flat
+mix at a matched amount of Raptor (+0.003 vs +0.0004), so the gain is *where* the image teacher speaks, not *how much*; but (1) it is
+1.8 SD on 58 studies, (2) Raptor is optimistic on these 58 (its authors chose epochs on them), which flatters any variant that leans
+on it, and (3) the student shrinks target gains (P-49: target 0.9268 → `v09r` 0.909) — an LB effect of ≈ +0.001–0.002 would sit under
+the 0.004 one-seed floor. What the reading also closes: lowering Raptor on addressed cells (0.25 / x) and raising it everywhere
+(flat 0.6–0.7) are both flat-to-negative, and the dread table cannot be priced at all (no gold rows, P-30). Card **P-62** (proposals.md).
 
 ## Infrastructure
 
