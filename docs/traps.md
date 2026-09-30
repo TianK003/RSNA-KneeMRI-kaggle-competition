@@ -792,6 +792,12 @@ unchanged teacher. Related: 32 (production members have no OOF), experiments.md 
 +0.003 on the LB (#26). Across families it has been right in direction (#21, #23). So a same-recipe comparison is read on the solo LB
 alone (experiments.md 2026-09-28 "Submissions #24–#26").
 
+**Extended 2026-09-30:** a target change whose gold-58 gain is under ≈ 0.01 has now failed to transfer twice: `v09t` (self-distilled,
+P-38) +0.009 on gold → −0.001 on the LB (#19); the P-55 student pair +0.006 on gold (paired SD 0.004, 9/12 labels up) → −0.002 (#36),
+both seeds +0.003 / +0.011 over their c02 twins → ±0.000 (#34 / #35). The one target change that transferred (`v09r`, P-39) was +0.017 on
+gold. A teacher that shares the student's inputs and recipe (its own OOF, a rank-mean of its folds) raises gold-58 and seed agreement,
+not the test (experiments.md 2026-09-30 "Submissions #34–#38").
+
 ### 40. A distilled arm left in `ARMS` trains on the *plain* teacher under its distilled name when no arm filter is set (Tier 1, found in review 2026-09-26, never ran)
 
 The P-38 guard (`DISTILLED_ARMS`) refused a distilled arm without `TEACHER_TABLES` — but it only looked at the arm *filters*
