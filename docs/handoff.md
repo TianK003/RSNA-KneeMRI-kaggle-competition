@@ -15,9 +15,8 @@ entry was written for 2026-09-29 evening / 2026-09-30 morning; their results are
 
 ### ⏳ Still in flight as this was written (09:40 UTC)
 
-Nothing on Kaggle (both slots `COMPLETE`; no submission pending). One local read-only subagent was mapping the anchor notebook's
-second-teacher branches for P-45 (D4 / resgated / DINO + A5: weights, geometry, how `build_teacher_pass.py` would generalise) — it
-dies with this session, so its answer is **not** logged anywhere; redo it as step 5 below if P-45 is still wanted.
+Nothing on Kaggle (both slots `COMPLETE`; no submission pending). (The P-45 branch-mapping subagent finished after this entry was
+first written; its answer — **D4 alone** — is now in the P-45 card.)
 
 ### Where things stand
 
@@ -77,9 +76,11 @@ dies with this session, so its answer is **not** logged anywhere; redo it as ste
    child logs `P-62: report-silent cells (pilkwang UNK) mix at 0.75`, `reseeded 43 for arm v11s2`, `SWA of last 3`, no guard; ship as
    `rsna-knee-ckpt-v11s` / `-v11s2`; two solos, m vs 0.9305 with the same band as P-60.
 4. If P-60 ✅ — P-62 re-reads on the P-60 recipe (card "Measure"); if both ❌ — the recipe and label lines close, P-45 is what is left.
-5. **P-45** (second image teacher): redo the branch mapping of `notebook_score_0.942.ipynb` (D4 vs resgated vs DINO + A5; weights,
-   geometry, provenance), pick one, write the builder by generalising `src/build_teacher_pass.py`, spike 100 studies (0.2–0.3 h),
-   full pass ≈ 8 GPU-h. Needs Tian's go for the spike and the pass.
+5. **P-45** (second image teacher) — mapped: **D4 alone** (card P-45 has weights, patches, cost). First, 0 GPU: find D4's gold-58
+   predictions (reviewer B's 0.9346 analog source; likely inside `mattiaangeli/rsna-knee-coatnet-d4-depthzone-swa3-b2`), score
+   0.5 LLM + 0.25 Raptor + 0.25 D4 on gold by the P-49 method + the D4~Raptor within-class ρ. Then (Tian's go) the builder
+   (≈ 150–250 lines, generalising `src/build_teacher_pass.py`), D4 over the 58 gold (must reproduce 0.9302; = the timing spike), the
+   full pass (est. ≈ 2–3 GPU-h, inferred).
 
 ### Open decisions for Tian
 

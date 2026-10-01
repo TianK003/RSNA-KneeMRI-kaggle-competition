@@ -66,7 +66,7 @@ result*, per unit of cost. "Depends on" lists hard blockers only. EVs are solo-L
 | 4 | P-50 | Final selection and publishability | 💡 decide by 2026-10-15 | decides what the private LB scores | a browser session; ≤ 1 fork check | P-40 ✅ closed (#22 / #27), Rules page |
 | 5 | P-18 | Efficiency track with the solo member | 💡 (robustness half shipped); candidates `v11a` 0.932 / `v13c` 0.921 at ⅓ the inference cost (#37) | a separate prize; unknown until the formula is read | 0 GPU h (CLI + browser) | Efficiency formula (browser) |
 | 6 | P-47 | Teacher-mix bracket: mix 0.75 only | 💡 low — P-49 priced it on Raptor itself: matched mix 0.75 − 0.5 = −0.002 (SD 0.003) on gold | ≈ 0 (+0.000..0.002) | per-arm `TEACHER_MIX` code + ≈ 2.8 h; 1 solo | P-44 floor, an idle slot |
-| 7 | P-45 | Second image teacher | 💡 deferred to after 2026-10-03 | +0.001..0.004 (CoAt family) / −0.002..+0.004 (DINO + A5); fork ≈ 0 | spike 0.2–0.3 h, pass ≈ 8 GPU-h, 100–490 lines, 2.8 h arm | P-49, P-44, the 10-03 reset |
+| 7 | P-45 | Second image teacher | 💡 deferred to after 2026-10-03; **mapped 2026-10-01 → D4 alone** (gold 0.9302, est. ≈ 2–3 h pass, builder ≈ 150–250 lines; first a 0-GPU gold analog of 0.5 LLM + 0.25 Raptor + 0.25 D4) | +0.001..0.004 (CoAt family) / −0.002..+0.004 (DINO + A5); fork ≈ 0 | spike 0.2–0.3 h, pass ≈ 8 GPU-h, 100–490 lines, 2.8 h arm | P-49, P-44, the 10-03 reset |
 | 8 | P-46 | Upgrade the LLM half of the targets (absorbs P-16, P-30) | 💡 low | 0..+0.002 (dread vote) / +0.001..0.003 (re-label) | ≈ 2.8 h per arm; step 2 a new kernel | P-44 floor |
 | 9 | P-48 | Final-member polish: gold-58 as training rows + seed averaging | 💡 contested, parked | +0.001..0.002, unreadable by construction | part of the final retrain | P-50 decision |
 | 10 | P-51 | Teacher-aware confidence weights | 💡 low | 0..+0.002 | ≈ 20 lines + 2.8 h; 1 solo | P-44 floor |
@@ -307,7 +307,22 @@ If it fails:  0.5 stays. Expected ≈ 0 — run only if a GPU slot is idle and P
 Depends on:   P-44 (the floor), an idle slot.
 
 ### P-45 Second image teacher
-Status:       💡 deferred to after the 2026-10-03 quota reset.
+Status:       💡 deferred to after the 2026-10-03 quota reset. **Mapped 2026-10-01 (read-only agent over `notebook_score_0.942.ipynb`,
+              `src/build_teacher_pass.py` and `artifacts/kaggle_out/fork_v4/`) → recommendation: D4 alone.**
+              D4 = `mattiaangeli/rsna-knee-coatnet-d4-depthzone-swa3-b2` (CC0; ships its own runtime + a timm-1.0.22 wheel; backbone
+              not stated — "CoAtNet @384" inferred from file names): one model, Global96 stack 27/21/18/12/18 at 384 px / 130 mm with a
+              right-knee sagittal flip, rank-8 attention + a depth-zone adapter; gold 0.9302 (epochs chosen on gold twice — the most
+              optimistic of the three) vs Raptor 0.9254; 1 DICOM preparation + 1 backbone pass per study (Raptor 3 + 4) → est. ≈ 2–3 h
+              for 4,349 studies (inferred, no at-scale timing). resgated (same backbone as Raptor, gold 0.9095, 50/50 analog 0.9275 ≈
+              Raptor's) and the DINO ×20 + A5 stack (≈ 1,500 lines, in-sample folds) are not recommended. Builder: generalise
+              `build_teacher_pass.py` (all of cell 12, cell 14, the cv2-wheel install + the D4 block from cell 45's `_coat_substitute`
+              re-indented; patches: chunk root as `competition`, read the raw `coatnet_d4_depthzone_swa3_predictions.npz` (1, N, 12),
+              relax `_d4_check_outputs`' `fallback_studies == 0`, a view-count-generic `load_prior`; D4 flushes only per shard → loop
+              sub-chunks of 300–500 studies) ≈ 150–250 lines incl. tests; `merge_teacher.py` unchanged with `view_weights=[1.0]`.
+              **Cheapest first step (0 GPU):** get D4's gold-58 predictions (the source of reviewer B's 0.9346 analog; not under
+              `artifacts/` — likely inside the D4 Dataset), score 0.5 LLM + 0.25 Raptor + 0.25 D4 on gold by the P-49 method and the
+              D4~Raptor within-class ρ; then D4 over the 58 gold (must reproduce 0.9302; doubles as the timing spike). Needs Tian's go
+              — the 2026-09-23 decision to keep the CoAt children out of the teacher still stands.
 Hypothesis:   a second image-teacher table beside Raptor lifts the production member solo beyond `v09r`.
 Origin:       reviewers A (M2), B and D (2026-09-27 audit).
 Evidence:     options: the anchor's CoAt family (resgated top-3 + D4) or its transformer stack (DINO ×20 + A5). For: reviewer B's
