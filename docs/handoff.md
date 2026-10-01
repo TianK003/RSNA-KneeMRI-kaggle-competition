@@ -6,6 +6,97 @@ to read first after a break.
 
 ---
 
+## 2026-09-30 (21:00) → 2026-10-01 (09:40 UTC) — P-60 part 1 pulled green; label side priced → **P-62 silence-aware mix implemented + Kaggle smoke green**; P-60 part 2 verified staged; **work resumes 2026-10-03 after the GPU reset**
+
+Tian: "Fetch the results, then run /update" → "is there anything we could do in the meantime, the labels?" → "Ok continue working" →
+"run /update and /handoff saying we continue work on 3rd october". Commits `69a8932`, `c37ef93`, `7813751`, this one. (No handoff
+entry was written for 2026-09-29 evening / 2026-09-30 morning; their results are experiments.md "P-59", "Submissions #34–#38",
+"P-18 step 1" and the git log.)
+
+### ⏳ Still in flight as this was written (09:40 UTC)
+
+Nothing on Kaggle (both slots `COMPLETE`; no submission pending). One local read-only subagent was mapping the anchor notebook's
+second-teacher branches for P-45 (D4 / resgated / DINO + A5: weights, geometry, how `build_teacher_pass.py` would generalise) — it
+dies with this session, so its answer is **not** logged anywhere; redo it as step 5 below if P-45 is still wanted.
+
+### Where things stand
+
+| | Status |
+|---|---|
+| Best LB / best solo | 0.942 (fork) / **0.932** (`v11a`, the c03 pair) — unchanged |
+| P-60 part 1 | ✅ `rsna-knee-folds` **v11**, 2.61 h: `v11n` / `v11n2` guard-stopped in epoch 5 by design; gold-58 EMA epoch 4 0.9166 / 0.9129 = `v11a` / `v11b` at theirs (direction only); **both `_last.pt` live in the v11 output** — experiments.md 2026-09-30 "P-60 part 1" |
+| P-60 part 2 | ⏳ staged, verified: `artifacts/train_p60_kaggle_part2.py` (= part 1's build with the 8.3 h guard — the only diff) + `artifacts/p60_part2_kernel-metadata.json` (c03 ×4 + `rsna-knee-folds`); Tian's go of 2026-09-30 covers it |
+| P-62 (new) | 🔧 implemented (`7813751`): `TEACHER_SILENT_MIX` + `silence_mask`, arms `v11s` ‖ `v11s2`, guards both ways; unit + AST-parity checks green, default targets md5 `29f641ed` unchanged, pipeline yt == `build_targets.py` yt exactly; local smoke + **Kaggle smoke `rsna-knee-train` v38 green**; real build staged as `artifacts/train_p62_real.py`; **real run needs Tian's go** |
+| Label side | priced at 0 GPU: silence-aware target 0.9300 vs 0.9268 on gold (+0.0032, SD 0.0018), flat mixes at equal Raptor weight +0.0004 — experiments.md 2026-09-30 "Silence-aware teacher mix" |
+| Committed renders | `rsna-knee-train` = **v38 = P-62 SMOKE** (metadata c03-only); `rsna-knee-folds` = **v11 = P-60 part 1 REAL** — never re-push either as is |
+| Quota | Kaggle GPU 29.46 / 30 h (**0.54 h left**, do not spend), reset **2026-10-03 00:00 UTC**; submissions unused 2026-10-01 / 02 (no new member to read) |
+| Docs | ✅ all logged: experiments.md (P-60 part 1, silence-aware mix + 2 Scoreboard rows), proposals.md (P-60 / P-62 cards + index), traps.md **47**, CLAUDE.md state line |
+
+### What we talked about and decided
+
+- **"The labels?"** — the report side is close to squeezed: a 4th LLM / open-weights relabel (P-58) is priced low (Scott's own Gemma
+  labels ≈ 0.89 gold < our 0.8948 blend; the thread: extraction fixes did not move the LB), dread cannot be priced (no gold rows),
+  OOF targets are three nulls. The one label idea with a number behind it is **where** Raptor speaks (silent cells) → P-62. The
+  only label change that ever transferred was new *information* (Raptor) → a second image teacher (P-45) is the bigger lever.
+- **P-62 runs as two seeds in one session** (`v11s` ‖ `v11s2`): the silent mix is per session, so it can only pair with its own seed
+  twin; two seeds read as m are better than one seed + an unrelated arm. One solo would sit under the 0.004 floor anyway.
+- **Part 2 keeps part 1's exact code** (the 2026-09-30 build), not a rebuild from today's `src` — the P-62 code is inert at
+  `TEACHER_SILENT_MIX = None`, but a resume should not change code mid-run.
+- **The 0.54 h left is not spent** — a P-45 spike needs a builder that does not exist yet and Tian's go.
+
+### What we figured out
+
+1. **Heavy regularisation did not slow the c03 curve** — `v11n` / `v11n2` match `v11a` / `v11b` at epoch 4 while still at ≈ 72 %
+   of peak LR (vs ≈ 37 %); part 2 decides (experiments.md "P-60 part 1").
+2. **A guard-stopped `PARALLEL_ARMS` child prints `ok  arm` / `"completed": true`** — its `_best.pt` is a mid-schedule EMA, never a
+   member; ship only with `SWA of last 3` in the child log (traps 47).
+3. **Silence placement, not Raptor amount, is the only label re-weighting that moves the gold target** (+0.003 vs +0.0004 at equal
+   weight); inside silent cells the LLM ranks Fracture positives at AUC 0.17 (experiments.md "Silence-aware teacher mix").
+
+### ⏭ Next action, in order (2026-10-03, after 00:00 UTC)
+
+1. **P-60 part 2** (authorised): `kaggle quota` must show ≈ 30 h left, then
+   ```bash
+   cp artifacts/p60_part2_kernel-metadata.json kaggle/rsna-knee-train/kernel-metadata.json
+   python src/nbgen.py artifacts/train_p60_kaggle_part2.py kaggle/rsna-knee-train/rsna-knee-train.ipynb
+   grep -E '^(FORCE_SMOKE|PARALLEL_ARMS|TEACHER_TABLES|TEACHER_MIX) = ' artifacts/train_p60_kaggle_part2.py  # False / ("v11n", "v11n2") / ("raptor_teacher",) / 0.5
+   kaggle kernels push -p kaggle/rsna-knee-train
+   ```
+   ≈ 3.0 h. Pull `--file-pattern "(v11n|v11n2)_fold0_(best\.pt|oof\.csv)$|\.log$"` into `artifacts/kaggle_out/p60_part2/`.
+   **Green** = each child log has `resume: copied v11n*_fold0_last.pt into WORK`, `resumed fold 0 at epoch 6 (best 0.91xx at epoch 5)`,
+   epochs 6–11, `SWA of last 3`, `-> v11n*_fold0_best.pt = SWA`, no `runtime guard`. **Red:** `fold 0 epoch 0` = the resume did not
+   happen (traps 31) — the arms then train all 12 epochs from scratch (≈ 5.5 h under the 8.3 h guard: still valid members, but
+   ≈ 2.5 GPU-h more); `ERROR` with 0 files = traps 44, re-push the same build.
+2. **Ship + two solos:** `rsna-knee-ckpt-v11n` / `-v11n2` (the 2026-09-29 ship loop, `kaggle datasets create`), add both to
+   `kaggle/rsna-knee-infer/kernel-metadata.json`, placeholders from the staged `artifacts/infer_solo_v11n.py` / `infer_solo_v11n2.py`
+   (`nbgen` → push → check `smoke False`, `infer members (1): v11n/fold0`, `constant labels 0`), submit both, watch with
+   `src/watch_submission.py`. **Read (P-60):** m = mean vs 0.9305: ✅ m ≥ 0.935 / 🔁 0.926 < m < 0.935 / ❌ m ≤ 0.926. `/update`.
+3. **P-62 real run — only with Tian's go:** after part 2 is green (so `rsna-knee-folds` v11 is no longer needed), push
+   `artifacts/train_p62_real.py` (= the green v38 smoke build + `FORCE_SMOKE = False`, grep: `PARALLEL_ARMS = ("v11s", "v11s2")`,
+   `TEACHER_TABLES = ("raptor_teacher",)`, `TEACHER_SILENT_MIX = 0.75`) to either slug with the c03-only metadata; ≈ 3.5 h. Green =
+   child logs `P-62: report-silent cells (pilkwang UNK) mix at 0.75`, `reseeded 43 for arm v11s2`, `SWA of last 3`, no guard; ship as
+   `rsna-knee-ckpt-v11s` / `-v11s2`; two solos, m vs 0.9305 with the same band as P-60.
+4. If P-60 ✅ — P-62 re-reads on the P-60 recipe (card "Measure"); if both ❌ — the recipe and label lines close, P-45 is what is left.
+5. **P-45** (second image teacher): redo the branch mapping of `notebook_score_0.942.ipynb` (D4 vs resgated vs DINO + A5; weights,
+   geometry, provenance), pick one, write the builder by generalising `src/build_teacher_pass.py`, spike 100 studies (0.2–0.3 h),
+   full pass ≈ 8 GPU-h. Needs Tian's go for the spike and the pass.
+
+### Open decisions for Tian
+
+- **P-62 real run** (≈ 3.5 GPU-h + 2 submissions) — and whether it waits for part 2 (default, safe) or runs in parallel from a third
+  slug (saves ≈ 3 h wall-clock; `rsna-knee-folds` must not get a new version while part 2 could still need re-running).
+- **P-45 go/no-go** — the biggest remaining lever by the evidence, but ≈ 8–9 GPU-h + a builder; the week from 10-03 has 30 h.
+- Unchanged from 09-29: final selection (P-50, by 2026-10-15), the Efficiency formula (P-18, browser).
+
+### Things that will bite if forgotten
+
+- **`kaggle/rsna-knee-train/kernel-metadata.json` is c03-only now** (the P-62 smoke) — part 2 *must* copy the staged metadata first,
+  or it will not mount `rsna-knee-folds` and will start from epoch 0 (traps 31).
+- **Never push `rsna-knee-folds` before part 2 has finished green** — `kernel_sources` reads its latest version.
+- **`ok  arm` ≠ finished** (traps 47) — check the child log for SWA before shipping anything.
+- The kaggle CLI in this shell is `.venv/Scripts/kaggle.exe` (not on PATH); Git Bash heredocs still mangle backslashes (a scripted
+  doc replace failed on `\n` this session — use the Edit tool).
+
 ## 2026-09-29 (11:30 → 14:30 UTC) — C ‖ D pulled green; cross-fit table → gate OPEN → **session E running**; 5 reads: **c03 `v11a` 0.932 / pair 0.932 = best solo** (🔁), trio 0.931 (🔁), 5-fold XF 0.928 (❌); ResNet-34 ❌ on gold
 
 Tian: "read the handoff … continue work, pull results and submit whatever is necessary"; then asked why it was not done (E still
