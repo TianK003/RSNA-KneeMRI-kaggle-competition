@@ -388,7 +388,7 @@ def main():
     def fn_ast(fn):
         return ast.dump(ast.parse(textwrap.dedent(inspect.getsource(fn))))
 
-    for fname in ("quantile_match", "mix_teacher"):
+    for fname in ("quantile_match", "mix_teacher", "silence_mask"):
         check(fn_ast(K[fname]) == fn_ast(getattr(BT, fname)),
               f"kernel {fname} is AST-identical (docstring included) to src/build_targets.py's")
 

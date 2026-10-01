@@ -65,6 +65,37 @@ def test_mix_teacher_rows_and_gold():
     check(np.all((covered >= 0) & (covered <= 1)), "mix_teacher: values in [0, 1]")
 
 
+def test_silent_mix():
+    """P-62: silent cells mix at silent_mix, addressed cells at mix; silent_mix=None is byte-identical to the flat mix."""
+    idx = pd.Index([f"u{i}" for i in range(200)], name="StudyInstanceUID")
+    soft = bt.prob_blend(_fake_sources(idx), idx)
+    is_gold = np.zeros(200, bool); is_gold[:10] = True
+    rng = np.random.default_rng(4)
+    table = pd.DataFrame({l: rng.uniform(0, 1, 200) for l in bt.LABELS}, index=idx)
+    verdict = rng.choice(["YES", "NO", "UNK"], size=(200, 12))
+    pk = pd.DataFrame({f"{l}__verdict": verdict[:, j] for j, l in enumerate(bt.LABELS)}, index=idx)
+    pk = pk.drop(index="u199")                     # a study pilkwang does not cover counts as addressed
+    silent = bt.silence_mask({"pilkwang": pk}, idx)
+    check(not silent.loc["u199"].any() and silent.to_numpy().sum() == (verdict[:199] == "UNK").sum(),
+          "silence_mask: UNK cells only; an uncovered study is addressed")
+    flat = bt.mix_teacher(soft, {"t": table}, 0.5, is_gold)
+    same = bt.mix_teacher(soft, {"t": table}, 0.5, is_gold, None, silent)
+    check(np.array_equal(flat.to_numpy(), same.to_numpy()), "mix_teacher: silent_mix=None == the flat mix")
+    sm = bt.mix_teacher(soft, {"t": table}, 0.5, is_gold, 0.75, silent)
+    hi = bt.mix_teacher(soft, {"t": table}, 0.75, is_gold)
+    s, w = silent.to_numpy(), ~is_gold[:, None]
+    check(np.allclose(sm.to_numpy()[s & w], hi.to_numpy()[s & w]), "mix_teacher: silent cells take the silent mix")
+    check(np.allclose(sm.to_numpy()[~s & w], flat.to_numpy()[~s & w]), "mix_teacher: addressed cells keep the base mix")
+    check(np.allclose(sm.iloc[:10].to_numpy(), soft.iloc[:10].to_numpy()), "mix_teacher: gold rows untouched with a silent mix")
+    for bad in [lambda: bt.mix_teacher(soft, {"t": table}, 0.5, is_gold, 0.75, None),
+                lambda: bt.mix_teacher(soft, {"t": table}, 0.5, is_gold, 1.5, silent),
+                lambda: bt.silence_mask({"hans_v4": pk}, idx)]:
+        try:
+            bad(); check(False, "silent mix: bad input rejected")
+        except SystemExit:
+            check(True, "silent mix: bad input rejected")
+
+
 def test_load_tables_validation():
     idx = pd.Index(["a", "b", "c"], name="StudyInstanceUID")
     with tempfile.TemporaryDirectory() as d:
@@ -150,7 +181,7 @@ def test_distill_table_builder():
 
 if __name__ == "__main__":
     for fn in [test_quantile_match_preserves_ranks_and_scale, test_quantile_match_nan_passthrough, test_constant_column,
-               test_mix_teacher_rows_and_gold, test_load_tables_validation, test_default_teacher_unchanged,
+               test_mix_teacher_rows_and_gold, test_silent_mix, test_load_tables_validation, test_default_teacher_unchanged,
                test_distill_table_builder]:
         print(fn.__name__); fn()
     print("\n" + ("TARGET CHECKS PASSED" if not fails else f"TARGET CHECKS FAILED ({len(fails)}):\n  - " + "\n  - ".join(fails)))

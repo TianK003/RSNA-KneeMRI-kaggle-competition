@@ -237,13 +237,32 @@ def quantile_match(pred: np.ndarray, ref: np.ndarray) -> np.ndarray:
     return out
 
 
+def silence_mask(sources: dict[str, pd.DataFrame], index: pd.Index) -> pd.DataFrame:
+    """P-62 (2026-09-30): True where the report never addresses the finding -- pilkwang's `<label>__verdict == "UNK"`,
+    the only source that flags silence (label audit 2026-08-28). A study pilkwang does not cover counts as addressed."""
+    d = sources.get("pilkwang")
+    if d is None:
+        raise SystemExit("the silence mask needs the pilkwang source (report_labels_v2.csv), which is not loaded")
+    missing = [l for l in LABELS if f"{l}__verdict" not in d.columns]
+    if missing:
+        raise SystemExit(f"pilkwang source has no verdict column for {missing}")
+    return pd.DataFrame({l: (d[f"{l}__verdict"].reindex(index) == "UNK").to_numpy() for l in LABELS}, index=index)
+
+
 def mix_teacher(soft: pd.DataFrame, tables: dict[str, pd.DataFrame], mix: float,
-                is_gold: np.ndarray) -> pd.DataFrame:
+                is_gold: np.ndarray, silent_mix: float | None = None,
+                silent: pd.DataFrame | None = None) -> pd.DataFrame:
     """Training target = (1 - mix) * LLM blend + mix * mean of the quantile-matched tables, on the
     report-only rows a table covers; every other row (uncovered, gold) keeps the LLM value. Called
-    BEFORE the gold override, which then applies to this frame exactly as to `soft`."""
+    BEFORE the gold override, which then applies to this frame exactly as to `soft`.
+    P-62: with `silent_mix` set, the cells `silent` marks (see `silence_mask`) mix at `silent_mix` instead of `mix`."""
     if not 0.0 <= mix <= 1.0:
         raise SystemExit(f"teacher mix must be in [0, 1], got {mix}")
+    if silent_mix is not None:
+        if not 0.0 <= silent_mix <= 1.0:
+            raise SystemExit(f"silent teacher mix must be in [0, 1], got {silent_mix}")
+        if silent is None:
+            raise SystemExit("a silent teacher mix needs a silence mask")
     yt = soft.copy()
     weak = ~np.asarray(is_gold, dtype=bool)
     for lab in LABELS:
@@ -259,7 +278,8 @@ def mix_teacher(soft: pd.DataFrame, tables: dict[str, pd.DataFrame], mix: float,
             mean_matched = np.nanmean(stack, axis=0)
         covered = np.isfinite(mean_matched)
         base = soft[lab].to_numpy(dtype=float)
-        yt[lab] = np.where(covered, (1.0 - mix) * base + mix * mean_matched, base)
+        w = mix if silent_mix is None else np.where(silent[lab].to_numpy(dtype=bool), silent_mix, mix)
+        yt[lab] = np.where(covered, (1.0 - w) * base + w * mean_matched, base)
     return yt
 
 
@@ -320,6 +340,8 @@ def main() -> None:
     ap.add_argument("--teacher-tables", default="",
                     help="comma-separated prediction tables under artifacts/teacher/ mixed into the TRAINING targets (yt__*)")
     ap.add_argument("--teacher-mix", type=float, default=0.5)
+    ap.add_argument("--teacher-silent-mix", type=float, default=None,
+                    help="P-62: the teacher mix on report-silent cells (pilkwang verdict UNK); default = --teacher-mix everywhere")
     ap.add_argument("--teacher-root", default=TEACHER_ROOT)
     ap.add_argument("--check-md5", action="store_true", help="print the md5 of the written targets file")
     args = ap.parse_args()
@@ -347,7 +369,11 @@ def main() -> None:
 
     teacher_names = [x.strip() for x in args.teacher_tables.split(",") if x.strip()]
     tables = load_teacher_tables(args.teacher_root, idx, teacher_names) if teacher_names else {}
-    yt = mix_teacher(soft, tables, args.teacher_mix, is_gold.to_numpy()) if tables else None
+    if args.teacher_silent_mix is not None and not tables:
+        raise SystemExit("--teacher-silent-mix needs --teacher-tables")
+    silent = silence_mask(sources, idx) if args.teacher_silent_mix is not None else None
+    yt = (mix_teacher(soft, tables, args.teacher_mix, is_gold.to_numpy(), args.teacher_silent_mix, silent)
+          if tables else None)
 
     gold = tr.set_index("StudyInstanceUID")[LABELS]
     gold_idx = idx[is_gold.to_numpy()]
@@ -361,6 +387,10 @@ def main() -> None:
     if tables:
         log(f"\nteacher tables {teacher_names} mixed at {args.teacher_mix} into the TRAINING targets (yt__*); "
             f"y__* stays the LLM teacher   ! NON-DEFAULT targets -- written beside artifacts/targets.csv, not over it")
+        if silent is not None:
+            weak = ~is_gold.to_numpy()
+            log(f"  P-62: report-silent cells (pilkwang UNK) mix at {args.teacher_silent_mix}; silent share on the "
+                f"report-only rows: " + ", ".join(f"{l} {silent.loc[weak, l].mean():.0%}" for l in LABELS))
         covered_gold = [n for n, d in tables.items() if np.isfinite(d.loc[gold_idx, LABELS].to_numpy()).all()]
         for n in covered_gold:
             a = [auc(gy[l].to_numpy(), tables[n].loc[gold_idx, l].to_numpy()) for l in LABELS]

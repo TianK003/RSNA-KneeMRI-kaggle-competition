@@ -20,12 +20,10 @@
     "tiankljucanin/timm-resnet34-a1"
   ],
   "kernel_sources": [
-    "tiankljucanin/rsna-knee-cache-a",
-    "tiankljucanin/rsna-knee-cache-b",
-    "tiankljucanin/rsna-knee-cache2-a",
-    "tiankljucanin/rsna-knee-cache2-b",
-    "tiankljucanin/rsna-knee-cache2-c",
-    "tiankljucanin/rsna-knee-cache2-d"
+    "tiankljucanin/rsna-knee-cache3-a",
+    "tiankljucanin/rsna-knee-cache3-b",
+    "tiankljucanin/rsna-knee-cache3-c",
+    "tiankljucanin/rsna-knee-cache3-d"
   ],
   "competition_sources": [
     "rsna-knee-abnormality-detection"

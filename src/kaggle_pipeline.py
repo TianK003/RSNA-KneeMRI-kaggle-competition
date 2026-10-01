@@ -340,6 +340,11 @@ SHIPPED_ARMS = [
               "freeze_bn": True}),
     ("v11n", {**PROD, **V09R_KW, **C03_KW, "drop_path": 0.1, "aug": "heavy", "epochs": 12}),
     ("v11n2", {**PROD, **V09R_KW, **C03_KW, "drop_path": 0.1, "aug": "heavy", "epochs": 12, "seed": 43}),
+    # 2026-09-30 (P-62): the v11a recipe on the silence-aware teacher mix -- run with TEACHER_TABLES=("raptor_teacher",) and
+    # TEACHER_SILENT_MIX=0.75 sed'd in: Raptor 0.75 on report-silent cells (pilkwang UNK), 0.5 on addressed ones. Two seeds,
+    # one PARALLEL_ARMS session; read m = mean of the two solos vs m(v11a, v11b) = 0.9305.
+    ("v11s", {**PROD, **V09R_KW, **C03_KW}),
+    ("v11s2", {**PROD, **V09R_KW, **C03_KW, "seed": 43}),
 ]
 ARM_V10C = ("v10c", {**C02, "backbone": "timm:coatnet_rmlp_2_rw_384", "img_size": 384,
                      "lr_backbone": 1e-4, "eval_windows": 42, "grad_checkpoint": True})
@@ -430,6 +435,11 @@ if PARALLEL_ARMS and not os.environ.get("RSNA_CHILD"):
 # └──────────────────────────────────────────────────────────────────────────┘
 TEACHER_TABLES = ()
 TEACHER_MIX = 0.5
+# P-62 (2026-09-30): the teacher mix on report-SILENT cells (pilkwang's verdict UNK), sed'd per session like TEACHER_MIX;
+# None = TEACHER_MIX on every cell. Priced on gold-58 at target level: 0.75 silent / 0.5 addressed reads 0.9300 vs flat
+# 0.5 0.9268 (experiments.md 2026-09-30 "Silence-aware teacher mix").
+#   sed 's/^TEACHER_SILENT_MIX = None/TEACHER_SILENT_MIX = 0.75/' ...
+TEACHER_SILENT_MIX = None
 TEACHER_PATHS = {
     "selfdistill_v1": ["/kaggle/input/rsna-knee-teacher-tables/selfdistill_v1.csv", "artifacts/teacher/selfdistill_v1.csv"],
     "raptor_teacher": ["/kaggle/input/rsna-knee-teacher-tables/raptor_teacher.csv", "artifacts/teacher/raptor_teacher.csv"],
@@ -450,9 +460,14 @@ DISTILLED_ARMS = {"v09s": ("selfdistill_v1",), "v09t": ("selfdistill_v1",),
                   "v13a": ("raptor_teacher",), "v11a": ("raptor_teacher",), "v11b": ("raptor_teacher",),
                   "v09o": ("raptor_teacher", "xfit_v09k"), "v09o2": ("raptor_teacher", "xfit_v09k"),
                   "v13b": ("raptor_teacher",), "v13c": ("raptor_teacher",),
-                  "v11n": ("raptor_teacher",), "v11n2": ("raptor_teacher",)}
+                  "v11n": ("raptor_teacher",), "v11n2": ("raptor_teacher",),
+                  "v11s": ("raptor_teacher",), "v11s2": ("raptor_teacher",)}
 # 2026-09-28 (traps 40's second gap): the mix a distilled arm must train with; every other distilled arm trains at 0.5.
 DISTILLED_MIX = {"v09o": 0.75, "v09o2": 0.75}
+# P-62: the silent-cell mix an arm must train with; every arm not listed trains without one (TEACHER_SILENT_MIX = None).
+DISTILLED_SILENT_MIX = {"v11s": 0.75, "v11s2": 0.75}
+if TEACHER_SILENT_MIX is not None and not TEACHER_TABLES:
+    raise SystemExit("TEACHER_SILENT_MIX is set without TEACHER_TABLES -- there is no teacher to re-weight")
 # Every arm this session can train: the filters, and the sequential loop's list itself (a run with no filter).
 for _a in (ARM_ONLY, os.environ.get("RSNA_ARM", ""), *PARALLEL_ARMS, *(a[0] for a in (ARMS or []))):
     if _a in DISTILLED_ARMS and tuple(TEACHER_TABLES) != DISTILLED_ARMS[_a]:
@@ -465,13 +480,22 @@ for _a in (ARM_ONLY, os.environ.get("RSNA_ARM", ""), *PARALLEL_ARMS, *(a[0] for 
     if _a and TEACHER_TABLES and _a not in DISTILLED_ARMS:
         raise SystemExit(f"TEACHER_TABLES = {tuple(TEACHER_TABLES)!r} is set but {_a} is not a distilled arm "
                          f"(DISTILLED_ARMS) -- it would train on distilled targets under an LLM-target name")
+    # P-62, both directions: a silence-aware arm needs its silent mix, and a silent mix must not train a flat-mix name.
+    if _a in DISTILLED_SILENT_MIX and (TEACHER_SILENT_MIX is None
+                                       or abs(float(TEACHER_SILENT_MIX) - DISTILLED_SILENT_MIX[_a]) > 1e-9):
+        raise SystemExit(f"{_a} trains at TEACHER_SILENT_MIX = {DISTILLED_SILENT_MIX[_a]} (DISTILLED_SILENT_MIX); "
+                         f"the copy you run has {TEACHER_SILENT_MIX}")
+    if _a and TEACHER_SILENT_MIX is not None and _a not in DISTILLED_SILENT_MIX:
+        raise SystemExit(f"TEACHER_SILENT_MIX = {TEACHER_SILENT_MIX} is set but {_a} is not in DISTILLED_SILENT_MIX -- "
+                         f"it would train on silence-aware targets under a flat-mix name")
 # Targets and the seed stream are per SESSION (built / drawn once, at import), not per arm: an arm dict that sets
 # `teacher_mix` / `teacher_tables` would be recorded in the checkpoint and silently ignored in training. Refuse it.
 # (`seed` IS honoured per arm since 2026-09-27: the arm loop reseeds when an arm's seed differs, P-44.)
 for _a, _ov in list(ARMS) + list(SHIPPED_ARMS) + [ARM_V10C]:
-    _inert = sorted({"teacher_mix", "teacher_tables"} & set(_ov))
+    _inert = sorted({"teacher_mix", "teacher_tables", "teacher_silent_mix"} & set(_ov))
     if _inert:
-        raise SystemExit(f"arm {_a} sets {_inert} in its dict: those are per-session (sed TEACHER_MIX / TEACHER_TABLES)")
+        raise SystemExit(f"arm {_a} sets {_inert} in its dict: those are per-session "
+                         f"(sed TEACHER_MIX / TEACHER_TABLES / TEACHER_SILENT_MIX)")
 
 
 def default_infer_workers():
@@ -629,6 +653,7 @@ class Config:
     weak_weight_floor: float = 0.15
     teacher_tables: tuple = TEACHER_TABLES   # recorded in the checkpoint; training-only (not an INFER_MEMBER_KEY)
     teacher_mix: float = TEACHER_MIX
+    teacher_silent_mix: object = TEACHER_SILENT_MIX   # P-62; None = TEACHER_MIX on every cell
 
     # runtime
     runtime_limit_hours: float = float(os.environ.get("RSNA_RUNTIME_H", 8.3))   # headroom under Kaggle's 9 h
@@ -951,13 +976,32 @@ def quantile_match(pred: np.ndarray, ref: np.ndarray) -> np.ndarray:
     return out
 
 
+def silence_mask(sources: dict[str, pd.DataFrame], index: pd.Index) -> pd.DataFrame:
+    """P-62 (2026-09-30): True where the report never addresses the finding -- pilkwang's `<label>__verdict == "UNK"`,
+    the only source that flags silence (label audit 2026-08-28). A study pilkwang does not cover counts as addressed."""
+    d = sources.get("pilkwang")
+    if d is None:
+        raise SystemExit("the silence mask needs the pilkwang source (report_labels_v2.csv), which is not loaded")
+    missing = [l for l in LABELS if f"{l}__verdict" not in d.columns]
+    if missing:
+        raise SystemExit(f"pilkwang source has no verdict column for {missing}")
+    return pd.DataFrame({l: (d[f"{l}__verdict"].reindex(index) == "UNK").to_numpy() for l in LABELS}, index=index)
+
+
 def mix_teacher(soft: pd.DataFrame, tables: dict[str, pd.DataFrame], mix: float,
-                is_gold: np.ndarray) -> pd.DataFrame:
+                is_gold: np.ndarray, silent_mix: float | None = None,
+                silent: pd.DataFrame | None = None) -> pd.DataFrame:
     """Training target = (1 - mix) * LLM blend + mix * mean of the quantile-matched tables, on the
     report-only rows a table covers; every other row (uncovered, gold) keeps the LLM value. Called
-    BEFORE the gold override, which then applies to this frame exactly as to `soft`."""
+    BEFORE the gold override, which then applies to this frame exactly as to `soft`.
+    P-62: with `silent_mix` set, the cells `silent` marks (see `silence_mask`) mix at `silent_mix` instead of `mix`."""
     if not 0.0 <= mix <= 1.0:
         raise SystemExit(f"teacher mix must be in [0, 1], got {mix}")
+    if silent_mix is not None:
+        if not 0.0 <= silent_mix <= 1.0:
+            raise SystemExit(f"silent teacher mix must be in [0, 1], got {silent_mix}")
+        if silent is None:
+            raise SystemExit("a silent teacher mix needs a silence mask")
     yt = soft.copy()
     weak = ~np.asarray(is_gold, dtype=bool)
     for lab in LABELS:
@@ -973,7 +1017,8 @@ def mix_teacher(soft: pd.DataFrame, tables: dict[str, pd.DataFrame], mix: float,
             mean_matched = np.nanmean(stack, axis=0)
         covered = np.isfinite(mean_matched)
         base = soft[lab].to_numpy(dtype=float)
-        yt[lab] = np.where(covered, (1.0 - mix) * base + mix * mean_matched, base)
+        w = mix if silent_mix is None else np.where(silent[lab].to_numpy(dtype=bool), silent_mix, mix)
+        yt[lab] = np.where(covered, (1.0 - w) * base + w * mean_matched, base)
     return yt
 
 
@@ -1035,9 +1080,14 @@ def build_targets(train_csv: str):
                 raise SystemExit(f"teacher table {name!r}: bad schema or duplicate UID ({p})")
             tables[name] = d.set_index("StudyInstanceUID")[LABELS].reindex(idx)
             print(f"  teacher table {name}: {int(tables[name][LABELS[0]].notna().sum())} studies from {p}")
-        yt = mix_teacher(soft, tables, TEACHER_MIX, is_gold.to_numpy())
+        silent = silence_mask(loaded, idx) if TEACHER_SILENT_MIX is not None else None
+        yt = mix_teacher(soft, tables, TEACHER_MIX, is_gold.to_numpy(), TEACHER_SILENT_MIX, silent)
         print(f"  training targets = (1 - {TEACHER_MIX}) * LLM + {TEACHER_MIX} * quantile-matched "
               f"{list(TEACHER_TABLES)}; evaluation targets unchanged")
+        if silent is not None:
+            weak = ~is_gold.to_numpy()
+            print(f"  P-62: report-silent cells (pilkwang UNK) mix at {TEACHER_SILENT_MIX} instead; silent share on the "
+                  f"report-only rows: " + ", ".join(f"{l} {silent.loc[weak, l].mean():.0%}" for l in LABELS))
 
     gold = tr.set_index("StudyInstanceUID")[LABELS]
 
