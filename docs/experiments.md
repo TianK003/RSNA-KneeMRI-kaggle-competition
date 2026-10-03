@@ -2732,6 +2732,33 @@ Caveat carried to the student: D4's checkpoint name reads `full4349_gold58`, so 
 (+0.009 LB), but after the pass compare D4-train ~ LLM against Raptor-train ~ LLM on the 4,349. If D4 tracks the LLM labels much
 more closely than Raptor does, it is replaying labels rather than adding image information.
 
+### 2026-10-03 — Quantile matching flattens the teacher: matched Raptor keeps 14–32 distinct values per label on the 58 gold; raw-probability mixing reads 0.9308 vs 0.9268 matched (+0.004, SD 0.0044, 4 up / 7 down) · 🔁 direction only, not adopted
+
+Question: the LLM blend is a discrete, low-valued distribution on under-reported labels (report-only positive rate at a 0.5 cut:
+Synovitis 0.12 vs raw Raptor 0.41 vs gold 0.47; Fracture 0.07 / 0.21 / 0.31; Lateral Meniscus 0.15 / 0.37 / 0.40). Mapping the
+teacher onto those quantiles (`quantile_match`, training's method) may collapse the teacher's ranking where the LLM says nothing.
+Scratch `match_vs_raw.py`, 0 GPU, P-49's method, paired bootstrap 1,000 reps.
+
+| target on gold | macro | vs today (SD) | labels up / down |
+|---|---|---|---|
+| 0.5 LLM + 0.5 matched Raptor (today, P-49) | 0.9268 | — | — |
+| 0.5 LLM + 0.5 raw Raptor | 0.9308 | +0.0040 (0.0044) | 4 / 7 |
+| rank mix 0.5 / 0.5 (scale-free reference) | 0.9320 | +0.0052 (0.0040) | 7 / 5 |
+| 0.4 LLM + 0.6 raw Raptor | 0.9337 | +0.0069 (0.0043) | 7 / 5 |
+| 0.5 LLM + 0.25 raw Raptor + 0.25 raw D4 | 0.9345 | +0.0077 (0.0053) | 7 / 5 |
+| rank mix 0.5 LLM + 0.25 R + 0.25 D4 | 0.9380 | +0.0112 (0.0044) | 7 / 4 |
+
+Matched vs raw at 0.5 / 0.5, per label: Fracture 0.872 → 0.907, Effusion 0.943 → 0.971, Baker's 0.957 → 0.976, Lateral OA +0.011;
+Contusion −0.016, PF OA −0.010, ACL −0.006, Medial / Lateral Meniscus −0.005. Among the 58 gold studies, matched Raptor has only
+14 (Baker's) to 32 (Contusion) distinct values; the LLM blend's distinct values on the 4,349 rows run from 85 (Baker's) to 234.
+
+**Verdict: 🔁 direction only, not adopted.** Matching does flatten the teacher (the ties are real), but the matched → raw gain is
+1 SD, and the labels split 4 up / 7 down. For the three-source target the raw form is only +0.0014 over matched (0.9345 vs 0.9331).
+A rank mix is not a training target: P-00 showed rank-percentile targets put confident negatives at ≈ 0.3. Raw teacher
+probabilities also move the target's operating point: MCL would be 0.32 positive vs gold 0.16. So the P-45 student keeps matched
+mixing, the form that transferred for Raptor (+0.009 LB), and adds D4 as one clean change. Raw mixing is a candidate to bundle into a
+final recipe, not a session of its own.
+
 ## Infrastructure
 
 ### 2026-09-27 — The "0.943 Speedy Raptors CoAtNet D4" notebook is our anchor **plus two CoAt readers**, not a faster graph; its "< 30 min" is a 3-study commit run · P-41 (threaded scan + 8 decode workers) smoke-green and byte-identical
