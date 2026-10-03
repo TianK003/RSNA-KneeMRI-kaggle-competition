@@ -133,6 +133,85 @@ def main():
             # P-57: the stem and layer1..4 are decayed per stage, not all lumped into the top LR
             check(len(lrs) >= 6, f"{bb}: {len(lrs)} distinct LRs (stem + 4 layers + head)")
 
+    print("\n== P-63 spatial reader + slot-count correction")
+    torch.manual_seed(0)
+    sp = K["SpatialFindingPool"](64, 12)
+    fm = torch.randn(3, 64, 7, 7)
+    v = sp(fm)
+    check(v.shape == (3, 12, 64) and torch.allclose(v, fm.mean((2, 3)).unsqueeze(1).expand(-1, 12, -1), atol=1e-6),
+          "zero query -> every label's vector is the average pool")
+    with torch.no_grad():
+        sp.spatial_query.normal_()
+    v2 = sp(fm)
+    check(torch.isfinite(v2).all() and not torch.allclose(v2[:, 0], v2[:, 1]), "a trained query -> per-label vectors differ")
+    hd = K["WindowAttnHead"](64, 12).eval()
+    f3 = torch.randn(2, 5, 64)
+    sid5 = torch.randint(0, 6, (2, 5))
+    val5 = torch.ones(2, 5, dtype=torch.bool)
+    val5[1, 3:] = False
+    o3 = hd(f3, sid5, val5)
+    o4 = hd(f3.unsqueeze(2).expand(-1, -1, 12, -1).contiguous(), sid5, val5)
+    check(torch.allclose(o3, o4, atol=1e-5), "head: 12 identical per-label tokens == the (B, W, dim) path")
+    o4h = hd(v2[:2, None].expand(-1, 5, -1, -1).half().contiguous(), sid5, val5)
+    check(o4h.shape == (2, 12) and torch.isfinite(o4h.float()).all(), "head: (B, W, L, dim) fp16 masked -> finite")
+    # count correction: gate output weights zeroed -> equal logits; slot 0 has 4 valid windows (+1 padded), slot 1 has 1
+    hn = K["WindowAttnHead"](64, 12).eval()
+    hc = K["WindowAttnHead"](64, 12, count_norm=True).eval()
+    hc.load_state_dict(hn.state_dict())
+    with torch.no_grad():
+        for m in (hn, hc):
+            m.gate[3].weight.zero_()
+    ta, tb = torch.randn(64), torch.randn(64)
+    fc = torch.stack([ta] * 4 + [tb] + [torch.randn(64)])[None]
+    sc_ = torch.tensor([[0, 0, 0, 0, 1, 0]])
+    vc = torch.tensor([[True] * 5 + [False]])
+    with torch.no_grad():
+        sa, sb = [(hn.norm(t) * hn.w).sum(-1) for t in (ta, tb)]
+        on, oc = hn(fc, sc_, vc)[0], hc(fc, sc_, vc)[0]
+    check(torch.allclose(on, 0.8 * sa + 0.2 * sb + hn.b, atol=1e-5) and torch.allclose(oc, 0.5 * sa + 0.5 * sb + hc.b, atol=1e-5),
+          "slot_count_norm: equal logits give each SLOT equal mass (0.5 / 0.5, padded window not counted); without: 0.8 / 0.2")
+    try:
+        K["resolve_backbone_dir"]("timm:coatnet_rmlp_1_rw_224")
+        have_coat = True
+    except SystemExit as e:
+        print(f"  skip model-level P-63 checks: {e}")
+        have_coat = False
+    if have_coat:
+        kw = dict(cache_scheme="c02", backbone="timm:coatnet_rmlp_1_rw_224", img_size=224, head_type="window_attn",
+                  window_mode="random", lr_backbone=1e-4)
+        base = K["build_model"](Config(**kw), device).eval()
+        cfg_sp = Config(**kw, spatial_reader=True, slot_count_norm=True)
+        spm = K["build_model"](cfg_sp, device).eval()
+        res = spm.load_state_dict(base.state_dict(), strict=False)
+        check(res.missing_keys == ["spatial_pool.spatial_query"] and not res.unexpected_keys,
+              f"spatial model = parent + one new tensor (missing {res.missing_keys}, unexpected {res.unexpected_keys})")
+        starts6 = [0, 10, 20, 30, 40, 50]
+        arr_s = torch.from_numpy((np.random.RandomState(3).rand(1, 60, 64, 64) * 255).astype(np.uint8))
+        cen_s, sid_s = torch.tensor([2, 5, 3, 7, 4, 2]), torch.tensor([0, 0, 1, 2, 3, 5])
+        args = (arr_s, cen_s, sid_s, torch.zeros(6, dtype=torch.long), torch.arange(6), starts6)
+        spm.window_head.count_norm = False
+        with torch.no_grad():
+            ob, osp = base.forward_windows(*args), spm.forward_windows(*args)
+        check(torch.allclose(ob, osp, atol=1e-4), f"untrained reader == parent model (max |diff| {float((ob - osp).abs().max()):.2e})")
+        spm.window_head.count_norm = True
+        groups = K["param_groups"](spm, cfg_sp)
+        q = spm.spatial_pool.spatial_query
+        check(any(any(p is q for p in g["params"]) and g["lr"] == cfg_sp.lr_head for g in groups)
+              and sum(p.numel() for g in groups for p in g["params"]) == sum(p.numel() for p in spm.parameters()),
+              "param_groups: spatial_query at lr_head, every parameter covered")
+        spm.train()
+        loss = spm.forward_windows(*args).float().pow(2).mean()
+        loss.backward()
+        check(q.grad is not None and torch.isfinite(q.grad).all() and float(q.grad.abs().sum()) > 0,
+              "train mode: the zero-initialised query receives a finite, non-zero gradient")
+        for bad in (dict(kw, backbone="dinov2", spatial_reader=True), dict(kw, head_type="attn", window_mode="fixed",
+                                                                             slot_count_norm=True)):
+            try:
+                K["build_model"](Config(**bad), device)
+                check(False, f"P-63 must refuse {bad['backbone']} / {bad['head_type']}")
+            except SystemExit:
+                check(True, f"P-63 refuses backbone {bad['backbone']} / head {bad['head_type']}")
+
     print("\n== train_all / swa (P-28)")
     import pandas as pd
     a = {"w": torch.tensor([0.0, 2.0]), "n": torch.tensor(3, dtype=torch.int64), "h": torch.tensor([1.0], dtype=torch.float16)}

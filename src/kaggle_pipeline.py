@@ -345,6 +345,11 @@ SHIPPED_ARMS = [
     # one PARALLEL_ARMS session; read m = mean of the two solos vs m(v11a, v11b) = 0.9305.
     ("v11s", {**PROD, **V09R_KW, **C03_KW}),
     ("v11s2", {**PROD, **V09R_KW, **C03_KW, "seed": 43}),
+    # 2026-10-03 (P-63): the v11a recipe with D4's head -- a per-finding spatial reader over the CoAtNet's 7x7 patch grid
+    # (zero-initialised query = the parent's average pool at step 0) + the log slot-count correction on the window
+    # attention. Two seeds, one PARALLEL_ARMS session; read m = mean of the two solos vs m(v11a, v11b) = 0.9305.
+    ("v11p", {**PROD, **V09R_KW, **C03_KW, "spatial_reader": True, "slot_count_norm": True}),
+    ("v11p2", {**PROD, **V09R_KW, **C03_KW, "spatial_reader": True, "slot_count_norm": True, "seed": 43}),
 ]
 ARM_V10C = ("v10c", {**C02, "backbone": "timm:coatnet_rmlp_2_rw_384", "img_size": 384,
                      "lr_backbone": 1e-4, "eval_windows": 42, "grad_checkpoint": True})
@@ -461,7 +466,8 @@ DISTILLED_ARMS = {"v09s": ("selfdistill_v1",), "v09t": ("selfdistill_v1",),
                   "v09o": ("raptor_teacher", "xfit_v09k"), "v09o2": ("raptor_teacher", "xfit_v09k"),
                   "v13b": ("raptor_teacher",), "v13c": ("raptor_teacher",),
                   "v11n": ("raptor_teacher",), "v11n2": ("raptor_teacher",),
-                  "v11s": ("raptor_teacher",), "v11s2": ("raptor_teacher",)}
+                  "v11s": ("raptor_teacher",), "v11s2": ("raptor_teacher",),
+                  "v11p": ("raptor_teacher",), "v11p2": ("raptor_teacher",)}
 # 2026-09-28 (traps 40's second gap): the mix a distilled arm must train with; every other distilled arm trains at 0.5.
 DISTILLED_MIX = {"v09o": 0.75, "v09o2": 0.75}
 # P-62: the silent-cell mix an arm must train with; every arm not listed trains without one (TEACHER_SILENT_MIX = None).
@@ -611,6 +617,14 @@ class Config:
     # P-60 (2026-09-29): timm stochastic depth (`drop_path_rate` at create_model). 0 = the call as before (the kwarg is
     # not passed). Active only in train mode, so inference is unaffected (not an INFER_MEMBER_KEY).
     drop_path: float = 0.0
+    # P-63 (2026-10-03, D4's head): `spatial_reader` = one attention query per finding over the backbone's patch grid
+    # (85 % attention + 15 % average pool, logit cap 2), so each window gives 12 per-label vectors instead of one pooled
+    # vector; the query starts at zero, so an untrained reader IS the average pool (the parent model exactly).
+    # `slot_count_norm` subtracts log(#valid windows of the token's slot) from the window-attention logits, so a slot's
+    # prior attention mass no longer grows with its window count. timm backbones + window_attn only. Both are model
+    # structure, read from the checkpoint's config at inference (False for every older checkpoint).
+    spatial_reader: bool = False
+    slot_count_norm: bool = False
 
     # optimisation
     folds: tuple = (0, 1, 2, 3, 4)
@@ -2035,8 +2049,10 @@ class WindowAttnHead(nn.Module):
     (fp16-safe); an all-masked row falls back to uniform rather than NaN."""
 
     def __init__(self, dim, n_labels=len(LABELS), n_slots=len(SLOTS), slot_embed=True,
-                 dropout=0.2, hidden=256):
+                 dropout=0.2, hidden=256, count_norm=False):
         super().__init__()
+        self.n_slots = n_slots
+        self.count_norm = count_norm      # P-63: subtract log(#valid windows of the token's slot) from the logits
         self.slot_emb = nn.Parameter(torch.zeros(n_slots, dim)) if slot_embed else None
         self.norm = nn.LayerNorm(dim)
         self.gate = nn.Sequential(nn.Linear(dim, hidden), nn.Tanh(), nn.Dropout(dropout),
@@ -2045,20 +2061,68 @@ class WindowAttnHead(nn.Module):
         self.b = nn.Parameter(torch.zeros(n_labels))
 
     def forward(self, feats, slot_id, valid=None):
-        # feats (B, W, dim)   slot_id (B, W) long   valid (B, W) bool or None
+        # feats (B, W, dim), or (B, W, L, dim) = one vector per label per window (P-63 spatial reader)
+        # slot_id (B, W) long   valid (B, W) bool or None
+        if feats.ndim == 4:
+            return self._forward_per_label(feats, slot_id, valid)
         h = feats
         if self.slot_emb is not None:
             h = h + self.slot_emb[slot_id]
         h = self.norm(h)
         att = self.gate(h).transpose(1, 2)                       # (B, L, W)
+        return self._pool(att, h, slot_id, valid, "blw,bwd->bld")
+
+    def _forward_per_label(self, feats, slot_id, valid):
+        """P-63: label l's window score comes from label l's own vector -- the gate's hidden layer is shared, its output
+        row l is read on token (w, l) only. With 12 identical vectors per window (an untrained spatial reader) this is
+        exactly the (B, W, dim) path."""
+        h = feats
+        if self.slot_emb is not None:
+            h = h + self.slot_emb[slot_id].unsqueeze(2)
+        h = self.norm(h)                                         # (B, W, L, dim)
+        hid = self.gate[2](self.gate[1](self.gate[0](h)))        # Linear -> Tanh -> Dropout: (B, W, L, hidden)
+        out = self.gate[3]
+        att = torch.einsum("bwlk,lk->blw", hid, out.weight.to(hid.dtype)) + out.bias.to(hid.dtype).view(1, -1, 1)
+        return self._pool(att, h, slot_id, valid, "blw,bwld->bld")
+
+    def _pool(self, att, h, slot_id, valid, ctx_eq):
+        if self.count_norm:
+            keep_f = (valid if valid is not None else torch.ones_like(slot_id, dtype=torch.bool)).float()
+            counts = torch.zeros(slot_id.shape[0], self.n_slots, device=slot_id.device).scatter_add_(1, slot_id, keep_f)
+            corr = counts.gather(1, slot_id).clamp_min(1.0).log()            # (B, W)
+            att = att - corr.unsqueeze(1).to(att.dtype)
         if valid is not None:
             keep = valid.unsqueeze(1)                            # (B, 1, W)
             att = att.masked_fill(~keep, torch.finfo(att.dtype).min)
             dead = (~keep).all(-1, keepdim=True).expand_as(att)
             att = torch.where(dead, torch.zeros_like(att), att)
         a = torch.softmax(att.float(), dim=-1).to(h.dtype)       # per-label softmax over windows
-        ctx = torch.einsum("blw,bwd->bld", a, h)                 # (B, L, dim)
+        ctx = torch.einsum(ctx_eq, a, h)                         # (B, L, dim)
         return (ctx * self.w.unsqueeze(0)).sum(-1) + self.b
+
+
+class SpatialFindingPool(nn.Module):
+    """P-63: D4's "controlled residual spatial pool" (`coatnet_global96_inference_model.py`, CC0), one window -> one
+    vector PER LABEL. Each label has a query over the LayerNorm'd (no affine) patch tokens of the backbone's final
+    feature map; logits / sqrt(dim), capped at `cap` by cap * tanh(x / cap), softmax over patches; the value is
+    GAP + mix * (attention-pooled - GAP), i.e. 85 % attention + 15 % average pool. The query starts at ZERO, so the
+    attention starts uniform and every label's vector is exactly the average pool -- the parent model's feature."""
+
+    def __init__(self, dim, n_labels=len(LABELS), cap=2.0, mix=0.85):
+        super().__init__()
+        self.dim, self.cap, self.mix = int(dim), float(cap), float(mix)
+        self.spatial_query = nn.Parameter(torch.zeros(n_labels, self.dim))
+
+    def forward(self, fmap):
+        # fmap (N, dim, H, W) -> (N, L, dim)
+        tokens = fmap.flatten(2).transpose(1, 2)                                   # (N, HW, dim)
+        with torch.autocast(device_type=fmap.device.type, enabled=False):
+            normed = F.layer_norm(tokens.float(), (self.dim,))
+            logits = F.linear(normed, self.spatial_query.float()) / math.sqrt(self.dim)   # (N, HW, L)
+            att = torch.softmax(self.cap * torch.tanh(logits / self.cap), dim=1)
+        gap = tokens.mean(dim=1, keepdim=True)                                     # (N, 1, dim)
+        attended = torch.bmm(att.to(tokens.dtype).transpose(1, 2), tokens)         # (N, L, dim)
+        return gap + self.mix * (attended - gap)
 
 
 def affine_theta(rot_deg, zoom, dx, dy):
@@ -2199,7 +2263,8 @@ def load_timm_backbone(arch, backbone_dir, grad_checkpoint=False, img_size=None,
 class KneeNet(nn.Module):
     def __init__(self, backbone_dir: str, n_labels=len(LABELS), dropout=0.1,
                  head_type="concat", slot_dropout=0.0, backbone="dinov2", in_chans=3,
-                 slot_embed=True, grad_checkpoint=False, img_size=224, aug="none", drop_path=0.0):
+                 slot_embed=True, grad_checkpoint=False, img_size=224, aug="none", drop_path=0.0,
+                 spatial_reader=False, slot_count_norm=False):
         super().__init__()
         self.backbone = backbone
         self.in_chans = in_chans
@@ -2222,8 +2287,15 @@ class KneeNet(nn.Module):
         self.drop = nn.Dropout(dropout)
         self.head_type = head_type
         self.slot_dropout = slot_dropout
+        self.spatial_reader = bool(spatial_reader)
+        if (spatial_reader or slot_count_norm) and head_type != "window_attn":
+            raise SystemExit("spatial_reader / slot_count_norm (P-63) need head_type='window_attn'")
+        if spatial_reader and not str(backbone).startswith("timm:"):
+            raise SystemExit("spatial_reader (P-63) needs a timm backbone (forward_features -> a patch grid)")
         if head_type == "window_attn":
-            self.window_head = WindowAttnHead(self.dim, n_labels, slot_embed=slot_embed)
+            self.window_head = WindowAttnHead(self.dim, n_labels, slot_embed=slot_embed, count_norm=bool(slot_count_norm))
+            if self.spatial_reader:
+                self.spatial_pool = SpatialFindingPool(self.dim, n_labels)
         else:
             self.pool = AttnPool(self.dim)
             if head_type == "attn":
@@ -2243,6 +2315,8 @@ class KneeNet(nn.Module):
     def forward(self, imgs, mask):
         # imgs: (B, SLOT, S, C, H, W)   mask: (B, SLOT)   C = 3 (triplet) or 16 (channels, S = 1)
         B, NS, S = imgs.shape[0], imgs.shape[1], imgs.shape[2]
+        if self.spatial_reader:
+            raise SystemExit("spatial_reader (P-63) is wired into the window path (forward_windows) only")
         flat = imgs.reshape(B * NS * S, *imgs.shape[3:])
         feats = self.encode(flat).reshape(B, NS, S, self.dim)
         if self.head_type == "window_attn":
@@ -2296,12 +2370,15 @@ class KneeNet(nn.Module):
         x = (x - IMAGENET_MEAN.to(x.device)) / IMAGENET_STD.to(x.device)
         if self.training and torch.rand(()) < 0.5:
             x = x + torch.randn_like(x) * 0.01              # the Dataset's noise aug, moved here
-        feats = self.encode(x)                              # (W, dim) -- one pass over every study's windows
+        if self.spatial_reader:                             # P-63: (W, L, dim), one vector per label per window
+            feats = self.spatial_pool(self.enc.forward_features(x))
+        else:
+            feats = self.encode(x)                          # (W, dim) -- one pass over every study's windows
         if self.head_type != "window_attn":
             raise SystemExit("window_mode='random' needs head_type='window_attn'")
         n_per = torch.bincount(study_ix, minlength=B)
         w_max = max(int(n_per.max()) if n_per.numel() else 0, 1)
-        padded = feats.new_zeros(B, w_max, feats.shape[-1])
+        padded = feats.new_zeros(B, w_max, *feats.shape[1:])
         valid = torch.zeros(B, w_max, dtype=torch.bool, device=feats.device)
         sid_p = torch.zeros(B, w_max, dtype=torch.long, device=feats.device)   # 0, never -1: masked anyway
         padded[study_ix, pos] = feats
@@ -2336,7 +2413,9 @@ def build_model(c, device):
                 backbone=backbone, in_chans=in_ch, slot_embed=bool(g("slot_embed", True)),
                 grad_checkpoint=bool(g("grad_checkpoint", False)), img_size=int(g("img_size", 224)),
                 aug=str(g("aug", "none")),          # old checkpoints predate the field -> "none"
-                drop_path=float(g("drop_path", 0.0)))
+                drop_path=float(g("drop_path", 0.0)),
+                spatial_reader=bool(g("spatial_reader", False)),        # P-63; older checkpoints -> False
+                slot_count_norm=bool(g("slot_count_norm", False)))
     return m.to(device)
 
 
@@ -3000,7 +3079,8 @@ INFER_CACHE_KEYS = ("use_cache", "cache_scheme", "cache_px", "cache_n_slices", "
                     "cache_slot_slices", "cache_band", "crop_mm", "lat_dead_zone_mm")
 INFER_MEMBER_KEYS = ("slices_per_slot", "triplet_gap", "img_size", "stack_mode", "lat_undo",
                      "window_mode", "eval_windows", "tta_offsets", "tta_pool", "head_type",
-                     "backbone", "slot_embed", "dropout", "slot_dropout")
+                     "backbone", "slot_embed", "dropout", "slot_dropout",
+                     "spatial_reader", "slot_count_norm")       # P-63: model structure, from the checkpoint
 
 
 def _norm_val(v):
