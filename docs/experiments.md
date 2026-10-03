@@ -2669,6 +2669,46 @@ on it, and (3) the student shrinks target gains (P-49: target 0.9268 → `v09r` 
 the 0.004 one-seed floor. What the reading also closes: lowering Raptor on addressed cells (0.25 / x) and raising it everywhere
 (flat 0.6–0.7) are both flat-to-negative, and the dread table cannot be priced at all (no gold rows, P-30). Card **P-62** (proposals.md).
 
+### 2026-10-03 — P-45 step 1: D4 as a second image teacher, priced on gold-58 (target level, P-49's method) → 0.5 LLM + 0.25 Raptor + 0.25 D4 **0.9331 vs 0.9268** (+0.0063, SD 0.0041, 8 up / 4 down); D4 ~ Raptor within-class ρ **0.757** · 🔁 direction only
+
+Source: D4's own gold-58 predictions ship inside its public CC0 Dataset `mattiaangeli/rsna-knee-coatnet-d4-depthzone-swa3-b2` as
+`d4_gold58_reference.npz` (study_uids, `raw_probabilities` (1, 58, 12), `probability_mean`, `truth`; pulled to `artifacts/d4_ds/`,
+gitignored). Its `truth` equals our gold labels column for column (asserted). Its macro is **0.9302**, the card's figure; the
+Dataset's `d4_train_serving_equivalence.json` names the checkpoint
+`coatnet_rmlp2_…_global96_k12full94_effb24_e24_smart384_full4349_gold58_s42_v1/gold_swa_top2.pt` (CoAtNet-rmlp-2 @384, 24
+epochs, SWA of the top-2 epochs **chosen on gold**: optimistic, like Raptor). Scratch `d4_gold.py` (session scratchpad), 0 GPU.
+
+**Matching.** D4 has no 4,349-row table, so its gold values cannot go through its own training ECDF. They are mapped by their mid-rank
+among the 58 gold studies onto the LLM blend's report-only quantiles ("gold-rank"). Checked on Raptor, where both methods are possible:
+0.5 / 0.5 with gold-rank Raptor reads **0.9262** vs 0.9268 for P-49's train-ECDF matching (−0.0007, SD 0.0035). So gold-rank is a fair
+stand-in.
+
+| target (yt on gold) | macro | vs P-49 0.5 / 0.5 (SD) | labels up / down |
+|---|---|---|---|
+| LLM blend alone | 0.8948 | −0.0320 (0.0081) | 0 / 12 |
+| 0.5 LLM + 0.5 Raptor (P-49, today's production target) | **0.9268** | — | — |
+| 0.5 LLM + 0.5 D4 | 0.9312 | +0.0043 (0.0057) | 6 / 6 |
+| **0.5 LLM + 0.25 Raptor + 0.25 D4** | **0.9331** | **+0.0063 (0.0041)** | **8 / 4** |
+| 0.4 LLM + 0.3 Raptor + 0.3 D4 | 0.9347 | +0.0079 (0.0044) | 9 / 3 |
+| 0.5 Raptor + 0.5 D4 (no LLM) | 0.9290 | +0.0022 (0.0086) | 6 / 6 |
+
+Per label (LLM / Raptor / D4 / 0.5-0.5 target / 3-way): the 3-way gains on Effusion 0.943 → **0.971**, Baker's 0.957 → 0.978,
+Fracture 0.872 → 0.888, PF OA 0.909 → 0.923, Lateral Meniscus 0.928 → 0.933; it loses on Contusion 0.913 → 0.904, ACL 0.995 → 0.991,
+Synovitis 0.830 → 0.827, Medial Meniscus 0.980 → 0.977. D4 alone is the weakest of the three sources on ACL (0.958).
+
+**Within-class ρ on gold** (P-49's definition): D4 ~ Raptor **0.757**, D4 ~ LLM 0.409 (Raptor ~ LLM 0.441); our members track Raptor
+more than D4: `v11a` ~ Raptor 0.824 vs `v11a` ~ D4 0.781 (`v11b` ~ D4 0.785, `v09r` ~ D4 0.763; the seed twins `v11a` ~ `v11b` 0.934).
+So D4 carries image information the student does not get from Raptor today. Reviewer A's worry (D4 is "Raptor's family, little target
+diversity") does not hold at ρ 0.757; for comparison our two-family Raptor pair `v09r` ~ `v08r` was 0.860.
+
+**Verdict: 🔁 direction only. This is a target-level analog, not a verdict.** The three-source target is +1.5 SD over today's on 58
+studies, the largest target-level gain priced since P-49 (silence-aware mixing: +0.0032; flat mixes: ≤ +0.0004). But both image
+teachers chose their epochs on these same 58 studies, which flatters any mix that leans on them. The student also shrinks target
+gains (P-49: target 0.9268 → `v09r` 0.909 / `v11a` 0.920 on gold). By the one precedent, Raptor (target +0.032 on gold → +0.009
+solo LB), a +0.006 target gain is worth ≈ +0.002 on the LB, under the 0.004 one-seed floor for one seed and readable as m over two.
+The reading justifies the P-45 builder and a 58-study gold spike, which must reproduce 0.9302. The full pass and the arm need
+Tian's go (card P-45).
+
 ## Infrastructure
 
 ### 2026-09-27 — The "0.943 Speedy Raptors CoAtNet D4" notebook is our anchor **plus two CoAt readers**, not a faster graph; its "< 30 min" is a 3-study commit run · P-41 (threaded scan + 8 decode workers) smoke-green and byte-identical

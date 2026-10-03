@@ -1,7 +1,7 @@
 {
-  "id": "tiankljucanin/rsna-knee-train",
-  "title": "RSNA Knee Train",
-  "code_file": "rsna-knee-train.ipynb",
+  "id": "tiankljucanin/rsna-knee-train-b",
+  "title": "RSNA Knee Train B",
+  "code_file": "rsna-knee-train-b.ipynb",
   "language": "python",
   "kernel_type": "notebook",
   "is_private": true,
@@ -23,8 +23,7 @@
     "tiankljucanin/rsna-knee-cache3-a",
     "tiankljucanin/rsna-knee-cache3-b",
     "tiankljucanin/rsna-knee-cache3-c",
-    "tiankljucanin/rsna-knee-cache3-d",
-    "tiankljucanin/rsna-knee-folds"
+    "tiankljucanin/rsna-knee-cache3-d"
   ],
   "competition_sources": [
     "rsna-knee-abnormality-detection"

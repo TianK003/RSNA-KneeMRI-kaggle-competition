@@ -61,12 +61,12 @@ result*, per unit of cost. "Depends on" lists hard blockers only. EVs are solo-L
 | 0d | P-56 | Dense-slice input c03 (24/24/24/14/8/8, 150 mm) `v11a` / `v11b` | ⏳ **trained** (session D = `rsna-knee-folds` v10, 3.53 h): gold-58 `v11a` 0.9204 / `v11b` 0.9167, c03 pair 0.9207 vs c02 pair 0.9065 (+0.014, SD 0.005, 10/12 up — direction only); Datasets `rsna-knee-ckpt-v11a` / `-v11b`; **🔁 solo reads (2026-09-29): #30 `v11a` 0.932 (best single) / #31 `v11b` 0.929 → m = 0.9305 (✅ bar 0.9315); #32 c03 pair 0.932 vs the c02 pair 0.930** — consistent sign, under every floor; not the production input by rule, the axis stays open; #38 c03 pair + `v13c` 0.932 = the pair | the only untested input axis since c02 | ~3.7-4.4 GPU-h, 3 submissions | — |
 | 0f | P-58 | Local-CPU open-weights LLM relabel as a 4th vote (Scott's Gemma route) | 💡 future, not scheduled (Tian 2026-09-28) | 0..+0.002 | 0 GPU; overnight CPU | — |
 | 0g | P-61 | CoAtNet learning-rate probe upward (`lr_backbone` 2e-4, LLRD 0.85) | 💡 new 2026-09-29 (from P-59) | 0..+0.005 — the CoAtNet trains under the LLRD that under-trained the ResNet by 0.069 on gold | ≈ 3 GPU-h (2 arms, c03) or ≈ $5 RunPod; 2 solos | — |
-| 0h | P-60 | "Noisy student" regularisation on the c03 CoAtNet (`v11n` / `v11n2`: drop-path 0.1, heavy aug, 12 epochs) | ⏳ **part 1 DONE = `rsna-knee-folds` v11** (2.61 h, green: both arms guard-stopped in epoch 5, `_last.pt` ×2; gold-58 EMA at epoch 4 `v11n` 0.9166 / `v11n2` 0.9129 = `v11a` / `v11b` at their epoch 4, direction only); **part 2 = resume in `rsna-knee-train` after 2026-10-03 00:00 UTC (≈ 3.0 h); do not push `rsna-knee-folds` before it** | +0.002..0.008 (literature + every prior RSNA winner) | ≈ $4 RunPod, 2 solos | — |
-| 0i | P-62 | Silence-aware teacher mix (Raptor 0.75 where the report is silent, 0.5 where it speaks) | 🔧 implemented 2026-10-01 (arms `v11s` ‖ `v11s2`; local smoke + Kaggle smoke `rsna-knee-train` v38 green) — priced on gold-58 at target level: 0.9300 vs 0.9268 (+0.0032, SD 0.0018; flat mixes at the same mean Raptor weight +0.0004) | 0..+0.002 — likely under the 0.004 one-seed floor | one c03 session ≈ 3.5 GPU-h + 2 solos | P-60 part 2 (GPU), Tian's go |
+| 0h | P-60 | "Noisy student" regularisation on the c03 CoAtNet (`v11n` / `v11n2`: drop-path 0.1, heavy aug, 12 epochs) | ⏳ **part 1 DONE = `rsna-knee-folds` v11** (2.61 h, green: both arms guard-stopped in epoch 5, `_last.pt` ×2; gold-58 EMA at epoch 4 `v11n` 0.9166 / `v11n2` 0.9129 = `v11a` / `v11b` at their epoch 4, direction only); **part 2 = `rsna-knee-train` v39, pushed 2026-10-03 09:08 UTC (≈ 3.0 h) ⏳; do not push `rsna-knee-folds` before it is green** | +0.002..0.008 (literature + every prior RSNA winner) | ≈ $4 RunPod, 2 solos | — |
+| 0i | P-62 | Silence-aware teacher mix (Raptor 0.75 where the report is silent, 0.5 where it speaks) | ⏳ **real run = new slug `rsna-knee-train-b` v1, pushed 2026-10-03 09:09 UTC** (≈ 3.5 h; Tian 10-03: "push our work"), in parallel with P-60 part 2 — implemented 2026-10-01 (arms `v11s` ‖ `v11s2`; Kaggle smoke `rsna-knee-train` v38 green); priced on gold-58 at target level: 0.9300 vs 0.9268 (+0.0032, SD 0.0018; flat mixes at the same mean Raptor weight +0.0004) | 0..+0.002 — likely under the 0.004 one-seed floor | one c03 session ≈ 3.5 GPU-h + 2 solos | — |
 | 4 | P-50 | Final selection and publishability | 💡 decide by 2026-10-15 | decides what the private LB scores | a browser session; ≤ 1 fork check | P-40 ✅ closed (#22 / #27), Rules page |
 | 5 | P-18 | Efficiency track with the solo member | 💡 (robustness half shipped); candidates `v11a` 0.932 / `v13c` 0.921 at ⅓ the inference cost (#37) | a separate prize; unknown until the formula is read | 0 GPU h (CLI + browser) | Efficiency formula (browser) |
 | 6 | P-47 | Teacher-mix bracket: mix 0.75 only | 💡 low — P-49 priced it on Raptor itself: matched mix 0.75 − 0.5 = −0.002 (SD 0.003) on gold | ≈ 0 (+0.000..0.002) | per-arm `TEACHER_MIX` code + ≈ 2.8 h; 1 solo | P-44 floor, an idle slot |
-| 7 | P-45 | Second image teacher | 💡 deferred to after 2026-10-03; **mapped 2026-10-01 → D4 alone** (gold 0.9302, est. ≈ 2–3 h pass, builder ≈ 150–250 lines; first a 0-GPU gold analog of 0.5 LLM + 0.25 Raptor + 0.25 D4) | +0.001..0.004 (CoAt family) / −0.002..+0.004 (DINO + A5); fork ≈ 0 | spike 0.2–0.3 h, pass ≈ 8 GPU-h, 100–490 lines, 2.8 h arm | P-49, P-44, the 10-03 reset |
+| 7 | P-45 | Second image teacher | 🔧 **step 1 read 2026-10-03: 0.5 LLM + 0.25 Raptor + 0.25 D4 = 0.9331 vs 0.9268 on gold (+0.0063, SD 0.0041, 8/4 labels; D4 ~ Raptor ρ 0.757) — direction only, the largest target-level gain since P-49**; builder + gold-spike render in progress (0 GPU); spike / pass / arm need Tian's go. Mapped 2026-10-01 → D4 alone (gold 0.9302, est. ≈ 2–3 h pass) | +0.001..0.004 (CoAt family) / −0.002..+0.004 (DINO + A5); fork ≈ 0 | spike 0.2–0.3 h, pass ≈ 8 GPU-h, 100–490 lines, 2.8 h arm | P-49, P-44, the 10-03 reset |
 | 8 | P-46 | Upgrade the LLM half of the targets (absorbs P-16, P-30) | 💡 low | 0..+0.002 (dread vote) / +0.001..0.003 (re-label) | ≈ 2.8 h per arm; step 2 a new kernel | P-44 floor |
 | 9 | P-48 | Final-member polish: gold-58 as training rows + seed averaging | 💡 contested, parked | +0.001..0.002, unreadable by construction | part of the final retrain | P-50 decision |
 | 10 | P-51 | Teacher-aware confidence weights | 💡 low | 0..+0.002 | ≈ 20 lines + 2.8 h; 1 solo | P-44 floor |
@@ -188,7 +188,9 @@ If it fails:  the LLM half stays three sources.
 Depends on:   a free machine for a night; P-46.
 
 ### P-60 "Noisy student" regularisation on the c03 CoAtNet (`v11n` / `v11n2`)
-Status:       ⏳ **part 1 done 2026-09-30 (green), part 2 = resume after the 2026-10-03 reset** (bold 2026-09-30 lines below). History —
+Status:       ⏳ **part 2 = `rsna-knee-train` v39, pushed 2026-10-03 09:08 UTC** (`artifacts/train_p60_kaggle_part2.py` +
+              `artifacts/p60_part2_kernel-metadata.json`, c03 ×4 + `rsna-knee-folds`; ≈ 3.0 h). Part 1 done 2026-09-30 (green; bold
+              2026-09-30 lines below). History —
               ⏸ blocked on compute (2026-09-29): the code and arms are in `src/` (unit + local CPU smoke green). Pod 1 (RTX 5090,
               EU-RO-1) had no bandwidth (traps 45); pod 2 (A100 80 GB, US-MD-1) ran 5 epochs — EMA gold-58 by epoch `v11n` 0.776 ·
               0.852 · 0.882 · 0.898 · 0.911, `v11n2` 0.773 · 0.842 · 0.881 · 0.900 · 0.912 (direction only; `v11a` ep 4 ≈ 0.906) —
@@ -307,7 +309,14 @@ If it fails:  0.5 stays. Expected ≈ 0 — run only if a GPU slot is idle and P
 Depends on:   P-44 (the floor), an idle slot.
 
 ### P-45 Second image teacher
-Status:       💡 deferred to after the 2026-10-03 quota reset. **Mapped 2026-10-01 (read-only agent over `notebook_score_0.942.ipynb`,
+Status:       🔧 **2026-10-03: step 1 done (0 GPU)** — D4's own gold-58 predictions ship in its Dataset (`d4_gold58_reference.npz`,
+              macro 0.9302); the target 0.5 LLM + 0.25 Raptor + 0.25 D4 reads **0.9331 vs 0.9268** (+0.0063, SD 0.0041, 8 up / 4
+              down), 0.4 / 0.3 / 0.3 reads 0.9347; D4 ~ Raptor within-class ρ 0.757 (`v11a` ~ Raptor 0.824, `v11a` ~ D4 0.781);
+              gold-rank matching checked on Raptor (0.9262 vs 0.9268) — experiments.md 2026-10-03 "P-45 step 1". Direction only;
+              both teachers are gold-selected. Next: the builder (in progress, 0 GPU) → the 58-study gold spike (must reproduce
+              0.9302) → full pass → a c03 seed pair on the three-source target, read m vs 0.9305 with the P-60 band. **Tian's go
+              needed for the spike onwards** (the 09-23 exclusion, "re-ask after Oct 3").
+              Earlier: 💡 deferred to after the 2026-10-03 quota reset. **Mapped 2026-10-01 (read-only agent over `notebook_score_0.942.ipynb`,
               `src/build_teacher_pass.py` and `artifacts/kaggle_out/fork_v4/`) → recommendation: D4 alone.**
               D4 = `mattiaangeli/rsna-knee-coatnet-d4-depthzone-swa3-b2` (CC0; ships its own runtime + a timm-1.0.22 wheel; backbone
               not stated — "CoAtNet @384" inferred from file names): one model, Global96 stack 27/21/18/12/18 at 384 px / 130 mm with a
@@ -372,7 +381,9 @@ If it fails:  n/a.
 Depends on:   P-50 (decision), P-44 (seed averaging).
 
 ### P-62 Silence-aware teacher mix
-Status:       🔧 **implemented 2026-10-01, Kaggle smoke `rsna-knee-train` v38 GREEN** (0.04 h: both children `teacher table raptor_teacher: 4349`, the `P-62: report-silent cells … mix at 0.75` line, `reseeded 43 for arm v11s2`, SWA, `ok  arm` ×2): `TEACHER_SILENT_MIX` (config cell, sed'd per
+Status:       ⏳ **real run = `rsna-knee-train-b` v1** (a new third slug, so `rsna-knee-folds` stays untouched while P-60 part 2 may
+              still need it), pushed 2026-10-03 09:09 UTC from `artifacts/train_p62_real.py` with the c03-only metadata (Tian 10-03:
+              "push our work"); ≈ 3.5 h. 🔧 **implemented 2026-10-01, Kaggle smoke `rsna-knee-train` v38 GREEN** (0.04 h: both children `teacher table raptor_teacher: 4349`, the `P-62: report-silent cells … mix at 0.75` line, `reseeded 43 for arm v11s2`, SWA, `ok  arm` ×2): `TEACHER_SILENT_MIX` (config cell, sed'd per
               session) + `silence_mask` / per-cell `mix_teacher` in `src/kaggle_pipeline.py` and `src/build_targets.py`
               (`--teacher-silent-mix`; AST-identical, checked in `window_head_test.py`); arms `v11s` / `v11s2` (seeds 42 / 43);
               guards both ways (`DISTILLED_SILENT_MIX`); `targets_test.py` green, default teacher md5 `29f641ed` unchanged, pipeline
