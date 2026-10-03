@@ -798,6 +798,12 @@ both seeds +0.003 / +0.011 over their c02 twins → ±0.000 (#34 / #35). The one
 gold. A teacher that shares the student's inputs and recipe (its own OOF, a rank-mean of its folds) raises gold-58 and seed agreement,
 not the test (experiments.md 2026-09-30 "Submissions #34–#38").
 
+**Extended 2026-10-03:** gold-58 also misses a **recipe** change that the LB rewards. ResNet-34 `v13h` (c03, heavy aug, drop-path,
+30 epochs) read −0.001 vs `v13c` on gold, and its per-epoch gold curve was flat from epoch 12, yet it read **+0.010** on the LB (#42,
+0.931 vs 0.921). If gold had been the gate, the best change of the week would have been dropped. A third target change (the D4 teacher
+mix) failed to transfer: +0.006 at gold target level → −0.002 on the LB (#43). So recipe and target changes are judged on the solo LB
+only, and gold is used only to check that a run is sane (experiments.md 2026-10-03 "Submissions #41–#43").
+
 ### 40. A distilled arm left in `ARMS` trains on the *plain* teacher under its distilled name when no arm filter is set (Tier 1, found in review 2026-09-26, never ran)
 
 The P-38 guard (`DISTILLED_ARMS`) refused a distilled arm without `TEACHER_TABLES` — but it only looked at the arm *filters*

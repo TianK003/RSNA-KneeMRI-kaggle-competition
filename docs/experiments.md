@@ -107,7 +107,7 @@ Judge label changes on **coverage** (does the rule fire at all, per language) an
 | 2026-09-30 | **Silence-aware teacher mix, priced on gold-58 at target level (0 GPU)**: Raptor weight 0.75 on pilkwang-`UNK` cells, 0.5 on addressed cells | target gold **0.9300 vs flat 0.5 0.9268** (+0.0032, SD 0.0018, 5 / 1 labels); flat mixes at the same mean Raptor weight +0.0004 | — | **🔁 direction only** — the gain is where Raptor speaks, not how much; Raptor is optimistic on gold and the student shrinks target gains → card P-62 (entry "Silence-aware teacher mix") |
 | 2026-10-03 | **P-45 step 1 + spike + pass (0.1 + 2.37 GPU-h)**: D4 (public CoAtNet-2 @384) as a second image teacher — gold analog 0.5 LLM + 0.25 Raptor + 0.25 D4 **0.9331 vs 0.9268**; spike reproduces D4's gold reference (0.9301 vs 0.9302); full pass 4,349/4,349, in-sample check ρ D4~LLM 0.695 (Raptor 0.652) | target analog only | — | **🔁 direction only → the student pair `v11d` ‖ `v11dl` runs (session B, `rsna-knee-train` v41)** |
 | 2026-10-03 | **P-60 part 2 (`rsna-knee-train` v39, 2.84 h)**: `v11n` ‖ `v11n2` resumed at epoch 6, SWA 9–11 | gold-58 SWA **0.9152 / 0.9166** (`v11a` / `v11b` 0.9204 / 0.9167) | **0.932 / 0.932** (#39 / #40) | **🔁 INCONCLUSIVE: m = 0.932 vs 0.9305 (+0.0015, band 0.926–0.935)** — heavy regularisation + 12 epochs = the plain recipe on the LB; seeds agree (0.932 / 0.932 vs 0.932 / 0.929); 1.5× the training time |
-| 2026-10-03 | **Sessions A (`rsna-knee-train-b` v4, 4.40 h) ‖ B (`rsna-knee-train` v41, 3.82 h)**, c03, one seed each: `v11p` = `v11a` + P-63 spatial reader + slot-count norm · `v13h` = P-64 ResNet-34, heavy aug, drop-path 0.1, 30 ep · `v11d` = `v11a` recipe on 0.5 LLM + 0.25 Raptor + 0.25 D4 (P-45) · `v11dl` = `v11d` + lr 2e-4 / LLRD 0.85 (P-61) | gold-58 SWA **0.9185 / 0.9001 / 0.9184 / 0.9132** (`v11a` 0.9204, `v13c` 0.9014) | ⏳ solos | **✅ runs green, 🔁 gold flat for all four** (direction only) — solos `v11p` / `v13h` / `v11d` 2026-10-03, `v11dl` 2026-10-04 (entry "Sessions A ‖ B") |
+| 2026-10-03 | **Sessions A (`rsna-knee-train-b` v4, 4.40 h) ‖ B (`rsna-knee-train` v41, 3.82 h)**, c03, one seed each: `v11p` = `v11a` + P-63 spatial reader + slot-count norm · `v13h` = P-64 ResNet-34, heavy aug, drop-path 0.1, 30 ep · `v11d` = `v11a` recipe on 0.5 LLM + 0.25 Raptor + 0.25 D4 (P-45) · `v11dl` = `v11d` + lr 2e-4 / LLRD 0.85 (P-61) | gold-58 SWA **0.9185 / 0.9001 / 0.9184 / 0.9132** (`v11a` 0.9204, `v13c` 0.9014) | **0.929 / 0.931 / 0.930** / ⏳ (#41 / #42 / #43; `v11dl` 10-04) | **✅ `v13h` KEEP: +0.010 vs `v13c` 0.921 (the CNN recipe transfers; gold said −0.001) · 🔁 `v11p` −0.003 and `v11d` −0.002 vs `v11a` 0.932, not adopted** (entries "Sessions A ‖ B", "Submissions #41–#43") |
 
 **External reference points** (not ours — for calibrating ambition):
 
@@ -2845,6 +2845,39 @@ ideas (none clears its floor either way).** Read rules pre-registered in handoff
 ≥ 0.936 / 🔁 0.929–0.935 / ❌ ≤ 0.928; `v13h` vs `v13c` 0.921 — ✅ ≥ 0.925, matters as a member ≥ 0.930, CNN line becomes the main
 bet ≥ 0.935; `v11dl` vs `v11d` ± 0.004. Solos `v11p`, `v13h`, `v11d` tonight, `v11dl` 2026-10-04.
 
+### 2026-10-03 — Submissions #41–#43: ResNet-34 `v13h` **0.931** (✅ +0.010 vs `v13c` 0.921) · `v11p` (P-63 reader) **0.929** (🔁 −0.003) · `v11d` (P-45 D4 targets) **0.930** (🔁 −0.002) — the long heavy-aug CNN is the one change that moved, and gold called it flat
+
+Placeholders `rsna-knee-infer` v37 / v38 / v39 (built from current `src` + 3 seds; each green: `smoke False`, `infer members (1):
+<arm>/fold0`, c03 decode-once verified, `constant labels 0`; `v11p` loads strictly, so its reader came from the checkpoint config).
+Sent 17:32 / 17:39 / 17:43 UTC, read by 18:22 UTC, timed by `src/watch_submission.py`.
+
+| # | member | gold-58 SWA | LB | scored within | pre-registered read | verdict |
+|---|---|---|---|---|---|---|
+| 41 | `v11p` = `v11a` + spatial reader + slot-count norm | 0.9185 | **0.929** | [30.5, 32.0] min | vs `v11a` 0.932: ✅ ≥ 0.936 / 🔁 0.929–0.935 / ❌ ≤ 0.928 | 🔁 (bottom edge, −0.003) |
+| 42 | `v13h` = ResNet-34, c03, CNN LR, frozen BN, heavy aug, drop-path 0.1, 30 ep | 0.9001 | **0.931** | [17.0, 18.5] min | vs `v13c` 0.921: ✅ ≥ 0.925; member ≥ 0.930; main bet ≥ 0.935 | **✅ KEEP (+0.010)**; member yes; main bet no |
+| 43 | `v11d` = `v11a` recipe on 0.5 LLM + 0.25 Raptor + 0.25 D4 | 0.9184 | **0.930** | [36.4, 37.9] min | vs `v11a` 0.932: same bands as #41 | 🔁 (−0.002) |
+
+**What this says.**
+
+1. **P-64 ✅: the forum's CNN recipe transfers.** The same ResNet-34 goes 0.921 → 0.931. That is +0.010, beyond both the one-seed
+   floor (0.004, P-44) and the LB floor (0.005). It changes four things at once versus `v13c`: c03 input, heavy aug, drop-path 0.1,
+   and 30 epochs instead of 12. Gold read it as −0.001 and its curve was flat from epoch 12, so gold-58 has again missed an LB
+   change it should have seen (traps 39 extended).
+2. **`v13h` matches our best CoAtNet (0.932) at about half the cost.** It scores in ≈ 18 min vs 30–38 min for a c03 CoAtNet solo,
+   and the checkpoint is 86 MB vs 165 MB. Its within-class ρ to `v11a` on gold is 0.920 vs ≈ 0.965 for a CoAtNet variant, so it is
+   the different family the ensemble needs (research.md 2.7.4: different families pay +0.005–0.007). It is also an Efficiency-prize
+   candidate (P-18).
+3. **P-63 🔁, not adopted.** D4's per-finding reader on our CoAtNet reads −0.003 at one seed; the forum prior was weak.
+4. **P-45 🔁, not adopted for training targets.** The D4 teacher's +0.006 at gold target level did not reach the LB (0.930 vs
+   0.932), the same pattern as P-55 (traps 39). Later members stay on 0.5 LLM + 0.5 Raptor. `v11d` remains a 0.930 member on a
+   different teacher mix.
+5. The CoAtNet band is now six reads, 0.929–0.932: `v11a`, `v11b`, `v11n`, `v11n2`, `v11p`, `v11d`.
+
+**Verdict:** ✅ KEEP the P-64 recipe for CNN members (`v13h` = production CNN member). 🔁 P-63 and P-45 (as a training target) are
+closed, not adopted. `v11dl` (P-61) is read 2026-10-04 (placeholder `rsna-knee-infer` v40 green). The next tests are two: a
+two-family blend `v11a` + `v13h` (keep only if ≥ 0.936, the best member + 0.004), and the staged session C (ResNet-50 ‖
+EfficientNet-B0 on the `v13h` recipe, needs Tian's go).
+
 ## Infrastructure
 
 ### 2026-09-27 — The "0.943 Speedy Raptors CoAtNet D4" notebook is our anchor **plus two CoAt readers**, not a faster graph; its "< 30 min" is a 3-study commit run · P-41 (threaded scan + 8 decode workers) smoke-green and byte-identical
@@ -3332,3 +3365,6 @@ and public LB score, so a public/private divergence can be traced to a specific 
 | 38 | 2026-09-30 | rsna-knee-infer v34 (v33's mounts) | **P-59, c03 pair + ResNet**: `INFER_MEMBERS = ["v11a", "v11b", "v13c"]` — flat rank-mean, `by_version`, two decode-once passes (c03 for the CoAtNets, c02 for the ResNet) (`artifacts/infer_trio_v11a_v11b_v13c.py`) | none; gold-58 trio 0.9189 vs the c03 pair 0.9207 | **0.932** | **read 11:56:54 UTC → = the c03 pair → ❌ (≤ 0.932); scored within [48.9, 50.4] min.** sent 11:06:31 UTC, ref 56705607; placeholder green (`infer members (3): v11a/fold0, v11b/fold0, v13c/fold0`, `2 geometry group(s)`, both decodes verified, `constant labels 0`). **Read (written before sending):** vs #32 (the c03 pair) 0.932: **≥ 0.936 ✅ / 0.933–0.935 🔁 / ≤ 0.932 ❌** — the first CNN family in a solo blend (#23's second family was DINOv2-S, 0.927 = its first member alone). 0 submissions left today |
 | 39 | 2026-10-03 | rsna-knee-infer v35 (+ Datasets `rsna-knee-ckpt-v11n`, `-v11n2`) | **P-60, noisy-student solo #1**: `INFER_MEMBERS = ["v11n"]` — the `v11a` recipe (c03 CoAtNet-1, Raptor 0.5, all 4,349) + drop-path 0.1 + aug heavy + 12 epochs (SWA 9–11), seed 42 (`rsna-knee-folds` v11 → `rsna-knee-train` v39) (`artifacts/infer_solo_v11n_1003.py`) | none; gold-58 SWA 0.9152 | **0.932** | **read 12:57:00 UTC → = `v11a` (#30); with #40, m = 0.932 → 🔁 (0.926 < m < 0.935); scored within [28.9, 30.4] min.** sent 12:26:37 UTC, ref 56797717; placeholder green (`infer members (1): v11n/fold0`, c03 decode verified, `[epoch 11, score 0.9152]`, `constant labels 0`). **Read (P-60, written before sending):** m = mean(#39, #40) vs m(`v11a`, `v11b`) = 0.9305: **✅ m ≥ 0.935 / 🔁 0.926 < m < 0.935 / ❌ m ≤ 0.926** |
 | 40 | 2026-10-03 | rsna-knee-infer v36 (v35's mounts) | **P-60, noisy-student solo #2**: `INFER_MEMBERS = ["v11n2"]` — as #39, seed 43 (`artifacts/infer_solo_v11n2_1003.py`) | none; gold-58 SWA 0.9166 | **0.932** | **read by 13:00 UTC → +0.003 vs `v11b` (#31 0.929); m(#39, #40) = 0.932 vs 0.9305 → 🔁 P-60.** sent 12:30:48 UTC, ref 56797813; placeholder green (`infer members (1): v11n2/fold0`, `constant labels 0`). Read with #39 (above) |
+| 41 | 2026-10-03 | rsna-knee-infer v37 (+ Datasets `rsna-knee-ckpt-v11p`, `-v13h`, `-v11d`, `-v11dl`) | **P-63, reader solo**: `INFER_MEMBERS = ["v11p"]` — the `v11a` recipe (c03 CoAtNet-1, Raptor 0.5) + per-finding spatial reader + slot-count norm, seed 42 (`rsna-knee-train-b` v4) (`artifacts/infer_solo_v11p.py`) | none; gold-58 SWA 0.9185 | **0.929** | **read 18:04:48 UTC → −0.003 vs `v11a` 0.932 → 🔁 (band 0.929–0.935), not adopted; scored within [30.5, 32.0] min.** sent 17:32:50 UTC, ref 56803390; placeholder green (`infer members (1): v11p/fold0`, strict load, `constant labels 0`) |
+| 42 | 2026-10-03 | rsna-knee-infer v38 (v37's mounts) | **P-64, long heavy-aug CNN solo**: `INFER_MEMBERS = ["v13h"]` — ResNet-34 on c03, CNN LR 3e-4 uniform, frozen BN, aug heavy, drop-path 0.1, 30 epochs (SWA 27–29), Raptor 0.5 (`artifacts/infer_solo_v13h.py`) | none; gold-58 SWA 0.9001 | **0.931** | **read 17:57:38 UTC → +0.010 vs `v13c` 0.921 → ✅ KEEP (bar ≥ 0.925; member ≥ 0.930 yes; main bet ≥ 0.935 no); scored within [17.0, 18.5] min — our fastest solo.** sent 17:39:09 UTC, ref 56803492; placeholder green (`v13h/fold0: timm:resnet34`, `constant labels 0`) |
+| 43 | 2026-10-03 | rsna-knee-infer v39 (v37's mounts) | **P-45, D4-target student solo**: `INFER_MEMBERS = ["v11d"]` — the `v11a` recipe on 0.5 LLM + 0.25 matched Raptor + 0.25 matched D4, seed 42 (`rsna-knee-train` v41) (`artifacts/infer_solo_v11d.py`) | none; gold-58 SWA 0.9184 | **0.930** | **read 18:21:49 UTC → −0.002 vs `v11a` 0.932 → 🔁 (band 0.929–0.935); the gold target-level +0.006 did not transfer; scored within [36.4, 37.9] min.** sent 17:43:54 UTC, ref 56803573; placeholder green (`infer members (1): v11d/fold0`, `constant labels 0`) |
