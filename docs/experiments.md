@@ -2709,6 +2709,29 @@ solo LB), a +0.006 target gain is worth ≈ +0.002 on the LB, under the 0.004 on
 The reading justifies the P-45 builder and a 58-study gold spike, which must reproduce 0.9302. The full pass and the arm need
 Tian's go (card P-45).
 
+### 2026-10-03 — P-45 gold spike (`rsna-knee-teacher-d4` v1, 0.1 h on 2×T4): D4 run by our builder reproduces its own gold reference on its original grid — macro **0.9301 vs 0.9302**, max |Δp| 0.0083, mean 0.0010 · ✅ wiring verified; the original grid is the pass grid
+
+Tian's go for P-45 (2026-10-03, after P-62 was stopped). `src/build_d4_teacher_pass.py --gold --sub-chunk 30`: the 58 gold studies
+under both input grids, 0 failed, scored against `d4_gold58_reference.npz` (computed by D4's authors on their own hardware).
+
+| grid | macro AUC (ours) | vs reference 0.9302 | max / mean \|Δp\| | authors' T4 tolerance (max 0.03, mean 0.003, AUC −0.003) |
+|---|---|---|---|---|
+| **original** (D4's own Global96 stack) | **0.9301** | −0.0001 | 0.0083 / 0.0010 | **PASS** |
+| notebook (the 0.942 graph's capacity-aware dense grid) | 0.9290 | −0.0012 | 0.1227 / 0.0104 | FAIL |
+
+The strict 1e-3 line fails for both, as expected: the reference was computed on different hardware and a different OpenCV build.
+**The rule set before the read: the original grid unless it fails to run.** It is also the grid the reference and the gold
+analog (0.9331) describe. So the 0.942 notebook feeds D4 a grid it was not trained on, at a −0.001 cost on gold.
+
+**Timing:** the original grid runs ≈ 64–68 s per 29-study child (2 workers, one per T4) incl. ≈ 22 s of per-child overhead → ≈ 1.5
+s/study; peak 1.76 GiB per T4. The full pass (4,349 studies, sub-chunks of 400) is projected at **≈ 2 GPU-h in one 2×T4 session**,
+pushed as `rsna-knee-teacher-d4` v2 at 09:58 UTC ⏳.
+
+Caveat carried to the student: D4's checkpoint name reads `full4349_gold58`, so its predictions on the 4,349 training studies are
+**in-sample** (it was fitted on them, with its own unknown "DualSharp" LLM targets). Raptor was in the same position and transferred
+(+0.009 LB), but after the pass compare D4-train ~ LLM against Raptor-train ~ LLM on the 4,349. If D4 tracks the LLM labels much
+more closely than Raptor does, it is replaying labels rather than adding image information.
+
 ## Infrastructure
 
 ### 2026-09-27 — The "0.943 Speedy Raptors CoAtNet D4" notebook is our anchor **plus two CoAt readers**, not a faster graph; its "< 30 min" is a 3-study commit run · P-41 (threaded scan + 8 decode workers) smoke-green and byte-identical

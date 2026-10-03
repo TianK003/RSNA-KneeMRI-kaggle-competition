@@ -67,7 +67,7 @@ result*, per unit of cost. "Depends on" lists hard blockers only. EVs are solo-L
 | 4 | P-50 | Final selection and publishability | 💡 decide by 2026-10-15 | decides what the private LB scores | a browser session; ≤ 1 fork check | P-40 ✅ closed (#22 / #27), Rules page |
 | 5 | P-18 | Efficiency track with the solo member | 💡 (robustness half shipped); candidates `v11a` 0.932 / `v13c` 0.921 at ⅓ the inference cost (#37) | a separate prize; unknown until the formula is read | 0 GPU h (CLI + browser) | Efficiency formula (browser) |
 | 6 | P-47 | Teacher-mix bracket: mix 0.75 only | 💡 low — P-49 priced it on Raptor itself: matched mix 0.75 − 0.5 = −0.002 (SD 0.003) on gold | ≈ 0 (+0.000..0.002) | per-arm `TEACHER_MIX` code + ≈ 2.8 h; 1 solo | P-44 floor, an idle slot |
-| 7 | P-45 | Second image teacher | 🔧 **step 1 read 2026-10-03: 0.5 LLM + 0.25 Raptor + 0.25 D4 = 0.9331 vs 0.9268 on gold (+0.0063, SD 0.0041, 8/4 labels; D4 ~ Raptor ρ 0.757) — direction only, the largest target-level gain since P-49**; builder + gold-spike render in progress (0 GPU); spike / pass / arm need Tian's go. Mapped 2026-10-01 → D4 alone (gold 0.9302, est. ≈ 2–3 h pass) | +0.001..0.004 (CoAt family) / −0.002..+0.004 (DINO + A5); fork ≈ 0 | spike 0.2–0.3 h, pass ≈ 8 GPU-h, 100–490 lines, 2.8 h arm | P-49, P-44, the 10-03 reset |
+| 7 | P-45 | Second image teacher | 🔧 **step 1 read 2026-10-03: 0.5 LLM + 0.25 Raptor + 0.25 D4 = 0.9331 vs 0.9268 on gold (+0.0063, SD 0.0041, 8/4 labels; D4 ~ Raptor ρ 0.757) — direction only, the largest target-level gain since P-49**; **Tian's go 10-03; builder `src/build_d4_teacher_pass.py` (56 checks); gold spike `rsna-knee-teacher-d4` v1 ✅ 0.9301 vs 0.9302 on D4's original grid (0.1 h); full pass = v2 pushed 09:58 UTC (≈ 2 GPU-h) ⏳; student arms `v11d` / `v11nd` ready.** Mapped 2026-10-01 → D4 alone (gold 0.9302, est. ≈ 2–3 h pass) | +0.001..0.004 (CoAt family) / −0.002..+0.004 (DINO + A5); fork ≈ 0 | spike 0.2–0.3 h, pass ≈ 8 GPU-h, 100–490 lines, 2.8 h arm | P-49, P-44, the 10-03 reset |
 | 8 | P-46 | Upgrade the LLM half of the targets (absorbs P-16, P-30) | 💡 low | 0..+0.002 (dread vote) / +0.001..0.003 (re-label) | ≈ 2.8 h per arm; step 2 a new kernel | P-44 floor |
 | 9 | P-48 | Final-member polish: gold-58 as training rows + seed averaging | 💡 contested, parked | +0.001..0.002, unreadable by construction | part of the final retrain | P-50 decision |
 | 10 | P-51 | Teacher-aware confidence weights | 💡 low | 0..+0.002 | ≈ 20 lines + 2.8 h; 1 solo | P-44 floor |
@@ -316,7 +316,11 @@ Status:       🔧 **2026-10-03: step 1 done (0 GPU)** — D4's own gold-58 pred
               gold-rank matching checked on Raptor (0.9262 vs 0.9268) — experiments.md 2026-10-03 "P-45 step 1". Direction only;
               both teachers are gold-selected. Next: the builder (in progress, 0 GPU) → the 58-study gold spike (must reproduce
               0.9302) → full pass → a c03 seed pair on the three-source target, read m vs 0.9305 with the P-60 band. **Tian's go
-              needed for the spike onwards** (the 09-23 exclusion, "re-ask after Oct 3").
+              given 2026-10-03.** Spike ✅ (experiments.md 2026-10-03 "P-45 gold spike"): 0.9301 on the original grid, 0.9290 on
+              the notebook grid → the pass runs `--grid original` (`rsna-knee-teacher-d4` v2, 09:58 UTC, ≈ 2 GPU-h). Then: merge
+              (`merge_teacher.py --teacher d4`), the in-sample check (D4-train ~ LLM vs Raptor-train ~ LLM), a new version of
+              `rsna-knee-teacher-tables` with `d4_teacher.csv`, a Kaggle smoke, and `PARALLEL_ARMS = ("v11d", "v11d2")` (or
+              `v11nd` / `v11nd2` if P-60 ✅) with `TEACHER_TABLES = ("raptor_teacher", "d4_teacher")`, mix 0.5.
               Earlier: 💡 deferred to after the 2026-10-03 quota reset. **Mapped 2026-10-01 (read-only agent over `notebook_score_0.942.ipynb`,
               `src/build_teacher_pass.py` and `artifacts/kaggle_out/fork_v4/`) → recommendation: D4 alone.**
               D4 = `mattiaangeli/rsna-knee-coatnet-d4-depthzone-swa3-b2` (CC0; ships its own runtime + a timm-1.0.22 wheel; backbone
