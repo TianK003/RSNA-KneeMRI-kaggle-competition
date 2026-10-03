@@ -404,14 +404,17 @@ outside your team, winners deliver working code and documentation.
 1. **Everything you rely on must be publicly available and free to all.** Pretrained weights
    and shared LLM label tables qualify because they are published as Kaggle Models/Datasets.
    A private or paid asset does not.
-2. **Sending report text to a hosted third-party LLM API is genuinely open.** The Data
-   Security provisions plausibly forbid transmitting competition data off-platform. The
-   tension: it is now widespread practice — one of the most-downloaded public label sets is
-   openly titled "GPT-5.6-Sol" — and the host has not visibly objected, which is evidence of
-   tolerance but **not a ruling**. Safe path: mount an existing public label table, or run
-   open-weights models locally or inside a Kaggle notebook. **This is about moving
-   competition data off-platform; it is unrelated to using Claude Code on your own source
-   code, which is fine.**
+2. **Sending report text to a hosted third-party LLM API: RULED ALLOWED by the host.**
+   **Verified 2026-10-03** from the forum via the Kaggle API (topic 733965; docs/research.md
+   §2.7.3). Po-Hao "Howard" Chen, 08-09 and again 08-27: sending reports to an API "will not,
+   by itself, be considered prohibited PRIVATE SHARING"; "You can use LLM API, such as those
+   from OpenAI, to read the reports to generate the labels."
+   - Tian's own 2026-09-28 choice of "no hosted-API labels" still stands until he changes it.
+   - Same source on external data: KneeCoT is banned (it needs an institutional agreement).
+     Click-through datasets (OAI, MRNet, fastMRI+, SKM-TEA) are not excluded for being
+     non-commercial. The winners'-licence fit is the team's problem.
+   - **This is about moving competition data off-platform; it is unrelated to using Claude Code
+     on your own source code, which is fine.**
 
 Read the rules text before relying on either point — the above is inference from Kaggle's
 general framework plus observed community behaviour, not a quotation. Also: keep report text

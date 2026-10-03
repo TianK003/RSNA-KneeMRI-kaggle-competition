@@ -331,6 +331,67 @@ levers: the **input** (P-56 c03: 24/24/24/14/8/8 slices, 150 mm) and **honest OO
 Backbone is not the separator (Archit uses our model class) but gets one free-riding arm (P-57, ResNet-34). The per-label public
 probe (P-53) checks the structural deficit on ≈ 400 public studies. Open questions for the thread are in brainstorm.md.
 
+#### 2.7.3 The whole competition forum (102 topics), mined 2026-10-03
+
+Source: `artifacts/forum/<topic_id>.md` + `index.tsv` (gitignored). `ListTopics` by forum is 403 for our token, so topics were found by
+45 global `search_query` calls filtered on `forum_name == "RSNA Knee Abnormality Detection"`, then fetched with `GetTopic` /
+`ListComments` (session scratch `harvest_forum.py`; the API rate-limits at ≈ 1 call/s → backoff). Two read-only agents read every
+topic; their full claim tables: `artifacts/research_1003/forum_part1.md` (ids < 736000), `forum_part2.md` (≥ 736000).
+
+**Host rulings (Po-Hao "Howard" Chen; supersede the "open" wording in CLAUDE.md "Rules"):**
+- **Hosted LLM APIs may read the reports** (733965, 08-09, again 08-27: "You can use LLM API, such as those from OpenAI, to read
+  the reports to generate the labels").
+- **External data:** KneeCoT is banned because it needs an institutional agreement (734109, 08-25). Click-through datasets
+  (OAI, MRNet, fastMRI+, SKM-TEA) are not excluded for being non-commercial; IRB-style approval may exclude a dataset. The
+  winners' licence fit is the team's problem (733965, 08-27).
+- **Gold and test labels** were read from the images by two MSK readers plus an adjudicator, independently of the reports. Some
+  exams show both knees under one UID (733826).
+- **Grading:**
+  - borderline findings are negative;
+  - ACL = a high-grade (> 50 %) or complete tear; MCL = high-grade acute only;
+  - Effusion and Baker's = moderate or large only;
+  - OA ≈ ≥ 1 cm of > 50 % cartilage loss; Fracture = acute only (733343).
+- **Still unanswered:** whether the public / private split is by site, whether every test study has all three planes, and the
+  RadImageNet licence.
+
+**What credible high scorers report (self-reported; H = ≥ 0.945):**
+- Simple CNNs at 224 / 288 reach 0.94–0.954:
+  - ResNet-34 / ResNet-50 / EfficientNet-B0 / EfficientNet-B4 (Tucker H, Scott H, CoolinLai H 0.954 5-fold ResNet-50,
+    SpeedSci 0.940–0.942 per family);
+  - "No attention"; "all about adding aug and regularization", 50 epochs, best at 28 (Myo).
+- **Our ResNet-34 (`v13c`) reads 0.921 and our LLM-only `v09a` 0.918, while others' LLM-only single models read 0.926–0.943 —
+  our gap is on the image / training side, not the labels.**
+- Targets:
+  - teacher pseudo-labels at 0.5 + 0.5 were Raymond's (H) main lever; Archit (H) went heavier than 50/50 on report-silent
+    cells;
+  - three teams found OOF / soft bootstrapping flat on the LB (Nicolai, Myo, our P-55);
+  - "improving labels" is doubted by Tucker (H).
+- **Gold-58 inverted the LB order** in ≥ 4 independent reports:
+  - SpeedSci: an EfficientNet at gold 0.945 read LB 0.910, and a CoAtNet at gold 0.915 / LB 0.926 sat below an EfficientNet at
+    gold 0.89 / LB 0.940;
+  - Lê Quang Cảnh, Raymond, and our P-38 / P-55.
+  - Gold ≈ 0.93 maps to LB 0.931 (Cody), 0.949 (Scott), 0.950 (Archit) and 0.932 (us).
+- **Input:** Dread (Raptor's author) — slice density is the lever, not span; 62 windows > 42. Cody: crop 100 → 140 mm "helped a
+  ton", 160 no better. Resolution above 288 does not help (Raymond, tennogh, Tucker).
+- **Ensembles that work combine independent pipelines:**
+  - SpeedSci: EfficientNet 0.940 + ResNet 0.940 + DINOv2 0.931 + a public CoAtNet → 0.947 / 0.949;
+  - ringbearer: 0.943 / 0.940 / 0.937 / 0.933 → 0.948;
+  - Dread: "models that disagree … outperform models that agree"; CoAtNet + ConvNeXt 0.944;
+  - our same-teacher members blend flat (P-42, P-52, #38).
+- **Inference speed (Prateek, 743374):** one model copy per GPU; raw header and `np.frombuffer` pixel reads; percentiles on a
+  strided subsample; **fp16 weights + half inputs without autocast = 2.08× over autocast on a T4**.
+- **Shake-up:** the 0.945 public notebook is called overfit (per-label map tuned on the public split, Lateral Meniscus = 1.00);
+  "0.935+ without the public notebook could shake up into silver" (CoreyJamesLevinson). Forks with missing sources silently drop
+  all 20 DINOv2 members (starkhushi).
+
+**What it changed (2026-10-03):**
+1. Image-side recipe cards move up: P-60 (regularisation, running); P-61 (the CoAtNet LR, now arm `v11dl`); a long,
+   heavy-augmentation CNN (`v13h`, card P-64).
+2. One seed per idea, two ideas per session: a single-seed read needs ≥ 0.004 (P-44), the seed-pair band ± 0.0045.
+3. Gold-58 deltas are priors near zero; only solo LB reads decide.
+4. The 3–5-member ensemble needs members that disagree: a different family (CNN), a different teacher (D4), a different head
+   (P-63).
+
 ### 2.8 Data-pipeline engineering
 
 **What we learned**
