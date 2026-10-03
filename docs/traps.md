@@ -933,3 +933,13 @@ child log (`completed: false`, no `SWA of last 3`) tell the truth. traps 34's "o
 not a green test on its own. **Do:** before shipping a `PARALLEL_ARMS` arm, check that its child log has `SWA of last N` and
 `-> <arm>_fold0_best.pt = SWA` and has no `runtime guard`, not just `ok  arm` (experiments.md 2026-09-30 "P-60 part 1"). A
 one-line code fix (fold the child's `stopping: runtime guard` line into `completed`) is open; no run depends on it.
+
+### 48. The Kaggle API rate limit (HTTP 429) is shared by every call from the account — a bulk SDK job makes `kernels status` / `leaderboard` fail, and a watcher that treats "not RUNNING" as done exits early (Tier 3, 2026-10-03)
+
+The forum harvest (≈ 45 `ListTopics` searches + ≈ 200 `GetTopic` / `ListComments` calls) drew `429 Too Many Requests` within a
+minute, and a `competitions leaderboard` call from another shell got 429 too. Our watcher loops (`case "$s" in *RUNNING*|*QUEUED*)
+sleep ;; *) echo; exit`) treat any other output as terminal, so a 429 while a kernel runs would look like "finished". It did not
+bite (the harvest backed off: 5 × 2^k s, ≤ 120 s, 1.5 s between topics). **Do:** run bulk API jobs with backoff and alone. Watchers
+since 2026-10-03 add `*429*|*Too\ Many*) sleep` before the catch-all. Before acting on a watcher's exit, re-check
+`kernels status` once.
+

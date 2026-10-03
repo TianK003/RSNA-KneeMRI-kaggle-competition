@@ -23,8 +23,7 @@
     "tiankljucanin/rsna-knee-cache3-a",
     "tiankljucanin/rsna-knee-cache3-b",
     "tiankljucanin/rsna-knee-cache3-c",
-    "tiankljucanin/rsna-knee-cache3-d",
-    "tiankljucanin/rsna-knee-folds"
+    "tiankljucanin/rsna-knee-cache3-d"
   ],
   "competition_sources": [
     "rsna-knee-abnormality-detection"

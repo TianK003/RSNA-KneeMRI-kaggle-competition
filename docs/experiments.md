@@ -105,6 +105,8 @@ Judge label changes on **coverage** (does the rule fire at all, per language) an
 | 2026-09-30 | **P-59, submission #38 (`rsna-knee-infer` v34)**: the c03 pair `v11a` + `v11b` + `v13c` (flat rank-mean, two decode passes) | gold-58 0.9189 (c03 pair 0.9207) | **0.932** | **❌ DEAD END: = the c03 pair #32 0.932 (band ≤ 0.932)** — a 0.921 third family at within-class ρ 0.86 neither adds nor subtracts |
 | 2026-09-30 | **P-60 part 1 (`rsna-knee-folds` v11, 2.61 h)**: `v11n` ‖ `v11n2` = the `v11a` recipe (c03, Raptor 0.5, all 4,349) + `drop_path` 0.1 + `aug` "heavy" + 12 epochs (SWA 9–11), seeds 42 / 43; runtime guard 2.75 h by design (quota) | gold-58 EMA at epoch 4: **`v11n` 0.9166 / `v11n2` 0.9129** vs `v11a` / `v11b` at their epoch 4 0.9156 / 0.9129 (pair +0.0005); guard stop in epoch 5 (0.9151 / 0.9148) | — (part 2 after the 2026-10-03 reset) | **✅ run (guard-stopped as planned, `_last.pt` ×2 for the resume) · ⏳ P-60** — direction only, the regularised arms caught up with the 8-epoch curve at a higher LR; the epoch-5 `_best.pt` files are not members (traps 47) (entry "P-60 part 1") |
 | 2026-09-30 | **Silence-aware teacher mix, priced on gold-58 at target level (0 GPU)**: Raptor weight 0.75 on pilkwang-`UNK` cells, 0.5 on addressed cells | target gold **0.9300 vs flat 0.5 0.9268** (+0.0032, SD 0.0018, 5 / 1 labels); flat mixes at the same mean Raptor weight +0.0004 | — | **🔁 direction only** — the gain is where Raptor speaks, not how much; Raptor is optimistic on gold and the student shrinks target gains → card P-62 (entry "Silence-aware teacher mix") |
+| 2026-10-03 | **P-45 step 1 + spike + pass (0.1 + 2.37 GPU-h)**: D4 (public CoAtNet-2 @384) as a second image teacher — gold analog 0.5 LLM + 0.25 Raptor + 0.25 D4 **0.9331 vs 0.9268**; spike reproduces D4's gold reference (0.9301 vs 0.9302); full pass 4,349/4,349, in-sample check ρ D4~LLM 0.695 (Raptor 0.652) | target analog only | — | **🔁 direction only → the student pair `v11d` ‖ `v11dl` runs (session B, `rsna-knee-train` v41)** |
+| 2026-10-03 | **P-60 part 2 (`rsna-knee-train` v39, 2.84 h)**: `v11n` ‖ `v11n2` resumed at epoch 6, SWA 9–11 | gold-58 SWA **0.9152 / 0.9166** (`v11a` / `v11b` 0.9204 / 0.9167) | ⏳ #39 / #40 | **✅ run green (first Kaggle resume); the LB decides (m vs 0.9305)** |
 
 **External reference points** (not ours — for calibrating ambition):
 
@@ -2759,6 +2761,44 @@ probabilities also move the target's operating point: MCL would be 0.32 positive
 mixing, the form that transferred for Raptor (+0.009 LB), and adds D4 as one clean change. Raw mixing is a candidate to bundle into a
 final recipe, not a session of its own.
 
+### 2026-10-03 — P-60 part 2 (`rsna-knee-train` v39, 2.84 h): the first Kaggle resume works; `v11n` / `v11n2` gold-58 SWA **0.9152 / 0.9166** (m 0.9159 vs `v11a` / `v11b` m 0.9186) · ✅ run green, ⏳ solos #39 / #40
+
+`artifacts/train_p60_kaggle_part2.py` (= part 1's build + the 8.3 h guard) with `artifacts/p60_part2_kernel-metadata.json` (c03 ×4 +
+`rsna-knee-folds`), pushed 09:08 UTC, COMPLETE 12:16 UTC. Each child log has `resume: copied v11n*_fold0_last.pt into WORK` and
+`resumed fold 0 at epoch 6 (best 0.915x at epoch 5)`, epochs 6–11, `SWA of last 3`, no runtime guard. This is the first time a
+guard-stopped Kaggle run resumed across sessions (traps 31). Gold-58 EMA by epoch (6 → 11): `v11n` 0.9162 · 0.9163 · 0.9158 · 0.9146
+· 0.9158 · 0.9155, SWA **0.9152** (CI 0.885–0.941); `v11n2` 0.9163 · 0.9195 · 0.9175 · 0.9159 · 0.9159 · 0.9162, SWA **0.9166**. Gold
+plateaus from epoch ≈ 5 and does not rise over the longer, more regularised tail. Direction only (gold has inverted the LB order in
+≥ 4 forum reports; research.md 2.7.3). Shipped as `rsna-knee-ckpt-v11n` / `-v11n2`; solos #39 / #40 sent 12:26 / 12:30 UTC
+(pre-registered: m vs 0.9305 — ✅ ≥ 0.935 / 🔁 0.926–0.935 / ❌ ≤ 0.926).
+
+### 2026-10-03 — P-45 D4 pass complete (`rsna-knee-teacher-d4` v2, 2.37 h): 4,349 / 4,349 studies, 0 failed; the in-sample check passes (ρ D4 ~ LLM **0.695** vs Raptor 0.652, bar 0.80) · ✅ table published
+
+`--grid original --sub-chunk 400`: 11 child runs of 395–396 studies, 731–806 s each, 1.85 s/study + 45 s per run; peak 1.49 GiB per T4.
+`merge_teacher.py --teacher d4` → `artifacts/teacher/d4_teacher.csv` (4,349 rows, md5 `2990af2c`). New version of the private Dataset
+`rsna-knee-teacher-tables` (the other three tables md5-identical).
+
+**The in-sample check** (D4 was fitted on these studies, like Raptor). Rule set before the read: a macro ρ(D4, LLM) ≥ 0.80 against
+Raptor's ≈ 0.65 would mean it replays the labels, and the student would stop. Scratch `d4_insample.py`, report-only rows:
+
+| macro over 12 labels | D4 | Raptor |
+|---|---|---|
+| Spearman ρ with the LLM blend | **0.695** | 0.652 |
+| AUC vs the hard LLM label (> 0.5) | 0.945 | 0.907 |
+| positive rate at a 0.5 cut | 0.249 | 0.326 (LLM 0.267) |
+| ρ D4 ~ Raptor, all cells / report-silent cells | 0.859 / 0.724 | — |
+
+D4 sits slightly closer to the reports than Raptor does (+0.04 ρ, as an in-sample fit would), far from replay. It disagrees with
+Raptor most where the report is silent (ρ 0.724), which is where the image half matters. Per label, D4 is closest to the LLM on
+Medial Meniscus 0.853, Effusion 0.838 and PF OA 0.802, and least close on Fracture 0.443 and MCL 0.485. Its operating point follows
+the reports: Synovitis 0.256 positive vs Raptor 0.410, LLM 0.124 and gold 0.47. Quantile matching removes that difference in
+training.
+
+**Verdict: ✅ table published; the student pair runs.** Session B = `rsna-knee-train` v41 (12:35 UTC):
+`PARALLEL_ARMS = ("v11d", "v11dl")`, `TEACHER_TABLES = ("raptor_teacher", "d4_teacher")`, mix 0.5 → 0.5 LLM + 0.25 matched Raptor +
+0.25 matched D4. `v11d` is the `v11a` recipe and reads P-45; `v11dl` adds lr 2e-4 / LLRD 0.85 and reads P-61 against `v11d` in
+the same session. Kaggle smoke v40 was green (both tables read; LR ranges 2.4e-5 → 1e-4 vs 8.9e-5 → 2e-4).
+
 ## Infrastructure
 
 ### 2026-09-27 — The "0.943 Speedy Raptors CoAtNet D4" notebook is our anchor **plus two CoAt readers**, not a faster graph; its "< 30 min" is a 3-study commit run · P-41 (threaded scan + 8 decode workers) smoke-green and byte-identical
@@ -3244,3 +3284,5 @@ and public LB score, so a public/private divergence can be traced to a specific 
 | 36 | 2026-09-30 | rsna-knee-infer v32 (v30's mounts) | **P-55, the student pair**: `INFER_MEMBERS = ["v09o", "v09o2"]` (`artifacts/infer_pair_v09o_v09o2.py`) | none; gold-58 pair 0.9119 vs the c02 pair 0.9065 | **0.928** | **read 11:36:06 UTC → −0.002 vs the c02 pair → ❌ (≤ 0.930); scored within [28.3, 29.8] min.** sent 11:06:16 UTC, ref 56705596; placeholder green (`infer members (2): v09o/fold0, v09o2/fold0`, c02 decode verified, `constant labels 0`). **Read (P-55):** vs #26 (the c02 pair) 0.930: **≥ 0.935 ✅ / 0.931–0.934 🔁 / ≤ 0.930 ❌** |
 | 37 | 2026-09-30 | rsna-knee-infer v33 (+ Datasets `rsna-knee-ckpt-v13b`, `-v13c`) | **P-59, ResNet-34 solo**: `INFER_MEMBERS = ["v13c"]` — ResNet-34 (c02, Raptor mix 0.5, all 4,349) at a CNN LR (uniform `lr_backbone` 3e-4, `llrd_decay` 1.0, 12 ep, SWA 9–11) + frozen encoder BatchNorm (`rsna-knee-train` v37) (`artifacts/infer_solo_v13c.py`) | none; gold-58 SWA 0.9014 (ρ to `v09r` 0.86) | **0.921** | **read 11:23:32 UTC → −0.006 vs 0.927 → ❌ (≤ 0.922); scored within [15.6, 17.1] min.** sent 11:06:26 UTC, ref 56705605; placeholder green (`infer members (1): v13c/fold0`, c02 decode verified, `[epoch 11, score 0.9014, ema True]`, `constant labels 0`). **Read (the P-57 bands, written before sending):** vs 0.927: **≥ 0.932 ✅ / 0.923–0.931 🔁 / ≤ 0.922 ❌** — a ✅/🔁 makes the ResNet a candidate family for a blend and for the Efficiency track (P-18; 0.12 s/study vs CoAtNet c03 0.35) |
 | 38 | 2026-09-30 | rsna-knee-infer v34 (v33's mounts) | **P-59, c03 pair + ResNet**: `INFER_MEMBERS = ["v11a", "v11b", "v13c"]` — flat rank-mean, `by_version`, two decode-once passes (c03 for the CoAtNets, c02 for the ResNet) (`artifacts/infer_trio_v11a_v11b_v13c.py`) | none; gold-58 trio 0.9189 vs the c03 pair 0.9207 | **0.932** | **read 11:56:54 UTC → = the c03 pair → ❌ (≤ 0.932); scored within [48.9, 50.4] min.** sent 11:06:31 UTC, ref 56705607; placeholder green (`infer members (3): v11a/fold0, v11b/fold0, v13c/fold0`, `2 geometry group(s)`, both decodes verified, `constant labels 0`). **Read (written before sending):** vs #32 (the c03 pair) 0.932: **≥ 0.936 ✅ / 0.933–0.935 🔁 / ≤ 0.932 ❌** — the first CNN family in a solo blend (#23's second family was DINOv2-S, 0.927 = its first member alone). 0 submissions left today |
+| 39 | 2026-10-03 | rsna-knee-infer v35 (+ Datasets `rsna-knee-ckpt-v11n`, `-v11n2`) | **P-60, noisy-student solo #1**: `INFER_MEMBERS = ["v11n"]` — the `v11a` recipe (c03 CoAtNet-1, Raptor 0.5, all 4,349) + drop-path 0.1 + aug heavy + 12 epochs (SWA 9–11), seed 42 (`rsna-knee-folds` v11 → `rsna-knee-train` v39) (`artifacts/infer_solo_v11n_1003.py`) | none; gold-58 SWA 0.9152 | ⏳ | sent 12:26:37 UTC, ref 56797717; placeholder green (`infer members (1): v11n/fold0`, c03 decode verified, `[epoch 11, score 0.9152]`, `constant labels 0`). **Read (P-60, written before sending):** m = mean(#39, #40) vs m(`v11a`, `v11b`) = 0.9305: **✅ m ≥ 0.935 / 🔁 0.926 < m < 0.935 / ❌ m ≤ 0.926** |
+| 40 | 2026-10-03 | rsna-knee-infer v36 (v35's mounts) | **P-60, noisy-student solo #2**: `INFER_MEMBERS = ["v11n2"]` — as #39, seed 43 (`artifacts/infer_solo_v11n2_1003.py`) | none; gold-58 SWA 0.9166 | ⏳ | sent 12:30:48 UTC, ref 56797813; placeholder green (`infer members (1): v11n2/fold0`, `constant labels 0`). Read with #39 (above) |
