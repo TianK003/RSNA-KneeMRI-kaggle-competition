@@ -392,6 +392,31 @@ topic; their full claim tables: `artifacts/research_1003/forum_part1.md` (ids < 
 4. The 3–5-member ensemble needs members that disagree: a different family (CNN), a different teacher (D4), a different head
    (P-63).
 
+#### 2.7.4 Public assets, notebooks and the two leaderboards, audited 2026-10-03
+
+Source: a read-only agent working through the Kaggle CLI. Files are in `artifacts/research_1003/`: `assets_ranked.csv`,
+`table_audit.csv` (30 public tables scored on gold-58 by `eval_tables.py`), `recipes.csv`, `lists/` (public LB 2026-10-03) and
+`efflb/`.
+- **No public table is a better teacher or label source than what we use.**
+  - Reference points on gold: Raptor 0.9254, Steven v4 0.8927, our blend 0.8948.
+  - Bigger-LLM tables score 0.83–0.88: Qwen2.5-32B, Qwen3-8B, two GPT-5.6-luna tables.
+  - Refined / hybrid Steven tables score 0.899–0.904 and were chosen on gold.
+  - Image-model OOF tables over the training studies score ≈ 0.84 (`prvsiyan`, `denisrukavishnikov`).
+  - `narisettichaitanya/rsna-knee-teacher-soft-labels` is ≈ 0.75 Raptor + 0.15 LLM in rank space and was fitted on the gold rows.
+  - Several tables copy the gold labels into their gold rows. None adds to 0.5 Steven + 0.5 Raptor (rank mix 0.9320) as an equal
+    third.
+- **The public frontier is 0.943:** mattiaangeli "Speedy Raptors" v34 = our anchor's stack + the Global96 and Repair-v1 CoAt readers
+  (CoAt 0.40 / Raptor 0.60). The 0.946–0.947 teams blend **their own leg** at rank weight 0.45–0.5:
+  - pjmathematician: a private student fleet;
+  - aastikrajan15: an own ConvNeXt-tiny at 320 px × 24 slices / 130 mm, 0.927 alone.
+  Our Raptor-distilled leg read flat at β 0.10–0.20 (P-40) because it correlates with the stack. A diverse own leg (a CNN, not
+  Raptor-distilled) is the P-50 lever.
+- **Efficiency LB:** about 28 teams reach ≥ 0.945 at well under an hour; Scott Willis is #1 at 0.958, ≈ 5 min. A formula read from
+  another team's code (not the competition page) is (score − max) / (0.5 − max) + seconds / 32,400. The board appears to list
+  **selected** submissions: we show at #2,579 with the fork. For P-18 to count, one final pick must be a fast solo.
+- **Inference windows:** Dread 42 → 62 windows +0.003 and 48 → 72 → 0.944. Our window members already score every valid window
+  (90 on c03), so there is nothing to gain here.
+
 ### 2.8 Data-pipeline engineering
 
 **What we learned**
