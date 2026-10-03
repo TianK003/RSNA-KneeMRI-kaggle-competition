@@ -859,6 +859,18 @@ BACKBONES = {
         "/kaggle/input/timm-resnet34-a1",
         "models/resnet34_a1",
     ], "tiankljucanin/timm-resnet34-a1 as a Dataset input"),
+    # 2026-10-03 (P-64 follow-ups): the forum's strongest small CNNs -- timm resnet50.a1_in1k (CoolinLai's 5-fold ResNet-50
+    # @224 = 0.954) and efficientnet_b0.ra_in1k (Tucker / SpeedSci); both Apache-2.0, HF timm repo files.
+    "timm:resnet50": ([
+        "/kaggle/input/datasets/tiankljucanin/timm-resnet50-a1",
+        "/kaggle/input/timm-resnet50-a1",
+        "models/resnet50_a1",
+    ], "tiankljucanin/timm-resnet50-a1 as a Dataset input"),
+    "timm:efficientnet_b0": ([
+        "/kaggle/input/datasets/tiankljucanin/timm-efficientnet-b0-ra",
+        "/kaggle/input/timm-efficientnet-b0-ra",
+        "models/efficientnet_b0_ra",
+    ], "tiankljucanin/timm-efficientnet-b0-ra as a Dataset input"),
 }
 
 

@@ -104,7 +104,8 @@ def main():
     device = torch.device("cpu")
     for bb, img in (("dinov2", 224), ("convnext_tiny", 224),
                     ("timm:coatnet_rmlp_1_rw_224", 224), ("timm:coatnet_rmlp_1_rw_224", 320),   # P-43 v09x
-                    ("timm:coatnet_rmlp_2_rw_384", 384), ("timm:resnet34", 224)):          # P-57 v13a
+                    ("timm:coatnet_rmlp_2_rw_384", 384), ("timm:resnet34", 224),           # P-57 v13a
+                    ("timm:resnet50", 224), ("timm:efficientnet_b0", 224)):                 # P-64 follow-ups
         try:
             K["resolve_backbone_dir"](bb)
         except SystemExit as e:
@@ -121,7 +122,7 @@ def main():
         lrs = sorted({g["lr"] for g in groups})
         # a ResNet has no final norm above its last stage, so its top group is layer4 at lr_backbone * llrd_decay -- the
         # rate CoAtNet's last stage gets too (only CoAtNet's `norm.*` sits at lr_backbone itself)
-        top = cfg.lr_backbone * (cfg.llrd_decay if bb == "timm:resnet34" else 1.0)
+        top = cfg.lr_backbone * (cfg.llrd_decay if bb in ("timm:resnet34", "timm:resnet50", "timm:efficientnet_b0") else 1.0)
         check(lrs[-1] == cfg.lr_head and any(abs(l - top) < 1e-12 for l in lrs),
               f"{bb}: LR set {['%.1e' % l for l in lrs]}")
         model.eval()
