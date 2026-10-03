@@ -647,6 +647,22 @@ def main():
             xx = torch.randn(2, 3, 224, 224)
             check(torch.allclose(enc1(xx), enc1(xx)), f"{bb}: drop_path is inert in eval mode (deterministic)")
 
+    print("\n== P-45 / P-63 arms (2026-10-03)")
+    c11a = Config(smoke=False, **arms["v11a"])
+    for a, extra in (("v11d", {}), ("v11d2", {"seed": 43}), ("v11p", {"spatial_reader": True, "slot_count_norm": True}),
+                     ("v11p2", {"spatial_reader": True, "slot_count_norm": True, "seed": 43})):
+        ca = Config(smoke=False, **arms[a])
+        diff = {k for k in K["asdict"](ca) if getattr(ca, k) != getattr(c11a, k)} - {"version"}
+        check(diff == set(extra) and all(getattr(ca, k) == v for k, v in extra.items()),
+              f"{a} = v11a + {extra or 'nothing'} (fields that differ: {sorted(diff)})")
+    for a in ("v11nd", "v11nd2"):
+        cnd, cn_ = Config(smoke=False, **arms[a]), Config(smoke=False, **arms[a.replace("nd", "n")])
+        diff = {k for k in K["asdict"](cnd) if getattr(cnd, k) != getattr(cn_, k)} - {"version"}
+        check(not diff, f"{a} = {a.replace('nd', 'n')} exactly (only the table set differs; fields that differ: {sorted(diff)})")
+    check(all(da[a] == ("raptor_teacher", "d4_teacher") and a not in dm for a in ("v11d", "v11d2", "v11nd", "v11nd2"))
+          and all(da[a] == ("raptor_teacher",) for a in ("v11p", "v11p2")) and "d4_teacher" in K["TEACHER_PATHS"],
+          "v11d* / v11nd* train on Raptor + D4 at mix 0.5 (0.5 LLM + 0.25 + 0.25); v11p* on Raptor alone")
+
     print("\n" + ("UNIT CHECKS PASSED" if not fails else f"UNIT CHECKS FAILED ({len(fails)}):\n  - " + "\n  - ".join(fails)))
     sys.exit(1 if fails else 0)
 

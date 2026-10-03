@@ -350,6 +350,13 @@ SHIPPED_ARMS = [
     # attention. Two seeds, one PARALLEL_ARMS session; read m = mean of the two solos vs m(v11a, v11b) = 0.9305.
     ("v11p", {**PROD, **V09R_KW, **C03_KW, "spatial_reader": True, "slot_count_norm": True}),
     ("v11p2", {**PROD, **V09R_KW, **C03_KW, "spatial_reader": True, "slot_count_norm": True, "seed": 43}),
+    # 2026-10-03 (P-45): the second image teacher -- run with TEACHER_TABLES=("raptor_teacher", "d4_teacher") at
+    # TEACHER_MIX 0.5 sed'd in: targets 0.5 LLM + 0.25 matched Raptor + 0.25 matched D4 (gold-58 analog 0.9331 vs 0.9268).
+    # v11d / v11d2 = the v11a recipe, v11nd / v11nd2 = the P-60 recipe (whichever P-60's read says); two seeds per session.
+    ("v11d", {**PROD, **V09R_KW, **C03_KW}),
+    ("v11d2", {**PROD, **V09R_KW, **C03_KW, "seed": 43}),
+    ("v11nd", {**PROD, **V09R_KW, **C03_KW, "drop_path": 0.1, "aug": "heavy", "epochs": 12}),
+    ("v11nd2", {**PROD, **V09R_KW, **C03_KW, "drop_path": 0.1, "aug": "heavy", "epochs": 12, "seed": 43}),
 ]
 ARM_V10C = ("v10c", {**C02, "backbone": "timm:coatnet_rmlp_2_rw_384", "img_size": 384,
                      "lr_backbone": 1e-4, "eval_windows": 42, "grad_checkpoint": True})
@@ -451,6 +458,9 @@ TEACHER_PATHS = {
     # P-55: the per-fold-ranked OOF of the P-54 cross-fit (src/build_distill_table.py --per-fold-rank); only needs to be
     # mounted when listed.
     "xfit_v09k": ["/kaggle/input/rsna-knee-teacher-tables/xfit_v09k.csv", "artifacts/teacher/xfit_v09k.csv"],
+    # P-45 (2026-10-03): the D4 pass (src/build_d4_teacher_pass.py -> merge_teacher.py --teacher d4); only needs to be
+    # mounted when listed.
+    "d4_teacher": ["/kaggle/input/rsna-knee-teacher-tables/d4_teacher.csv", "artifacts/teacher/d4_teacher.csv"],
 }
 # P-38: a distilled arm (`v09s` = the fold-0 probe, `v09t` = the production member) is what its name says only when its
 # targets are distilled, and the arm dict cannot carry TEACHER_TABLES (targets are built once per session) -- never train
@@ -467,7 +477,9 @@ DISTILLED_ARMS = {"v09s": ("selfdistill_v1",), "v09t": ("selfdistill_v1",),
                   "v13b": ("raptor_teacher",), "v13c": ("raptor_teacher",),
                   "v11n": ("raptor_teacher",), "v11n2": ("raptor_teacher",),
                   "v11s": ("raptor_teacher",), "v11s2": ("raptor_teacher",),
-                  "v11p": ("raptor_teacher",), "v11p2": ("raptor_teacher",)}
+                  "v11p": ("raptor_teacher",), "v11p2": ("raptor_teacher",),
+                  "v11d": ("raptor_teacher", "d4_teacher"), "v11d2": ("raptor_teacher", "d4_teacher"),
+                  "v11nd": ("raptor_teacher", "d4_teacher"), "v11nd2": ("raptor_teacher", "d4_teacher")}
 # 2026-09-28 (traps 40's second gap): the mix a distilled arm must train with; every other distilled arm trains at 0.5.
 DISTILLED_MIX = {"v09o": 0.75, "v09o2": 0.75}
 # P-62: the silent-cell mix an arm must train with; every arm not listed trains without one (TEACHER_SILENT_MIX = None).
