@@ -6,6 +6,143 @@ to read first after a break.
 
 ---
 
+## 2026-10-03 (09:05 → 16:20 UTC) — quota reset: P-60 part 2 read 🔁 (0.932 / 0.932); P-45 D4 teacher built, spiked, passed, published; whole-forum mining → **our gap is image-side, the best singles are CNNs**; sessions A (`v11p` ‖ `v13h`) and B (`v11d` ‖ `v11dl`) running; handoff written BEFORE their results
+
+Tian, in order:
+- "push our work and continue research … focus on improving single model performance"
+- "how much GPU … be tactical … not on every small change" → stopped P-62 himself
+- "go on P-45"
+- agreed to P-63
+- "submit at least two or three different models today … an ensemble of 3–5 models, not 20 … research the leaderboard and
+  discussion 735304 … research thoroughly"
+- "/handoff now, even before the results, so I can clear this chat"
+
+Commits `9e2c9d0` … `b29d83c`, plus this one.
+
+### ⏳ Still in flight as this was written (16:20 UTC)
+
+**The watchers of this chat die with it, so poll by hand.**
+
+| In flight | What it is | Started | How to check | How to read it |
+|---|---|---|---|---|
+| **Session A = `rsna-knee-train-b` v4** (REAL) | `PARALLEL_ARMS = ("v11p", "v13h")`, `TEACHER_TABLES = ("raptor_teacher",)` (`artifacts/train_sA_real.py`). **`v11p`** = `v11a` + P-63 per-finding spatial reader + slot-count norm, seed 42. **`v13h`** = P-64 ResNet-34 on c03 + CNN LR 3e-4 uniform + frozen BN + aug heavy + drop-path 0.1 + **30 epochs** | 12:21 UTC; expect COMPLETE ≈ 16:30–17:00 | `kaggle kernels status tiankljucanin/rsna-knee-train-b`; then `kaggle kernels output tiankljucanin/rsna-knee-train-b -p artifacts/kaggle_out/sA --file-pattern "(v11p\|v13h)_fold0_(best\.pt\|oof\.csv)$\|\.log$"` | **Green** = parent `ok  arm` ×2 **and** each child log has `teacher table raptor_teacher: 4349`, `SWA of last 3`, `-> <arm>_fold0_best.pt = SWA`, no `runtime guard` (traps 47: `ok  arm` alone is not enough). `v13h`'s log also shows `freeze_bn: 36 encoder BatchNorm` and `drop_path_rate 0.1`, epochs 0–29. Gold-58 SWA is direction only (`v11a` 0.9204, `v13c` 0.9014). `ERROR` with 0 files = traps 44 → re-push the same build |
+| **Session B = `rsna-knee-train` v41** (REAL) | `PARALLEL_ARMS = ("v11d", "v11dl")`, `TEACHER_TABLES = ("raptor_teacher", "d4_teacher")`, mix 0.5 → 0.5 LLM + 0.25 matched Raptor + 0.25 matched D4 (`artifacts/train_sB_real.py`). **`v11d`** = the `v11a` recipe (P-45). **`v11dl`** = `v11d` + lr 2e-4 / LLRD 0.85 (P-61) | 12:35 UTC; expect ≈ 16:15–16:45 | same, slug `rsna-knee-train`, dir `artifacts/kaggle_out/sB`, pattern `(v11d\|v11dl)_fold0_…` | Green as above, plus both child logs show `teacher table d4_teacher: 4349` and `training targets = … ['raptor_teacher', 'd4_teacher']`. LR lines: `v11d` 2.37e-05 .. 1.00e-04 (decay 0.75), `v11dl` 8.87e-05 .. 2.00e-04 (decay 0.85) |
+
+No submission is pending: #39 and #40 were both read at 0.932. **3 submissions are left for 2026-10-03, until 00:00 UTC.**
+
+### Where things stand
+
+| | Status |
+|---|---|
+| Best LB / best solo | 0.942 (fork) / **0.932**: `v11a`, the c03 pair, `v11n`, `v11n2`. Every c03 CoAtNet variant reads 0.929–0.932 — a plateau |
+| P-60 noisy student | 🔁 closed: #39 `v11n` 0.932, #40 `v11n2` 0.932 → m 0.932 vs 0.9305 (+0.0015). Not adopted (1.5× training time). The first Kaggle resume worked (traps 31). experiments.md 2026-10-03 "P-60 part 2" |
+| P-45 D4 teacher | ✅ table built: builder `src/build_d4_teacher_pass.py` (56 checks); gold spike 0.9301 vs 0.9302 on D4's original grid; full pass 4,349/0 failed (2.37 h); in-sample check passed (ρ D4~LLM 0.695 vs Raptor 0.652, bar 0.80); `d4_teacher.csv` is in `rsna-knee-teacher-tables`. Student in session B. experiments.md 2026-10-03 (three entries) |
+| P-62 silence mix | ⏸ parked: Tian stopped `rsna-knee-train-b` v1 after ≈ 0.3 GPU-h (cannot clear its band); a bundle candidate only |
+| P-63 reader / P-64 long CNN / P-61 LR | ⏳ in sessions A / B (one seed each) |
+| Staged, not pushed | **Session C** = `("v13r", "v13e")`: ResNet-50 a1 / EfficientNet-B0 ra on the `v13h` recipe (`artifacts/train_sC_kaggle_smoke.py` / `_real.py`). Local smoke green; weight Datasets `timm-resnet50-a1` / `timm-efficientnet-b0-ra` mounted in train / train-b / infer |
+| Research | `docs/research.md` §2.7.3 (102 forum topics) and §2.7.4 (30 public tables, notebooks, both LBs); raw notes in `artifacts/research_1003/`, the forum in `artifacts/forum/` |
+| Quota | Kaggle GPU **13.47 / 30 h** at 16:16 UTC (A + B still counting → ≈ 14.5 h when done); resets 2026-10-10 |
+| Committed renders | `rsna-knee-train` = **v41 REAL session B**; `rsna-knee-train-b` = **v4 REAL session A**; `rsna-knee-teacher-d4` = **v2 = the FULL pass** (re-pushing costs 2.4 GPU-h); `rsna-knee-infer` = v36 (`v11n2` solo). Never re-push any of them as is |
+
+### What we talked about and decided
+
+- **GPU rule (Tian):** no session for a change that cannot clear its own read band → P-62 stopped. **Then (mine, from the
+  numbers): one seed per idea, two ideas per session.** A single-seed read needs ≥ 0.004 (P-44) and the seed-pair band is
+  ± 0.0045, so a seed twin buys almost nothing. Seed twins are kept for ensemble members only.
+- **Session pairing:** targets are per session.
+  - A pairs two Raptor-target ideas (reader, long CNN).
+  - B pairs two Raptor + D4 ideas: `v11d` reads P-45 against `v11a`, and `v11dl` reads P-61 against `v11d` in the same session.
+- **The D4 student keeps matched mixing**, not raw probabilities: raw was +0.0014 on gold for the three-source target (noise), and
+  matched is the form that transferred for Raptor.
+- **P-63 has a weak forum prior** (Will's region tokens ≈ 0; Tucker 0.94+ with no attention). Run anyway as Tian approved, at one seed.
+- **Tian wants a 3–5-model ensemble, not 20, and 2–3 different models scored today.**
+- **Rejected:**
+  - a VLM member (Qwen 3.5 2B, 0.950 single fold, but A100-class training);
+  - external-data pretraining (allowed now, too expensive before 10-22);
+  - more label engineering (no public table beats ours; Tucker "low 0.95s" with plain Qwen labels).
+
+### What we figured out
+
+1. **The noisy-student bundle does not move the CoAtNet** (0.932 / 0.932). Regularisation + 12 epochs is not where 0.94–0.95 comes
+   from for us (experiments.md "P-60 part 2").
+2. **D4 is a usable second teacher:**
+   - its gold target analog reads 0.9331 vs 0.9268;
+   - the spike reproduced it, 0.9301;
+   - its training-study predictions are not replayed labels;
+   - it disagrees with Raptor most on report-silent cells (ρ 0.724).
+3. **Quantile matching flattens the teacher** (matched Raptor keeps only 14–32 distinct values among the 58 gold). Raw mixing +0.004
+   on gold, 1 SD, labels split. Not adopted (experiments.md 2026-10-03).
+4. **The forum's best single models are CNNs:**
+   - CoolinLai: ResNet-50 at 224, 0.954.
+   - Tucker: ResNet-34 / EfficientNet-B0, "low 0.95s".
+   - Scott: small ResNet, 0.949.
+   - SpeedSci: their CNNs 0.940 vs their CoAtNet 0.926.
+   - Others' LLM-only singles read 0.926–0.943 vs our `v09a` 0.918, so our gap is image-side. Gold-58 inverted the LB order in ≥ 4
+     reports (research.md 2.7.3).
+5. **Ensembles pay only with different families or pipelines** (+0.005–0.007: SpeedSci 0.947 / 0.949, ringbearer 0.948). The
+   0.946–0.947 teams blend a diverse own leg at weight 0.45–0.5 into the public 0.943 stack (research.md 2.7.4).
+6. **Host rulings we had as open:** LLM APIs are allowed for labels; click-through external data is not excluded; KneeCoT is
+   banned (CLAUDE.md "Rules" updated).
+
+### ⏭ Next action, in order
+
+1. **Pull A and B** (commands in the table) → check every green criterion → note the gold-58 SWA of all four (direction only) →
+   `/update`.
+2. **Ship the four checkpoints**:
+   ```bash
+   for a in v11p v13h v11d v11dl; do d=artifacts/ship_$a; rm -rf $d; mkdir -p $d
+     src=$( [ -f artifacts/kaggle_out/sA/${a}_fold0_best.pt ] && echo sA || echo sB )
+     cp artifacts/kaggle_out/$src/${a}_fold0_{best.pt,oof.csv} $d/
+     echo "{\"title\": \"RSNA knee ckpt $a\", \"id\": \"tiankljucanin/rsna-knee-ckpt-$a\", \"licenses\": [{\"name\": \"other\"}]}" > $d/dataset-metadata.json
+     (cd $d && ../../.venv/Scripts/kaggle.exe datasets create -p .); done
+   ```
+   Add `tiankljucanin/rsna-knee-ckpt-{v11p,v13h,v11d,v11dl}` to `kaggle/rsna-knee-infer/kernel-metadata.json`, and wait for
+   `kaggle datasets status … = ready`.
+3. **Placeholders, one at a time**, each built from the CURRENT `src`: older staged infer scripts lack the `spatial_reader` member
+   key and `v11p` would not load.
+   ```bash
+   sed -e 's/^FORCE_SMOKE = True/FORCE_SMOKE = False/' -e 's/^MODE = "auto"/MODE = "infer"/' \
+       -e 's/^INFER_MEMBERS = \[.*\]/INFER_MEMBERS = ["v11p"]/' src/kaggle_pipeline.py > artifacts/infer_solo_v11p.py
+   ```
+   Then `nbgen` → push `kaggle/rsna-knee-infer` → COMPLETE → pull its log (`--file-pattern "submission\.csv$"`) and check `smoke
+   False`, `infer members (1): v11p/fold0`, `decode-once verified`, `constant labels 0`. Submit `-k tiankljucanin/rsna-knee-infer -v
+   <N>` and watch with `python src/watch_submission.py --ref <ref> --every 90`. **Before 00:00 UTC: `v11p`, `v13h`, `v11d`. Tomorrow:
+   `v11dl`.**
+4. **Read rules** (set before sending; one seed each, P-44 floor 0.004):
+   - **`v11d`** (P-45) vs `v11a` 0.932: ✅ ≥ 0.936 / 🔁 0.929–0.935 / ❌ ≤ 0.928.
+   - **`v11p`** (P-63) vs `v11a` 0.932: the same bands.
+   - **`v13h`** (P-64) vs `v13c` 0.921: ✅ ≥ 0.925 (the recipe helps the CNN). As a member it matters if ≥ 0.930. **If ≥ 0.935, the
+     CNN line becomes the main bet** → step 5.
+   - **`v11dl`** (P-61) vs `v11d`, same session: ✅ ≥ `v11d` + 0.004 / ❌ ≤ `v11d` − 0.004.
+5. **Session C, Tian's go:** if `v13h` ✅, push the staged ResNet-50 ‖ EfficientNet-B0 (`artifacts/train_sC_kaggle_smoke.py` first,
+   then `_real.py`; ≈ 3.5–4 h). The CNN base is c03. Use the D4 targets instead (`TEACHER_TABLES = ("raptor_teacher", "d4_teacher")`
+   needs new arm names in `DISTILLED_ARMS`) only if `v11d` ✅.
+6. **Ensemble (3–5 members), one submission per blend:** the best CoAtNet + the best CNN (+ a third family or the D4-target
+   variant). `INFER_MEMBERS = [...]` builds a flat rank-mean, with one decode group per cache geometry. **Keep a blend only if it
+   reads ≥ the best member solo + 0.004.** Same-teacher same-family blends have read flat four times (P-42, P-52, #32, #38).
+
+### Open decisions for Tian
+
+- **Session C** (CNN follow-ups, ≈ 4 GPU-h) after the `v13h` read; and how much of the remaining ≈ 15.5 h to spend before the
+  10-10 reset (two more weekly resets before the 10-22 deadline).
+- **Final selection (P-50, by 10-15):** one pick = our best own model or ensemble; the other could be the public stack (v34 = 0.943)
+  + a *diverse* own leg at weight 0.45–0.5, which is what the 0.946–0.947 teams do. That needs a v34 rebuild of
+  `src/build_fork.py`. For the Efficiency prize to count, one pick must be a fast solo.
+- Hosted-API labels are now allowed by the host. Tian's 09-28 "no" still stands; the forum prices it low.
+- Team-merge offers on the forum (Prateek, SpeedSci, others; merger deadline 10-15).
+
+### Things that will bite if forgotten
+
+- **Committed renders are REAL runs:** `rsna-knee-train` v41, `rsna-knee-train-b` v4, `rsna-knee-teacher-d4` v2 (the full pass).
+  Rebuild from `src` + seds before any push. Metadata of `rsna-knee-train` / `-train-b` is c03-only + the new CNN weights (no
+  `rsna-knee-folds`).
+- **traps 47:** check each child log for `SWA of last 3` before shipping; `ok  arm` is not enough.
+- **traps 48:** the Kaggle API rate limit is shared; a bulk SDK job makes `kernels status` return 429. Re-check before acting on a
+  watcher's exit.
+- **Forum re-harvest:** `python scripts/harvest_forum.py artifacts/forum` (search-based; backs off on 429; skips topics already
+  saved). The topics stay local in `artifacts/forum/`. Commit nothing from `artifacts/`: it holds report text and UIDs.
+- `discussion.py` / `discussion_735304.xml` in the repo root are Tian's, untracked on purpose.
+
 ## 2026-09-30 (21:00) → 2026-10-01 (09:40 UTC) — P-60 part 1 pulled green; label side priced → **P-62 silence-aware mix implemented + Kaggle smoke green**; P-60 part 2 verified staged; **work resumes 2026-10-03 after the GPU reset**
 
 Tian: "Fetch the results, then run /update" → "is there anything we could do in the meantime, the labels?" → "Ok continue working" →

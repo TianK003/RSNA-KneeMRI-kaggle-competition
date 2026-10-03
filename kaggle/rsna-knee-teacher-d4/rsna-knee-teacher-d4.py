@@ -2,9 +2,9 @@
 SHARD = 0                 # sed'd at build: shard index
 N_SHARDS = 1              # sed'd at build: number of shards over the 4,349 report-labelled studies
 LIMIT = 0                 # sed'd at build: > 0 = first N studies of the shard (6 = smoke)
-GOLD = True                # sed'd at build: True = the 58 gold studies (the spike), under BOTH input grids
-D4_GRID = "notebook"         # sed'd at build: "notebook" = the 0.942 graph's dense grid; "original" = D4's own Global96 grid
-SUB_CHUNK = 30               # sed'd at build: studies per D4 child run; a partial npz is flushed after each
+GOLD = False                # sed'd at build: True = the 58 gold studies (the spike), under BOTH input grids
+D4_GRID = "original"         # sed'd at build: "notebook" = the 0.942 graph's dense grid; "original" = D4's own Global96 grid
+SUB_CHUNK = 400               # sed'd at build: studies per D4 child run; a partial npz is flushed after each
 # D4 teacher pass (src/build_d4_teacher_pass.py): the 0.942 notebook's D4 CoAtNet child, verbatim, run over sub-chunks of
 # TRAINING studies, each presented to it as a competition root.
 import os, re, json, time, shutil, subprocess
@@ -328,7 +328,7 @@ print(f"competition root {COMP_IN}, training image tree {TRAIN_TREE}/", flush=Tr
 # never sit in the output directory, even when a guard-stopped run never reaches the final cell's cleanup.
 CHUNK_ROOT = Path("/tmp/rsna_d4_chunk"); CHUNK_ROOT.mkdir(parents=True, exist_ok=True)
 WORK = Path("/kaggle/working/d4_sub"); WORK.mkdir(parents=True, exist_ok=True)
-ALL_IDS = gold_study_ids(f"{COMP_IN}/train.csv")   # --gold: the 58 gold studies, not a shard
+ALL_IDS = chunk_study_ids(f"{COMP_IN}/train.csv", SHARD, N_SHARDS, LIMIT)
 # Resume: complete rows of earlier runs of this shard and grid (mounted from a sibling slug) go first in every output.
 _TEACHER_PRIOR_UIDS, _TEACHER_PRIOR_RAW = load_prior(INPUT_ROOT, keep=set(ALL_IDS), view=D4_VIEW)
 skip = set(_TEACHER_PRIOR_UIDS)
