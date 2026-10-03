@@ -62,7 +62,8 @@ result*, per unit of cost. "Depends on" lists hard blockers only. EVs are solo-L
 | 0f | P-58 | Local-CPU open-weights LLM relabel as a 4th vote (Scott's Gemma route) | 💡 future, not scheduled (Tian 2026-09-28) | 0..+0.002 | 0 GPU; overnight CPU | — |
 | 0g | P-61 | CoAtNet learning-rate probe upward (`lr_backbone` 2e-4, LLRD 0.85) | 💡 new 2026-09-29 (from P-59) | 0..+0.005 — the CoAtNet trains under the LLRD that under-trained the ResNet by 0.069 on gold | ≈ 3 GPU-h (2 arms, c03) or ≈ $5 RunPod; 2 solos | — |
 | 0h | P-60 | "Noisy student" regularisation on the c03 CoAtNet (`v11n` / `v11n2`: drop-path 0.1, heavy aug, 12 epochs) | ⏳ **part 1 DONE = `rsna-knee-folds` v11** (2.61 h, green: both arms guard-stopped in epoch 5, `_last.pt` ×2; gold-58 EMA at epoch 4 `v11n` 0.9166 / `v11n2` 0.9129 = `v11a` / `v11b` at their epoch 4, direction only); **part 2 = `rsna-knee-train` v39, pushed 2026-10-03 09:08 UTC (≈ 3.0 h) ⏳; do not push `rsna-knee-folds` before it is green** | +0.002..0.008 (literature + every prior RSNA winner) | ≈ $4 RunPod, 2 solos | — |
-| 0i | P-62 | Silence-aware teacher mix (Raptor 0.75 where the report is silent, 0.5 where it speaks) | ⏳ **real run = new slug `rsna-knee-train-b` v1, pushed 2026-10-03 09:09 UTC** (≈ 3.5 h; Tian 10-03: "push our work"), in parallel with P-60 part 2 — implemented 2026-10-01 (arms `v11s` ‖ `v11s2`; Kaggle smoke `rsna-knee-train` v38 green); priced on gold-58 at target level: 0.9300 vs 0.9268 (+0.0032, SD 0.0018; flat mixes at the same mean Raptor weight +0.0004) | 0..+0.002 — likely under the 0.004 one-seed floor | one c03 session ≈ 3.5 GPU-h + 2 solos | — |
+| 0i | P-62 | Silence-aware teacher mix (Raptor 0.75 where the report is silent, 0.5 where it speaks) | ⏸ **parked 2026-10-03: the real run (`rsna-knee-train-b` v1, pushed 09:09 UTC) was STOPPED by Tian at ≈ 09:28 UTC (≈ 0.3 GPU-h spent, nothing usable)** — its expected gain (+0.001..0.002) cannot reach its own ✅ bar (+0.0045), so it does not get a session of its own; a candidate to bundle into the final retrain only. Implemented 2026-10-01 (arms `v11s` ‖ `v11s2`; Kaggle smoke `rsna-knee-train` v38 green); priced on gold-58 at target level: 0.9300 vs 0.9268 (+0.0032, SD 0.0018; flat mixes at the same mean Raptor weight +0.0004) | 0..+0.002 — likely under the 0.004 one-seed floor | one c03 session ≈ 3.5 GPU-h + 2 solos | — |
+| 0j | P-63 | Per-finding spatial reader + slot-count correction (D4's head, ported at 224) | 💡 new 2026-10-03 (from the D4 recipe read) — the one structural head difference between D4 (gold 0.9302, gold-selected) and `v11a` (0.9204); D4's plain Global96 baseline with this reader reaches 0.925–0.927 on its gold-best epochs | unknown; a structural change, the kind that can clear the +0.0045 two-seed band | ≈ 60–80 lines + one c03 seed pair ≈ 4 GPU-h; 2 solos | P-45 first (GPU priority, Tian 10-03) |
 | 4 | P-50 | Final selection and publishability | 💡 decide by 2026-10-15 | decides what the private LB scores | a browser session; ≤ 1 fork check | P-40 ✅ closed (#22 / #27), Rules page |
 | 5 | P-18 | Efficiency track with the solo member | 💡 (robustness half shipped); candidates `v11a` 0.932 / `v13c` 0.921 at ⅓ the inference cost (#37) | a separate prize; unknown until the formula is read | 0 GPU h (CLI + browser) | Efficiency formula (browser) |
 | 6 | P-47 | Teacher-mix bracket: mix 0.75 only | 💡 low — P-49 priced it on Raptor itself: matched mix 0.75 − 0.5 = −0.002 (SD 0.003) on gold | ≈ 0 (+0.000..0.002) | per-arm `TEACHER_MIX` code + ≈ 2.8 h; 1 solo | P-44 floor, an idle slot |
@@ -381,7 +382,7 @@ If it fails:  n/a.
 Depends on:   P-50 (decision), P-44 (seed averaging).
 
 ### P-62 Silence-aware teacher mix
-Status:       ⏳ **real run = `rsna-knee-train-b` v1** (a new third slug, so `rsna-knee-folds` stays untouched while P-60 part 2 may
+Status:       ⏸ **PARKED 2026-10-03** — Tian stopped the real run (`rsna-knee-train-b` v1) ≈ 20 min in, on the GPU-budget rule "no session for a change that cannot clear its own read band" (expected +0.001..0.002 vs the +0.0045 ✅ bar). Re-open only bundled into the final retrain (P-50). Was: ⏳ **real run = `rsna-knee-train-b` v1** (a new third slug, so `rsna-knee-folds` stays untouched while P-60 part 2 may
               still need it), pushed 2026-10-03 09:09 UTC from `artifacts/train_p62_real.py` with the c03-only metadata (Tian 10-03:
               "push our work"); ≈ 3.5 h. 🔧 **implemented 2026-10-01, Kaggle smoke `rsna-knee-train` v38 GREEN** (0.04 h: both children `teacher table raptor_teacher: 4349`, the `P-62: report-silent cells … mix at 0.75` line, `reseeded 43 for arm v11s2`, SWA, `ok  arm` ×2): `TEACHER_SILENT_MIX` (config cell, sed'd per
               session) + `silence_mask` / per-cell `mix_teacher` in `src/kaggle_pipeline.py` and `src/build_targets.py`
@@ -408,6 +409,33 @@ Cost:         code done (above); one c03 session ≈ 3.5 GPU-h (session D: 3.53 
 If it works:  every later member trains on the silence-aware target.
 If it fails:  the target is not binding at this resolution; the label side closes except a second image teacher (P-45).
 Depends on:   GPU after the 2026-10-03 reset; P-60 part 2 first (it holds the resume).
+
+### P-63 Per-finding spatial reader + slot-count correction (D4's head, ported at 224)
+Status:       💡 new 2026-10-03.
+Hypothesis:   our window head global-average-pools each window to one 768-d vector before any label sees it, which loses small
+              findings (Fracture, Contusion, the menisci); one attention query per finding over the backbone's patch grid (85 %
+              attention + 15 % average pool, logit cap 2) plus a log slot-count correction on the window-attention logits lifts the
+              c03 member solo above m(`v11a`, `v11b`) = 0.9305.
+Origin:       read of D4's shipped training + inference code (`artifacts/d4_ds/`, Dataset
+              `mattiaangeli/rsna-knee-coatnet-d4-depthzone-swa3-b2`, CC0; subagent read 2026-10-03, file:line cited there):
+              per-finding spatial reader `coatnet_global96_inference_model.py:23-83`, count correction `:175-247`; its ablation note
+              calls the 85/15 reader "successful" and a learned attention/GAP mixture "failed" (no numbers).
+Evidence:     D4's plain Global96 baseline (same trainer lineage, the reader, no FSX / depth adapter) reads 0.9274 / 0.9267 / 0.9250 on
+              its gold-best epochs (0.9305 averaged) — the FSX + depth-zone stack adds ≈ 0 on gold, so the reader + input are what
+              separates it from our 0.9204; but every one of those numbers is gold-selected. Other D4 differences, NOT in this card:
+              CoAtNet-2 @384 / 130 mm (our `v10c` @384 ≈ `v09h` @224 on fold 0, `v09x` @320 +0.002 LB), a 0.075 pairwise rank loss on
+              detached features + 24-study label-balanced groups, 24 epochs OneCycle at flat backbone 3e-5 (our 3e-5 at 8 epochs was
+              −0.013, P-34), no EMA, almost no augmentation. With our 22/22/22/12/6/6 windows each fluid slot gets ≈ 3.7× the
+              attention prior of a T1 slot — the count correction removes that.
+Measure:      arms on the `v11a` recipe (c03, Raptor 0.5, 8 ep, SWA) + the reader + count correction, seeds 42 / 43, one PARALLEL_ARMS
+              session; two solos, m vs 0.9305.
+Noise floor:  ✅ m ≥ 0.935 / 🔁 0.926 < m < 0.935 / ❌ m ≤ 0.926 (the P-56 band).
+Cost:         ≈ 60–80 lines (encoder returns the feature map; the window head takes per-label vectors) + unit checks in
+              `window_head_test.py`; ≈ 4 GPU-h; 2 solos.
+If it works:  the reader joins the production recipe; then the rank loss + label-balanced groups as one bundled arm, and 384 px only
+              if both read positive.
+If it fails:  the head is not where D4's lead comes from — most of that lead is gold selection.
+Depends on:   P-45 (GPU priority).
 
 ### P-51 Teacher-aware confidence weights
 Status:       💡 low (new 2026-09-27).
