@@ -40,7 +40,11 @@
     "tiankljucanin/rsna-knee-ckpt-v11n",
     "tiankljucanin/rsna-knee-ckpt-v11n2",
     "tiankljucanin/timm-resnet50-a1",
-    "tiankljucanin/timm-efficientnet-b0-ra"
+    "tiankljucanin/timm-efficientnet-b0-ra",
+    "tiankljucanin/rsna-knee-ckpt-v11p",
+    "tiankljucanin/rsna-knee-ckpt-v13h",
+    "tiankljucanin/rsna-knee-ckpt-v11d",
+    "tiankljucanin/rsna-knee-ckpt-v11dl"
   ],
   "kernel_sources": [],
   "competition_sources": [

@@ -107,6 +107,7 @@ Judge label changes on **coverage** (does the rule fire at all, per language) an
 | 2026-09-30 | **Silence-aware teacher mix, priced on gold-58 at target level (0 GPU)**: Raptor weight 0.75 on pilkwang-`UNK` cells, 0.5 on addressed cells | target gold **0.9300 vs flat 0.5 0.9268** (+0.0032, SD 0.0018, 5 / 1 labels); flat mixes at the same mean Raptor weight +0.0004 | — | **🔁 direction only** — the gain is where Raptor speaks, not how much; Raptor is optimistic on gold and the student shrinks target gains → card P-62 (entry "Silence-aware teacher mix") |
 | 2026-10-03 | **P-45 step 1 + spike + pass (0.1 + 2.37 GPU-h)**: D4 (public CoAtNet-2 @384) as a second image teacher — gold analog 0.5 LLM + 0.25 Raptor + 0.25 D4 **0.9331 vs 0.9268**; spike reproduces D4's gold reference (0.9301 vs 0.9302); full pass 4,349/4,349, in-sample check ρ D4~LLM 0.695 (Raptor 0.652) | target analog only | — | **🔁 direction only → the student pair `v11d` ‖ `v11dl` runs (session B, `rsna-knee-train` v41)** |
 | 2026-10-03 | **P-60 part 2 (`rsna-knee-train` v39, 2.84 h)**: `v11n` ‖ `v11n2` resumed at epoch 6, SWA 9–11 | gold-58 SWA **0.9152 / 0.9166** (`v11a` / `v11b` 0.9204 / 0.9167) | **0.932 / 0.932** (#39 / #40) | **🔁 INCONCLUSIVE: m = 0.932 vs 0.9305 (+0.0015, band 0.926–0.935)** — heavy regularisation + 12 epochs = the plain recipe on the LB; seeds agree (0.932 / 0.932 vs 0.932 / 0.929); 1.5× the training time |
+| 2026-10-03 | **Sessions A (`rsna-knee-train-b` v4, 4.40 h) ‖ B (`rsna-knee-train` v41, 3.82 h)**, c03, one seed each: `v11p` = `v11a` + P-63 spatial reader + slot-count norm · `v13h` = P-64 ResNet-34, heavy aug, drop-path 0.1, 30 ep · `v11d` = `v11a` recipe on 0.5 LLM + 0.25 Raptor + 0.25 D4 (P-45) · `v11dl` = `v11d` + lr 2e-4 / LLRD 0.85 (P-61) | gold-58 SWA **0.9185 / 0.9001 / 0.9184 / 0.9132** (`v11a` 0.9204, `v13c` 0.9014) | ⏳ solos | **✅ runs green, 🔁 gold flat for all four** (direction only) — solos `v11p` / `v13h` / `v11d` 2026-10-03, `v11dl` 2026-10-04 (entry "Sessions A ‖ B") |
 
 **External reference points** (not ours — for calibrating ambition):
 
@@ -2805,6 +2806,44 @@ training.
 `PARALLEL_ARMS = ("v11d", "v11dl")`, `TEACHER_TABLES = ("raptor_teacher", "d4_teacher")`, mix 0.5 → 0.5 LLM + 0.25 matched Raptor +
 0.25 matched D4. `v11d` is the `v11a` recipe and reads P-45; `v11dl` adds lr 2e-4 / LLRD 0.85 and reads P-61 against `v11d` in
 the same session. Kaggle smoke v40 was green (both tables read; LR ranges 2.4e-5 → 1e-4 vs 8.9e-5 → 2e-4).
+
+### 2026-10-03 — Sessions A (`rsna-knee-train-b` v4, 4.40 h) ‖ B (`rsna-knee-train` v41, 3.82 h): four c03 arms, gold-58 SWA `v11p` **0.9185** · `v13h` **0.9001** · `v11d` **0.9184** · `v11dl` **0.9132** vs `v11a` 0.9204 / `v13c` 0.9014 · ✅ runs green, 🔁 gold flat (direction only) · solos next
+
+Both pushed ≈ 12:21 / 12:35 UTC, COMPLETE before 17:20 UTC. Every child log has the right teacher table(s) (`raptor_teacher: 4349`,
+plus `d4_teacher: 4349` in B), cache `c02_p336_b24-24-24-14-8-8_band2-98_crop150_lat20` (= c03), `SWA of last 3`,
+`-> <arm>_fold0_best.pt = SWA`, no runtime guard (traps 47 checked). `v13h`: `freeze_bn: 36 encoder BatchNorm`, drop-path 0.1, LR
+3e-4 uniform, epochs 0–29. `v11dl`: LR 8.87e-05 .. 2.00e-04 (decay 0.85). One seed (42) per idea.
+
+Gold-58 per label (SWA; `v11a` = c03 production recipe, `v13c` = 12-epoch light-aug ResNet-34):
+
+| label | `v11a` | `v11p` (P-63) | `v11d` (P-45) | `v11dl` (P-61) | `v13c` | `v13h` (P-64) |
+|---|---|---|---|---|---|---|
+| ACL | 0.962 | 0.966 | 0.939 | 0.947 | 0.950 | 0.972 |
+| MCL | 0.955 | 0.964 | 0.952 | 0.934 | 0.844 | 0.898 |
+| Medial Meniscus | 0.958 | 0.950 | 0.965 | 0.972 | 0.953 | 0.940 |
+| Lateral Meniscus | 0.896 | 0.916 | 0.882 | 0.872 | 0.870 | 0.827 |
+| Medial OA | 0.986 | 0.988 | 0.986 | 0.992 | 0.975 | 0.988 |
+| Lateral OA | 0.822 | 0.828 | 0.838 | 0.818 | 0.826 | 0.836 |
+| PF OA | 0.837 | 0.844 | 0.844 | 0.813 | 0.840 | 0.865 |
+| Effusion | 0.969 | 0.954 | 0.966 | 0.978 | 0.954 | 0.906 |
+| Synovitis | 0.806 | 0.784 | 0.806 | 0.799 | 0.805 | 0.779 |
+| Baker's | 0.966 | 0.989 | 0.973 | 0.980 | 0.998 | 0.975 |
+| Contusion | 0.947 | 0.928 | 0.931 | 0.934 | 0.906 | 0.945 |
+| Fracture | 0.942 | 0.912 | 0.938 | 0.918 | 0.896 | 0.872 |
+| **macro** | **0.9204** | **0.9185** | **0.9184** | **0.9132** | **0.9014** | **0.9001** |
+
+- `v11p` vs `v11a` −0.002 (7 up / 5 down); `v11d` vs `v11a` −0.002 (4 up / 6 down); `v11dl` vs `v11d` −0.005 (6 / 6); `v13h` vs
+  `v13c` −0.001 (6 / 6). All far inside the 0.05 gold floor; signs scatter like seeds.
+- **`v13h`'s curve plateaus at ≈ 0.900 from epoch 12** (0.9000 at 12, 0.9023 peak at 18, 0.9000 at 29): on gold, 30 epochs + heavy
+  aug buy nothing over `v13c`'s 12. Gold has inverted the LB order in ≥ 4 forum reports (research.md 2.7.3), so the solo decides.
+- **`v11dl` (P-61) learns slower early and ends lower** (epoch 2 0.876 vs `v11d` 0.896; final EMA 0.9147 vs 0.9178).
+- Within-class ρ to `v11a` on gold: `v11p` 0.965, `v11d` 0.964 (seed-like); `v13h` 0.920 (= `v13c` 0.922). Gold rank-means:
+  `v11a` + `v11d` 0.9222, `v11a` + `v11p` 0.9213, `v11a` + `v13h` 0.9170 (direction only).
+
+Kaggle GPU 14.10 / 30 h after both (resets 2026-10-10). **Verdict: ✅ the runs are green and shippable; 🔁 gold is flat for all four
+ideas (none clears its floor either way).** Read rules pre-registered in handoff 2026-10-03: `v11p` / `v11d` vs `v11a` 0.932 — ✅
+≥ 0.936 / 🔁 0.929–0.935 / ❌ ≤ 0.928; `v13h` vs `v13c` 0.921 — ✅ ≥ 0.925, matters as a member ≥ 0.930, CNN line becomes the main
+bet ≥ 0.935; `v11dl` vs `v11d` ± 0.004. Solos `v11p`, `v13h`, `v11d` tonight, `v11dl` 2026-10-04.
 
 ## Infrastructure
 
