@@ -674,6 +674,11 @@ def main():
           and ch.aug == "heavy" and ch.drop_path == 0.1 and ch.epochs == 30 and ch.swa_last == 3
           and K["cache_version_for"](ch) == K["cache_version_for"](c11a) and da["v13h"] == ("raptor_teacher",),
           f"v13h = v13c + c03 input + heavy aug + drop_path 0.1 + 30 epochs ({sorted(diff)})")
+    for a, bb in (("v13r", "timm:resnet50"), ("v13e", "timm:efficientnet_b0")):
+        cx = Config(smoke=False, **arms[a])
+        diff = {k for k in K["asdict"](cx) if getattr(cx, k) != getattr(ch, k)} - {"version"}
+        check(diff == {"backbone"} and cx.backbone == bb and da[a] == ("raptor_teacher",),
+              f"{a} = v13h with backbone {bb} ({sorted(diff)})")
 
     print("\n" + ("UNIT CHECKS PASSED" if not fails else f"UNIT CHECKS FAILED ({len(fails)}):\n  - " + "\n  - ".join(fails)))
     sys.exit(1 if fails else 0)

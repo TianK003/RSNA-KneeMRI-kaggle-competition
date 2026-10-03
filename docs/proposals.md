@@ -462,7 +462,11 @@ Measure:      `v13h` solo vs `v13c` 0.921 (one seed; the P-44 floor 0.004) and v
               pair `v11a` + `v13h` vs `v11a` alone.
 Noise floor:  one-seed delta ≥ 0.004 (P-44).
 Cost:         ≈ 3.4 GPU-h inside a two-arm session (ResNet-34 ≈ 6 min/epoch on c03, est.); 1 solo.
-If it works:  a second family for the 3–5-member ensemble; then EfficientNet-B0 / ResNet-50 variants and 40–50 epochs.
+If it works:  a second family for the 3–5-member ensemble; then EfficientNet-B0 / ResNet-50 variants and 40–50 epochs. **Staged
+              2026-10-03:** arms `v13r` (ResNet-50 a1) / `v13e` (EfficientNet-B0 ra) = `v13h` with the backbone swapped; private weight
+              Datasets `timm-resnet50-a1` / `timm-efficientnet-b0-ra` mounted in train / train-b / infer; unit + local smoke green
+              (`artifacts/train_sC_*.py`). The case for the CNN line: SpeedSci's CNNs read 0.940 on the LB vs their CoAtNet's 0.926,
+              and Tucker reports "low 0.95s" with ResNet-34 / EfficientNet-B0 on plain Qwen labels (745214).
 If it fails:  the CNN family stays an Efficiency-track candidate only (P-18).
 Depends on:   —.
 

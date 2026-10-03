@@ -364,6 +364,12 @@ SHIPPED_ARMS = [
     ("v11dl", {**PROD, **V09R_KW, **C03_KW, "lr_backbone": 2e-4, "llrd_decay": 0.85}),
     ("v13h", {**PROD, **V09R_KW, **C03_KW, "backbone": "timm:resnet34", "lr_backbone": 3e-4, "llrd_decay": 1.0,
               "freeze_bn": True, "aug": "heavy", "drop_path": 0.1, "epochs": 30}),
+    # 2026-10-03 (P-64 follow-ups, staged): the v13h recipe on the forum's strongest CNNs -- ResNet-50 (CoolinLai 5-fold
+    # @224 = 0.954; SpeedSci 0.940) and EfficientNet-B0 (Tucker "low 0.95s"). Run only if v13h reads well.
+    ("v13r", {**PROD, **V09R_KW, **C03_KW, "backbone": "timm:resnet50", "lr_backbone": 3e-4, "llrd_decay": 1.0,
+              "freeze_bn": True, "aug": "heavy", "drop_path": 0.1, "epochs": 30}),
+    ("v13e", {**PROD, **V09R_KW, **C03_KW, "backbone": "timm:efficientnet_b0", "lr_backbone": 3e-4, "llrd_decay": 1.0,
+              "freeze_bn": True, "aug": "heavy", "drop_path": 0.1, "epochs": 30}),
 ]
 ARM_V10C = ("v10c", {**C02, "backbone": "timm:coatnet_rmlp_2_rw_384", "img_size": 384,
                      "lr_backbone": 1e-4, "eval_windows": 42, "grad_checkpoint": True})
@@ -487,7 +493,8 @@ DISTILLED_ARMS = {"v09s": ("selfdistill_v1",), "v09t": ("selfdistill_v1",),
                   "v11p": ("raptor_teacher",), "v11p2": ("raptor_teacher",),
                   "v11d": ("raptor_teacher", "d4_teacher"), "v11d2": ("raptor_teacher", "d4_teacher"),
                   "v11nd": ("raptor_teacher", "d4_teacher"), "v11nd2": ("raptor_teacher", "d4_teacher"),
-                  "v11dl": ("raptor_teacher", "d4_teacher"), "v13h": ("raptor_teacher",)}
+                  "v11dl": ("raptor_teacher", "d4_teacher"), "v13h": ("raptor_teacher",),
+                  "v13r": ("raptor_teacher",), "v13e": ("raptor_teacher",)}
 # 2026-09-28 (traps 40's second gap): the mix a distilled arm must train with; every other distilled arm trains at 0.5.
 DISTILLED_MIX = {"v09o": 0.75, "v09o2": 0.75}
 # P-62: the silent-cell mix an arm must train with; every arm not listed trains without one (TEACHER_SILENT_MIX = None).

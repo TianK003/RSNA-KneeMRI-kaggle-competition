@@ -17,7 +17,9 @@
     "tiankljucanin/timm-coatnet-rmlp-1-rw-224",
     "tiankljucanin/timm-coatnet-rmlp-2-rw-384",
     "tiankljucanin/rsna-knee-teacher-tables",
-    "tiankljucanin/timm-resnet34-a1"
+    "tiankljucanin/timm-resnet34-a1",
+    "tiankljucanin/timm-resnet50-a1",
+    "tiankljucanin/timm-efficientnet-b0-ra"
   ],
   "kernel_sources": [
     "tiankljucanin/rsna-knee-cache3-a",
