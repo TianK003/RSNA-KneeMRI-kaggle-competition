@@ -662,6 +662,17 @@ def main():
     check(all(da[a] == ("raptor_teacher", "d4_teacher") and a not in dm for a in ("v11d", "v11d2", "v11nd", "v11nd2"))
           and all(da[a] == ("raptor_teacher",) for a in ("v11p", "v11p2")) and "d4_teacher" in K["TEACHER_PATHS"],
           "v11d* / v11nd* train on Raptor + D4 at mix 0.5 (0.5 LLM + 0.25 + 0.25); v11p* on Raptor alone")
+    cdl, cd_ = Config(smoke=False, **arms["v11dl"]), Config(smoke=False, **arms["v11d"])
+    diff = {k for k in K["asdict"](cdl) if getattr(cdl, k) != getattr(cd_, k)} - {"version"}
+    check(diff == {"lr_backbone", "llrd_decay"} and cdl.lr_backbone == 2e-4 and cdl.llrd_decay == 0.85
+          and da["v11dl"] == da["v11d"], f"v11dl = v11d + lr_backbone 2e-4 / llrd_decay 0.85 on the same tables ({sorted(diff)})")
+    ch, cc_ = Config(smoke=False, **arms["v13h"]), Config(smoke=False, **arms["v13c"])
+    diff = {k for k in K["asdict"](ch) if getattr(ch, k) != getattr(cc_, k)} - {"version"}
+    check(diff == {"cache_slot_slices", "crop_mm", "train_windows", "aug", "drop_path", "epochs"}
+          and ch.backbone == "timm:resnet34" and ch.freeze_bn and ch.lr_backbone == 3e-4 and ch.llrd_decay == 1.0
+          and ch.aug == "heavy" and ch.drop_path == 0.1 and ch.epochs == 30 and ch.swa_last == 3
+          and K["cache_version_for"](ch) == K["cache_version_for"](c11a) and da["v13h"] == ("raptor_teacher",),
+          f"v13h = v13c + c03 input + heavy aug + drop_path 0.1 + 30 epochs ({sorted(diff)})")
 
     print("\n" + ("UNIT CHECKS PASSED" if not fails else f"UNIT CHECKS FAILED ({len(fails)}):\n  - " + "\n  - ".join(fails)))
     sys.exit(1 if fails else 0)
