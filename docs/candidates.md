@@ -9,7 +9,7 @@ How this file relates to the others:
 - **This file is only the queue.** When a candidate is read, its row is deleted here and its score goes to experiments.md
   (Submissions table + Scoreboard) through `/update`. Never keep a score in two places.
 
-Updated 2026-10-04 (16:50 UTC). Nothing has been sent yet: 5 submissions on 10-05, and 5 on every later UTC day to the 10-22 deadline.
+Updated 2026-10-04 (18:20 UTC). The 10-05 five go out automatically at 00:00:30 UTC (see "Order"); 5 more on every later UTC day to the 10-22 deadline.
 
 ## Baselines every read is compared against
 
@@ -41,10 +41,10 @@ new `rsna-knee-infer` placeholder (≈ 10 GPU-min; recipe at the bottom).
 |---|---|---|---|---|
 | B1 | `v11a` + `v13h` + `v13r` + `v13e` | Does a fourth member (ResNet-34) add to the trio? | **v45** ✅ | 0.9186 |
 | B2 | `v13h` + `v13r` + `v13e` (CNN trio) | Is the CoAtNet needed? Read: ≥ 0.938 means it is not | **v46** ✅ | 0.9129 |
-| B3 | `v11a` + `v13r` + `v13b3` | B3 swapped in for B0. Same size as #48, so the difference is B3 | build | 0.9254 |
+| B3 | `v11a` + `v13r` + `v13b3` | B3 swapped in for B0. Same size as #48, so the difference is B3 | **v52** ✅ | 0.9254 |
 | B4 | `v11a` + `v13r` + `v13e` + `v13b3` | Does adding B3 lift our best ensemble? | build | 0.9250 |
 | B5 | `v11a` + `v13r` + `v13e` + `v13e2` | Does a second B0 seed help inside the ensemble? | build | 0.9238 |
-| B6 | `v11a` + `v13r` + `v13e` + `v13b3` + `v13e2` | Our strongest own lineup: the candidate for our own final pick (P-50) | build | 0.9256 |
+| B6 | `v11a` + `v13r` + `v13e` + `v13b3` + `v13e2` | Our strongest own lineup: the candidate for our own final pick (P-50) | **v51** ✅ | 0.9256 |
 | B7 | `v11a` + `v13b3` | The two best families alone, as a pair | build | 0.9267 |
 | B8 | all 8: `v11a`, `v13h`, `v13r`, `v13e`, `v13b3`, `v13e2`, `v13es`, `v13rs` | Does "everything" beat a curated 3–5? (Tian prefers 3–5) | build | 0.9217 |
 | B9 | `v11a` + `v13rs` + `v13es` | #48 with the P-62 members swapped in | build | 0.9224 |
@@ -57,14 +57,13 @@ new `rsna-knee-infer` placeholder (≈ 10 GPU-min; recipe at the bottom).
 | C2 | Public stack + the best ensemble from B (e.g. B6) at β 0.45 | The same question with a stronger own leg | as C1 | build (`src/build_fork.py`) after C1 and B are read |
 | — | Fork at other β | **Not planned:** it tunes a weight to the public LB | — | — |
 
-## Proposed order (Tian picks)
+## Order
 
-- **10-05, my recommendation:**
-  - C1, sent first;
-  - A1 and A2, because they decide what the next GPU run trains;
-  - B6, our best own-pick candidate;
-  - B3, which, read next to B6, separates "B3 helps" from "more members help".
-  - The default in the 2026-10-04 handoff (C1, B1, B2, A3 ×2) is also fully built.
+- **10-05, Tian's pick (= my recommendation):** C1, A1, A2, B6, B3.
+  - Sent **automatically** at 00:00:30 UTC by `src/auto_submit.py --plan artifacts/submit_plan_1005.json`, a detached process started
+    2026-10-04 18:18 UTC.
+  - Order: fork v11, infer v47, v48, v51, v52. Each message carries its read rule.
+  - Log: `artifacts/auto_submit_1005.log`. Per-ref watchers: `artifacts/watch_<ref>.log`.
 - **10-06:**
   - A3, the P-62 pair: it only needs reading before E is trained;
   - B1 and B2;
