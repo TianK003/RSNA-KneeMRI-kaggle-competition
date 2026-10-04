@@ -105,7 +105,8 @@ def main():
     for bb, img in (("dinov2", 224), ("convnext_tiny", 224),
                     ("timm:coatnet_rmlp_1_rw_224", 224), ("timm:coatnet_rmlp_1_rw_224", 320),   # P-43 v09x
                     ("timm:coatnet_rmlp_2_rw_384", 384), ("timm:resnet34", 224),           # P-57 v13a
-                    ("timm:resnet50", 224), ("timm:efficientnet_b0", 224)):                 # P-64 follow-ups
+                    ("timm:resnet50", 224), ("timm:efficientnet_b0", 224),                  # P-64 follow-ups
+                    ("timm:efficientnet_b3", 288)):                                        # v13b3 (staged 10-04)
         try:
             K["resolve_backbone_dir"](bb)
         except SystemExit as e:
@@ -122,7 +123,8 @@ def main():
         lrs = sorted({g["lr"] for g in groups})
         # a ResNet has no final norm above its last stage, so its top group is layer4 at lr_backbone * llrd_decay -- the
         # rate CoAtNet's last stage gets too (only CoAtNet's `norm.*` sits at lr_backbone itself)
-        top = cfg.lr_backbone * (cfg.llrd_decay if bb in ("timm:resnet34", "timm:resnet50", "timm:efficientnet_b0") else 1.0)
+        top = cfg.lr_backbone * (cfg.llrd_decay if bb in ("timm:resnet34", "timm:resnet50", "timm:efficientnet_b0",
+                                                       "timm:efficientnet_b3") else 1.0)
         check(lrs[-1] == cfg.lr_head and any(abs(l - top) < 1e-12 for l in lrs),
               f"{bb}: LR set {['%.1e' % l for l in lrs]}")
         model.eval()
@@ -679,6 +681,16 @@ def main():
         diff = {k for k in K["asdict"](cx) if getattr(cx, k) != getattr(ch, k)} - {"version"}
         check(diff == {"backbone"} and cx.backbone == bb and da[a] == ("raptor_teacher",),
               f"{a} = v13h with backbone {bb} ({sorted(diff)})")
+    # 2026-10-04: P-62 / P-65 arms are their parents unchanged (the session seds carry the difference); v13b3 = B3 @ 288
+    for a, par, tabs in (("v13es", "v13e", ("raptor_teacher",)), ("v13rs", "v13r", ("raptor_teacher",)),
+                         ("v13ec", "v13e", ("claude_rap_v1",)), ("v13rc", "v13r", ("claude_rap_v1",))):
+        cx, cp = Config(smoke=False, **arms[a]), Config(smoke=False, **arms[par])
+        diff = {k for k in K["asdict"](cx) if getattr(cx, k) != getattr(cp, k)} - {"version"}
+        check(not diff and da[a] == tabs, f"{a} = {par} (recipe identical; tables {tabs}) ({sorted(diff)})")
+    cx = Config(smoke=False, **arms["v13b3"])
+    diff = {k for k in K["asdict"](cx) if getattr(cx, k) != getattr(ch, k)} - {"version"}
+    check(diff == {"backbone", "img_size"} and cx.img_size == 288 and da["v13b3"] == ("raptor_teacher",),
+          f"v13b3 = v13h with backbone efficientnet_b3 @ 288 ({sorted(diff)})")
 
     print("\n" + ("UNIT CHECKS PASSED" if not fails else f"UNIT CHECKS FAILED ({len(fails)}):\n  - " + "\n  - ".join(fails)))
     sys.exit(1 if fails else 0)
