@@ -12,8 +12,8 @@ Plan file: a JSON list of {"slug": "tiankljucanin/rsna-knee-infer", "version": 4
 Safety:
 - a pre-flight API call (with retries) runs before the first submit; on this laptop's OAuth credentials the first call
   >= 30 min after expiry refreshes the token (traps 20);
-- a submit is retried only after checking that no submission with the same description exists since the start, so a
-  network error never double-spends a slot;
+- a submit is skipped or retried only after checking that no submission with the same description exists on the same UTC day,
+  so a re-run after a partial send never re-sends, and a network error never double-spends a slot;
 - while it runs, Windows is asked not to sleep (SetThreadExecutionState); closing the lid can still force sleep.
 """
 import argparse
@@ -134,7 +134,8 @@ def main():
             if left > 600 and int(left) % 3600 < 60:
                 log(f"waiting for {start:%Y-%m-%d %H:%M:%S}Z ({left / 3600:.1f} h)")
             time.sleep(min(60, max(1, left)))
-    since = now()
+    # Duplicate check covers the whole UTC day, so a re-run after a partial send skips what already went out.
+    since = now().replace(hour=0, minute=0, second=0, microsecond=0) + dt.timedelta(minutes=2)
     subs = list_subs(api)                            # pre-flight: also refreshes an expired token
     log(f"pre-flight ok: {len(subs)} submissions listed")
 

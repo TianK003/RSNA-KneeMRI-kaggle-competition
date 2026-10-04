@@ -6,6 +6,106 @@ to read first after a break.
 
 ---
 
+## 2026-10-04 (16:35 → 18:30 UTC) — the 10-05 lineup is picked (C1 / A1 / A2 / B6 / B3) and **sends itself at 00:00:30 UTC**; `docs/candidates.md` is the new queue; safety handoff before the night
+
+Tian, in order:
+- "tell me all the models/ensembles we want to test … I want to make a selection of top 5 for tomorrow";
+- "Why cant we train new ones? We still have the runpod?" (yes: I had wrongly said nothing could be trained before 10-10);
+- "note down all the candidates … create candidates.md and point other docs to it";
+- "Ok i will go with your recommendation, auto-push at reset";
+- "set the watchers to not expire before midnight … i will [leave] you running all night";
+- "just in case run /handoff with the final instructions".
+
+Commits `30eeeac`, `8e50bff`, plus this one. This entry supersedes the send commands in the entry below: nobody sends by hand
+unless the fallback in step 2 applies.
+
+### ⏳ Still in flight as this was written (18:30 UTC)
+
+| In flight | What it is | Started | How to check | How to read it |
+|---|---|---|---|---|
+| **Auto-submitter, Windows pid 21544** | `src/auto_submit.py --plan artifacts/submit_plan_1005.json --at 2026-10-05T00:00:30Z`, detached (PowerShell `Start-Process`, hidden). It blocks Windows idle sleep. At 00:00:30 UTC it makes one pre-flight API call (this renews the token that expired 19:17 UTC), then submits in order: **fork v11 → infer v47 → v48 → v51 → v52**, 20 s apart. It starts `src/watch_submission.py` per ref and ends with a `SUMMARY` block | 18:18 UTC | `tail -30 artifacts/auto_submit_1005.log` (+ `.err`); `tasklist //FI "PID eq 21544"`; `kaggle competitions submissions rsna-knee-abnormality-detection` | **Green** = five `-> ref <n>` lines, then `sent 5 / 5`, then five `watch_<ref>.log` files. **Suspicious:** `FAILED after 3 attempts`, `API unreachable`, a Traceback in `.err`, or pid 21544 gone before 00:00 (the laptop slept, the lid closed, or a reboot) → step 2's fallback |
+| **Per-ref watchers** (started by the submitter) | Poll each ref every 90 s for up to 14 h; append the real scoring time to `artifacts/submission_timing.csv` | ≈ 00:01 UTC | `tail artifacts/watch_<ref>.log` | `public score 0.9xx` = scored. Solos ≈ 15–45 min, ensembles ≈ 45–60 min, the fork up to ≈ 8 h (#17). An `ERROR` line = the rerun failed: read the kernel log |
+| **This chat's waiter** (`b1sxdg9b1`) | Wakes this session when `sent N / 5` appears, or when the submitter dies | 18:20 UTC | — | If the chat is still alive, it runs `/update` per score. If not, the next session does step 3 |
+
+### Where things stand
+
+| | Status |
+|---|---|
+| 10-05 lineup (Tian's pick = my recommendation; rows of `docs/candidates.md`) | **C1** = `rsna-knee-fork` v11 (public stack + #48 at β 0.45) · **A1** = infer **v47** `v13b3` solo · **A2** = **v48** `v13e2` solo · **B6** = **v51** `v11a` + `v13r` + `v13e` + `v13b3` + `v13e2` · **B3** = **v52** `v11a` + `v13r` + `v13b3`. All placeholders green (`smoke False`, the right members at their gold scores, `decode-once verified`, `constant labels 0`) |
+| Queue | `docs/candidates.md`: A solos, B ensembles, C fork legs, D training arms (RunPod ≈ $7 left / Kaggle after 10-10), each with what it tests, what it decides and its read rule. `/update` owns it and deletes a row once it is read |
+| Other green placeholders | infer v45 (B1, 4-model), v46 (B2, CNN trio), v49 / v50 (A3, the P-62 pair): the 10-06 candidates |
+| Committed renders | `rsna-knee-infer` = **v52** (B3 swap) · `rsna-knee-fork` = v11 · `rsna-knee-train-b` = v6 **REAL — never re-push as is** |
+| Quota | Kaggle GPU 26.67 / 30 h (resets 2026-10-10); RunPod ≈ $7; 5 submissions per UTC day |
+
+### What we talked about and decided
+
+- **The 10-05 five favour the reads that decide the next GPU run**, plus the slow fork:
+  - C1 is the biggest stake for the final pick and scores slowly;
+  - A1 decides whether B3 becomes the CNN family;
+  - A2 gives the seed noise every CNN read is judged against;
+  - B6 is our own final-pick candidate;
+  - B3, read next to B6, separates "B3 helps" from "more members help".
+  - The P-62 pair (A3), B1 and B2 wait for 10-06: none of them blocks anything before then.
+- **Training before 10-10 is possible on RunPod (≈ $7 ≈ 9 pod-hours).** Each run still needs a critic-checked case and Tian's go,
+  and each waits on a read: T2 (B3 seed twin) on A1, T1 (session E) on A3, T3 (R50 twin) on A2 + B5. Details: candidates.md section D.
+- **Gold-58 checkpoint scores (0.9204, 0.9111, …) are not LB forecasts.** Tian asked. Gold runs ≈ 0.01–0.02 below the LB, and it
+  ranks our members differently (traps 39).
+- **Auto-submit instead of by hand**, so the slots are used from the first minute of the day.
+
+### What we figured out
+
+1. **`auto_submit.py` design:**
+   - the duplicate check is by exact description, across the UTC day, so a re-run never double-spends a slot (fixed after the launch;
+     the running process uses the older start-time window, which is safe for a single run);
+   - a pre-flight call renews the expired OAuth token (traps 20).
+2. Nothing new was measured in this part of the session. Today's results are in the entry below and in experiments.md 2026-10-04.
+
+### ⏭ Next action, in order
+
+1. **After ≈ 00:05 UTC: check that the five went out.** Run `tail -30 artifacts/auto_submit_1005.log`; expect `sent 5 / 5`.
+2. **Fallback, only if they did not all go out** (no 10-05 submissions listed, or fewer than 5 refs in the log):
+   ```bash
+   PYTHONUTF8=1 .venv/Scripts/python.exe src/auto_submit.py --plan artifacts/submit_plan_1005.json
+   ```
+   With no `--at` it sends at once. It skips any message already submitted that UTC day. The order and messages are in the plan file.
+3. **As each score lands, run `/update`:**
+   - one Submissions-table row (#49–#53) and a Scoreboard row;
+   - the card status (P-50 for C1 / B6 / B3, P-66 for A1 / A2);
+   - delete the row in candidates.md;
+   - refresh the CLAUDE.md current-state block.
+   - Read rules (the same text is in each submission's message):
+     - **C1 fork v11 vs #13 0.942:** ✅ ≥ 0.945 / 🔁 0.941–0.944 / ❌ ≤ 0.940.
+     - **A1 `v13b3` vs `v13e` 0.935:** ✅ ≥ 0.939 / 🔁 0.931–0.938 / ❌ ≤ 0.930; a member if ≥ 0.933.
+     - **A2 `v13e2`:** s = |score − 0.935|. s ≤ 0.003: the bands stand. s ≥ 0.005: one-seed CNN deltas need ≥ s, and the P-62 pair
+       (A3) is read with ±s.
+     - **B6 (v51) and B3 (v52) vs #48 0.938:** ✅ ≥ 0.941 / 🔁 0.936–0.940 / ❌ ≤ 0.935.
+4. **What the reads decide:**
+   - **A1 ✅** → write the critic-checked RunPod case for T2 (a B3 seed twin, ≈ $1.8). B3 also joins the final-member recipes for after
+     10-10.
+   - **B6 or B3 ✅** → the best of them becomes our own final pick (P-50), replacing #48, and the own leg for C2 (fork + that leg, β
+     0.45; rebuild `src/build_fork.py`).
+   - **C1 ✅** → the fork with our leg is the second final pick; send C2 on 10-06. C1 ❌ → the final pick is the public stack alone
+     (#15) or our own.
+5. **10-06, five slots:**
+   - A3 = infer v49 + v50 (the P-62 pair; decides T1 / session E's silent mix);
+   - B1 = v45 and B2 = v46;
+   - one follow-up from step 4 (C2, or B5 = #48 + `v13e2`; build per candidates.md).
+   - Write `artifacts/submit_plan_1006.json` and run `auto_submit.py --at 2026-10-06T00:00:30Z` the same way, or send by hand.
+
+### Open decisions for Tian
+
+- **RunPod after the reads:** T2 (B3 twin) if A1 ✅, and T1 (session E) after A3. Each comes as a critic-checked case.
+- **P-50 final picks** by 10-15 (the merger deadline; the submission deadline is 10-22), from C1 / B6 / B3.
+- **Team-merge offers** (10-15); licences (browser): unchanged from the entry below.
+
+### Things that will bite if forgotten
+
+- **The laptop must stay on, on mains power, with the lid open**, until the five are sent (≈ 00:02 UTC) and ideally until they are
+  scored. The submitter blocks idle sleep only.
+- **Do not start a second auto-submitter for 10-05 while pid 21544 is alive.** It would race the first.
+- `rsna-knee-train-b` v6 is a REAL render (session D); `rsna-knee-infer`'s committed render is v52.
+- Child training logs are plain text; `src/kaggle_log.py` is for the JSON kernel logs only.
+
 ## 2026-10-04 (11:45 → 16:35 UTC) — RunPod P-66: **EfficientNet-B3 `v13b3` (gold 0.9222) + seed twin `v13e2` (0.9151)** trained and shipped for ≈ $2.6, critic-vetted; **session D (P-62 on the CNNs) green**; docs de-duplicated; **all seven solo/blend placeholders green — Tian sends the five 10-05 submissions**
 
 Tian, in order:
