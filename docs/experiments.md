@@ -115,6 +115,7 @@ agreement with the teacher, not truth. A one-seed LB delta needs ≥ 0.004 (P-44
 | 2026-10-04 | **Session C (`rsna-knee-train` v43, 5.87 h)**: the `v13h` recipe (c03, CNN LR 3e-4 uniform, frozen BN, heavy aug, drop-path 0.1, 30 ep, Raptor 0.5) on ResNet-50 `v13r` ‖ EfficientNet-B0 `v13e` | gold-58 SWA **0.9111 / 0.9126** (`v13h` 0.9001) | **0.934 / 0.935** (#45 / #46) | **✅ `v13e` KEEP: 0.935 = our best solo (+0.004 vs `v13h`); 🔁 `v13r` +0.003** — blend `v11a` + `v13h` #47 0.934 (🔁 +0.002 over its best member); `v11dl` #44 0.927 (P-61 closed) (entries "Session C", "Submissions #44–#47") |
 | 2026-10-04 | **Cross-family blends (flat rank-mean, `rsna-knee-infer` v43 / v44)**: `v11a` + `v13h` (#47) · `v11a` + `v13r` + `v13e` (#48) | gold-58 0.9170 / 0.9233 | **0.934 / 0.938** | **🔁 by rule (+0.002 / +0.003 over the best member, bars 0.936 / 0.939) — but both above every member, unlike four flat same-family blends; 0.938 = our best own-model score** (entry "Submission #48") |
 | 2026-10-04 | **P-66 `v13b3` (RunPod RTX 4090, 2.2 h, ≈ $1.8)**: the `v13h` recipe on EfficientNet-B3 @ 288 (c03, Raptor 0.5, 30 ep, SWA 27–29) | gold-58 SWA **0.9222** (`v13e` 0.9126; 6 up / 5 down; menisci, ACL, Fracture up) | ⏳ (solo 10-06) | **✅ run green; 🔁 direction only (+0.0096, floor 0.05)** — read vs `v13e` 0.935: ✅ ≥ 0.939 / 🔁 0.931–0.938 / ❌ ≤ 0.930; seed twin `v13e2` training on the same pod (entry "P-66 on RunPod") |
+| 2026-10-04 | **P-66 `v13e2` (RunPod RTX 4090, 65 min)**: `v13e` exactly at seed 43, the first CNN seed twin | gold-58 SWA **0.9151** (`v13e` 0.9126; within-class ρ 0.888, the same as B3 ~ B0) | ⏳ (solo 10-06) | **✅ run green; 🔁 seed-level gold difference (+0.0025)** — read s = \|`v13e2` − 0.935\|: ≤ 0.003 the CNN bands stand / ≥ 0.005 widen them; a final-ensemble member either way (entry "P-66 complete") |
 
 **External reference points** (not ours — for calibrating ambition):
 
@@ -3130,6 +3131,60 @@ Per label, gold-58 SWA (`v13b3` from the log's SWA table; the others from the "S
 
 **Verdict: ✅ the run (green, ≈ 2.4 pod-h ≈ $1.8 so far); 🔁 gold +0.0096 vs `v13e`, under the 0.05 floor.** The solo is read
 2026-10-06 (10-05's five slots are taken).
+
+**CORRECTED 2026-10-04 (16:00):** the seed twin `v13e2` reads within-class ρ 0.888 against `v13e` (entry below). That is the same
+as `v13b3` ~ `v13e`, so "B3 is as far from B0 as ResNet-50 is" shows no family diversity: on 58 studies this ρ cannot separate a
+backbone change from a seed change.
+
+### 2026-10-04 — P-66 complete: the seed twin `v13e2` (`v13e` at seed 43) trained in 65 min · gold-58 SWA **0.9151** vs `v13e` 0.9126 · both arms shipped, pod stopped itself and was deleted · ≈ $2.6 in total · solos 10-06
+
+**`v13e2`** trained on the same pod right after `v13b3`, 14:46 → ≈ 15:49 UTC:
+- **Setup:** `v13e` exactly at seed 43 (`reseeded 43 for arm v13e2 (base seed 42)`), Raptor 0.5, all 4,349 studies, 30 epochs.
+- **Speed:** 0.03 s/study, ≈ 2.1 min train + 0.1 min val per epoch.
+- **Run checks:** `SWA of last 3`, `-> v13e2_fold0_best.pt = SWA`, no runtime guard. The checkpoint is 17.7 MB.
+
+**What happened after training:**
+- **Ship:** the chain shipped it as `rsna-knee-ckpt-v13e2` (15:50:08 UTC: best.pt, OOF, log; confirmed with `kaggle datasets files`).
+- **Stop:** the chain stopped the pod through the GraphQL `podStop` mutation; `get-pod` showed `EXITED`, which proves the traps 51 fix.
+- **Local backup:** my watcher missed the window between SWA and the stop (under a minute), so the backup is the Dataset download.
+  Both arms are in `artifacts/kaggle_out/pod_<arm>/`. The pod was deleted at 15:53 (`list-pods` empty).
+- **Cost:** pod 12:17 → 15:50 ≈ 3.55 h × $0.74 ≈ $2.6, plus volume storage. RunPod billing read $1.99 at 15:53 and lags. The plan was
+  ≈ $4.5 with a $7 cap.
+
+Gold-58 EMA by epoch (all 58, reported only):
+
+| epoch | 0 | 4 | 9 | 14 | 19 | 24 | 29 | SWA |
+|---|---|---|---|---|---|---|---|---|
+| `v13e2` (seed 43, RunPod) | 0.7796 | 0.9102 | 0.9188 | 0.9201 | 0.9178 | 0.9150 | 0.9158 | **0.9151** (CI95 0.886–0.940) |
+| `v13e` (seed 42, Kaggle) | 0.7757 | 0.9032 | 0.9079 | 0.9104 | 0.9115 | 0.9136 | 0.9126 | 0.9126 |
+
+**Per label, `v13e2` vs `v13e`:**
+- ACL 0.969 / 0.957, MCL 0.952 / 0.952, Medial Meniscus 0.946 / 0.946, Lateral Meniscus 0.846 / 0.853;
+- Medial OA 0.984 / 0.984, Lateral OA 0.841 / 0.832, PF OA 0.873 / 0.875, Effusion 0.932 / 0.916;
+- Synovitis 0.806 / 0.826, Baker's 0.987 / 0.978, Contusion 0.972 / 0.970, Fracture 0.872 / 0.861.
+- The largest per-label seed moves are 0.012–0.020: ACL, Effusion, Synovitis.
+
+**Within-class ρ on gold** (Spearman inside each label's 0 and 1 classes, averaged; the method of the `v13b3` entry):
+- `v13e2` ~ `v13e` **0.888** (same recipe, seed only);
+- `v13b3` ~ `v13e` 0.888, `v13e` ~ `v13r` 0.886;
+- `v13e2` ~ `v13b3` 0.900, ~ `v13r` 0.864, ~ `v11a` 0.859.
+
+**So on 58 studies a seed change scatters the within-class ranking as much as a backbone change.** This measure cannot separate
+family diversity from seed noise. The `v13b3` entry's "as far from B0 as ResNet-50 is" is corrected below it.
+
+**Gold rank-means (direction only):**
+- `v13e` + `v13e2` 0.9160;
+- the #48 trio 0.9233 → + `v13e2` 0.9238 → + `v13b3` 0.9250 → all five 0.9256;
+- `v11a` + `v13b3` + `v13e` + `v13e2` 0.9256.
+
+**Reading.** The seed moves gold-58 by +0.0025 macro. That is 0.05× the gold floor, as expected. The LB solo is the real measurement
+(P-66's rule):
+- s = |`v13e2` − 0.935|;
+- s ≤ 0.003: the CNN bands stand;
+- s ≥ 0.005: one-seed CNN deltas need ≥ s, and the D / E reads are re-read with ±s.
+
+**Verdict: ✅ the run (green, shipped, pod stopped and deleted; P-66 cost ≈ $2.6 of the $7 cap); 🔁 gold +0.0025, a seed-level
+difference. The solo is read 2026-10-06.**
 
 ## Infrastructure
 
