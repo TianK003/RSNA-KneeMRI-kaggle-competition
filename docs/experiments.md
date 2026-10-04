@@ -323,6 +323,50 @@ Tian's go (2026-10-04, "Yes, run the gold pilot"). The host's 2.6.b update permi
 - **Verdict: 🔁 INCONCLUSIVE for the Opus relabel (under both bars); ❌ for a cheap-model relabel.** A full pass would be judged by
   one solo LB read only. Picking labels per source on gold is not allowed (12 choices on 58 studies).
 
+### 2026-10-04 — P-65 full pass: the grading-aware Claude (Opus 5.5) relabel of all 4,349 report-only studies — 4,349 / 4,349 rows, 0 missing / duplicate / malformed; ≈ 25 min wall, ≈ 6.9 M subagent tokens · ✅ table published (`claude_v1`, composite `claude_rap_v1`) · LB ⏳ (session E staged)
+
+On Tian's go ("Run the full Opus pass now"). The reports were split into 44 shuffled batches of 100
+(`artifacts/claude_labels/full/batch_NN.jsonl`, key `full_key.csv`). There was one blind subagent per batch, running the same
+protocol as the pilot (`AGENT_TASK.md`): `prompt_v1.md` only, in chunks of ≈ 20 reports, self-verified output. About 15 ran in
+parallel, each batch took 4.3–5.4 min (one 8.3 min), and each used 141k–179k tokens.
+`merge_full.py` → `artifacts/teacher/claude_v1.csv` (4,349 × 12 p) + `claude_gold.csv` (the pilot's 58) + `claude_v1_m.csv` (codes).
+
+Plausibility on the report-only rows (no ground truth; direction only):
+
+| label | ρ vs LLM blend | ρ vs Raptor | AUC vs the hard LLM label | pos @ 0.5 (Claude / LLM) | `unk` share |
+|---|---|---|---|---|---|
+| ACL | 0.789 | 0.684 | 0.984 | 0.106 / 0.206 | 0.079 |
+| MCL | 0.638 | 0.583 | 0.967 | 0.014 / 0.153 | 0.093 |
+| Medial Meniscus | 0.928 | 0.818 | 0.998 | 0.387 / 0.402 | 0.054 |
+| Lateral Meniscus | 0.783 | 0.717 | 0.999 | 0.138 / 0.153 | 0.098 |
+| Medial OA | 0.901 | 0.747 | 0.961 | 0.148 / 0.368 | 0.211 |
+| Lateral OA | 0.856 | 0.679 | 0.951 | 0.064 / 0.263 | 0.263 |
+| PF OA | 0.918 | 0.776 | 0.949 | 0.178 / 0.455 | 0.177 |
+| Effusion | 0.905 | 0.812 | 0.895 | 0.181 / 0.593 | 0.098 |
+| Synovitis | 0.758 | 0.723 | 1.000 | 0.122 / 0.124 | 0.827 |
+| Baker's | 0.806 | 0.580 | 0.915 | 0.078 / 0.247 | 0.459 |
+| Contusion | 0.810 | 0.723 | 0.975 | 0.134 / 0.170 | 0.234 |
+| Fracture | 0.422 | 0.613 | 0.994 | 0.055 / 0.067 | 0.437 |
+
+- **The host's thresholds show up as lower positive rates where they bind:** MCL 1.4 % vs 15.3 % (acute high-grade only), Effusion
+  18 % vs 59 % (moderate or large), Medial OA 15 % vs 37 % and PF OA 18 % vs 46 % (> 50 % cartilage loss).
+- Rank agreement with the LLM blend is high where the reports are explicit (Medial Meniscus, PF OA, Effusion ρ ≈ 0.91–0.93).
+- **Fracture is the outlier: ρ 0.42 with the LLM blend but 0.61 with the image teacher.** Acute-only fracture agrees with Raptor
+  more than with the report-extraction labels, as on gold (pilot 0.815 → 0.924).
+- The `unk` share matches pilkwang's silence pattern: Synovitis 83 %, Baker's 46 %, Fracture 44 %, Lateral OA 26 %.
+
+**Training use (staged, not run): session E = `v13ec` (EfficientNet-B0) ‖ `v13rc` (ResNet-50) = `v13e` / `v13r` on
+`TEACHER_TABLES = ("claude_rap_v1",)` at `TEACHER_MIX = 0.75`.**
+- `claude_rap_v1` is a composite: per label, ⅔ Raptor rank + ⅓ Claude rank (ρ 0.970 with Raptor, 0.851 with Claude).
+- In rank terms the target is ≈ 0.25 LLM + 0.25 Claude + 0.5 Raptor. That is `v13e` / `v13r`'s target with only the LLM half
+  replaced by 0.5 LLM + 0.5 Claude, which is what P-65 pre-registered.
+- `build_targets.py --teacher-tables claude_rap_v1 --teacher-mix 0.75` builds it (4,349 covered); `window_head_test.py` is green.
+- Read rule: m(`v13ec`, `v13rc`) vs m(`v13e`, `v13r`) = 0.9345. ✅ ≥ 0.9390 / 🔁 0.9300–0.9389 / ❌ ≤ 0.9299.
+- It needs ≈ 6 GPU-h, which do not fit before the 2026-10-10 reset once session D is done (≈ 3.6 h would be left).
+
+**Verdict: ✅ the table is complete and published** (private Dataset `rsna-knee-teacher-tables`: + `claude_v1.csv`,
+`claude_rap_v1.csv`; the four older tables are md5-identical). Its value is ⏳ until session E is read on the LB.
+
 ## Folds and validation
 
 ### 2026-08-28 — Group folds by report text ✅ KEEP

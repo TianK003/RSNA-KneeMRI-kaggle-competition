@@ -490,8 +490,10 @@ Depends on:   —.
 Status:       🔁 2026-10-04: pilot read — Opus 0.9062 alone (LLM blend 0.8948), 0.9397 with Raptor (0.9324): under both
               pre-registered bars; Haiku 0.8639 ❌. Fracture (acute only) 0.815 → 0.924 and PF OA 0.903 → 0.967 gain; Effusion
               −0.030 / Baker's −0.092 lose (size thresholds collapse the ranking). experiments.md 2026-10-04 "P-65 gold-58 BLIND
-              pilot". Full pass (Opus only, ≈ 10 M subagent tokens, ≈ 1 h with 15 parallel labellers) + one arm = Tian's call;
-              expected LB 0..+0.004.
+              pilot". **Full pass DONE 2026-10-04 (Tian's go): 4,349 / 4,349, ≈ 25 min, ≈ 6.9 M tokens; `claude_v1` + composite
+              `claude_rap_v1` published; session E (`v13ec` ‖ `v13rc`, TEACHER_TABLES ("claude_rap_v1",) at mix 0.75 ≈ 0.25 LLM
+              + 0.25 Claude + 0.5 Raptor) staged, `artifacts/train_sE_real.py`; GPU after 2026-10-10 (or a RunPod top-up).**
+              Expected LB 0..+0.004.
 Hypothesis:   our LLM half is ≈ 1.5 effective votes (hans_v4 ~ sol56 agree 99.45 % at 0.5; label audit §3) and ignores the
               host's severity thresholds; a grading-aware graded relabel (moderate/large effusion and Baker's, high-grade ACL,
               acute MCL / fracture, ≥ 1 cm > 50 % cartilage loss for OA, `pos` / `sub` / `neg` / `unk` + calibrated p) lifts

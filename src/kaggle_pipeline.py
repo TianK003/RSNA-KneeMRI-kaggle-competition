@@ -376,6 +376,12 @@ SHIPPED_ARMS = [
                "freeze_bn": True, "aug": "heavy", "drop_path": 0.1, "epochs": 30}),
     ("v13rs", {**PROD, **V09R_KW, **C03_KW, "backbone": "timm:resnet50", "lr_backbone": 3e-4, "llrd_decay": 1.0,
                "freeze_bn": True, "aug": "heavy", "drop_path": 0.1, "epochs": 30}),
+    # 2026-10-04 (P-65 step 2, staged): v13e / v13r on the Claude-relabel target -- TEACHER_TABLES = ("claude_rap_v1",) at
+    # TEACHER_MIX 0.75 sed'd in. One PARALLEL_ARMS session; read m(v13ec, v13rc) vs m(v13e, v13r).
+    ("v13ec", {**PROD, **V09R_KW, **C03_KW, "backbone": "timm:efficientnet_b0", "lr_backbone": 3e-4, "llrd_decay": 1.0,
+               "freeze_bn": True, "aug": "heavy", "drop_path": 0.1, "epochs": 30}),
+    ("v13rc", {**PROD, **V09R_KW, **C03_KW, "backbone": "timm:resnet50", "lr_backbone": 3e-4, "llrd_decay": 1.0,
+               "freeze_bn": True, "aug": "heavy", "drop_path": 0.1, "epochs": 30}),
 ]
 ARM_V10C = ("v10c", {**C02, "backbone": "timm:coatnet_rmlp_2_rw_384", "img_size": 384,
                      "lr_backbone": 1e-4, "eval_windows": 42, "grad_checkpoint": True})
@@ -480,6 +486,11 @@ TEACHER_PATHS = {
     # P-45 (2026-10-03): the D4 pass (src/build_d4_teacher_pass.py -> merge_teacher.py --teacher d4); only needs to be
     # mounted when listed.
     "d4_teacher": ["/kaggle/input/rsna-knee-teacher-tables/d4_teacher.csv", "artifacts/teacher/d4_teacher.csv"],
+    # P-65 (2026-10-04): the grading-aware Claude relabel (artifacts/claude_labels/merge_full.py) and the composite teacher
+    # 2/3 Raptor rank + 1/3 Claude rank -- at TEACHER_MIX 0.75 the target is ~ 0.25 LLM + 0.25 Claude + 0.5 Raptor (rank terms),
+    # i.e. v13e's target with only the LLM half changed. Only need to be mounted when listed.
+    "claude_v1": ["/kaggle/input/rsna-knee-teacher-tables/claude_v1.csv", "artifacts/teacher/claude_v1.csv"],
+    "claude_rap_v1": ["/kaggle/input/rsna-knee-teacher-tables/claude_rap_v1.csv", "artifacts/teacher/claude_rap_v1.csv"],
 }
 # P-38: a distilled arm (`v09s` = the fold-0 probe, `v09t` = the production member) is what its name says only when its
 # targets are distilled, and the arm dict cannot carry TEACHER_TABLES (targets are built once per session) -- never train
@@ -501,9 +512,10 @@ DISTILLED_ARMS = {"v09s": ("selfdistill_v1",), "v09t": ("selfdistill_v1",),
                   "v11nd": ("raptor_teacher", "d4_teacher"), "v11nd2": ("raptor_teacher", "d4_teacher"),
                   "v11dl": ("raptor_teacher", "d4_teacher"), "v13h": ("raptor_teacher",),
                   "v13r": ("raptor_teacher",), "v13e": ("raptor_teacher",),
-                  "v13es": ("raptor_teacher",), "v13rs": ("raptor_teacher",)}
+                  "v13es": ("raptor_teacher",), "v13rs": ("raptor_teacher",),
+                  "v13ec": ("claude_rap_v1",), "v13rc": ("claude_rap_v1",)}
 # 2026-09-28 (traps 40's second gap): the mix a distilled arm must train with; every other distilled arm trains at 0.5.
-DISTILLED_MIX = {"v09o": 0.75, "v09o2": 0.75}
+DISTILLED_MIX = {"v09o": 0.75, "v09o2": 0.75, "v13ec": 0.75, "v13rc": 0.75}
 # P-62: the silent-cell mix an arm must train with; every arm not listed trains without one (TEACHER_SILENT_MIX = None).
 DISTILLED_SILENT_MIX = {"v11s": 0.75, "v11s2": 0.75, "v13es": 0.75, "v13rs": 0.75}
 if TEACHER_SILENT_MIX is not None and not TEACHER_TABLES:
