@@ -43,8 +43,17 @@ WEIGHTS=(timm-coatnet-rmlp-1-rw-224 timm-coatnet-rmlp-2-rw-384 convnext-tiny-224
 CACHE_SCHEME="${CACHE_SCHEME:-$([ "$CACHE_PREFIX" = rsna-knee-cache3 ] && echo c03 || echo c02)}"
 
 log() { echo "[$(date +%H:%M:%S)] $*"; }
+# The pod's own RUNPOD_API_KEY / RUNPOD_POD_ID live in PID 1's environment, not in an ssh session's: export them first
+# (`tr "\0" "\n" < /proc/1/environ | grep -E "^RUNPOD_(API_KEY|POD_ID)=" | sed "s/^/export /"`). That pod-scoped key is
+# accepted by the GraphQL API for its own pod; runpodctl 1.14 answers "Unauthorized" to it (2026-10-04), so it is a fallback.
+self_stop() {
+  curl -s -X POST "https://api.runpod.io/graphql?api_key=${RUNPOD_API_KEY:-}" -H "Content-Type: application/json" \
+       -d "{\"query\":\"mutation { podStop(input: {podId: \\\"${RUNPOD_POD_ID:-}\\\"}) { id desiredStatus } }\"}" ||
+  runpodctl stop pod "${RUNPOD_POD_ID:-}" || true
+}
 if [ "${AUTO_STOP:-0}" = 1 ]; then
-  trap 'rc=$?; log "job exit rc=$rc -- AUTO_STOP: stopping pod ${RUNPOD_POD_ID:-?}"; runpodctl stop pod "${RUNPOD_POD_ID:-}" || true' EXIT
+  [ -n "${RUNPOD_API_KEY:-}" ] && [ -n "${RUNPOD_POD_ID:-}" ] || { echo "!! AUTO_STOP=1 needs RUNPOD_API_KEY and RUNPOD_POD_ID"; exit 1; }
+  trap 'rc=$?; log "job exit rc=$rc -- AUTO_STOP: stopping pod ${RUNPOD_POD_ID}"; self_stop' EXIT
 fi
 # 2026-09-29: a 429 (Too Many Requests) on train_series.csv, while the four cache pulls ran, killed the job under set -e
 # (traps 45). Every small download now retries with back-off instead of aborting the chain.
