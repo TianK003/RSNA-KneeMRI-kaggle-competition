@@ -116,6 +116,7 @@ agreement with the teacher, not truth. A one-seed LB delta needs ≥ 0.004 (P-44
 | 2026-10-04 | **Cross-family blends (flat rank-mean, `rsna-knee-infer` v43 / v44)**: `v11a` + `v13h` (#47) · `v11a` + `v13r` + `v13e` (#48) | gold-58 0.9170 / 0.9233 | **0.934 / 0.938** | **🔁 by rule (+0.002 / +0.003 over the best member, bars 0.936 / 0.939) — but both above every member, unlike four flat same-family blends; 0.938 = our best own-model score** (entry "Submission #48") |
 | 2026-10-04 | **P-66 `v13b3` (RunPod RTX 4090, 2.2 h, ≈ $1.8)**: the `v13h` recipe on EfficientNet-B3 @ 288 (c03, Raptor 0.5, 30 ep, SWA 27–29) | gold-58 SWA **0.9222** (`v13e` 0.9126; 6 up / 5 down; menisci, ACL, Fracture up) | ⏳ (solo 10-06) | **✅ run green; 🔁 direction only (+0.0096, floor 0.05)** — read vs `v13e` 0.935: ✅ ≥ 0.939 / 🔁 0.931–0.938 / ❌ ≤ 0.930; seed twin `v13e2` training on the same pod (entry "P-66 on RunPod") |
 | 2026-10-04 | **P-66 `v13e2` (RunPod RTX 4090, 65 min)**: `v13e` exactly at seed 43, the first CNN seed twin | gold-58 SWA **0.9151** (`v13e` 0.9126; within-class ρ 0.888, the same as B3 ~ B0) | ⏳ (solo 10-06) | **✅ run green; 🔁 seed-level gold difference (+0.0025)** — read s = \|`v13e2` − 0.935\|: ≤ 0.003 the CNN bands stand / ≥ 0.005 widen them; a final-ensemble member either way (entry "P-66 complete") |
+| 2026-10-04 | **Session D (`rsna-knee-train-b` v6, 5.94 h), P-62 on the CNNs**: `v13es` / `v13rs` = `v13e` / `v13r` + Raptor 0.75 on report-silent cells | gold-58 SWA **0.9107 / 0.9160** (flat 0.9126 / 0.9111; pair mean +0.0015; ρ to the flat parents 0.932 / 0.948, closer than a seed twin's 0.888) | ⏳ (solos 10-05, `rsna-knee-infer` v49 / v50) | **✅ runs green; 🔁 direction only** — read m(`v13es`, `v13rs`) vs 0.9345: ✅ ≥ 0.9390 / 🔁 0.9300–0.9389 / ❌ ≤ 0.9299 (entry "Session D") |
 
 **External reference points** (not ours — for calibrating ambition):
 
@@ -3185,6 +3186,66 @@ family diversity from seed noise. The `v13b3` entry's "as far from B0 as ResNet-
 
 **Verdict: ✅ the run (green, shipped, pod stopped and deleted; P-66 cost ≈ $2.6 of the $7 cap); 🔁 gold +0.0025, a seed-level
 difference. The solo is read 2026-10-06.**
+
+### 2026-10-04 — Session D (`rsna-knee-train-b` v6, 5.94 h): P-62 on the CNNs, `v13es` / `v13rs` = `v13e` / `v13r` + Raptor 0.75 on report-silent cells · gold-58 SWA **0.9107 / 0.9160** vs 0.9126 / 0.9111 (pair mean +0.0015) · ✅ runs green, 🔁 direction only · solos 10-05
+
+Pushed 10:15 UTC on Tian's go (Kaggle smoke `rsna-knee-train-b` v5 green), COMPLETE 16:12 UTC.
+
+**Run checks:**
+- The parent logged `ok  arm` ×2.
+- Each child logged:
+  - `teacher table raptor_teacher: 4349`;
+  - the `P-62: report-silent cells (pilkwang UNK) mix at 0.75` line with the silent shares (ACL 8 %, MCL 10 %, Medial Meniscus 6 %,
+    Lateral Meniscus 10 %, Medial OA 26 %, Lateral OA 33 %, PF OA 18 %, Effusion 10 %, Synovitis 84 %);
+  - `freeze_bn` 49 / 53 modules;
+  - epochs 0–29, `SWA of last 3`, `= SWA`;
+  - no runtime guard (traps 47).
+- Shipped as `rsna-knee-ckpt-v13es` / `-v13rs` with their logs (both `ready`; files confirmed).
+- Kaggle GPU after it: 26.67 / 30 h (3.33 h left until the 2026-10-10 reset).
+
+| epoch | 0 | 4 | 9 | 14 | 19 | 24 | 29 | SWA |
+|---|---|---|---|---|---|---|---|---|
+| `v13es` (B0 + silent mix) | 0.7744 | 0.8970 | 0.9129 | 0.9141 | 0.9108 | 0.9113 | 0.9108 | **0.9107** |
+| `v13e` (B0, flat 0.5) | 0.7757 | 0.9032 | 0.9079 | 0.9104 | 0.9115 | 0.9136 | 0.9126 | 0.9126 |
+| `v13rs` (R50 + silent mix) | 0.7362 | 0.8657 | 0.9071 | 0.9119 | 0.9148 | 0.9167 | 0.9160 | **0.9160** |
+| `v13r` (R50, flat 0.5) | — | — | — | — | — | — | — | 0.9111 |
+
+**Per label, silent mix vs flat** (gold-58 SWA; `v13es` / `v13e`, then `v13rs` / `v13r`):
+
+| label | `v13es` / `v13e` | `v13rs` / `v13r` |
+|---|---|---|
+| ACL | 0.966 / 0.957 | 0.985 / 0.980 |
+| MCL | 0.925 / 0.952 | 0.909 / 0.880 |
+| Medial Meniscus | 0.960 / 0.946 | 0.968 / 0.966 |
+| Lateral Meniscus | 0.870 / 0.853 | 0.880 / 0.886 |
+| Medial OA | 0.984 / 0.984 | 0.988 / 0.986 |
+| Lateral OA | 0.822 / 0.832 | 0.818 / 0.801 |
+| PF OA | 0.862 / 0.875 | 0.875 / 0.867 |
+| Effusion | 0.937 / 0.916 | 0.935 / 0.963 |
+| Synovitis | 0.799 / 0.826 | 0.817 / 0.781 |
+| Baker's | 0.978 / 0.978 | 0.986 / 0.987 |
+| Contusion | 0.960 / 0.970 | 0.945 / 0.942 |
+| Fracture | 0.865 / 0.861 | 0.886 / 0.893 |
+
+**How much the silent mix changes the model** (gold, the within-class ρ method of the P-66 entries):
+- `v13es` ~ `v13e` 0.932 and `v13rs` ~ `v13r` 0.948, at the same seed.
+- The seed twin `v13e2` ~ `v13e` is 0.888.
+- **So the silent-mix target moves the predictions less than a seed change does.** That points to an LB delta inside seed noise.
+- Synovitis, the label with 84 % silent cells, moves in opposite directions in the two families (−0.027 / +0.036).
+
+**Gold rank-means:**
+- `v13es` + `v13rs` 0.9170 vs `v13e` + `v13r` 0.9161;
+- `v11a` + `v13rs` + `v13es` 0.9224 vs the #48 trio 0.9233;
+- all five 0.9208.
+
+**The LB read decides**, per P-62's pre-registered rule: m(`v13es`, `v13rs`) vs 0.9345 → ✅ ≥ 0.9390 / 🔁 0.9300–0.9389 / ❌ ≤ 0.9299.
+Placeholders (all green: `smoke False`, 1 member, `decode-once verified`, `constant labels 0`):
+- `rsna-knee-infer` **v49** = `v13es` solo (the checkpoint scores 0.9107);
+- `rsna-knee-infer` **v50** = `v13rs` solo (0.916).
+
+The 10-06 solos of P-66 are ready as well: **v47** = `v13b3`, **v48** = `v13e2`.
+
+**Verdict: ✅ the runs; 🔁 gold pair mean +0.0015 (0.03× the floor), labels split.** Solos sent after 00:00 UTC 2026-10-05.
 
 ## Infrastructure
 

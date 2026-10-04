@@ -49,7 +49,9 @@
         "tiankljucanin/rsna-knee-ckpt-v13e",
         "tiankljucanin/timm-efficientnet-b3-ra2",
         "tiankljucanin/rsna-knee-ckpt-v13b3",
-        "tiankljucanin/rsna-knee-ckpt-v13e2"
+        "tiankljucanin/rsna-knee-ckpt-v13e2",
+        "tiankljucanin/rsna-knee-ckpt-v13es",
+        "tiankljucanin/rsna-knee-ckpt-v13rs"
     ],
     "kernel_sources": [],
     "competition_sources": [

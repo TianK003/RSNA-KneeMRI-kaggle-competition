@@ -10,7 +10,7 @@ by **macro ROC-AUC** (unweighted mean of 12 per-label AUCs).
 
 Competition: https://www.kaggle.com/competitions/rsna-knee-abnormality-detection
 
-## Current state (2026-10-04, 16:00 UTC)
+## Current state (2026-10-04, 16:30 UTC)
 
 One block, kept current by `/update`. Session history is in [docs/handoff.md](docs/handoff.md); every number, with its verdict,
 is in [docs/experiments.md](docs/experiments.md).
@@ -20,9 +20,9 @@ is in [docs/experiments.md](docs/experiments.md).
 | Public LB (2026-10-04) | **Top 0.963**; 10th 0.959; 106 teams ≥ 0.950; 5,117 teams. **We are rank 1,408 at 0.942** |
 | Our best | **LB 0.942** = the public-stack fork (#13 / #15). **Own models 0.938** = #48, a flat rank-mean of `v11a` (CoAtNet-1) + `v13r` (ResNet-50) + `v13e` (EfficientNet-B0), `rsna-knee-infer` v44. **Solo 0.935** = #46 `v13e` |
 | Production recipe | CNNs on the `v13h` recipe: c03 input, CNN LR 3e-4 uniform, frozen BN, heavy aug, drop-path 0.1, 30 epochs, SWA of 27–29. Targets 0.5 LLM + 0.5 quantile-matched Raptor. The c03 CoAtNet `v11a` is the non-CNN family |
-| In flight | **Session D** = `rsna-knee-train-b` v6 (`v13es` ‖ `v13rs`, P-62). **P-66 done** on a RunPod 4090 (≈ $2.6, pod deleted): `v13b3` (EfficientNet-B3 @ 288, gold-58 0.9222) and `v13e2` (`v13e` at seed 43, 0.9151) are shipped as `rsna-knee-ckpt-v13b3` / `-v13e2` |
-| Next | 10-05: fork v11 (trio at β 0.45), infer v45 (4-model) and v46 (CNN trio), `v13es` / `v13rs` solos. 10-06: `v13b3` / `v13e2` solos. After the 10-10 GPU reset: session E (Claude-label target), then the final members. Final picks (P-50) by 10-15; deadline 10-22 |
-| Budgets | Kaggle GPU 30 h/week (resets 2026-10-10). 5 submissions per UTC day. RunPod only after a justification checked by a critic subagent and Tian's go |
+| Trained, LB pending | **Session D** (P-62, Kaggle): `v13es` 0.9107 / `v13rs` 0.9160 on gold. **P-66** (RunPod 4090, ≈ $2.6, pod deleted): `v13b3` (EfficientNet-B3 @ 288) 0.9222, `v13e2` (`v13e` at seed 43) 0.9151. All four are shipped as `rsna-knee-ckpt-<arm>`. Nothing is running |
+| Next | 10-05 (placeholders green): `rsna-knee-fork` v11 (trio at β 0.45; send first), `rsna-knee-infer` v45 (4-model), v46 (CNN trio), v49 (`v13es`), v50 (`v13rs`). 10-06: v47 (`v13b3`), v48 (`v13e2`). After the 10-10 GPU reset: session E (Claude-label target), then the final members. Final picks (P-50) by 10-15; deadline 10-22 |
+| Budgets | Kaggle GPU 30 h/week: 26.67 h used, 3.33 h left until the 2026-10-10 reset. 5 submissions per UTC day. RunPod only after a justification checked by a critic subagent and Tian's go |
 
 ## 📚 Documentation map — read the relevant one before acting
 
