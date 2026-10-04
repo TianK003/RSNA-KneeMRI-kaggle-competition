@@ -108,6 +108,7 @@ Judge label changes on **coverage** (does the rule fire at all, per language) an
 | 2026-10-03 | **P-45 step 1 + spike + pass (0.1 + 2.37 GPU-h)**: D4 (public CoAtNet-2 @384) as a second image teacher — gold analog 0.5 LLM + 0.25 Raptor + 0.25 D4 **0.9331 vs 0.9268**; spike reproduces D4's gold reference (0.9301 vs 0.9302); full pass 4,349/4,349, in-sample check ρ D4~LLM 0.695 (Raptor 0.652) | target analog only | — | **🔁 direction only → the student pair `v11d` ‖ `v11dl` runs (session B, `rsna-knee-train` v41)** |
 | 2026-10-03 | **P-60 part 2 (`rsna-knee-train` v39, 2.84 h)**: `v11n` ‖ `v11n2` resumed at epoch 6, SWA 9–11 | gold-58 SWA **0.9152 / 0.9166** (`v11a` / `v11b` 0.9204 / 0.9167) | **0.932 / 0.932** (#39 / #40) | **🔁 INCONCLUSIVE: m = 0.932 vs 0.9305 (+0.0015, band 0.926–0.935)** — heavy regularisation + 12 epochs = the plain recipe on the LB; seeds agree (0.932 / 0.932 vs 0.932 / 0.929); 1.5× the training time |
 | 2026-10-03 | **Sessions A (`rsna-knee-train-b` v4, 4.40 h) ‖ B (`rsna-knee-train` v41, 3.82 h)**, c03, one seed each: `v11p` = `v11a` + P-63 spatial reader + slot-count norm · `v13h` = P-64 ResNet-34, heavy aug, drop-path 0.1, 30 ep · `v11d` = `v11a` recipe on 0.5 LLM + 0.25 Raptor + 0.25 D4 (P-45) · `v11dl` = `v11d` + lr 2e-4 / LLRD 0.85 (P-61) | gold-58 SWA **0.9185 / 0.9001 / 0.9184 / 0.9132** (`v11a` 0.9204, `v13c` 0.9014) | **0.929 / 0.931 / 0.930** / ⏳ (#41 / #42 / #43; `v11dl` 10-04) | **✅ `v13h` KEEP: +0.010 vs `v13c` 0.921 (the CNN recipe transfers; gold said −0.001) · 🔁 `v11p` −0.003 and `v11d` −0.002 vs `v11a` 0.932, not adopted** (entries "Sessions A ‖ B", "Submissions #41–#43") |
+| 2026-10-04 | **Session C (`rsna-knee-train` v43, 5.87 h)**: the `v13h` recipe (c03, CNN LR 3e-4 uniform, frozen BN, heavy aug, drop-path 0.1, 30 ep, Raptor 0.5) on ResNet-50 `v13r` ‖ EfficientNet-B0 `v13e` | gold-58 SWA **0.9111 / 0.9126** (`v13h` 0.9001) | ⏳ solos | **✅ runs green, 🔁 gold +0.011 / +0.0125 (direction only)** — solos + the `v11a` + `v13h` blend 2026-10-04 (entry "Session C") |
 
 **External reference points** (not ours — for calibrating ambition):
 
@@ -2877,6 +2878,42 @@ Sent 17:32 / 17:39 / 17:43 UTC, read by 18:22 UTC, timed by `src/watch_submissio
 closed, not adopted. `v11dl` (P-61) is read 2026-10-04 (placeholder `rsna-knee-infer` v40 green). The next tests are two: a
 two-family blend `v11a` + `v13h` (keep only if ≥ 0.936, the best member + 0.004), and the staged session C (ResNet-50 ‖
 EfficientNet-B0 on the `v13h` recipe, needs Tian's go).
+
+### 2026-10-04 — Session C (`rsna-knee-train` v43, 5.87 h): the `v13h` recipe on ResNet-50 (`v13r`) and EfficientNet-B0 (`v13e`) · gold-58 SWA **0.9111 / 0.9126** vs `v13h` 0.9001 · ✅ runs green, 🔁 direction only · solos next
+
+Pushed 18:35 UTC 2026-10-03 on Tian's go (Kaggle smoke v42 green), COMPLETE overnight. Both child logs: `teacher table
+raptor_teacher: 4349`, c03 cache, LR 3e-4 uniform, `freeze_bn` 53 / 49 encoder BatchNorm modules, drop-path 0.1, epochs 0–29,
+`SWA of last 3`, `-> <arm>_fold0_best.pt = SWA`, no runtime guard (traps 47 checked). EfficientNet's `0 stages` / `over 0 blocks`
+line is cosmetic: at `llrd_decay` 1.0 every encoder parameter takes the uniform LR (`param_groups`' fall-through branch). Training
+speed 0.30–0.31 s/study (≈ 22 min/epoch, both arms), vs `v13h` 0.09 s/study; the session is 5.87 h vs 4.40 h for A. Checkpoints:
+`v13r` 92 MB, `v13e` 17 MB. Kaggle GPU 20.14 / 30 h after it. Shipped as `rsna-knee-ckpt-v13r` / `-v13e`, mounted in `rsna-knee-infer`.
+
+| label | `v11a` | `v13h` | `v13r` (ResNet-50) | `v13e` (EffNet-B0) |
+|---|---|---|---|---|
+| ACL | 0.962 | 0.972 | 0.980 | 0.957 |
+| MCL | 0.955 | 0.898 | 0.880 | 0.952 |
+| Medial Meniscus | 0.958 | 0.940 | 0.966 | 0.946 |
+| Lateral Meniscus | 0.896 | 0.827 | 0.886 | 0.853 |
+| Medial OA | 0.986 | 0.988 | 0.986 | 0.984 |
+| Lateral OA | 0.822 | 0.836 | 0.801 | 0.832 |
+| PF OA | 0.837 | 0.865 | 0.867 | 0.875 |
+| Effusion | 0.969 | 0.906 | 0.963 | 0.916 |
+| Synovitis | 0.806 | 0.779 | 0.781 | 0.826 |
+| Baker's | 0.966 | 0.975 | 0.987 | 0.978 |
+| Contusion | 0.947 | 0.945 | 0.942 | 0.970 |
+| Fracture | 0.942 | 0.872 | 0.893 | 0.861 |
+| **macro** | **0.9204** | **0.9001** | **0.9111** | **0.9126** |
+
+- vs `v13h`: `v13r` +0.011 (8 up / 4 down), `v13e` +0.0125 (8 / 4). Gold has missed the LB direction for CNN recipe changes
+  before (traps 39, #42), so direction only.
+- Within-class ρ on gold: CNN ~ `v11a` 0.916–0.921, CNN ~ CNN 0.936–0.948 (CoAtNet variant ~ `v11a` ≈ 0.965). The three CNNs
+  are closer to each other than to the CoAtNet, but less alike than two CoAtNet variants.
+- Gold rank-means: `v11a` + `v13r` + `v13e` 0.9233, `v11a` + `v13e` 0.9224, `v11a` + `v13r` 0.9210, `v11a` + `v13h` 0.9170, all
+  four 0.9186 (direction only).
+
+**Verdict: ✅ runs green; 🔁 gold +0.011 / +0.0125 over `v13h`, under the 0.05 floor.** The solos `v13r` / `v13e` and the
+`v11a` + `v13h` blend are read 2026-10-04 (pre-registered: each CNN vs `v13h` 0.931 — ✅ ≥ 0.935 / 🔁 0.928–0.934 / ❌ ≤ 0.927;
+a blend is kept only if ≥ its best member's solo + 0.004).
 
 ## Infrastructure
 
