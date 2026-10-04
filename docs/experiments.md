@@ -276,6 +276,53 @@ cannot see ±0.02. The `--sources` flag stays (it costs nothing and keeps the de
 gold validation is needed. **CORRECTION to the P-28 "morning item B5" plan**: "adopt if ≥ 0.893 on gold" was written
 without knowing the file excludes gold.
 
+### 2026-10-04 — P-65 gold-58 BLIND pilot: a grading-aware Claude relabel (Opus 5.5) reads **0.9062** alone vs the LLM blend 0.8948, and **0.9397** mixed 0.5 with Raptor vs 0.9324 · Haiku 4.5 reads **0.8639** · 🔁 (under both pre-registered bars) / ❌ for Haiku
+
+Tian's go (2026-10-04, "Yes, run the gold pilot"). The host's 2.6.b update permits hosted LLMs (CLAUDE.md "Rules").
+- **Setup.**
+  - The prompt `artifacts/claude_labels/prompt_v1.md` was written from the host's grading rules only (topic 733343: borderline
+    = negative, high-grade ACL, acute MCL and fracture, moderate/large effusion and Baker's, ≥ 1 cm > 50 % cartilage loss for
+    OA). Per finding it outputs `m` ∈ pos / sub / neg / unk and a calibrated `p`.
+  - The input `gold_reports.jsonl` holds the 58 gold reports, shuffled, with an index only. The UID key is kept separate and the
+    labellers never saw labels or other files.
+  - Two subagents labelled the same 58 reports. The scorer is `score_pilot.py`.
+  - Opus took 5.4 min and ≈ 139k tokens (≈ 2.4k per report, all overhead included). Haiku took 5.5 min and ≈ 114k tokens.
+- **Pre-registered** in card P-65 before the read: promising = alone ≥ 0.910 OR + Raptor ≥ 0.945; flat = ± 0.01. **Read once; the
+  prompt is not iterated on gold.**
+
+| label | LLM blend | Raptor | Claude Opus | Claude Haiku | 0.5 LLM + 0.5 Rap | 0.5 Opus + 0.5 Rap | LLM + Opus + Rap |
+|---|---|---|---|---|---|---|---|
+| ACL | 0.990 | 0.980 | 0.993 | 0.981 | 0.991 | 0.994 | 0.996 |
+| MCL | 0.980 | 0.993 | 0.977 | 0.984 | 1.000 | 1.000 | 0.995 |
+| Medial Meniscus | 0.955 | 0.969 | 0.953 | 0.912 | 0.974 | 0.982 | 0.980 |
+| Lateral Meniscus | 0.881 | 0.863 | 0.904 | 0.855 | 0.911 | 0.921 | 0.914 |
+| Medial OA | 0.931 | 0.984 | 0.913 | 0.888 | 0.974 | 0.960 | 0.957 |
+| Lateral OA | 0.808 | 0.836 | 0.849 | 0.798 | 0.825 | 0.867 | 0.837 |
+| PF OA | 0.903 | 0.835 | **0.967** | 0.879 | 0.905 | 0.929 | 0.942 |
+| Effusion | 0.880 | 0.973 | 0.850 | 0.802 | 0.955 | 0.946 | 0.932 |
+| Synovitis | 0.788 | 0.824 | 0.806 | 0.732 | 0.842 | 0.875 | 0.851 |
+| Baker's | 0.947 | 0.978 | 0.855 | 0.807 | 0.976 | 0.933 | 0.953 |
+| Contusion | 0.861 | 0.931 | 0.883 | 0.877 | 0.920 | 0.926 | 0.921 |
+| Fracture | 0.815 | 0.938 | **0.924** | 0.851 | 0.916 | 0.945 | 0.932 |
+| **macro** | **0.8948** | **0.9254** | **0.9062** | **0.8639** | **0.9324** | **0.9397** | **0.9341** |
+
+**Where the grading rules helped and where they hurt.**
+- **Fracture (acute only) is the clear win.** Inside the report-silent cells the Opus labeller ranks gold fractures at 0.987
+  (n = 23, 4 positives), vs 0.138 for the LLM blend and 0.934 for Raptor. The blend's fracture signal is anti-correlated
+  there, because it counts old fractures.
+- PF OA +0.064, Lateral OA +0.041 and Lateral Meniscus +0.023 also gained.
+- **The size thresholds hurt.** Effusion fell −0.030 and Baker's −0.092. 39 of the 58 effusions came out as `sub`, which
+  collapses the ranking, and 30 Baker's cells were `unk`. Medial OA fell −0.018.
+- Haiku is worse than the blend on 9 of 12 labels and worse than Opus on 11 of 12 (−0.042 macro). Grading-aware extraction
+  needs a frontier model, as the literature says (artifacts/research_1004/literature.md).
+
+**Reading.**
+- The two gains, +0.011 alone and +0.007 in the Raptor mix, are the size of the D4 (+0.006) and cross-fit (+0.008) target gains
+  that never reached the LB (traps 39). Only Raptor's +0.017 transferred.
+- The per-label pattern is principled (the policy rules) but split: 6 labels up, 3 down.
+- **Verdict: 🔁 INCONCLUSIVE for the Opus relabel (under both bars); ❌ for a cheap-model relabel.** A full pass would be judged by
+  one solo LB read only. Picking labels per source on gold is not allowed (12 choices on 58 studies).
+
 ## Folds and validation
 
 ### 2026-08-28 — Group folds by report text ✅ KEEP

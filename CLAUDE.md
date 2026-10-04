@@ -404,12 +404,30 @@ outside your team, winners deliver working code and documentation.
 1. **Everything you rely on must be publicly available and free to all.** Pretrained weights
    and shared LLM label tables qualify because they are published as Kaggle Models/Datasets.
    A private or paid asset does not.
-2. **Sending report text to a hosted third-party LLM API: RULED ALLOWED by the host.**
-   **Verified 2026-10-03** from the forum via the Kaggle API (topic 733965; docs/research.md
-   §2.7.3). Po-Hao "Howard" Chen, 08-09 and again 08-27: sending reports to an API "will not,
-   by itself, be considered prohibited PRIVATE SHARING"; "You can use LLM API, such as those
-   from OpenAI, to read the reports to generate the labels."
-   - Tian's own 2026-09-28 choice of "no hosted-API labels" still stands until he changes it.
+2. **Sending report text to a hosted third-party LLM API: PERMITTED. The host made it a formal
+   rule update** (pasted by Tian 2026-10-04, "Use of Commercially Hosted LLMs", citing Rules
+   Section 2.6.b, EXTERNAL DATA AND TOOLS).
+   - **What the rule says:**
+     - Commercially hosted LLMs and other external inference services are permitted, if the
+       service and method otherwise comply with the Rules. That includes being reasonably
+       accessible to all participants and of minimal cost.
+     - Submitting Competition Data, including report text, to an external LLM or API for
+       inference or processing (e.g. extracting labels from reports) "will not, by itself, be
+       considered prohibited PRIVATE SHARING".
+     - PRIVATE SHARING still prohibits sharing Competition Data, code or competition-specific
+       work product with other participants, teams or third parties for collaboration.
+     - We stay responsible for the service's own terms of use.
+     - The host may still rule that a service, model or configuration is not reasonably
+       accessible, is prohibitively costly, or creates an unfair advantage.
+   - **What it means for us:**
+     - Labelling the reports with Claude, GPT or Gemini is allowed at a cost any team could pay.
+       Raymond Yuen, a top-50 team, reports < $5 of API cost for all his labels.
+     - The output (a label table) must stay team-private like everything else in `artifacts/`.
+   - **History:** Po-Hao "Howard" Chen already said this on the forum on 08-09 and again on
+     08-27 (topic 733965; docs/research.md §2.7.3): "You can use LLM API, such as those from
+     OpenAI, to read the reports to generate the labels."
+   - **Tian's choice:** on 2026-09-28 he chose "no hosted-API labels". On 2026-10-04 he reopened
+     it and asked for an estimate of labelling the reports with Claude ourselves. Not decided yet.
    - Same source on external data: KneeCoT is banned (it needs an institutional agreement).
      Click-through datasets (OAI, MRNet, fastMRI+, SKM-TEA) are not excluded for being
      non-commercial. The winners'-licence fit is the team's problem.

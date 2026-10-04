@@ -417,6 +417,67 @@ Source: a read-only agent working through the Kaggle CLI. Files are in `artifact
 - **Inference windows:** Dread 42 → 62 windows +0.003 and 48 → 72 → 0.944. Our window members already score every valid window
   (90 on c03), so there is nothing to gain here.
 
+#### 2.7.5 Labels: forum refresh, literature, and our own gold check (2026-10-04)
+
+Sources: `artifacts/research_1004/forum_new.md` (the forum re-harvested into `artifacts/forum_1004/`, 106 topics; only 2 new topics
+and 4 new comments since 10-03), `artifacts/research_1004/literature.md` (≈ 40 papers, cited there), the P-65 pilot
+(experiments.md 2026-10-04 "P-65 gold-58 BLIND pilot"). Trigger: the host's rule update permitting hosted LLMs (CLAUDE.md
+"Rules") and Tian's question whether we should relabel the reports ourselves.
+
+**Extraction is close to its ceiling here.**
+- A plain LLM extraction finds 207 of the 240 gold positives. 22 of the 33 misses are in reports that never name the finding
+  (forum 743148).
+- Tucker (0.955) corrected thousands of extraction failures, and his LB did not move.
+- Yann found label sets from 0.86 to 0.895 on gold gave the same LB. tennogh's own labels were not measurably better than public
+  ones.
+- Scott (0.959) trains on local Gemma-4 labels at ≈ 0.89 on gold. Raymond paid under $5 for all his API labels; cheap and expensive
+  models made "minimal" difference.
+- The literature agrees. The best measured transfer is MAPLEZ: a labeler F1 gain of 0.767 → 0.803 gave **+0.011** downstream AUROC,
+  and that was against a rule-based labeler. Classifiers tolerate up to ≈ 16 % random label flips. Co-teaching and DivideMix lose to
+  plain cross-entropy on real medical label noise.
+
+**Where a frontier model differs from a cheap one.** It does better on severity and acuity grading: knee WORMS, GPT-4o 98 % vs
+GPT-4o-mini 69 % on OA severity. The host's grading turns on exactly those thresholds. Our pilot confirms it: Opus 0.906 vs Haiku
+0.864 on gold.
+
+**Our gold check, per label** (n = 58, direction only). Where do the image models already beat the report labels?
+- **Labels better than our models:** ACL, MCL, PF OA (LLM 0.990 / 0.980 / 0.903 vs 0.88–0.98). The gap there is on the image side.
+- **Our models better than the labels:** Effusion, Fracture, Contusion, Medial OA (LLM 0.880 / 0.815 / 0.861 / 0.931 vs our models
+  0.92–0.99). Here the labels are the bottleneck.
+- Our three LLM sources are **≈ 1.5 effective votes**: hans_v4 and sol56 agree on 99.45 % of cells at a 0.5 cut (label audit §3).
+
+**What the grading-aware Claude relabel did** (P-65 pilot):
+- **Gained** where the rule is about acuity or compartment: Fracture 0.815 → 0.924 (inside silent cells 0.987 vs 0.138), PF OA
+  +0.064, Lateral OA +0.041.
+- **Lost** where it is a size threshold: Effusion −0.030, Baker's −0.092.
+- Net +0.011 alone and +0.007 mixed 0.5 with Raptor. That is the same size as the target gains that did not transfer (D4, cross-fit).
+
+**What has moved LBs** (forum + literature): soft targets plus **out-of-fold pseudo-labels from a teacher that differs from the
+student**, mostly on report-silent cells.
+- Raymond +0.011; SpeedSci +0.011 (LLM vote + teachers, not separable); our P-39 Raptor +0.009.
+- Same-encoder bootstrapping was flat three times (Myo, Nicolai, our P-55).
+- Expected solo-LB gain by lever:
+
+| Lever | Expected gain | Evidence |
+|---|---|---|
+| (a) Frontier relabel | 0 .. +0.003 | moderate–strong |
+| (b) LLM priors for silent cells | 0 .. +0.003 | weak |
+| (c) Multi-source vote | 0 .. +0.005 | moderate for labels, weak for downstream AUC |
+| (d) Image-teacher pseudo-labels on silent cells | +0.003 .. +0.012 | moderate; the only lever with measured LB transfer — our P-62 |
+
+**What separates 0.935 from 0.950 single models is not the labels, the backbone or 5-fold.**
+- The 0.949–0.954 models use our families: CoolinLai ResNet-50 @224 5-fold, Scott small ResNet/EffNet, Archit CoAtNet.
+- Their labels sit at ≈ 0.89 on gold, below our 0.927 target.
+- A full-data single model matches 5-fold within ≈ 0.002.
+- What is left is the undisclosed image pipeline (slice density, ≈ 140 mm FOV, neighbouring native slices) and the training recipe.
+
+**Also new.**
+- Qwen-3.5-2B (LoRA + vision encoder, 384 px) reads 0.950 single-fold in ≈ 3.5 h on rented A100-class hardware. That is parity
+  with the CNNs, not a lead, and the literature is weak or negative on VLM classifiers.
+- The host's OAI ruling reads as "no" for external pretraining (Tucker).
+- Licence questions are open on the forum for torchvision ImageNet weights and RadImageNet. RadImageNet is in the public stack our
+  fork submits.
+
 ### 2.8 Data-pipeline engineering
 
 **What we learned**

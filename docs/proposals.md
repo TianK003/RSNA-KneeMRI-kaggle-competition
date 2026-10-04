@@ -65,6 +65,7 @@ result*, per unit of cost. "Depends on" lists hard blockers only. EVs are solo-L
 | 0i | P-62 | Silence-aware teacher mix (Raptor 0.75 where the report is silent, 0.5 where it speaks) | ⏸ **parked 2026-10-03: the real run (`rsna-knee-train-b` v1, pushed 09:09 UTC) was STOPPED by Tian at ≈ 09:28 UTC (≈ 0.3 GPU-h spent, nothing usable)** — its expected gain (+0.001..0.002) cannot reach its own ✅ bar (+0.0045), so it does not get a session of its own; a candidate to bundle into the final retrain only. Implemented 2026-10-01 (arms `v11s` ‖ `v11s2`; Kaggle smoke `rsna-knee-train` v38 green); priced on gold-58 at target level: 0.9300 vs 0.9268 (+0.0032, SD 0.0018; flat mixes at the same mean Raptor weight +0.0004) | 0..+0.002 — likely under the 0.004 one-seed floor | one c03 session ≈ 3.5 GPU-h + 2 solos | — |
 | 0j | P-63 | Per-finding spatial reader + slot-count correction (D4's head, ported at 224) | 🔁 **TRAINED green 2026-10-03 (session A, 4.40 h): `v11p` gold-58 SWA 0.9185 vs `v11a` 0.9204 (−0.002, 7 up / 5 down; direction only); shipped `rsna-knee-ckpt-v11p`; **#41 = 0.929 → 🔁 −0.003 vs `v11a` 0.932, CLOSED, not adopted** (experiments.md 2026-10-03 "Submissions #41–#43")** — ONE seed (`v11p`) in session A = `rsna-knee-train-b` v4 beside `v13h` (2026-10-03: one seed per idea; the forum gives it a weak prior — Will's region tokens ≈ 0, Tucker 0.94+ with no attention). 🔧 implemented 2026-10-03 (`spatial_reader` / `slot_count_norm`, arms `v11p` ‖ `v11p2`; unit checks green incl. untrained reader == parent model to 4.8e-7; local CPU smoke green; Kaggle smoke `rsna-knee-train-b` v2 GREEN (0.11 h: `ok  arm` ×2, Raptor table read, `reseeded 43`, SWA); real build `artifacts/train_p63_real.py`) — the one structural head difference between D4 (gold 0.9302, gold-selected) and `v11a` (0.9204); D4's plain Global96 baseline with this reader reaches 0.925–0.927 on its gold-best epochs | unknown; a structural change, the kind that can clear the +0.0045 two-seed band | ≈ 60–80 lines + one c03 seed pair ≈ 4 GPU-h; 2 solos | P-45 first (GPU priority, Tian 10-03) |
 | 0k | P-64 | Long, heavy-augmentation CNN (`v13h`: ResNet-34 on c03, CNN LR 3e-4 uniform, frozen BN, aug heavy, drop-path 0.1, 30 epochs) | ✅ **TRAINED green 2026-10-03 (session A, 4.40 h): `v13h` gold-58 SWA 0.9001 vs `v13c` 0.9014 (plateau ≈ 0.900 from epoch 12; direction only); shipped `rsna-knee-ckpt-v13h`; **#42 = 0.931 → ✅ KEEP +0.010 vs `v13c` 0.921 (member yes, main bet no; scores in ≈ 18 min); gold said −0.001** (experiments.md 2026-10-03 "Submissions #41–#43"); next: **session C DONE 2026-10-04 = `rsna-knee-train` v43 (5.87 h, green): `v13r` ResNet-50 gold 0.9111 ‖ `v13e` EfficientNet-B0 0.9126 (`v13h` 0.9001, direction only); shipped; **solos read: #46 `v13e` 0.935 ✅ = our best solo, #45 `v13r` 0.934 🔁; blend `v11a` + `v13h` #47 0.934 (🔁 +0.002 over its best member); trio `v11a` + `v13r` + `v13e` #48 = **0.938** (🔁 +0.003 over its best member; our best own-model score)** (experiments.md 2026-10-04 "Submissions #44–#47")** — and the `v11a` + `v13h` two-family blend** — session A = `rsna-knee-train-b` v4 beside `v11p`; local smoke green | the best-evidenced recipe in the forum: Tucker / Myo / Scott / CoolinLai / SpeedSci reach 0.936–0.954 with ResNet / EfficientNet @224 and long, heavily augmented schedules; ours `v13c` (12 ep, light aug) 0.921; also the ensemble's second family | ≈ 3.4 GPU-h in a shared session; 1 solo | — |
+| 0l | P-65 | Grading-aware Claude relabel of the reports (an independent, severity-aware LLM vote) | 🔁 **pilot 2026-10-04: Opus 0.9062 alone / 0.9397 with Raptor (bars 0.910 / 0.945 not met; Fracture +0.109, PF OA +0.064, Effusion −0.030, Baker's −0.092); Haiku 0.8639 ❌** | 0..+0.005 (literature + forum); the policy-misaligned labels are the upside | pilot minutes; full pass ≈ 1.5 M tokens / 1–2 h + 1 GPU arm | Tian's go for the full pass |
 | 4 | P-50 | Final selection and publishability | 💡 decide by 2026-10-15 | decides what the private LB scores | a browser session; ≤ 1 fork check | P-40 ✅ closed (#22 / #27), Rules page |
 | 5 | P-18 | Efficiency track with the solo member | 💡 (robustness half shipped); candidates `v11a` 0.932 / `v13c` 0.921 at ⅓ the inference cost (#37) | a separate prize; unknown until the formula is read | 0 GPU h (CLI + browser) | Efficiency formula (browser) |
 | 6 | P-47 | Teacher-mix bracket: mix 0.75 only | 💡 low — P-49 priced it on Raptor itself: matched mix 0.75 − 0.5 = −0.002 (SD 0.003) on gold | ≈ 0 (+0.000..0.002) | per-arm `TEACHER_MIX` code + ≈ 2.8 h; 1 solo | P-44 floor, an idle slot |
@@ -484,6 +485,37 @@ If it works:  a second family for the 3–5-member ensemble; then EfficientNet-B
               and Tucker reports "low 0.95s" with ResNet-34 / EfficientNet-B0 on plain Qwen labels (745214).
 If it fails:  the CNN family stays an Efficiency-track candidate only (P-18).
 Depends on:   —.
+
+### P-65 Grading-aware Claude relabel of the reports (a genuinely independent LLM vote)
+Status:       🔁 2026-10-04: pilot read — Opus 0.9062 alone (LLM blend 0.8948), 0.9397 with Raptor (0.9324): under both
+              pre-registered bars; Haiku 0.8639 ❌. Fracture (acute only) 0.815 → 0.924 and PF OA 0.903 → 0.967 gain; Effusion
+              −0.030 / Baker's −0.092 lose (size thresholds collapse the ranking). experiments.md 2026-10-04 "P-65 gold-58 BLIND
+              pilot". Full pass (Opus only, ≈ 10 M subagent tokens, ≈ 1 h with 15 parallel labellers) + one arm = Tian's call;
+              expected LB 0..+0.004.
+Hypothesis:   our LLM half is ≈ 1.5 effective votes (hans_v4 ~ sol56 agree 99.45 % at 0.5; label audit §3) and ignores the
+              host's severity thresholds; a grading-aware graded relabel (moderate/large effusion and Baker's, high-grade ACL,
+              acute MCL / fracture, ≥ 1 cm > 50 % cartilage loss for OA, `pos` / `sub` / `neg` / `unk` + calibrated p) lifts
+              the labels exactly where the image models already beat them on gold (Effusion 0.880, Fracture 0.815,
+              Contusion 0.861, Medial OA 0.931) and adds a second real vote.
+Origin:       the host's 2.6.b rule update (hosted LLMs permitted); Tian 2026-10-04 ("you could be labelling them yourself?");
+              literature: frontier models beat cheap ones on severity grading (GPT-4o 98 % vs mini 69 % on knee OA severity;
+              artifacts/research_1004/literature.md); host grading rules (topic 733343).
+Evidence:     against: extraction is near its ceiling (forum 743148: 22 of 33 gold positives an LLM misses are never named);
+              Tucker / Yann / tennogh: better extraction did not move the LB; P-46: a 14B open model read 0.881 gold. For:
+              SpeedSci (GPT + Claude + Gemini vote + teachers) 0.931 → 0.942 on DINOv2; Yann +0.015 from combining label sets.
+Measure:      (1) pilot, target level on gold-58, read ONCE: AUC of p per label vs the LLM blend (0.8948) and the rank mix
+              0.5 Claude + 0.5 Raptor vs 0.5 LLM + 0.5 Raptor (0.9324). **Pre-registered:** promising = Claude alone ≥ 0.910 OR
+              the Raptor mix ≥ 0.945, with the gain on the policy-misaligned labels (not scattered); flat = within ± 0.01
+              (D4 +0.006 and xfit +0.008 did not transfer, Raptor +0.017 did). (2) if promising: label all 4,407 (≈ 1.5 M
+              input tokens), build `claude_v1` as a label source, then ONE arm (`v13e` recipe, targets = rank-blend of LLM +
+              Claude, then 0.5 with Raptor) solo vs `v13e` 0.935.
+Noise floor:  gold-58 SE ≈ 0.03–0.09 per label; one-seed LB floor 0.004 (P-44).
+Cost:         pilot ≈ 2 × 30k tokens, minutes. Full pass ≈ 1.5 M input + ≈ 0.4 M output tokens in parallel subagents
+              (≈ 1–2 h wall) — at API prices ≈ $6–8 (Haiku, batch) to ≈ $25–70 (Opus) per pass, under "minimal cost". Then
+              ≈ 3 GPU-h (one EfficientNet arm) + 1 solo.
+If it works:  the LLM half becomes LLM + Claude for every later member.
+If it fails:  the label line closes; image-side (recipe, families, P-62 silent-cell teacher) only.
+Depends on:   Tian's go for the full pass (the 2026-09-28 "no hosted-API labels" choice is reopened, not reversed).
 
 ### P-51 Teacher-aware confidence weights
 Status:       💡 low (new 2026-09-27).

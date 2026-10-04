@@ -23,8 +23,12 @@
   "prvsiyan/rsna-knee-v52-radimagenet-heads-20260812",
   "pilkwang/rsna-knee-weights",
   "mattiaangeli/rsna-knee-coatnet-d4-depthzone-swa3-b2",
-  "tiankljucanin/rsna-knee-ckpt-v09r",
-  "tiankljucanin/timm-coatnet-rmlp-1-rw-224"
+  "tiankljucanin/rsna-knee-ckpt-v11a",
+  "tiankljucanin/rsna-knee-ckpt-v13e",
+  "tiankljucanin/rsna-knee-ckpt-v13r",
+  "tiankljucanin/timm-coatnet-rmlp-1-rw-224",
+  "tiankljucanin/timm-efficientnet-b0-ra",
+  "tiankljucanin/timm-resnet50-a1"
  ],
  "kernel_sources": [
   "sofiaanjenje/rsna-knee-e11-train",
