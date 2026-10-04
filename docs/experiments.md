@@ -108,7 +108,7 @@ Judge label changes on **coverage** (does the rule fire at all, per language) an
 | 2026-10-03 | **P-45 step 1 + spike + pass (0.1 + 2.37 GPU-h)**: D4 (public CoAtNet-2 @384) as a second image teacher — gold analog 0.5 LLM + 0.25 Raptor + 0.25 D4 **0.9331 vs 0.9268**; spike reproduces D4's gold reference (0.9301 vs 0.9302); full pass 4,349/4,349, in-sample check ρ D4~LLM 0.695 (Raptor 0.652) | target analog only | — | **🔁 direction only → the student pair `v11d` ‖ `v11dl` runs (session B, `rsna-knee-train` v41)** |
 | 2026-10-03 | **P-60 part 2 (`rsna-knee-train` v39, 2.84 h)**: `v11n` ‖ `v11n2` resumed at epoch 6, SWA 9–11 | gold-58 SWA **0.9152 / 0.9166** (`v11a` / `v11b` 0.9204 / 0.9167) | **0.932 / 0.932** (#39 / #40) | **🔁 INCONCLUSIVE: m = 0.932 vs 0.9305 (+0.0015, band 0.926–0.935)** — heavy regularisation + 12 epochs = the plain recipe on the LB; seeds agree (0.932 / 0.932 vs 0.932 / 0.929); 1.5× the training time |
 | 2026-10-03 | **Sessions A (`rsna-knee-train-b` v4, 4.40 h) ‖ B (`rsna-knee-train` v41, 3.82 h)**, c03, one seed each: `v11p` = `v11a` + P-63 spatial reader + slot-count norm · `v13h` = P-64 ResNet-34, heavy aug, drop-path 0.1, 30 ep · `v11d` = `v11a` recipe on 0.5 LLM + 0.25 Raptor + 0.25 D4 (P-45) · `v11dl` = `v11d` + lr 2e-4 / LLRD 0.85 (P-61) | gold-58 SWA **0.9185 / 0.9001 / 0.9184 / 0.9132** (`v11a` 0.9204, `v13c` 0.9014) | **0.929 / 0.931 / 0.930** / ⏳ (#41 / #42 / #43; `v11dl` 10-04) | **✅ `v13h` KEEP: +0.010 vs `v13c` 0.921 (the CNN recipe transfers; gold said −0.001) · 🔁 `v11p` −0.003 and `v11d` −0.002 vs `v11a` 0.932, not adopted** (entries "Sessions A ‖ B", "Submissions #41–#43") |
-| 2026-10-04 | **Session C (`rsna-knee-train` v43, 5.87 h)**: the `v13h` recipe (c03, CNN LR 3e-4 uniform, frozen BN, heavy aug, drop-path 0.1, 30 ep, Raptor 0.5) on ResNet-50 `v13r` ‖ EfficientNet-B0 `v13e` | gold-58 SWA **0.9111 / 0.9126** (`v13h` 0.9001) | ⏳ solos | **✅ runs green, 🔁 gold +0.011 / +0.0125 (direction only)** — solos + the `v11a` + `v13h` blend 2026-10-04 (entry "Session C") |
+| 2026-10-04 | **Session C (`rsna-knee-train` v43, 5.87 h)**: the `v13h` recipe (c03, CNN LR 3e-4 uniform, frozen BN, heavy aug, drop-path 0.1, 30 ep, Raptor 0.5) on ResNet-50 `v13r` ‖ EfficientNet-B0 `v13e` | gold-58 SWA **0.9111 / 0.9126** (`v13h` 0.9001) | **0.934 / 0.935** (#45 / #46) | **✅ `v13e` KEEP: 0.935 = our best solo (+0.004 vs `v13h`); 🔁 `v13r` +0.003** — blend `v11a` + `v13h` #47 0.934 (🔁 +0.002 over its best member); `v11dl` #44 0.927 (P-61 closed) (entries "Session C", "Submissions #44–#47") |
 
 **External reference points** (not ours — for calibrating ambition):
 
@@ -2915,6 +2915,35 @@ speed 0.30–0.31 s/study (≈ 22 min/epoch, both arms), vs `v13h` 0.09 s/study;
 `v11a` + `v13h` blend are read 2026-10-04 (pre-registered: each CNN vs `v13h` 0.931 — ✅ ≥ 0.935 / 🔁 0.928–0.934 / ❌ ≤ 0.927;
 a blend is kept only if ≥ its best member's solo + 0.004).
 
+### 2026-10-04 — Submissions #44–#47: EfficientNet-B0 `v13e` **0.935 = our best solo** (✅ +0.004 vs `v13h`) · ResNet-50 `v13r` **0.934** (🔁 +0.003) · `v11a` + `v13h` **0.934** (🔁 +0.002 over its best member — the first blend above both members) · `v11dl` **0.927** (🔁 −0.003, P-61 closed)
+
+Placeholders `rsna-knee-infer` v40 / v41 / v42 / v43 (current `src` + 3 seds; each green: `smoke False`, the right `infer members`,
+c03 decode-once verified, `constant labels 0`; the blend decodes once for both members). Sent 07:17–07:27 UTC on Tian's go
+("Continue, submit the work"), timed by `src/watch_submission.py`.
+
+| # | what | gold-58 | LB | scored within | pre-registered read | verdict |
+|---|---|---|---|---|---|---|
+| 44 | `v11dl` = `v11d` + lr 2e-4 / LLRD 0.85 (P-61) | 0.9132 | **0.927** | [28.9, 30.4] min | vs `v11d` 0.930: ✅ ≥ 0.934 / ❌ ≤ 0.926 | 🔁 (−0.003; gold −0.005 the same way) → P-61 closed, not adopted |
+| 45 | `v13r` = ResNet-50 a1, `v13h` recipe | 0.9111 | **0.934** | [18.4, 19.9] min | vs `v13h` 0.931: ✅ ≥ 0.935 / 🔁 0.928–0.934 / ❌ ≤ 0.927 | 🔁 (+0.003, top edge) |
+| 46 | `v13e` = EfficientNet-B0 ra, `v13h` recipe | 0.9126 | **0.935** | [13.8, 15.3] min | same bands | **✅ KEEP (+0.004) — best solo of ours** |
+| 47 | `v11a` + `v13h`, flat rank-mean | 0.9170 | **0.934** | [27.3, 28.8] min | keep if ≥ 0.936 (best member 0.932 + 0.004) | 🔁 (+0.002 over the best member) |
+
+**What this says.**
+
+1. **The CNN line is now our strongest.** On the `v13h` recipe the three CNNs read EfficientNet-B0 0.935 > ResNet-50 0.934 >
+   ResNet-34 0.931, which is the forum's ranking. All three sit at or above the six-read CoAtNet band (0.929–0.932).
+   - `v13e` is our best solo (+0.003 over `v11a`), from a 17 MB checkpoint, and scores in ≈ 15 min, the fastest of ours.
+   - Gold ordered the CNNs the same way (+0.011 / +0.0125 over `v13h`) but put all three under `v11a` (0.9204). That is the
+     cross-family gold bias seen in #42.
+2. **Different families add a little; same-family blends never did.** `v11a` + `v13h` reads 0.934, above both members (0.932 /
+   0.931): +0.002 over the best, +0.0025 over their mean. Every earlier blend of same-teacher, same-family members read flat
+   (P-42, P-52, #32, #38). The size of this gain is under the 0.004 bar, so it is direction only. The forum's +0.005–0.007 came
+   from blends of 0.94 members.
+3. **P-61 closes.** A higher, flatter CoAtNet LR reads −0.003 on both LB and gold. The CoAtNet line ends at the `v11a` recipe.
+
+**Verdict:** ✅ KEEP `v13e` (production solo, best Efficiency candidate); 🔁 `v13r`; 🔁 the two-family blend (keep the direction,
+not the blend); P-61 closed. The trio `v11a` + `v13r` + `v13e` is #48 (sent 07:56 UTC; keep only if ≥ 0.939).
+
 ## Infrastructure
 
 ### 2026-09-27 — The "0.943 Speedy Raptors CoAtNet D4" notebook is our anchor **plus two CoAt readers**, not a faster graph; its "< 30 min" is a 3-study commit run · P-41 (threaded scan + 8 decode workers) smoke-green and byte-identical
@@ -3405,3 +3434,7 @@ and public LB score, so a public/private divergence can be traced to a specific 
 | 41 | 2026-10-03 | rsna-knee-infer v37 (+ Datasets `rsna-knee-ckpt-v11p`, `-v13h`, `-v11d`, `-v11dl`) | **P-63, reader solo**: `INFER_MEMBERS = ["v11p"]` — the `v11a` recipe (c03 CoAtNet-1, Raptor 0.5) + per-finding spatial reader + slot-count norm, seed 42 (`rsna-knee-train-b` v4) (`artifacts/infer_solo_v11p.py`) | none; gold-58 SWA 0.9185 | **0.929** | **read 18:04:48 UTC → −0.003 vs `v11a` 0.932 → 🔁 (band 0.929–0.935), not adopted; scored within [30.5, 32.0] min.** sent 17:32:50 UTC, ref 56803390; placeholder green (`infer members (1): v11p/fold0`, strict load, `constant labels 0`) |
 | 42 | 2026-10-03 | rsna-knee-infer v38 (v37's mounts) | **P-64, long heavy-aug CNN solo**: `INFER_MEMBERS = ["v13h"]` — ResNet-34 on c03, CNN LR 3e-4 uniform, frozen BN, aug heavy, drop-path 0.1, 30 epochs (SWA 27–29), Raptor 0.5 (`artifacts/infer_solo_v13h.py`) | none; gold-58 SWA 0.9001 | **0.931** | **read 17:57:38 UTC → +0.010 vs `v13c` 0.921 → ✅ KEEP (bar ≥ 0.925; member ≥ 0.930 yes; main bet ≥ 0.935 no); scored within [17.0, 18.5] min — our fastest solo.** sent 17:39:09 UTC, ref 56803492; placeholder green (`v13h/fold0: timm:resnet34`, `constant labels 0`) |
 | 43 | 2026-10-03 | rsna-knee-infer v39 (v37's mounts) | **P-45, D4-target student solo**: `INFER_MEMBERS = ["v11d"]` — the `v11a` recipe on 0.5 LLM + 0.25 matched Raptor + 0.25 matched D4, seed 42 (`rsna-knee-train` v41) (`artifacts/infer_solo_v11d.py`) | none; gold-58 SWA 0.9184 | **0.930** | **read 18:21:49 UTC → −0.002 vs `v11a` 0.932 → 🔁 (band 0.929–0.935); the gold target-level +0.006 did not transfer; scored within [36.4, 37.9] min.** sent 17:43:54 UTC, ref 56803573; placeholder green (`infer members (1): v11d/fold0`, `constant labels 0`) |
+| 44 | 2026-10-04 | rsna-knee-infer v40 (v37's mounts) | **P-61, higher CoAtNet LR solo**: `INFER_MEMBERS = ["v11dl"]` — `v11d` + lr 2e-4 / LLRD 0.85 (`rsna-knee-train` v41) (`artifacts/infer_solo_v11dl.py`) | none; gold-58 SWA 0.9132 | **0.927** | **read 07:48:21 UTC → −0.003 vs `v11d` 0.930 → 🔁 (bands ✅ ≥ 0.934 / ❌ ≤ 0.926); gold −0.005 the same way → P-61 closed; scored within [28.9, 30.4] min.** sent 07:17:59 UTC, ref 56817302 |
+| 45 | 2026-10-04 | rsna-knee-infer v41 (+ Datasets `rsna-knee-ckpt-v13r`, `-v13e`) | **P-64 follow-up, ResNet-50 solo**: `INFER_MEMBERS = ["v13r"]` — ResNet-50 a1 on the `v13h` recipe (`rsna-knee-train` v43) (`artifacts/infer_solo_v13r.py`) | none; gold-58 SWA 0.9111 | **0.934** | **read 07:41:36 UTC → +0.003 vs `v13h` 0.931 → 🔁 (top of 0.928–0.934); scored within [18.4, 19.9] min.** sent 07:21:44 UTC, ref 56817383 |
+| 46 | 2026-10-04 | rsna-knee-infer v42 (v41's mounts) | **P-64 follow-up, EfficientNet-B0 solo**: `INFER_MEMBERS = ["v13e"]` — EfficientNet-B0 ra on the `v13h` recipe (`rsna-knee-train` v43) (`artifacts/infer_solo_v13e.py`) | none; gold-58 SWA 0.9126 | **0.935** | **read 07:39:27 UTC → +0.004 vs `v13h` 0.931 → ✅ KEEP (bar ≥ 0.935) — our best solo (was 0.932); scored within [13.8, 15.3] min, our fastest.** sent 07:24:08 UTC, ref 56817439 |
+| 47 | 2026-10-04 | rsna-knee-infer v43 (v41's mounts) | **Two-family blend**: `INFER_MEMBERS = ["v11a", "v13h"]` — flat rank-mean, one c03 decode pass (`artifacts/infer_pair_v11a_v13h.py`) | none; gold-58 0.9170 | **0.934** | **read 07:56:24 UTC → +0.002 over the best member (`v11a` 0.932) → 🔁 (keep bar ≥ 0.936); the first blend of ours above both members; scored within [27.3, 28.8] min.** sent 07:27:35 UTC, ref 56817516 |
