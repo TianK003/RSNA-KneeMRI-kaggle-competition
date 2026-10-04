@@ -6,6 +6,131 @@ to read first after a break.
 
 ---
 
+## 2026-10-04 (11:45 → 16:35 UTC) — RunPod P-66: **EfficientNet-B3 `v13b3` (gold 0.9222) + seed twin `v13e2` (0.9151)** trained and shipped for ≈ $2.6, critic-vetted; **session D (P-62 on the CNNs) green**; docs de-duplicated; **all seven solo/blend placeholders green — Tian sends the five 10-05 submissions**
+
+Tian, in order:
+- **Opening:** "read the handoff", check the 10-04 submissions (all five were already scored and logged), and on RunPod: "I added 10 dollars
+  … each time you want to run something there i want you to justify it to me … run reasoning through a critic subagent … be tactical".
+- **RunPod choice:** "Twin + B3 (Recommended)", over session E now / B3 alone / nothing.
+- **Docs and checkpoints:** "keep all results up to date and … remove redundant information from different documents. Keep an eye out
+  for keeping best models and checkpoints in between when using runpod".
+- **10-05 submissions:** "Write /handoff, you send".
+
+Commits `1f9712e` … `15b891e`, plus this one. No session trailers (memory `no-session-trailer-in-commits`).
+
+Nothing is in flight: every kernel is COMPLETE, the RunPod pod is deleted (`list-pods` empty) and no submission is pending.
+
+### Where things stand
+
+| | Status |
+|---|---|
+| Best LB / own / solo | 0.942 (public-stack fork) / **0.938** (#48 trio `v11a` + `v13r` + `v13e`) / **0.935** (`v13e`). Public LB today: top 0.963, us rank 1,408 of 5,117 |
+| Trained today, LB pending | `v13b3` (EffNet-B3 @ 288, RunPod) gold-58 **0.9222** · `v13e2` (`v13e` seed 43, RunPod) 0.9151 · `v13es` (P-62, B0) 0.9107 · `v13rs` (P-62, R50) 0.9160. All four shipped as `rsna-knee-ckpt-<arm>` (checkpoint + OOF + log; `datasets files` confirmed) and mounted in `rsna-knee-infer`. experiments.md 2026-10-04 "P-66 on RunPod", "P-66 complete", "Session D" |
+| Placeholders (all green: `smoke False`, 1 member or the right members, `decode-once verified`, `constant labels 0`) | `rsna-knee-fork` **v11** = public stack + trio at β 0.45 · `rsna-knee-infer` **v45** = 4-model · **v46** = CNN trio · **v47** = `v13b3` · **v48** = `v13e2` · **v49** = `v13es` · **v50** = `v13rs` |
+| Committed renders | `rsna-knee-infer` = **v50** (`v13rs` solo, submittable) · `rsna-knee-fork` = v11 · `rsna-knee-train` = v44 (session E SMOKE) · `rsna-knee-train-b` = **v6, session D REAL — never re-push as is** |
+| RunPod | P-66 cost ≈ $2.6 (billing showed $1.99 at 15:53 and lags); ≈ $7 of the $10 top-up left. Pod `kqgjkh0329ieqq` deleted after both ships were confirmed |
+| Quota | Kaggle GPU **26.67 / 30 h** (3.33 h left, resets 2026-10-10). Submissions: 5 on 10-05, 5 on 10-06 |
+| Docs | `CLAUDE.md` 48 → 37 KB, one current-state block; `proposals.md` 635 → 425 lines (7 closed cards → pointers); traps 51–52 new |
+
+### What we talked about and decided
+
+- **RunPod is spent only after a critic-vetted case and Tian's go** (memory `runpod-pod-self-service`, CLAUDE.md "The main workflow").
+  - My first proposal was session E (the Claude-label target) on RunPod.
+  - The critic subagent moved it off RunPod:
+    - P-65's own expected LB gain (0..+0.004) is under E's ✅ bar (+0.0045);
+    - E's target is only +0.006 on gold (ρ 0.981 to the current one), and gold gains that size failed to transfer three times;
+    - E's design should wait for D's P-62 read;
+    - my benefits were counted three times.
+  - **E stays on Kaggle after 10-10.** RunPod went to the job it has a structural edge on: B3 @ 288 would need 12–15 T4-hours, two
+    sessions and a memory risk. The seed twin was added because no CNN seed noise had ever been measured.
+- **Checkpoint safety on RunPod** (memory `runpod-checkpoint-safety`):
+  - copy each arm off the pod as soon as its SWA line appears, and ship it at once instead of waiting for the chain's end;
+  - delete the pod only after `kaggle datasets files` confirms every ship.
+- **Docs:** one fact, one place (memory `docs-current-no-redundancy`). An auditor confirmed that every fact in CLAUDE.md's 14.5 KB of old
+  state lines was already recorded elsewhere, except five operational rules, which now have permanent homes.
+- **10-05:** Tian sends the five himself (commands below).
+
+### What we figured out
+
+1. **On RunPod, B3 @ 288 is cheap: 2.2 h on a 4090 (0.06 s/study, 10.7 GB).** It reads the best gold-58 of any member (0.9222), with
+   gains on the menisci, ACL and Fracture. Direction only. experiments.md "P-66 on RunPod".
+2. **On 58 gold studies, a seed change scatters rankings as much as a backbone change.** Within-class ρ: `v13e2` ~ `v13e` 0.888 =
+   `v13b3` ~ `v13e` 0.888 ≈ `v13e` ~ `v13r` 0.886. So gold cannot show family diversity; the B3 claim was corrected inline.
+   "P-66 complete".
+3. **P-62's silent mix moves the CNNs less than a seed does** (ρ to the flat parents 0.932 / 0.948, vs 0.888 for the seed twin). Gold
+   pair mean +0.0015, with labels split. Expect 🔁 on the LB. "Session D".
+4. **The leaderboard moved: top 0.963 (was 0.960 on 10-03), 106 teams ≥ 0.950; we are rank 1,408 at 0.942.** CLAUDE.md had said "top
+   0.952 / own 0.913"; fixed.
+5. **Pod mechanics** (traps 51–52):
+   - the pod-scoped API key lives only in `/proc/1/environ`, and `runpodctl` 1.14 rejects it; the GraphQL `podStop` mutation works and
+     stopped the pod by itself;
+   - the c03 cache's files are named `c02_*` on disk;
+   - EUR-IS-1 pulled the 51 GB at 70–93 MB/s.
+
+### ⏭ Next action, in order
+
+1. **After 00:00 UTC 2026-10-05, send the five (Tian).** The fork goes first: it can take hours to score (#17 ≤ 8 h); solos take
+   15–45 min. Run from the repo root; after each submit, note the ref from `kaggle competitions submissions …` and run
+   `python src/watch_submission.py --ref <ref> --every 90`.
+   ```bash
+   S="kaggle competitions submit rsna-knee-abnormality-detection -f submission.csv"
+   $S -k tiankljucanin/rsna-knee-fork  -v 11 -m "P-50: public 0.942 stack + our trio (v11a + v13r + v13e, #48 0.938) at beta 0.45; vs #13 0.942: >=0.945 keep / 0.941-0.944 inconclusive / <=0.940 harmful"
+   $S -k tiankljucanin/rsna-knee-infer -v 45 -m "4-family blend: flat rank-mean v11a + v13h + v13r + v13e; vs #48 0.938: >=0.941 keep / 0.936-0.940 inconclusive / <=0.935 harmful"
+   $S -k tiankljucanin/rsna-knee-infer -v 46 -m "CNN trio: flat rank-mean v13h + v13r + v13e (no CoAtNet); vs #48 0.938: >=0.938 = the CoAtNet member is not needed"
+   $S -k tiankljucanin/rsna-knee-infer -v 49 -m "P-62 v13es solo: v13e + Raptor 0.75 on report-silent cells; gold-58 0.9107 vs v13e 0.9126; read m(v13es, v13rs) vs 0.9345: >=0.9390 keep / 0.9300-0.9389 inconclusive / <=0.9299 harmful"
+   $S -k tiankljucanin/rsna-knee-infer -v 50 -m "P-62 v13rs solo: v13r + Raptor 0.75 on report-silent cells; gold-58 0.9160 vs v13r 0.9111; read m(v13es, v13rs) vs 0.9345 (same bands)"
+   ```
+   **How to read the results:**
+   - **Fork v11 vs #13 0.942:** ✅ ≥ 0.945 / 🔁 0.941–0.944 / ❌ ≤ 0.940.
+   - **v45 vs #48 0.938:** ✅ ≥ 0.941 / 🔁 0.936–0.940 / ❌ ≤ 0.935.
+   - **v46:** ≥ 0.938 means the CoAtNet member is not needed.
+   - **v49 + v50 (P-62):** m = mean of the two. ✅ ≥ 0.9390 means E and the final members get `TEACHER_SILENT_MIX`; 🔁 0.9300–0.9389;
+     ❌ ≤ 0.9299.
+2. **`/update` after the reads:** Submissions rows #49–#53, the Scoreboard, cards P-50 / P-62, and the CLAUDE.md current-state block.
+   Fix every older copy of a number you change.
+3. **10-06, five slots.**
+   - **Two solos are fixed:**
+     - **infer v47 = `v13b3`**, vs `v13e` 0.935: ✅ ≥ 0.939 / 🔁 0.931–0.938 / ❌ ≤ 0.930; a member candidate if ≥ 0.933.
+       Message: `"P-66 v13b3 solo: EfficientNet-B3 @288 on the v13h recipe (RunPod), gold-58 0.9222; vs v13e 0.935: >=0.939 keep /
+       0.931-0.938 inconclusive / <=0.930 harmful"`.
+     - **infer v48 = `v13e2`:** s = |`v13e2` − 0.935|. s ≤ 0.003: the CNN bands stand. s ≥ 0.005: one-seed CNN deltas need ≥ s, and the
+       D reads are re-read with ±s. Message: `"P-66 v13e2 solo: v13e at seed 43 (first CNN seed twin, RunPod), gold-58 0.9151; s =
+       |v13e2 - 0.935| measures the CNN seed spread"`.
+   - **The other three are blends chosen after the 10-05 reads:**
+     - `v11a` + `v13r` + `v13b3` (B3 replaces B0 in #48);
+     - `v11a` + `v13r` + `v13e` + `v13b3`;
+     - #48 + `v13e2` (a 2-seed B0).
+     - Build each from the CURRENT `src`:
+       `sed -e 's/^FORCE_SMOKE = True/FORCE_SMOKE = False/' -e 's/^MODE = "auto"/MODE = "infer"/' -e 's/^INFER_MEMBERS = \[.*\]/INFER_MEMBERS = ["v11a", "v13r", "v13b3"]/' src/kaggle_pipeline.py > artifacts/infer_<name>.py`,
+       then `nbgen` → push → check the log. The log is JSON: read it with `python src/kaggle_log.py <log> "infer members" "decode-once verified" "constant labels"`.
+     - Keep a blend only if it reads ≥ its best member + 0.004.
+     - Placeholders cost GPU minutes (3.33 h left) and need a free slot (traps 50).
+4. **After the 10-10 reset:**
+   - **Session E** (`v13ec` ‖ `v13rc`, the Claude target). Rebuild from the current `src`; smoke first. If P-62 ✅, add `TEACHER_SILENT_MIX`,
+     which needs `DISTILLED_SILENT_MIX` entries for E's arms.
+   - **Then the final members (P-50).** If B3 ✅, consider B3 in the CNN family.
+   - Any RunPod run goes through the critic rule first.
+
+### Open decisions for Tian
+
+- **The final two picks (P-50)** by 10-15, the merger deadline; the submission deadline is 10-22. Read the fork v11 result first.
+- **The order of the 10-10 GPU week:** session E, final members, seed twins.
+- **The remaining ≈ $7 of RunPod:** nothing is proposed yet. Any proposal comes with a critic-checked case.
+- **Team-merge offers** on the forum (deadline 10-15).
+- **Licences:** timm / RadImageNet eligibility; needs the rules page in a browser (proposals.md "Open questions needing a browser").
+
+### Things that will bite if forgotten
+
+- **`rsna-knee-train-b` v6 is a REAL render (session D).** Re-pushing it starts a 6 h session.
+- **The kaggle CLI leaderboard `-s` shows one page only.** Use `kaggle competitions leaderboard … -d -p <dir>` for the full CSV.
+- **Placeholder logs are JSON, but `PARALLEL_ARMS` child logs (`<arm>.log`) are plain text.** `src/kaggle_log.py` prints nothing for the
+  child logs; grep them instead.
+- **The Kaggle OAuth token on this laptop expires 19:17 UTC today.** The CLI refreshes it itself on the first call ≥ 30 min after expiry
+  (traps 20), so a submit at 00:00 UTC refreshes it. If it fails, wait 31 min and retry once.
+- **On a RunPod chain, the window between an arm's SWA line and the auto-stop can be under a minute.** Run the local backup from the
+  Kaggle Dataset (`kaggle datasets download … --unzip`), not from the pod.
+- `discussion.py` / `discussion_735304.xml` in the repo root are Tian's, untracked on purpose.
+
 ## 2026-10-04 (08:45 → 11:45 UTC) — labels researched end to end (host rule 2.6.b; forum + literature; **P-65 Claude relabel: blind gold pilot 🔁, full 4,349-report pass done and published**); **session D (P-62 silent-cell teacher on the CNNs) RUNNING**; sessions E (Claude target) and B3 staged; 10-05 placeholders ready
 
 Tian, in order:
