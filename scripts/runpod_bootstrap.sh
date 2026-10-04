@@ -118,6 +118,8 @@ ship)
   # not an empty Dataset version.
   OUT="$WORK/ship_$ARM"; rm -rf "$OUT"; mkdir -p "$OUT"
   cp "$WORK/${ARM}"_fold[0-9]_best.pt "$WORK/${ARM}"_fold[0-9]_oof.csv "$OUT/" 2>/dev/null || true
+  # 2026-10-04: the training log rides along (per-epoch gold AUC, throughput) -- an AUTO_STOP'd pod cannot be scp'd from
+  cp "$WORK/train_$ARM.log" "$OUT/" 2>/dev/null || true
   n_ckpt=$(ls "$OUT"/*_best.pt 2>/dev/null | wc -l)
   [ "$n_ckpt" -ge 1 ] || { echo "!! ship $ARM: no ${ARM}_fold*_best.pt in $WORK -- nothing to publish"; exit 2; }
   echo "shipping $n_ckpt checkpoint(s) + $(ls "$OUT"/*_oof.csv 2>/dev/null | wc -l) oof csv(s)"
