@@ -69,6 +69,8 @@ Nothing is in flight: every kernel is COMPLETE, the RunPod pod is deleted (`list
 
 ### ⏭ Next action, in order
 
+**The queue (every candidate, what it tests, its read rule): [docs/candidates.md](candidates.md).** Tian is picking the 10-05 five from it. The commands below are the default lineup; any other row's placeholder is built from the recipe at the bottom of candidates.md.
+
 1. **After 00:00 UTC 2026-10-05, send the five (Tian).** The fork goes first: it can take hours to score (#17 ≤ 8 h); solos take
    15–45 min. Run from the repo root; after each submit, note the ref from `kaggle competitions submissions …` and run
    `python src/watch_submission.py --ref <ref> --every 90`.

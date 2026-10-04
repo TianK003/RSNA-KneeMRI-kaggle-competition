@@ -141,7 +141,8 @@ result*, per unit of cost. "Depends on" lists hard blockers only. EVs are solo-L
 ### P-50 Final selection and publishability
 Status:       💡 new 2026-09-27; decide by the 2026-10-15 entry deadline. **2026-10-04: the two candidates are set** — our best
               own ensemble (#48 0.938, `v11a` + `v13r` + `v13e`) and the public-stack fork with that trio as our leg at β 0.45
-              (`rsna-knee-fork` v11, green placeholder, read on 2026-10-05).
+              (`rsna-knee-fork` v11, green placeholder, read on 2026-10-05). The full lineup of candidate ensembles and fork legs, with
+              read rules, is the queue in candidates.md (sections B, C).
 Hypothesis:   two private-scored picks that are different tickets beat two LB-maximising forks, because ≈ 690 teams share the
               anchor and private rank is decided by components they do not have (reviewer C).
 Origin:       reviewer C (final picks, publishability); reviewer A (missing card M5); research.md 2.7.4 (the 0.946–0.947 teams

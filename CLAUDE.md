@@ -21,7 +21,7 @@ is in [docs/experiments.md](docs/experiments.md).
 | Our best | **LB 0.942** = the public-stack fork (#13 / #15). **Own models 0.938** = #48, a flat rank-mean of `v11a` (CoAtNet-1) + `v13r` (ResNet-50) + `v13e` (EfficientNet-B0), `rsna-knee-infer` v44. **Solo 0.935** = #46 `v13e` |
 | Production recipe | CNNs on the `v13h` recipe: c03 input, CNN LR 3e-4 uniform, frozen BN, heavy aug, drop-path 0.1, 30 epochs, SWA of 27–29. Targets 0.5 LLM + 0.5 quantile-matched Raptor. The c03 CoAtNet `v11a` is the non-CNN family |
 | Trained, LB pending | **Session D** (P-62, Kaggle): `v13es` 0.9107 / `v13rs` 0.9160 on gold. **P-66** (RunPod 4090, ≈ $2.6, pod deleted): `v13b3` (EfficientNet-B3 @ 288) 0.9222, `v13e2` (`v13e` at seed 43) 0.9151. All four are shipped as `rsna-knee-ckpt-<arm>`. Nothing is running |
-| Next | 10-05 (placeholders green): `rsna-knee-fork` v11 (trio at β 0.45; send first), `rsna-knee-infer` v45 (4-model), v46 (CNN trio), v49 (`v13es`), v50 (`v13rs`). 10-06: v47 (`v13b3`), v48 (`v13e2`). After the 10-10 GPU reset: session E (Claude-label target), then the final members. Final picks (P-50) by 10-15; deadline 10-22 |
+| Next | **The queue: [docs/candidates.md](docs/candidates.md)** — every model / ensemble to score and every arm to train next, with what each tests and its read rule. 10-05 placeholders are green (fork v11, infer v45–v50); Tian picks the five. After the 10-10 GPU reset: the final members. Final picks (P-50) by 10-15; deadline 10-22 |
 | Budgets | Kaggle GPU 30 h/week: 26.67 h used, 3.33 h left until the 2026-10-10 reset. 5 submissions per UTC day. RunPod only after a justification checked by a critic subagent and Tian's go |
 
 ## 📚 Documentation map — read the relevant one before acting
@@ -31,6 +31,7 @@ is in [docs/experiments.md](docs/experiments.md).
 | [docs/handoff.md](docs/handoff.md) | Session state, what changed last, next action | **First, always** |
 | [docs/traps.md](docs/traps.md) | Bugs and **silent** failure modes, tiered by damage | Before writing pipeline code |
 | [docs/experiments.md](docs/experiments.md) | Every measurement, with a verdict | Before proposing an experiment |
+| [docs/candidates.md](docs/candidates.md) | **The queue:** which models / ensembles to submit and which arms to train next, what each tests, its read rule, placeholder status | Before choosing the next submissions or GPU run |
 | [docs/proposals.md](docs/proposals.md) | **Ranked backlog as testable cards** — live cards ranked on top with full bodies; closed cards as one-line pointers to their experiments.md entries | When choosing what to do next |
 | [docs/research.md](docs/research.md) | Literature + prior-competition research behind the cards (18-agent workflow, critic-fixed) | Before changing a training parameter or model |
 | [docs/brainstorm.md](docs/brainstorm.md) | Open questions and strategy notes only | When a question needs a browser |
@@ -52,7 +53,7 @@ Three slash commands encode the workflows above so they are followed the same wa
 | Command | What it does | Owns |
 |---|---|---|
 | `/try-out` | Turns an idea or a `P-nn` card into one edit to `src/` + a **smoke** kernel run, then stops. Never pushes a real run, never submits — both need your go-ahead. | `src/`, `kaggle/*/`, card status |
-| `/update` | Routes every new finding to exactly one doc, with a verdict gated by the noise floor. Commits and pushes. | `experiments.md`, `proposals.md`, `traps.md`, `brainstorm.md`, this file |
+| `/update` | Routes every new finding to exactly one doc, with a verdict gated by the noise floor. Commits and pushes. | `experiments.md`, `proposals.md`, `candidates.md`, `traps.md`, `brainstorm.md`, this file |
 | `/handoff` | Writes the new `docs/handoff.md` session entry (in-flight table, decisions, next actions). Runs `/update` first if findings are unlogged. Commits and pushes. | `docs/handoff.md` |
 
 **Noise floors decide what counts as evidence.** The working rules are in proposals.md, "Decision-metric hierarchy".
@@ -86,7 +87,7 @@ Full reasoning and ~60 more failure modes in [docs/traps.md](docs/traps.md).
 
 ```
 CLAUDE.md               this file — index + verified facts
-docs/                   handoff, traps, experiments, proposals, research, brainstorm, setup
+docs/                   handoff, candidates, traps, experiments, proposals, research, brainstorm, setup
 src/kaggle_pipeline.py  THE PIPELINE, percent-format (runs as .py AND becomes the notebook)
 src/cache_pipeline.py   preprocessing-cache kernel (P-01): DICOM -> uint8 once, laterality, site proxy
 src/nbgen.py            percent-format .py -> .ipynb

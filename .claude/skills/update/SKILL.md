@@ -8,7 +8,7 @@ description: Use when a measurement, kernel result, submission score, bug, or ne
 Route every new finding to exactly one doc, with a verdict, then commit and push.
 
 **This skill owns:** `docs/experiments.md`, `docs/proposals.md`, `docs/traps.md`,
-`docs/brainstorm.md`, and the verified-facts / state lines in `CLAUDE.md`.
+`docs/brainstorm.md`, `docs/candidates.md`, and the verified-facts / state lines in `CLAUDE.md`.
 
 **This skill never touches `docs/handoff.md`.** That is the `/handoff` skill's file. If the
 user wants a session log too, run this first, then `/handoff`.
@@ -25,6 +25,7 @@ user wants a session log too, run this first, then `/handoff`.
 | A bug, or a failure that looked fine while being wrong | `traps.md` | Numbered entry in the correct tier (1 = corrupts results silently, 2 = wastes a session, 3 = friction) |
 | A fact about the data, competition, or repo state we verified this session | `CLAUDE.md` | Edit in place; say how it was verified and on what date |
 | A question that needs a browser or a human decision | `brainstorm.md` | Open-questions table |
+| A concrete model / ensemble to submit, or an arm to train, next | `candidates.md` | A queue row: what it tests, what it decides, its read rule, placeholder status. **Delete the row once it is read** (the score goes to experiments.md) |
 
 If a finding seems to belong in two places, it is usually one measurement (experiments.md)
 plus one operational rule learned from it (traps.md). Write both, and cross-link them.
