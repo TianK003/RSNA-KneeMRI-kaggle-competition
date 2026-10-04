@@ -6,6 +6,103 @@ to read first after a break.
 
 ---
 
+## 2026-10-03 (17:20 UTC) → 2026-10-04 (08:45 UTC) — 8 reads + session C: **the CNN line wins** (EfficientNet-B0 `v13e` 0.935 = best solo); **the three-family trio reads 0.938 = best own-model score**; P-45 / P-61 / P-63 closed
+
+Tian, in order:
+- "collect results and read the handoff"
+- "Yes, start session C now. no need to remove the pushed commit, just leave it as is"
+- "Continue, submit the work"
+
+Commits `9f11579` … `b1d7f80`, plus this one. `9f11579` carries a `Claude-Session:` trailer by mistake. Tian said to keep it; later
+commits have none (memory `no-session-trailer-in-commits`).
+
+Nothing is in flight: every kernel is COMPLETE and all 5 submissions of 2026-10-04 are scored.
+
+### Where things stand
+
+| | Status |
+|---|---|
+| Best LB / best own | 0.942 (public-stack fork) / **0.938 = #48, the trio `v11a` + `v13r` + `v13e`** (own models only) |
+| Best solo | **0.935 `v13e`** (EfficientNet-B0, `v13h` recipe; ≈ 15 min to score, 17 MB). Then `v13r` 0.934, `v11a` 0.932, `v13h` 0.931 |
+| Reads this session | #41 `v11p` 0.929 🔁 · #42 `v13h` 0.931 ✅ · #43 `v11d` 0.930 🔁 · #44 `v11dl` 0.927 🔁 · #45 `v13r` 0.934 🔁 · #46 `v13e` 0.935 ✅ · #47 `v11a` + `v13h` 0.934 🔁 · #48 trio 0.938 🔁 (bar 0.939). experiments.md 2026-10-03 "Sessions A ‖ B", "Submissions #41–#43"; 2026-10-04 "Session C", "Submissions #44–#47", "Submission #48" |
+| Cards | P-64 ✅ (the CNN recipe). P-45 (as a training target), P-61 and P-63 🔁 closed, not adopted. Targets stay 0.5 LLM + 0.5 Raptor |
+| Datasets (private, ready) | `rsna-knee-ckpt-{v11p,v13h,v11d,v11dl,v13r,v13e}`, all in `kaggle/rsna-knee-infer/kernel-metadata.json` |
+| Committed renders | `rsna-knee-train` = **v43, session C REAL** (5.87 h). `rsna-knee-train-b` = v4, session A REAL. `rsna-knee-infer` = **v44 = the trio (#48), submittable**. Never re-push a training render as is |
+| Staged builds | `artifacts/infer_solo_{v11p,v13h,v11d,v11dl,v13r,v13e}.py`, `infer_pair_v11a_v13h.py`, `infer_trio_v11a_v13r_v13e.py` (each `src` + 3 seds) |
+| Quota | Kaggle GPU **20.25 / 30 h** (9.75 h left, resets 2026-10-10). Submissions: 0 left on 10-04, 5 on 10-05 |
+
+### What we talked about and decided
+
+- **Session C ran on Tian's go**, after `v13h` passed its ✅ bar (0.931 ≥ 0.925), though not the 0.935 "main bet" bar. A smoke ran
+  first.
+  - EfficientNet's `0 stages` / `over 0 blocks` log line was checked in `param_groups` and is cosmetic. At `llrd_decay` 1.0 every
+    encoder parameter gets the uniform 3e-4.
+- **The fifth slot on 10-04 waited for the pair's read.** Once `v11a` + `v13h` read above both members, the most informative fifth
+  was the three-family trio. A second CNN-only pair or the four-member blend would have answered less.
+- **Pre-registered bars were applied as written.**
+  - The trio is 🔁 at 0.938 vs the 0.939 bar, even though it is our best own score.
+  - `v11dl` is 🔁 at −0.003. It is closed because gold agreed in sign; the LB did not rule.
+
+### What we figured out
+
+1. **The forum's CNN recipe transfers to our pipeline.** That recipe is long schedules, heavy aug, drop-path, frozen BN, a CNN LR and
+   c03 input.
+   - EfficientNet-B0 0.935 > ResNet-50 0.934 > ResNet-34 0.931, the forum's order.
+   - All three are at or above the six-read CoAtNet plateau (0.929–0.932).
+   - Source: experiments.md "Submissions #41–#43", "#44–#47".
+2. **Gold-58 cannot judge cross-family or recipe changes.**
+   - `v13h` was −0.001 on gold and +0.010 on the LB.
+   - All three CNNs read under `v11a` on gold and above it on the LB.
+   - Source: traps 39, extended 2026-10-03.
+3. **Different families blend; same families never did.** Results: #47 +0.002 and #48 +0.003 over the best member, +0.004 over the
+   mean, against four flat same-family blends. The gain grew from 2 families to 3. Source: experiments.md "Submission #48".
+4. **Target and head changes on the CoAtNet do not transfer.** D4 targets −0.002, the reader −0.003, the higher LR −0.003. The
+   CoAtNet stays at the `v11a` recipe as the ensemble's non-CNN family.
+
+### ⏭ Next action, in order
+
+1. **GPU (Tian's go; 9.75 h left, one session).** Strengthen the best family. Proposal: `v13e2` (`v13e` at seed 43) ‖ a bigger
+   EfficientNet on the same recipe (`efficientnet_b2`, needs a `timm-efficientnet-b2-*` weight Dataset made like `timm-efficientnet-b0-ra`,
+   commit `6856f6b`). The steps:
+   - Add both arms to `ARMS` in `src/kaggle_pipeline.py` beside `v13e` (`"seed": 43` is honoured per arm since traps 42).
+   - Run `src/window_head_test.py` and a local smoke.
+   - Run the Kaggle smoke: `sed PARALLEL_ARMS = ("v13e2", "v13b2")`, `TEACHER_TABLES = ("raptor_teacher",)`, `TEACHER_MIX = 0.5`,
+     like `artifacts/train_sC_kaggle_smoke.py`.
+   - Then the real run, ≈ 6 h (session C took 5.87 h). It is green only if each child log has `SWA of last 3` and no runtime guard.
+   - The seed twin tells us whether 0.935 is the recipe or a lucky seed: the P-44 floor is 0.004.
+2. **2026-10-05 submissions (5).** Keep a blend only if it reads ≥ its best member + 0.004.
+   - (a) the four-family blend `v11a` + `v13h` + `v13r` + `v13e`: does a fourth member add?
+   - (b) the CNN-only trio `v13h` + `v13r` + `v13e`: is the CoAtNet needed?
+   - (c) `v11a` + `v13e`: the strongest pair.
+   - (d) and (e): keep for the session-1 members.
+   - Each is `sed -e 's/^INFER_MEMBERS = \[.*\]/INFER_MEMBERS = [...]/'` on `src` + the two infer seds, then `nbgen` → push
+     `kaggle/rsna-knee-infer`.
+   - Check the placeholder log for `smoke False`, `infer members (N)`, `N members in 1 geometry group(s)`, decode-once verified and
+     `constant labels 0`.
+   - Submit with `-v <N>`, then watch with `python src/watch_submission.py --ref <ref> --every 90`.
+3. **P-50 (final picks, by 10-15).** One pick = our best own ensemble (now #48, 0.938). For the other, the 0.946–0.947 teams blend a
+   diverse own leg at weight 0.45–0.5 into the public stack. Our trio is now that leg.
+   - Test: `src/build_fork.py` with the trio as our arm at β 0.45 vs #13's 0.942.
+   - The fork takes hours to score (#17 ≤ 8 h), so send it early in a day.
+   - The v34 public stack (0.943) rebuild is optional.
+
+### Open decisions for Tian
+
+- **The 9.75 GPU-h before 10-10:** the EfficientNet session above (≈ 6 h), or a mix (e.g. one seed twin + keep ≈ 3.5 h buffer).
+- **P-50:** whether one final pick is the public-stack fork with our trio at β ≈ 0.45, and when to spend a slot on it.
+- **Efficiency prize:** `v13e` solo (0.935, ≈ 15 min, 17 MB) is our natural fast pick. The formula is still unread (P-18).
+- Unchanged: team-merge offers (merger deadline 10-15); hosted-API labels (Tian's "no" stands).
+
+### Things that will bite if forgotten
+
+- **`rsna-knee-train` v43 and `rsna-knee-train-b` v4 are REAL renders.** Re-pushing either starts a 4–6 h session.
+- **CNN training is input-bound at first and speeds up.** Session C's first "epoch ETA 22 min" settled to ≈ 11.5 min/epoch (5.87 h
+  for 30 epochs). Do not judge a run's length from the first ETA line.
+- **The trio takes ≈ 44 min to score** (three members, one decode pass); a CNN solo takes 15–20 min. Budget slots so reads land the
+  same day.
+- **Placeholder logs are JSON.** `grep` truncates at the escaped `\n`, so parse them (`json.loads`, join `data`). The scratch helper
+  `wait_check.sh` did this; it is not in the repo.
+
 ## 2026-10-03 (09:05 → 16:20 UTC) — quota reset: P-60 part 2 read 🔁 (0.932 / 0.932); P-45 D4 teacher built, spiked, passed, published; whole-forum mining → **our gap is image-side, the best singles are CNNs**; sessions A (`v11p` ‖ `v13h`) and B (`v11d` ‖ `v11dl`) running; handoff written BEFORE their results
 
 Tian, in order:
