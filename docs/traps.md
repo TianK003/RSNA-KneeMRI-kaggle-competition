@@ -964,3 +964,25 @@ With session D training on `rsna-knee-train-b` and a smoke on `rsna-knee-train`,
 (`Kernel push error: Maximum batch GPU session count of 2 reached.`). Placeholders are GPU sessions too. Push them while a slot is free
 (before starting the second training session, or after a smoke ends), and do not plan a two-session training sitting on a day whose
 submissions still need placeholders.
+
+### 51. A RunPod pod's own API key is only in PID 1's environment, and `runpodctl` 1.14 rejects it — a self-stop must use the GraphQL API (Tier 3, 2026-10-04)
+
+P-66's chain stops its pod when it ends (`AUTO_STOP=1`). In an ssh session on the pod, `RUNPOD_POD_ID` and `RUNPOD_API_KEY` are
+unset: RunPod injects them into the container's PID 1 only. With them exported from `/proc/1/environ`, `runpodctl get pod` and
+`runpodctl get pod <own id>` both answer `Error: Unauthorized` (runpodctl 1.14.15, no config file). The same pod-scoped key reads its
+own pod through `https://api.runpod.io/graphql?api_key=…` (`query { pod(input: {podId: …}) { id desiredStatus } }` →
+`RUNNING`). **Do:** export the two variables from PID 1 before launching
+(`tr "\0" "\n" < /proc/1/environ | grep -E "^RUNPOD_(API_KEY|POD_ID)=" | sed "s/^/export /"`), and stop through the `podStop`
+mutation (`self_stop` in `scripts/runpod_chain.sh`; runpodctl stays as the fallback). The chain refuses `AUTO_STOP=1` without both
+variables. To kill a chain by hand without triggering the self-stop, use SIGKILL (`pkill -9 -f "[r]unpod_chain.sh <arm>"`):
+an EXIT trap does not run on SIGKILL.
+
+### 52. The c03 cache's manifests are named `manifest_shard<k>_c02.csv`, not `_c03` — a scheme-named glob finds 0 blobs (Tier 3, 2026-10-04)
+
+c03 is the c02 scheme with denser slot budgets (cache version `c02_p336_b24-24-24-14-8-8_band2-98_crop150_lat20`). `cache_pipeline.py`
+names manifests by `cfg.scheme`, which is `c02` for both. A P-66 runner edit globbed `manifest_shard*_c03.csv`, so the blob check
+printed `blobs 0, bad 0, studies 0` after a full 51 GB pull and started re-pulling. After its third failure the chain would have exited
+and auto-stopped the pod. It was killed with SIGKILL (traps 51), fixed (`CACHE_SCHEME` defaults to `c02`, commit `7305371`) and
+relaunched. The cache on disk was kept: a re-pull skips existing files (traps 38), and the check then read 71 blobs, 0 bad, 4,407
+studies. ≈ 12 min lost. **Do:** the "c03" in our docs is a cache *name* (kernel slugs `rsna-knee-cache3-*`, `C03_KW`). On disk
+everything is `c02_*`. Before a chain launch, check the blob verifier against a cache that is already on disk, if one is.

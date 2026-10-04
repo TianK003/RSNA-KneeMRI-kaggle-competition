@@ -110,6 +110,7 @@ Judge label changes on **coverage** (does the rule fire at all, per language) an
 | 2026-10-03 | **Sessions A (`rsna-knee-train-b` v4, 4.40 h) ‖ B (`rsna-knee-train` v41, 3.82 h)**, c03, one seed each: `v11p` = `v11a` + P-63 spatial reader + slot-count norm · `v13h` = P-64 ResNet-34, heavy aug, drop-path 0.1, 30 ep · `v11d` = `v11a` recipe on 0.5 LLM + 0.25 Raptor + 0.25 D4 (P-45) · `v11dl` = `v11d` + lr 2e-4 / LLRD 0.85 (P-61) | gold-58 SWA **0.9185 / 0.9001 / 0.9184 / 0.9132** (`v11a` 0.9204, `v13c` 0.9014) | **0.929 / 0.931 / 0.930** / ⏳ (#41 / #42 / #43; `v11dl` 10-04) | **✅ `v13h` KEEP: +0.010 vs `v13c` 0.921 (the CNN recipe transfers; gold said −0.001) · 🔁 `v11p` −0.003 and `v11d` −0.002 vs `v11a` 0.932, not adopted** (entries "Sessions A ‖ B", "Submissions #41–#43") |
 | 2026-10-04 | **Session C (`rsna-knee-train` v43, 5.87 h)**: the `v13h` recipe (c03, CNN LR 3e-4 uniform, frozen BN, heavy aug, drop-path 0.1, 30 ep, Raptor 0.5) on ResNet-50 `v13r` ‖ EfficientNet-B0 `v13e` | gold-58 SWA **0.9111 / 0.9126** (`v13h` 0.9001) | **0.934 / 0.935** (#45 / #46) | **✅ `v13e` KEEP: 0.935 = our best solo (+0.004 vs `v13h`); 🔁 `v13r` +0.003** — blend `v11a` + `v13h` #47 0.934 (🔁 +0.002 over its best member); `v11dl` #44 0.927 (P-61 closed) (entries "Session C", "Submissions #44–#47") |
 | 2026-10-04 | **Cross-family blends (flat rank-mean, `rsna-knee-infer` v43 / v44)**: `v11a` + `v13h` (#47) · `v11a` + `v13r` + `v13e` (#48) | gold-58 0.9170 / 0.9233 | **0.934 / 0.938** | **🔁 by rule (+0.002 / +0.003 over the best member, bars 0.936 / 0.939) — but both above every member, unlike four flat same-family blends; 0.938 = our best own-model score** (entry "Submission #48") |
+| 2026-10-04 | **P-66 `v13b3` (RunPod RTX 4090, 2.2 h, ≈ $1.8)**: the `v13h` recipe on EfficientNet-B3 @ 288 (c03, Raptor 0.5, 30 ep, SWA 27–29) | gold-58 SWA **0.9222** (`v13e` 0.9126; 6 up / 5 down; menisci, ACL, Fracture up) | ⏳ (solo 10-06) | **✅ run green; 🔁 direction only (+0.0096, floor 0.05)** — read vs `v13e` 0.935: ✅ ≥ 0.939 / 🔁 0.931–0.938 / ❌ ≤ 0.930; seed twin `v13e2` training on the same pod (entry "P-66 on RunPod") |
 
 **External reference points** (not ours — for calibrating ambition):
 
@@ -3055,6 +3056,76 @@ forum's pattern (different families pay +0.005–0.007, research.md 2.7.4) at a 
 
 **Verdict: 🔁 by rule (0.001 under the bar); adopted as our best own ensemble, the candidate own leg for P-50.** Next levers, both
 members not blends: a stronger CNN (a second `v13e` seed, a bigger EfficientNet) or more CNN families on the `v13h` recipe.
+
+### 2026-10-04 — P-66 on RunPod: EfficientNet-B3 @ 288 `v13b3` trained in 2.2 h on one RTX 4090 · gold-58 SWA **0.9222** vs `v13e` 0.9126 (+0.0096, 6 up / 5 down / 1 tie) · ✅ run green, 🔁 direction only · `v13e2` (seed twin) training · solos 10-06
+
+**Setup (Tian's go, critic-reviewed: proposals.md P-66).**
+- **Pod:** `kqgjkh0329ieqq`, secure RTX 4090, EUR-IS-1, $0.74/h, created 12:17 UTC.
+  - 16 vCPU and 93 GB allotted (`nproc` reports 64; the host has 377 GB).
+  - `/workspace` is MooseFS (network) and `/dev/shm` is 43 GB, so the 51 GB c03 cache went on the 80 GB container disk.
+  - `/kaggle` → `/workspace/kaggle`, so `_last.pt` survives a stop (traps 46).
+- **Speeds:** bandwidth from a public GCS object 29 MB/s; the four parallel c03 pulls ran at ≈ 70–93 MB/s in total, 51 GB in ≈ 11 min.
+- **The job:** `scripts/runpod_chain.sh v13b3 v13e2` with:
+  - `CACHE_PREFIX=rsna-knee-cache3` and `RSNA_TEACHER_TABLES=("raptor_teacher",)` (mix 0.5, the `v13e` target);
+  - `SEQ_ARMS=1` (the arms train one after the other) and `AUTO_STOP=1`.
+- **Relaunch:** the first launch died in the blob check, and the relaunch started 12:33 (traps 52; ≈ 12 min lost).
+
+**`v13b3`** = the `v13h` recipe on EfficientNet-B3 (`timm efficientnet_b3.ra2`) at 288 px:
+- **Recipe:** c03, CNN LR 3e-4 uniform, frozen BN (78 modules), heavy aug, drop-path 0.1, 30 epochs, SWA of epochs 27–29, all 4,349
+  report-only studies.
+- **Timing:** trained 12:34 → 14:46 UTC (2.2 h) at 0.06 s/study, ≈ 4.4 min/epoch.
+- **Hardware:** 10.7 GB VRAM, GPU 83–92 % busy.
+- **Run checks:** the log has `SWA of last 3`, `-> v13b3_fold0_best.pt = SWA` and no runtime guard. The checkpoint is 45 MB.
+- **Kaggle comparison:** on a T4 the P-66 card estimated 12–15 h, two sessions with a resume, with the memory at risk.
+
+Gold-58 EMA by epoch (all 58, reported only):
+
+| epoch | 0 | 4 | 9 | 14 | 19 | 24 | 29 | SWA |
+|---|---|---|---|---|---|---|---|---|
+| `v13b3` (B3 @ 288, RunPod) | 0.7789 | 0.9122 | 0.9218 | 0.9224 | 0.9256 | 0.9221 | 0.9221 | **0.9222** (CI95 0.895–0.946) |
+| `v13e` (B0 @ 224, Kaggle) | 0.7757 | 0.9032 | 0.9079 | 0.9104 | 0.9115 | 0.9136 | 0.9126 | 0.9126 |
+
+Per label, gold-58 SWA (`v13b3` from the log's SWA table; the others from the "Session C" entry above):
+
+| label | `v11a` | `v13r` | `v13e` | `v13b3` | `v13b3` − `v13e` |
+|---|---|---|---|---|---|
+| ACL | 0.962 | 0.980 | 0.957 | 0.977 | +0.020 |
+| MCL | 0.955 | 0.880 | 0.952 | 0.948 | −0.004 |
+| Medial Meniscus | 0.958 | 0.966 | 0.946 | 0.982 | +0.036 |
+| Lateral Meniscus | 0.896 | 0.886 | 0.853 | 0.906 | +0.053 |
+| Medial OA | 0.986 | 0.986 | 0.984 | 0.984 | 0.000 |
+| Lateral OA | 0.822 | 0.801 | 0.832 | 0.841 | +0.009 |
+| PF OA | 0.837 | 0.867 | 0.875 | 0.867 | −0.008 |
+| Effusion | 0.969 | 0.963 | 0.916 | 0.911 | −0.005 |
+| Synovitis | 0.806 | 0.781 | 0.826 | 0.805 | −0.021 |
+| Baker's | 0.966 | 0.987 | 0.978 | 0.984 | +0.006 |
+| Contusion | 0.947 | 0.942 | 0.970 | 0.969 | −0.001 |
+| Fracture | 0.942 | 0.893 | 0.861 | 0.893 | +0.032 |
+| **macro** | **0.9204** | **0.9111** | **0.9126** | **0.9222** | **+0.0096** |
+
+**How B3 relates to the members (OOF csvs, gold rows; direction only).**
+- **Within-class ρ** (Spearman inside each label's 0 and 1 classes, averaged):
+  - `v13b3` ~ `v13e` 0.888, `v13b3` ~ `v13r` 0.879, `v13b3` ~ `v11a` 0.853;
+  - `v13e` ~ `v13r` 0.886, measured the same way.
+  - So B3 is as far from B0 as ResNet-50 is, and is the least like the CoAtNet. The session C entry's ρ figures use another method;
+    compare within this list only.
+- **Gold rank-means:**
+  - `v11a` + `v13b3` 0.9267;
+  - `v11a` + `v13e` + `v13b3` 0.9255 and `v11a` + `v13r` + `v13b3` 0.9254, vs the #48 trio's 0.9233;
+  - all four 0.9250; `v13e` + `v13b3` 0.9211.
+
+**Reading.**
+- Most of the gain sits in the menisci, ACL and Fracture, where B0 was our weakest CNN on gold. Capacity and resolution look like
+  they help structure-level findings.
+- Gold has inverted CNN recipe reads before: `v13h` −0.001 on gold vs +0.010 on the LB (traps 39). +0.0096 is 0.2× the 0.05 floor.
+- The LB solo decides, by P-66's pre-registered rule against `v13e` 0.935: ✅ ≥ 0.939 / 🔁 0.931–0.938 / ❌ ≤ 0.930. It is a member
+  candidate if ≥ 0.933.
+
+**`v13e2`** (`v13e` at seed 43; `reseeded 43 for arm v13e2` in the log) started on the same pod at 14:46. Both ship after it as
+`rsna-knee-ckpt-v13b3` / `-v13e2`, each with its training log in the Dataset. Then the pod stops itself.
+
+**Verdict: ✅ the run (green, ≈ 2.4 pod-h ≈ $1.8 so far); 🔁 gold +0.0096 vs `v13e`, under the 0.05 floor.** The solo is read
+2026-10-06 (10-05's five slots are taken).
 
 ## Infrastructure
 
