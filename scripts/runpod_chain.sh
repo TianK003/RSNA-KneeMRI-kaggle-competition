@@ -39,8 +39,10 @@ LABELS=(pilkwang/rsna-knee-llm-labels stevenleehans/rsna-knee-llm-report-labels 
         tiankljucanin/rsna-knee-teacher-tables)
 WEIGHTS=(timm-coatnet-rmlp-1-rw-224 timm-coatnet-rmlp-2-rw-384 convnext-tiny-224-hf
          timm-resnet50-a1 timm-efficientnet-b0-ra timm-efficientnet-b3-ra2)   # the CNN line (P-64 / P-66)
-# The cache scheme the manifests carry in their names (manifest_shard<k>_<scheme>.csv): c02 unless the c03 kernels are pulled.
-CACHE_SCHEME="${CACHE_SCHEME:-$([ "$CACHE_PREFIX" = rsna-knee-cache3 ] && echo c03 || echo c02)}"
+# The scheme suffix in the manifest names (manifest_shard<k>_<scheme>.csv). It is c02 for the c03 cache too: c03 is the c02
+# scheme with denser slot budgets (cache version c02_p336_b24-24-24-14-8-8_..., written by the same code path). Verified on
+# the pod 2026-10-04 -- a "_c03" glob found 0 blobs.
+CACHE_SCHEME="${CACHE_SCHEME:-c02}"
 
 log() { echo "[$(date +%H:%M:%S)] $*"; }
 # The pod's own RUNPOD_API_KEY / RUNPOD_POD_ID live in PID 1's environment, not in an ssh session's: export them first
