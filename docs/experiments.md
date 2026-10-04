@@ -109,6 +109,7 @@ Judge label changes on **coverage** (does the rule fire at all, per language) an
 | 2026-10-03 | **P-60 part 2 (`rsna-knee-train` v39, 2.84 h)**: `v11n` ‖ `v11n2` resumed at epoch 6, SWA 9–11 | gold-58 SWA **0.9152 / 0.9166** (`v11a` / `v11b` 0.9204 / 0.9167) | **0.932 / 0.932** (#39 / #40) | **🔁 INCONCLUSIVE: m = 0.932 vs 0.9305 (+0.0015, band 0.926–0.935)** — heavy regularisation + 12 epochs = the plain recipe on the LB; seeds agree (0.932 / 0.932 vs 0.932 / 0.929); 1.5× the training time |
 | 2026-10-03 | **Sessions A (`rsna-knee-train-b` v4, 4.40 h) ‖ B (`rsna-knee-train` v41, 3.82 h)**, c03, one seed each: `v11p` = `v11a` + P-63 spatial reader + slot-count norm · `v13h` = P-64 ResNet-34, heavy aug, drop-path 0.1, 30 ep · `v11d` = `v11a` recipe on 0.5 LLM + 0.25 Raptor + 0.25 D4 (P-45) · `v11dl` = `v11d` + lr 2e-4 / LLRD 0.85 (P-61) | gold-58 SWA **0.9185 / 0.9001 / 0.9184 / 0.9132** (`v11a` 0.9204, `v13c` 0.9014) | **0.929 / 0.931 / 0.930** / ⏳ (#41 / #42 / #43; `v11dl` 10-04) | **✅ `v13h` KEEP: +0.010 vs `v13c` 0.921 (the CNN recipe transfers; gold said −0.001) · 🔁 `v11p` −0.003 and `v11d` −0.002 vs `v11a` 0.932, not adopted** (entries "Sessions A ‖ B", "Submissions #41–#43") |
 | 2026-10-04 | **Session C (`rsna-knee-train` v43, 5.87 h)**: the `v13h` recipe (c03, CNN LR 3e-4 uniform, frozen BN, heavy aug, drop-path 0.1, 30 ep, Raptor 0.5) on ResNet-50 `v13r` ‖ EfficientNet-B0 `v13e` | gold-58 SWA **0.9111 / 0.9126** (`v13h` 0.9001) | **0.934 / 0.935** (#45 / #46) | **✅ `v13e` KEEP: 0.935 = our best solo (+0.004 vs `v13h`); 🔁 `v13r` +0.003** — blend `v11a` + `v13h` #47 0.934 (🔁 +0.002 over its best member); `v11dl` #44 0.927 (P-61 closed) (entries "Session C", "Submissions #44–#47") |
+| 2026-10-04 | **Cross-family blends (flat rank-mean, `rsna-knee-infer` v43 / v44)**: `v11a` + `v13h` (#47) · `v11a` + `v13r` + `v13e` (#48) | gold-58 0.9170 / 0.9233 | **0.934 / 0.938** | **🔁 by rule (+0.002 / +0.003 over the best member, bars 0.936 / 0.939) — but both above every member, unlike four flat same-family blends; 0.938 = our best own-model score** (entry "Submission #48") |
 
 **External reference points** (not ours — for calibrating ambition):
 
@@ -2944,6 +2945,26 @@ c03 decode-once verified, `constant labels 0`; the blend decodes once for both m
 **Verdict:** ✅ KEEP `v13e` (production solo, best Efficiency candidate); 🔁 `v13r`; 🔁 the two-family blend (keep the direction,
 not the blend); P-61 closed. The trio `v11a` + `v13r` + `v13e` is #48 (sent 07:56 UTC; keep only if ≥ 0.939).
 
+### 2026-10-04 — Submission #48: three-family blend `v11a` + `v13r` + `v13e` **0.938 = our best own-model score** (+0.003 over its best member `v13e` 0.935, +0.004 over the members' mean) · 🔁 by the pre-registered bar (≥ 0.939), but the second cross-family blend in a row above every member
+
+`rsna-knee-infer` v44: `INFER_MEMBERS = ["v11a", "v13r", "v13e"]`, flat rank-mean, one c03 decode pass (placeholder green: `infer members
+(3)`, `3 members in 1 geometry group(s)`, decode-once verified, `constant labels 0`). Sent 07:56:41 UTC, ref 56818172, read 08:40:31
+UTC, scored within [42.3, 43.8] min. Gold-58 0.9233 (`v11a` alone 0.9204).
+
+| blend | members (solo LB) | best member | mean | LB | over best | over mean |
+|---|---|---|---|---|---|---|
+| #47 `v11a` + `v13h` | 0.932 / 0.931 | 0.932 | 0.9315 | 0.934 | +0.002 | +0.0025 |
+| #48 `v11a` + `v13r` + `v13e` | 0.932 / 0.934 / 0.935 | 0.935 | 0.9337 | **0.938** | +0.003 | +0.0043 |
+| (earlier, same family) #32 `v11a` + `v11b`, #38 + `v13c`, P-42, P-52 | — | — | — | flat | ≈ 0 | — |
+
+**Reading.** Each gain is under the 0.004 bar on its own. But two cross-family blends in a row read above every member, and four
+same-family blends read flat, so the sign is consistent. The gain also grows with the number of families (2 → 3). This is the
+forum's pattern (different families pay +0.005–0.007, research.md 2.7.4) at a smaller size, because our members are weaker
+(0.93 vs 0.94). 0.938 is 0.004 under the public-stack fork (0.942), from three models we trained, in ≈ 44 min.
+
+**Verdict: 🔁 by rule (0.001 under the bar); adopted as our best own ensemble, the candidate own leg for P-50.** Next levers, both
+members not blends: a stronger CNN (a second `v13e` seed, a bigger EfficientNet) or more CNN families on the `v13h` recipe.
+
 ## Infrastructure
 
 ### 2026-09-27 — The "0.943 Speedy Raptors CoAtNet D4" notebook is our anchor **plus two CoAt readers**, not a faster graph; its "< 30 min" is a 3-study commit run · P-41 (threaded scan + 8 decode workers) smoke-green and byte-identical
@@ -3438,3 +3459,4 @@ and public LB score, so a public/private divergence can be traced to a specific 
 | 45 | 2026-10-04 | rsna-knee-infer v41 (+ Datasets `rsna-knee-ckpt-v13r`, `-v13e`) | **P-64 follow-up, ResNet-50 solo**: `INFER_MEMBERS = ["v13r"]` — ResNet-50 a1 on the `v13h` recipe (`rsna-knee-train` v43) (`artifacts/infer_solo_v13r.py`) | none; gold-58 SWA 0.9111 | **0.934** | **read 07:41:36 UTC → +0.003 vs `v13h` 0.931 → 🔁 (top of 0.928–0.934); scored within [18.4, 19.9] min.** sent 07:21:44 UTC, ref 56817383 |
 | 46 | 2026-10-04 | rsna-knee-infer v42 (v41's mounts) | **P-64 follow-up, EfficientNet-B0 solo**: `INFER_MEMBERS = ["v13e"]` — EfficientNet-B0 ra on the `v13h` recipe (`rsna-knee-train` v43) (`artifacts/infer_solo_v13e.py`) | none; gold-58 SWA 0.9126 | **0.935** | **read 07:39:27 UTC → +0.004 vs `v13h` 0.931 → ✅ KEEP (bar ≥ 0.935) — our best solo (was 0.932); scored within [13.8, 15.3] min, our fastest.** sent 07:24:08 UTC, ref 56817439 |
 | 47 | 2026-10-04 | rsna-knee-infer v43 (v41's mounts) | **Two-family blend**: `INFER_MEMBERS = ["v11a", "v13h"]` — flat rank-mean, one c03 decode pass (`artifacts/infer_pair_v11a_v13h.py`) | none; gold-58 0.9170 | **0.934** | **read 07:56:24 UTC → +0.002 over the best member (`v11a` 0.932) → 🔁 (keep bar ≥ 0.936); the first blend of ours above both members; scored within [27.3, 28.8] min.** sent 07:27:35 UTC, ref 56817516 |
+| 48 | 2026-10-04 | rsna-knee-infer v44 (v41's mounts) | **Three-family blend**: `INFER_MEMBERS = ["v11a", "v13r", "v13e"]` — flat rank-mean of CoAtNet-1 + ResNet-50 + EfficientNet-B0, one c03 decode pass (`artifacts/infer_trio_v11a_v13r_v13e.py`) | none; gold-58 0.9233 | **0.938** | **read 08:40:31 UTC → +0.003 over the best member (`v13e` 0.935), +0.004 over the members' mean → 🔁 by rule (keep bar ≥ 0.939); our best own-model score; scored within [42.3, 43.8] min.** sent 07:56:41 UTC, ref 56818172 |
