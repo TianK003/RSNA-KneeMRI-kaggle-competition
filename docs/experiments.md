@@ -19,8 +19,8 @@ Every entry gets a **verdict**, and the verdict is the thing future-you reads fi
 | 🔁 **INCONCLUSIVE** | Difference smaller than the noise floor. Not evidence either way. |
 | ⏳ **PENDING** | Running or not yet measured. |
 
-Untried ideas do **not** belong here — they go in [brainstorm.md](brainstorm.md), which
-holds the ranked backlog and the open questions. This file is only for things that were
+Untried ideas do **not** belong here — they are cards in [proposals.md](proposals.md) (the ranked
+backlog); open questions are in [brainstorm.md](brainstorm.md). This file is only for things that were
 actually run and measured.
 
 **The noise floor is the most important number in this file.** With 58 gold studies the
@@ -33,6 +33,10 @@ deltas under ~0.005 are also noise (the top 10 public teams span 0.006 total). S
 
 Judge label changes on **coverage** (does the rule fire at all, per language) and on
 **OOF over all 4,407 studies**, not on the 58 gold alone.
+
+**CORRECTED 2026-10-04:** the working rules are in proposals.md, "Decision-metric hierarchy". Since traps 39,
+label and target changes are judged by gold-58 direction plus the solo LB. OOF against the LLM targets rewards
+agreement with the teacher, not truth. A one-seed LB delta needs ≥ 0.004 (P-44), not 0.005.
 
 ---
 

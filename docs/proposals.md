@@ -6,7 +6,8 @@ test, written as a falsifiable card **before** it is run. Companion to
 [research.md](research.md) (the evidence base these cards draw on).*
 
 **Rewritten 2026-09-27** after a four-reviewer audit: measured and retired cards are one-line pointers in *Closed cards*; the
-full pre-rewrite text is `git show 8304c96:docs/proposals.md`.
+full pre-rewrite text is `git show 8304c96:docs/proposals.md`. **Pruned 2026-10-04:** P-45, P-56, P-58, P-60, P-61, P-63, P-64
+moved to *Closed cards* and their bodies (and P-52's) deleted; the text before the prune is `git show c2b0e32:docs/proposals.md`.
 
 ## How a card moves
 
@@ -29,6 +30,8 @@ full pre-rewrite text is `git show 8304c96:docs/proposals.md`.
 | Gold-58 | 58 labelled studies (held out for production members: `split_studies` trains `is_gold == 0` only) | 0.05 macro unpaired rule; paired study-level bootstrap SD ≈ 0.007 for near-identical members | direction only, never a gate |
 
 Judge target changes on the solo LB (traps 39); gold-58 is direction only.
+
+**GPU rule (Tian, 2026-10-03):** a GPU session only for a change whose expected gain can clear its own read band (two-arm mean ± 0.0045; one-seed delta ≥ 0.004, P-44) — one seed per idea, two ideas per session, seed twins only for ensemble members; **RunPod (2026-10-04):** every run needs a written justification checked by a critic subagent, then Tian's go.
 
 ## Card template
 
@@ -58,22 +61,15 @@ result*, per unit of cost. "Depends on" lists hard blockers only. EVs are solo-L
 
 | rank | id | title | status | expected value | cost | depends on |
 |---|---|---|---|---|---|---|
-| 0d | P-56 | Dense-slice input c03 (24/24/24/14/8/8, 150 mm) `v11a` / `v11b` | ⏳ **trained** (session D = `rsna-knee-folds` v10, 3.53 h): gold-58 `v11a` 0.9204 / `v11b` 0.9167, c03 pair 0.9207 vs c02 pair 0.9065 (+0.014, SD 0.005, 10/12 up — direction only); Datasets `rsna-knee-ckpt-v11a` / `-v11b`; **🔁 solo reads (2026-09-29): #30 `v11a` 0.932 (best single) / #31 `v11b` 0.929 → m = 0.9305 (✅ bar 0.9315); #32 c03 pair 0.932 vs the c02 pair 0.930** — consistent sign, under every floor; not the production input by rule, the axis stays open; #38 c03 pair + `v13c` 0.932 = the pair | the only untested input axis since c02 | ~3.7-4.4 GPU-h, 3 submissions | — |
-| 0f | P-58 | Local-CPU open-weights LLM relabel as a 4th vote (Scott's Gemma route) | 💡 future, not scheduled (Tian 2026-09-28) | 0..+0.002 | 0 GPU; overnight CPU | — |
-| 0g | P-61 | CoAtNet learning-rate probe upward (`lr_backbone` 2e-4, LLRD 0.85) | 🔁 **CLOSED 2026-10-04: #44 `v11dl` = 0.927 vs `v11d` 0.930 (−0.003; gold −0.005 the same way), not adopted** (experiments.md 2026-10-04 "Submissions #44–#47"). TRAINED green 2026-10-03 (session B, 3.82 h): `v11dl` gold-58 SWA 0.9132 vs `v11d` 0.9184 (−0.005, 6/6 labels; direction only); shipped `rsna-knee-ckpt-v11dl`; solo read 2026-10-04 vs `v11d` ± 0.004** — arm `v11dl` = v11d + lr 2e-4 / LLRD 0.85 on the Raptor + D4 targets; runs in session B beside `v11d` (same-session control, one seed each); the forum mining calls it ranked too low (research.md 2.7.3) | 0..+0.005 — the CoAtNet trains under the LLRD that under-trained the ResNet by 0.069 on gold | ≈ 3 GPU-h (2 arms, c03) or ≈ $5 RunPod; 2 solos | — |
-| 0h | P-60 | "Noisy student" regularisation on the c03 CoAtNet (`v11n` / `v11n2`: drop-path 0.1, heavy aug, 12 epochs) | 🔁 **READ 2026-10-03: #39 `v11n` 0.932 / #40 `v11n2` 0.932 → m = 0.932 vs 0.9305 (+0.0015, band 0.926–0.935) → INCONCLUSIVE; not adopted (1.5× training time); the CoAtNet does not gain from regularisation + longer schedule.** Part 2 = `rsna-knee-train` v39 (2.84 h, first Kaggle resume green); gold-58 SWA `v11n` 0.9152 / `v11n2` 0.9166. Part 1 DONE = `rsna-knee-folds` v11 (2.61 h, green: both arms guard-stopped in epoch 5, `_last.pt` ×2; gold-58 EMA at epoch 4 `v11n` 0.9166 / `v11n2` 0.9129 = `v11a` / `v11b` at their epoch 4, direction only); **part 2 = `rsna-knee-train` v39, pushed 2026-10-03 09:08 UTC (≈ 3.0 h) ⏳; do not push `rsna-knee-folds` before it is green** | +0.002..0.008 (literature + every prior RSNA winner) | ≈ $4 RunPod, 2 solos | — |
 | 0i | P-62 | Silence-aware teacher mix (Raptor 0.75 where the report is silent, 0.5 where it speaks) | ⏳ **RE-OPENED 2026-10-04 on the CNNs: session D = `rsna-knee-train-b` v6 (`v13es` ‖ `v13rs`, silent mix 0.75), read m vs 0.9345 (✅ ≥ 0.9390)** — was ⏸ **parked 2026-10-03: the real run (`rsna-knee-train-b` v1, pushed 09:09 UTC) was STOPPED by Tian at ≈ 09:28 UTC (≈ 0.3 GPU-h spent, nothing usable)** — its expected gain (+0.001..0.002) cannot reach its own ✅ bar (+0.0045), so it does not get a session of its own; a candidate to bundle into the final retrain only. Implemented 2026-10-01 (arms `v11s` ‖ `v11s2`; Kaggle smoke `rsna-knee-train` v38 green); priced on gold-58 at target level: 0.9300 vs 0.9268 (+0.0032, SD 0.0018; flat mixes at the same mean Raptor weight +0.0004) | 0..+0.002 — likely under the 0.004 one-seed floor | one c03 session ≈ 3.5 GPU-h + 2 solos | — |
-| 0j | P-63 | Per-finding spatial reader + slot-count correction (D4's head, ported at 224) | 🔁 **TRAINED green 2026-10-03 (session A, 4.40 h): `v11p` gold-58 SWA 0.9185 vs `v11a` 0.9204 (−0.002, 7 up / 5 down; direction only); shipped `rsna-knee-ckpt-v11p`; **#41 = 0.929 → 🔁 −0.003 vs `v11a` 0.932, CLOSED, not adopted** (experiments.md 2026-10-03 "Submissions #41–#43")** — ONE seed (`v11p`) in session A = `rsna-knee-train-b` v4 beside `v13h` (2026-10-03: one seed per idea; the forum gives it a weak prior — Will's region tokens ≈ 0, Tucker 0.94+ with no attention). 🔧 implemented 2026-10-03 (`spatial_reader` / `slot_count_norm`, arms `v11p` ‖ `v11p2`; unit checks green incl. untrained reader == parent model to 4.8e-7; local CPU smoke green; Kaggle smoke `rsna-knee-train-b` v2 GREEN (0.11 h: `ok  arm` ×2, Raptor table read, `reseeded 43`, SWA); real build `artifacts/train_p63_real.py`) — the one structural head difference between D4 (gold 0.9302, gold-selected) and `v11a` (0.9204); D4's plain Global96 baseline with this reader reaches 0.925–0.927 on its gold-best epochs | unknown; a structural change, the kind that can clear the +0.0045 two-seed band | ≈ 60–80 lines + one c03 seed pair ≈ 4 GPU-h; 2 solos | P-45 first (GPU priority, Tian 10-03) |
-| 0k | P-64 | Long, heavy-augmentation CNN (`v13h`: ResNet-34 on c03, CNN LR 3e-4 uniform, frozen BN, aug heavy, drop-path 0.1, 30 epochs) | ✅ **TRAINED green 2026-10-03 (session A, 4.40 h): `v13h` gold-58 SWA 0.9001 vs `v13c` 0.9014 (plateau ≈ 0.900 from epoch 12; direction only); shipped `rsna-knee-ckpt-v13h`; **#42 = 0.931 → ✅ KEEP +0.010 vs `v13c` 0.921 (member yes, main bet no; scores in ≈ 18 min); gold said −0.001** (experiments.md 2026-10-03 "Submissions #41–#43"); next: **session C DONE 2026-10-04 = `rsna-knee-train` v43 (5.87 h, green): `v13r` ResNet-50 gold 0.9111 ‖ `v13e` EfficientNet-B0 0.9126 (`v13h` 0.9001, direction only); shipped; **solos read: #46 `v13e` 0.935 ✅ = our best solo, #45 `v13r` 0.934 🔁; blend `v11a` + `v13h` #47 0.934 (🔁 +0.002 over its best member); trio `v11a` + `v13r` + `v13e` #48 = **0.938** (🔁 +0.003 over its best member; our best own-model score)** (experiments.md 2026-10-04 "Submissions #44–#47")** — and the `v11a` + `v13h` two-family blend** — session A = `rsna-knee-train-b` v4 beside `v11p`; local smoke green | the best-evidenced recipe in the forum: Tucker / Myo / Scott / CoolinLai / SpeedSci reach 0.936–0.954 with ResNet / EfficientNet @224 and long, heavily augmented schedules; ours `v13c` (12 ep, light aug) 0.921; also the ensemble's second family | ≈ 3.4 GPU-h in a shared session; 1 solo | — |
-| 0l | P-65 | Grading-aware Claude relabel of the reports (an independent, severity-aware LLM vote) | 🔁 **pilot 2026-10-04: Opus 0.9062 alone / 0.9397 with Raptor (bars 0.910 / 0.945 not met; Fracture +0.109, PF OA +0.064, Effusion −0.030, Baker's −0.092); Haiku 0.8639 ❌** | 0..+0.005 (literature + forum); the policy-misaligned labels are the upside | pilot minutes; full pass ≈ 1.5 M tokens / 1–2 h + 1 GPU arm | Tian's go for the full pass |
+| 0l | P-65 | Grading-aware Claude relabel of the reports (an independent, severity-aware LLM vote) | ⏳ **full pass DONE 2026-10-04: 4,349 rows, ≈ 25 min, ≈ 6.9 M tokens; `claude_v1` / `claude_rap_v1` published in `rsna-knee-teacher-tables`; session E (`v13ec` ‖ `v13rc` on `claude_rap_v1` at mix 0.75) staged — runs on Kaggle after the 2026-10-10 reset, after session D's P-62 read; read m vs 0.9345 (✅ ≥ 0.9390)** — pilot 🔁 (Opus 0.9062 alone / 0.9397 with Raptor, bars 0.910 / 0.945 not met; Haiku 0.8639 ❌) | 0..+0.005 (literature + forum); the policy-misaligned labels are the upside | session E ≈ 6 GPU-h + 2 solos | — (Tian's go given) |
 | 0m | P-66 | Bigger CNN (`v13b3` EfficientNet-B3 @ 288) + the first CNN seed twin (`v13e2`) on RunPod | ⏳ **`v13b3` TRAINED green 2026-10-04 on a RunPod 4090 (2.2 h): gold-58 SWA 0.9222 vs `v13e` 0.9126 (direction only); `v13e2` training on the same pod (≈ 16:10 UTC); both ship as `rsna-knee-ckpt-v13b3` / `-v13e2`; solos 10-06** — Tian's go, critic-reviewed; ≈ 4.4 pod-h ≈ $3.3 expected, hard cap $7 | B3: 0..+0.005 solo; twin: a measurement + a member | ≈ $3.3 RunPod, 0 Kaggle GPU; 2 solos | — |
-| 4 | P-50 | Final selection and publishability | 💡 decide by 2026-10-15 | decides what the private LB scores | a browser session; ≤ 1 fork check | P-40 ✅ closed (#22 / #27), Rules page |
-| 5 | P-18 | Efficiency track with the solo member | 💡 (robustness half shipped); candidates `v11a` 0.932 / `v13c` 0.921 at ⅓ the inference cost (#37) | a separate prize; unknown until the formula is read | 0 GPU h (CLI + browser) | Efficiency formula (browser) |
+| 4 | P-50 | Final selection and publishability | 💡 decide by 2026-10-15; candidates = our best own ensemble (#48 0.938, `v11a` + `v13r` + `v13e`) and the public-stack fork with our trio at β 0.45 (`rsna-knee-fork` v11, read 2026-10-05) | decides what the private LB scores | a browser session; ≤ 1 fork check | P-40 🔁 closed (#22 / #27), the fork v11 read, Rules page |
+| 5 | P-18 | Efficiency track with the solo member | 💡 low priority — Tian 2026-10-04: score over efficiency; robustness half shipped; the natural fast candidate is `v13e` (0.935 solo, ≈ 15 min to score, 17 MB) | a separate prize; unknown until the formula is read | 0 GPU h (CLI + browser) | Efficiency formula (browser) |
 | 6 | P-47 | Teacher-mix bracket: mix 0.75 only | 💡 low — P-49 priced it on Raptor itself: matched mix 0.75 − 0.5 = −0.002 (SD 0.003) on gold | ≈ 0 (+0.000..0.002) | per-arm `TEACHER_MIX` code + ≈ 2.8 h; 1 solo | P-44 floor, an idle slot |
-| 7 | P-45 | Second image teacher | 🔁 **student #43 = 0.930, not adopted as a target;** **pass DONE 2026-10-03 (`rsna-knee-teacher-d4` v2, 2.37 h, 4,349/0 failed; in-sample check passed: ρ D4~LLM 0.695 vs Raptor 0.652); `d4_teacher.csv` in `rsna-knee-teacher-tables`; student `v11d` TRAINED green (session B, 3.82 h): gold-58 SWA 0.9184 vs `v11a` 0.9204 (−0.002, 4 up / 6 down; direction only), shipped `rsna-knee-ckpt-v11d`, **#43 = 0.930 → 🔁 −0.002 vs `v11a` 0.932: the D4 target's gold +0.006 did not transfer; NOT adopted as a training target (later members stay on 0.5 LLM + 0.5 Raptor)** (experiments.md 2026-10-03 "Submissions #41–#43")**. Step 1 read 2026-10-03: 0.5 LLM + 0.25 Raptor + 0.25 D4 = 0.9331 vs 0.9268 on gold (+0.0063, SD 0.0041, 8/4 labels; D4 ~ Raptor ρ 0.757) — direction only, the largest target-level gain since P-49**; **Tian's go 10-03; builder `src/build_d4_teacher_pass.py` (56 checks); gold spike `rsna-knee-teacher-d4` v1 ✅ 0.9301 vs 0.9302 on D4's original grid (0.1 h); full pass = v2 pushed 09:58 UTC (≈ 2 GPU-h) ⏳; student arms `v11d` / `v11nd` ready.** Mapped 2026-10-01 → D4 alone (gold 0.9302, est. ≈ 2–3 h pass) | +0.001..0.004 (CoAt family) / −0.002..+0.004 (DINO + A5); fork ≈ 0 | spike 0.2–0.3 h, pass ≈ 8 GPU-h, 100–490 lines, 2.8 h arm | P-49, P-44, the 10-03 reset |
-| 8 | P-46 | Upgrade the LLM half of the targets (absorbs P-16, P-30) | 💡 low | 0..+0.002 (dread vote) / +0.001..0.003 (re-label) | ≈ 2.8 h per arm; step 2 a new kernel | P-44 floor |
-| 9 | P-48 | Final-member polish: gold-58 as training rows + seed averaging | 💡 contested, parked | +0.001..0.002, unreadable by construction | part of the final retrain | P-50 decision |
-| 10 | P-51 | Teacher-aware confidence weights | 💡 low | 0..+0.002 | ≈ 20 lines + 2.8 h; 1 solo | P-44 floor |
+| 7 | P-46 | Upgrade the LLM half of the targets (absorbs P-16, P-30) | 💡 low — step 2 (re-label) superseded by P-65; step 1 (dread as a 4th vote) left | 0..+0.002 (dread vote) | ≈ 2.8 h per arm + 1 solo | P-65 session E's read |
+| 8 | P-48 | Final-member polish: gold-58 as training rows + seed averaging | 💡 contested, parked | +0.001..0.002, unreadable by construction | part of the final retrain | P-50 decision |
+| 9 | P-51 | Teacher-aware confidence weights | 💡 low | 0..+0.002 | ≈ 20 lines + 2.8 h; 1 solo | P-44 floor |
 
 ### Closed cards
 
@@ -95,7 +91,7 @@ result*, per unit of cost. "Depends on" lists hard blockers only. EVs are solo-L
 | P-13 | 3 vs 5 folds | retired → P-44 — production is one all-data model; folds were replicates (#6 +0.009 alone, #7 +0.000, #11 +0.001) | Scoreboard #6 / #7 / #11 |
 | P-14 | DINOv2-S vs DINOv2-B | retired — P-42: a second backbone on the same targets adds nothing | experiments.md 2026-09-27 "Submission #23" |
 | P-15 | DINOv3-S/16 / 16-channel member | retired — 16-ch dead as built (`v07s` OOF 0.7366); DINOv3 in *Rejected*; the anchor's A5 stage is that representation | experiments.md 2026-08-30 "16-slices-as-channels DINOv2-S member `v07s`" |
-| P-16 | Open-weights LLM re-label inside Kaggle | → P-46 step 2 | P-46 below |
+| P-16 | Open-weights LLM re-label inside Kaggle | → P-46 step 2 → P-65 (the re-label ran as the hosted Claude pass) | P-65 below |
 | P-17 | Noise-robust loss / self-distillation / AUC-margin | retired — self-distillation = P-38 ❌; losses in *Rejected*; its OOF measure is invalid (traps 39) | experiments.md 2026-09-24 "Submission #19" |
 | P-19 | Decoder wheels + TransferSyntax census | retired as de-risked — 0 decode failures over 4,407 (c02 build) + 4,349 (Raptor pass) studies; public and private come from one rerun | experiments.md 2026-08-30 "Cache v2 (`c02`) built"; 2026-09-26 "Raptor teacher pass complete" |
 | P-20 | Leave-one-slot-out ablation, T1 slot retirement | retired — needs OOF; production members have none | traps 32 |
@@ -130,153 +126,44 @@ result*, per unit of cost. "Depends on" lists hard blockers only. EVs are solo-L
 | P-55 | OOF soft-bootstrapped student `v09o` / `v09o2` (0.25 LLM + 0.375 Raptor + 0.375 `xfit_v09k`) | ❌ DEAD END: #34 / #35 0.927 / 0.927 → m = 0.927 < 0.9285; pair #36 0.928 ≤ 0.930 — the third null for OOF-derived targets (P-38, Nicolai); the OOF-target line closes (gold-58 had +0.007) | experiments.md 2026-09-30 "Submissions #34–#38"; traps 39 |
 | P-57 | ResNet-34 on the `v09r` recipe (`v13a` → `v13b` / `v13c`) | ❌ closed: `v13a` gold 0.8306 was the ViT-tuned optimiser (P-59); with a CNN LR `v13c` reads 0.921 solo (#37, ≤ 0.922) and adds nothing to the c03 pair (#38 0.932) — the small-CNN route closes for accuracy; Efficiency track only (P-18) | experiments.md 2026-09-29 "Sessions C ‖ D", "P-59"; 2026-09-30 "Submissions #34–#38" |
 | P-53 | Per-label public probe (ACL / MCL / PF OA / Lat Men at 0.5) | ✅ a measurement: #28 = 0.785 → those four average 0.935 on the public test vs 0.9275 for the other eight — the gold-58 "structural deficit" (+0.028) is gold-specific | experiments.md 2026-09-28 "Submissions #27–#28" |
+| P-45 | Second image teacher (D4) | 🔁 not adopted as a training target: student `v11d` #43 = 0.930 vs `v11a` 0.932 (−0.002) — the target-level gold +0.0063 did not transfer; the D4 table (4,349 / 0 failed) stays in `rsna-knee-teacher-tables`; later members stay on 0.5 LLM + 0.5 Raptor | experiments.md 2026-10-03 "P-45 step 1", "P-45 gold spike", "P-45 D4 pass complete", "Submissions #41–#43" |
+| P-56 | Dense-slice input c03 (`v11a` / `v11b`) | 🔁 as a lever: #30 / #31 0.932 / 0.929 → m 0.9305 (✅ bar 0.9315); c03 pair #32 0.932 vs c02 pair 0.930 — a consistent small edge, so c03 became the base input of every later member | experiments.md 2026-09-29 "Sessions C ‖ D", "Submissions #29–#32" |
+| P-58 | Local-CPU open-weights LLM relabel as a 4th vote | → P-65 — the 4th LLM vote ran as the hosted Claude relabel once host rule 2.6.b permitted hosted LLMs; the local route existed only because hosted APIs were ruled out | P-65 below |
+| P-60 | "Noisy student" regularisation on the c03 CoAtNet (`v11n` / `v11n2`) | 🔁 #39 / #40 = 0.932 / 0.932 → m 0.932 vs 0.9305 (band 0.926–0.935); not adopted (1.5× training time); the first Kaggle resume worked (traps 31) | experiments.md 2026-09-30 "P-60 part 1"; 2026-10-03 "P-60 part 2" |
+| P-61 | CoAtNet learning-rate probe upward (`v11dl`: `lr_backbone` 2e-4, LLRD 0.85) | 🔁 not adopted: #44 `v11dl` 0.927 vs `v11d` 0.930 (−0.003; gold −0.005 the same way) — the CoAtNet optimiser stays at 1e-4 / 0.75 | experiments.md 2026-10-03 "Sessions A ‖ B"; 2026-10-04 "Submissions #44–#47" |
+| P-63 | Per-finding spatial reader + slot-count correction (`v11p`) | 🔁 not adopted: #41 = 0.929 vs `v11a` 0.932 (−0.003; gold 0.9185 vs 0.9204); the code stays, inert at the defaults | experiments.md 2026-10-03 "Sessions A ‖ B", "Submissions #41–#43" |
+| P-64 | Long, heavy-augmentation CNN (`v13h`: c03, CNN LR 3e-4, frozen BN, aug heavy, drop-path 0.1, 30 ep) | ✅ KEEP — the CNN recipe: #42 ResNet-34 `v13h` 0.931 vs `v13c` 0.921 (+0.010); on bigger CNNs #46 EfficientNet-B0 `v13e` 0.935 (best solo), #45 ResNet-50 `v13r` 0.934; trio `v11a` + `v13r` + `v13e` #48 0.938; gold called it flat (traps 39). Bigger CNN → P-66 | experiments.md 2026-10-03 "Submissions #41–#43"; 2026-10-04 "Session C", "Submissions #44–#47", "Submission #48" |
 
 ---
 
 ## Cards
 
-### P-52 Three-member production blend `v09r` + `v09u` + `v09x`
-Status:       💡 new 2026-09-28 — no training needed; all three checkpoints are shipped (`rsna-knee-ckpt-v09r` / `-v09u` / `-v09x`,
-              all mounted on `rsna-knee-infer`). **2026-09-29: placeholder `rsna-knee-infer` v25 pushed 11:36 UTC**
-              (`artifacts/infer_p52_trio.py` = `src` + 3 seds).
-Hypothesis:   adding the 320-px member to the 2-seed pair lifts the solo read above #26 (0.930): the 320 student sees detail the
-              224 pair does not (Lateral Meniscus 0.901 vs 0.853 / 0.870 on gold), so it adds more than a third seed would.
-Origin:       P-43 "If it works" (read `v09x` + `v09r` (+ `v09u`) as a blend); #24–#26.
-Evidence:     for: #25 `v09x` 0.929 is our strongest single member; #26 showed same-recipe averaging reads +0.003; gold-58 rank-means
-              `v09r` + `v09x` 0.9126, all three 0.9110 vs the pair 0.9065 (direction only, and gold-58 has had same-recipe
-              directions wrong — traps 39). Against: P-43 was 🔁 (+0.002); ρ(`v09x`, `v09r`) 0.949 ≈ the seed twins' 0.952, so
-              `v09x` may be just another seed; 320 raises the member's inference 1.4×.
-Measure:      `INFER_MEMBERS = ["v09r", "v09u", "v09x"]` (flat rank-mean, `by_version`, one vote each), solo vs #26 0.930.
-Noise floor:  the P-44 floor: **≥ 0.934 ✅ the 3-member blend is the production member / 0.931–0.933 🔁 (keep #26's pair — cheaper at
-              inference) / ≤ 0.930 ❌** (bands as restated in the 2026-09-28 single-model plan, Step 5, before any read; the
-              card's first draft had 0.927–0.933 / ≤ 0.926).
-Cost:         ≈ 0.1 h T4 placeholder (one c02 decode shared by all three) + 1 solo (≈ 30 min to score).
-If it works:  the 3-member blend is the production member and the fork candidate for P-50.
-If it fails:  🔁 → the pair (#26) stays; resolution adds nothing a seed does not.
-Depends on:   P-43 / P-44 (both read).
-
-### P-56 Dense-slice input c03 (`v11a` / `v11b`)
-Status:       ⏳ **session D = `rsna-knee-folds` v10** (pushed 15:36 UTC; `kernel_sources` = `rsna-knee-cache3-a..d` only, so c02 and c03 are
-              never mounted together). Cache `c02_p336_b24-24-24-14-8-8_band2-98_crop150_lat20`: 4,407 studies over 4 shards,
-              12.1–13.4 GB each (50.7 GB), 0 decode failures, 14–43 min per shard (CPU).
-              **2026-09-29: trained** (3.53 h, both `ok  arm`, 0.35 s/study ≈ 25 min/epoch): gold-58 SWA `v11a` **0.9204**, `v11b`
-              **0.9167**; c03 pair 0.9207 vs the c02 pair (`v09r` + `v09u`) 0.9065 — +0.014 (paired SD 0.005), 10/12 labels up; direction
-              only (gold-58 had same-recipe directions wrong twice, traps 39). Datasets `rsna-knee-ckpt-v11a` / `-v11b`. **Solo reads 🔁:** #30 `v11a` 0.932, #31 `v11b`
-              0.929 → m = 0.9305 (0.001 under the ✅ bar); #32 the c03 pair 0.932 vs the c02 pair 0.930 (+0.002). Both c03 seeds read ≥ both
-              c02 seeds; neither card branch fires (experiments.md 2026-09-29 "Submissions #29–#32").
-Hypothesis:   the c03 input (fluid slots 24 / 24 / 24, SAG no-FS 14, T1 8 / 8, 150 mm crop; `train_windows` 34) lifts the `v09r` recipe
-              solo above `v09r` / `v09u`.
-Origin:       our census (experiments.md 2026-09-28 "Gold-58 per-label diagnosis + c02 slice census": c02 keeps 12 of ≈ 30 native cor/ax
-              fluid slices → 7.5–9 mm stored spacing; median FOV 160 mm vs the 130 mm crop).
-Evidence:     for: the one input axis untested since c02 (the c02 lane was +0.009 LB, #9). Against: **#28 — the four labels c03 was
-              aimed at (ACL / MCL / PF OA / Lat Men) are already our strongest on the public test (0.935 vs 0.9275)**; `v09x` (320
-              px) read only +0.002 — more pixels have not paid so far.
-Measure:      m = mean(`v11a`, `v11b`) solo vs 0.927; the c03 pair vs 0.930.
-Noise floor:  **✅ m ≥ 0.9315 / 🔁 0.9285 ≤ m < 0.9315 / ❌ m < 0.9285**.
-Cost:         ≈ 3.7–4.4 GPU-h + 3 solos; a c03 member decodes the test at its own geometry (a second decode pass beside c02 members).
-If it works:  c03 becomes the production input; a 320-px member and seeds follow in week 2.
-If it fails:  c02 stays; the input axis closes.
-Depends on:   —.
-
-### P-58 Local-CPU open-weights LLM relabel as a 4th vote
-Status:       💡 future, not scheduled (Tian 2026-09-28: written down only).
-Hypothesis:   a fourth label vote from an open-weights LLM run locally (Scott Willis's Gemma route) lifts the LLM half of the targets.
-Origin:       Scott Willis, discussion 735304; P-46 step 2.
-Evidence:     a 14B open model reached 0.881 gold vs our blend's 0.8948 (P-46); the three sources are ≈ 1.5 effective votes (φ 0.88).
-Measure:      gold-58 of the 4-vote blend (direction only), then a `v09r`-recipe arm solo vs 0.927.
-Noise floor:  the P-44 floor.
-Cost:         0 GPU; an overnight CPU run over 4,349 reports. The report text stays on this machine or inside Kaggle — never a hosted
-              API (Tian, 2026-09-28; CLAUDE.md "Rules").
-If it works:  → P-46 (the LLM half upgraded).
-If it fails:  the LLM half stays three sources.
-Depends on:   a free machine for a night; P-46.
-
-### P-60 "Noisy student" regularisation on the c03 CoAtNet (`v11n` / `v11n2`)
-Status:       🔁 **CLOSED 2026-10-03: #39 / #40 = 0.932 / 0.932 → m 0.932 vs 0.9305 (+0.0015) → INCONCLUSIVE, not adopted** (experiments.md 2026-10-03 "P-60 part 2"). ⏳ was: **part 2 = `rsna-knee-train` v39, pushed 2026-10-03 09:08 UTC** (`artifacts/train_p60_kaggle_part2.py` +
-              `artifacts/p60_part2_kernel-metadata.json`, c03 ×4 + `rsna-knee-folds`; ≈ 3.0 h). Part 1 done 2026-09-30 (green; bold
-              2026-09-30 lines below). History —
-              ⏸ blocked on compute (2026-09-29): the code and arms are in `src/` (unit + local CPU smoke green). Pod 1 (RTX 5090,
-              EU-RO-1) had no bandwidth (traps 45); pod 2 (A100 80 GB, US-MD-1) ran 5 epochs — EMA gold-58 by epoch `v11n` 0.776 ·
-              0.852 · 0.882 · 0.898 · 0.911, `v11n2` 0.773 · 0.842 · 0.881 · 0.900 · 0.912 (direction only; `v11a` ep 4 ≈ 0.906) —
-              until **the RunPod balance ran out** (19:33 UTC, container removed, nothing kept; `402 Payment Required` on restart).
-              Tian (2026-09-29): no top-up → run it on Kaggle after the 2026-10-03 quota reset (two c03 arms × 12 epochs ≈ 5 h on
-              2 × T4 = ≈ 5 GPU-h; `PARALLEL_ARMS = ("v11n", "v11n2")`, `TEACHER_TABLES = ("raptor_teacher",)`, `rsna-knee-folds`
-              with the c03 `kernel_sources`). Tian: "brainstorm … what would make more sense and do that".
-              **2026-09-30: part 1 = `rsna-knee-folds` v11, pushed 12:10 UTC, RUNNING** (Tian: start now, finish after the reset):
-              `artifacts/train_p60_kaggle_part1.py` = `src` + 4 seds (`FORCE_SMOKE = False`, `PARALLEL_ARMS = ("v11n", "v11n2")`,
-              `TEACHER_TABLES = ("raptor_teacher",)`, `runtime_limit_hours` default 8.3 → **2.75**), c03 `kernel_sources` only. At ≈ 25.5
-              min/epoch (session D) the children's guard fires ≈ ⅔ into epoch 5 (0-based); `_last.pt` keeps that partial epoch as done, so
-              the resume skips ≈ ⅓ of one epoch of 12 (LR schedule continuous in steps). **Part 2:** the same build with the 8.3 default in
-              `rsna-knee-train`, `kernel_sources` = the four c03 caches + `rsna-knee-folds` (traps 31: a kernel cannot mount its own output);
-              green = `resume: copied v11n_fold0_last.pt` / `v11n2_fold0_last.pt` and `resumed fold 0 at epoch 6` in each child log — the first
-              Kaggle resume ever (traps 31).
-              **2026-09-30: part 1 COMPLETE, green (2.61 h; `kaggle quota` 0.58 h left):** both children guard-stopped in epoch 5
-              (`v11n` ≈ 65 % through it, `v11n2` ≈ 37 % — cuda:1 runs 0.38 vs 0.36 s/study), `_last.pt` ×2 in the v11 output; gold-58
-              EMA epochs 0–4 `v11n` 0.781 · 0.854 · 0.895 · 0.905 · 0.917, `v11n2` 0.774 · 0.851 · 0.884 · 0.903 · 0.913 = `v11a` /
-              `v11b` at the same epochs (0.9156 / 0.9129 at epoch 4 — the "≈ 0.906" above was wrong) at ≈ 2× their LR; direction only
-              (experiments.md 2026-09-30 "P-60 part 1"). The epoch-5 `_best.pt` files are NOT members (traps 47). **Part 2 ≈ 3.0 h**
-              (6 epochs × 27–28.5 min + SWA), not 2.7 h. **Nothing may be pushed to `rsna-knee-folds` before part 2 has mounted
-              v11's output** — `kernel_sources` reads the latest version, and a new version would replace the two `_last.pt`.
-Hypothesis:   our student imitates its targets because it is barely regularised — no stochastic depth (`drop_path_rate`
-              is never set), light augmentation, 8 epochs; with drop-path 0.1, heavier augmentation and 12 epochs the
-              `v11a` recipe (c03, Raptor mix 0.5) reads above `v11a` / `v11b`.
-Origin:       research agent 1 (Xie 2020 Noisy Student, Table 6: removing student noise 85.1 → 84.3; Beyer 2022: long
-              schedules on teacher targets do not overfit); agent 2 (every prior RSNA MRI/CT winner: drop-path 0.1–0.2,
-              heavy augmentation / mixup / cutmix, 20–75 epochs); the thread (Yann Majewski: "training longer with more
-              regularization"; Tucker Arrants: "student consistently outperforms teacher").
-Evidence:     P-29 (16 epochs over-train) and P-33 (light aug ≈ 0) were measured on the plain LLM targets with no added
-              regularisation — neither tests "longer WITH more regularisation" on soft image-teacher targets. A bundle on
-              purpose: longer alone over-trains (P-29), aug alone was flat (P-33); ablate only if it works.
-Measure:      `v11n` = `v11a` + `drop_path` 0.1 + `aug` "heavy" (per window at p 0.9: rotation ±15°, zoom 0.90–1.15, shift
-              ±8 %, gamma 0.7–1.4, contrast 0.8–1.25, gain 0.85–1.15, one cutout ≤ 25 % of the area at p 0.3; no flips) +
-              12 epochs (SWA of 9–11); `v11n2` = the same, seed 43. RunPod RTX 4090 (c03 cache pulled to the pod). Solo
-              reads: m = mean(`v11n`, `v11n2`) vs m(`v11a`, `v11b`) = 0.9305.
-Noise floor:  **✅ m ≥ 0.935 / 🔁 0.926 < m < 0.935 / ❌ m ≤ 0.926** (the P-56 ±0.0045 band); gold-58 direction only.
-Cost:         two pods ≈ 2.5 h each on an RTX 4090 (≈ 7 min/epoch at c03 + ≈ 40 min set-up) ≈ $4; 0 Kaggle GPU-h; 2 solos.
-If it works:  the production recipe gains the regularisation; then an ablation (P-55's student targets are ❌, 2026-09-30).
-If it fails:  regularisation is not the student-vs-teacher gap either; the recipe line closes and the label side (P-51,
-              silence-aware mixing) is what is left.
-Depends on:   — .
-
-### P-61 CoAtNet learning-rate probe upward (`lr_backbone` 2e-4, `llrd_decay` 0.85)
-Status:       🔁 2026-10-04: CLOSED — #44 `v11dl` 0.927 vs `v11d` 0.930 (−0.003), not adopted (experiments.md 2026-10-04
-              "Submissions #44–#47"). History: ⏳ 2026-10-03: `v11dl` trained green in session B (`rsna-knee-train` v41) beside `v11d`: gold-58 SWA 0.9132 vs
-              0.9184 (−0.005, slower early: epoch 2 0.876 vs 0.896; direction only); shipped; solo read 2026-10-04 vs `v11d`
-              (experiments.md 2026-10-03 "Sessions A ‖ B"). (💡 new 2026-09-29, from P-59.)
-Hypothesis:   the CoAtNet is mildly under-trained by the same optimiser that under-trained the ResNet: LLRD 0.75 over its stages
-              puts the stem at 2.4e-5 and the top block at 7.5e-5 (the audit: the top block is one decay step below the documented
-              `lr_backbone`); a higher, flatter LR reads above the `v11a` recipe.
-Origin:       P-59 (a CNN LR lifted the ResNet +0.069 on gold); tonight's audit finding 5; only a LOWER CoAtNet LR was ever probed
-              (`v09d` 3e-5 ❌, −0.013 OOF).
-Evidence:     for: P-59; prior RSNA CoAtNet/EffNet winners at 1e-4..2.3e-4 uniform. Against: the CoAtNet's train loss already
-              reaches 0.383 (it is not visibly under-fit the way the ResNet was); TheoViel's 2023 CoAtNet ran at 2e-5 for 20 epochs.
-Measure:      `v11a` + `lr_backbone` 2e-4, `llrd_decay` 0.85, two seeds; fold-0 OOF would be a valid read for a recipe change, but
-              every current member is `train_all`, so read solo vs m(`v11a`, `v11b`) = 0.9305 (the P-60 band).
-Noise floor:  ✅ m ≥ 0.935 / 🔁 0.926 < m < 0.935 / ❌ m ≤ 0.926.
-Cost:         ≈ 3.5 GPU-h (c03, two T4s) or ≈ $5 on a RunPod A100; 2 solos.
-If it works:  the production recipe's LR moves up; re-read P-60 on it.
-If it fails:  the CoAtNet optimiser is settled at 1e-4 / 0.75.
-Depends on:   P-60's read (if P-60 ✅, probe on top of it).
-
 ### P-50 Final selection and publishability
-Status:       💡 new 2026-09-27; decide by the 2026-10-15 entry deadline.
+Status:       💡 new 2026-09-27; decide by the 2026-10-15 entry deadline. **2026-10-04: the two candidates are set** — our best
+              own ensemble (#48 0.938, `v11a` + `v13r` + `v13e`) and the public-stack fork with that trio as our leg at β 0.45
+              (`rsna-knee-fork` v11, green placeholder, read on 2026-10-05).
 Hypothesis:   two private-scored picks that are different tickets beat two LB-maximising forks, because ≈ 690 teams share the
               anchor and private rank is decided by components they do not have (reviewer C).
-Origin:       reviewer C (final picks, publishability); reviewer A (missing card M5).
+Origin:       reviewer C (final picks, publishability); reviewer A (missing card M5); research.md 2.7.4 (the 0.946–0.947 teams
+              blend their own leg into the public stack at rank weight 0.45–0.5).
 Evidence:     #13 = #15 = 0.942 (β 0.10 left the score unchanged — the same ticket); #16 flat 0.60 = 0.940: the LB-tuned
               per-label outer map is worth ≈ +0.002 publicly and is the component the anchor's own author calls likeliest to
-              give back (experiments.md 2026-09-23 "Submission #16"; 2026-09-22 night "The public frontier re-read").
-Decision:     never pick #13 and #15 together. Pick 1: the anchor with our member (#13, or #22 if ≥ 0.942). Pick 2: the #16
-              flat-map hedge, ideally rebuilt as "flat + `v09r` at β 0.10" after one public check ≥ 0.939.
-Measure:      none for the private LB; one public read of the rebuilt hedge. Rules to read in a browser: which assets must be
+              give back (experiments.md 2026-09-23 "Submission #16"; 2026-09-22 night "The public frontier re-read"). Our
+              Raptor-distilled leg read flat at β 0.10–0.20 (P-40: it correlates with the stack); the trio is a cross-family leg,
+              and cross-family blends have read above every member (#47 0.934, #48 0.938).
+Decision:     never pick #13 and #15 together. Pick 1: our best own ensemble (#48 0.938, or an own blend that beats it on the
+              solo LB by 10-15). Pick 2: the public-stack fork with our trio at β 0.45 (`rsna-knee-fork` v11).
+Measure:      none for the private LB; one public read of the v11 fork vs #13 0.942: ✅ ≥ 0.945 / 🔁 0.941–0.944 / ❌ ≤ 0.940
+              (handoff 2026-10-04). Rules to read in a browser: which assets must be
               public for a winning submission (checkpoints) — **never publish `rsna-knee-teacher-tables`** (keyed by
               StudyInstanceUID, which CLAUDE.md bans from public locations; regenerable from public CC0 checkpoints +
               competition data); RadImageNet / the anchor's Rad stage licence (CC-BY-NC-SA?) vs the winner licence.
-Noise floor:  the rebuilt hedge must read ≥ 0.939 public before it replaces #16.
-Cost:         a browser session; ≈ 0.2 h T4 + 1 fork submission for the rebuilt hedge.
+Noise floor:  0.005 on the fork (decision-metric hierarchy); the bands above.
+Cost:         a browser session; 1 fork submission (built: `rsna-knee-fork` v11; ≤ 8 h to score, #17).
 If it works:  both picks are set before 2026-10-22.
-If it fails:  the rebuilt hedge reads < 0.939 → pick 2 = #16 as sent.
-Depends on:   P-40 (#22), the Rules page (*Open questions*), P-48 (the final-member decision).
+If it fails:  the v11 fork reads ❌ → pick 2 falls back to an anchor fork already scored (#13 0.942 or the #16 flat hedge
+              0.940) — Tian's call.
+Depends on:   the v11 fork read (2026-10-05), the Rules page (*Open questions*), P-48 (the final-member decision).
 
 ### P-18 Efficiency track with the solo member
 Status:       💡 untested. The submission-robustness half shipped long ago (`MODE="infer"`, loud failure instead of a
@@ -286,14 +173,18 @@ Status:       💡 untested. The submission-robustness half shipped long ago (`M
               a CNN LR, **0.921** at 0.12 s/study vs 0.29–0.35 for the CoAtNets, scored in ≈ 16 min — #37).
               **Step 1 done 2026-09-30:** the Efficiency LB lists us at rank 2,533 with the 0.942 fork (#22) — it seems to read the
               best-public-score (or selected) submission, not the fastest; top 100 span 0.917–0.958 (experiments.md 2026-09-30 "P-18 step 1").
-Hypothesis:   our solo member (`v09r`, 0.927, ≈ 29 min send→score with P-41) is competitive on the Efficiency LB with no model
+              **2026-10-04: low priority — Tian: "score over efficiency"; the track no longer steers anything.** The natural fast
+              candidate is now `v13e` (EfficientNet-B0, 0.935 solo, ≈ 15 min to score, 17 MB). research.md 2.7.4: a formula read
+              from another team's code (not the competition page) is (score − max) / (0.5 − max) + seconds / 32,400, and the board
+              seems to list *selected* submissions — so for P-18 to count, one final pick must be a fast solo (P-50).
+Hypothesis:   our solo member (now `v13e`, 0.935, ≈ 15 min send→score) is competitive on the Efficiency LB with no model
               change — the candidate is the member we already have, not a lean DINOv2-S variant.
 Origin:       the Efficiency Prize track (CLAUDE.md); P-41.
 Evidence:     the efficiency LB is published as a notebook (`ryanholbrook/rsna-knee-abnormalities-efficiency-lb`) and its leader is
               also top-5 on accuracy (CLAUDE.md); **the prize formula is unread** — it may score CPU-only runtime, which would
               make decode, not the model, binding.
 Measure:      step 1 (no GPU): `kaggle kernels output ryanholbrook/rsna-knee-abnormalities-efficiency-lb -p <dir>` + the formula
-              in a browser → where `v09r` (0.927, ≈ 29 min) would place.
+              in a browser → where `v13e` (0.935, ≈ 15 min) would place.
 Noise floor:  0.005 LB on the accuracy half; the runtime half unknown until the formula is read.
 Cost:         step 1: 0 GPU h; an `EFFICIENCY_MODE` flag only after the formula is read.
 If it works:  a second prize track with the same member, no retrain.
@@ -315,54 +206,12 @@ If it works:  Raptor-heavier targets become the production mix; mix 1.0 is read 
 If it fails:  0.5 stays. Expected ≈ 0 — run only if a GPU slot is idle and P-44 has set the floor.
 Depends on:   P-44 (the floor), an idle slot.
 
-### P-45 Second image teacher
-Status:       🔁 **2026-10-03: the student `v11d` reads #43 = 0.930 vs `v11a` 0.932 (−0.002) → the D4 target is NOT adopted;
-              later members stay on 0.5 LLM + 0.5 Raptor** (experiments.md 2026-10-03 "Submissions #41–#43"); `v11d` is a 0.930
-              member on a different teacher mix. History: 🔧 **2026-10-03: step 1 done (0 GPU)** — D4's own gold-58 predictions ship in its Dataset (`d4_gold58_reference.npz`,
-              macro 0.9302); the target 0.5 LLM + 0.25 Raptor + 0.25 D4 reads **0.9331 vs 0.9268** (+0.0063, SD 0.0041, 8 up / 4
-              down), 0.4 / 0.3 / 0.3 reads 0.9347; D4 ~ Raptor within-class ρ 0.757 (`v11a` ~ Raptor 0.824, `v11a` ~ D4 0.781);
-              gold-rank matching checked on Raptor (0.9262 vs 0.9268) — experiments.md 2026-10-03 "P-45 step 1". Direction only;
-              both teachers are gold-selected. Next: the builder (in progress, 0 GPU) → the 58-study gold spike (must reproduce
-              0.9302) → full pass → a c03 seed pair on the three-source target, read m vs 0.9305 with the P-60 band. **Tian's go
-              given 2026-10-03.** Spike ✅ (experiments.md 2026-10-03 "P-45 gold spike"): 0.9301 on the original grid, 0.9290 on
-              the notebook grid → the pass runs `--grid original` (`rsna-knee-teacher-d4` v2, 09:58 UTC, ≈ 2 GPU-h). Then: merge
-              (`merge_teacher.py --teacher d4`), the in-sample check (D4-train ~ LLM vs Raptor-train ~ LLM), a new version of
-              `rsna-knee-teacher-tables` with `d4_teacher.csv`, a Kaggle smoke, and `PARALLEL_ARMS = ("v11d", "v11d2")` (or
-              `v11nd` / `v11nd2` if P-60 ✅) with `TEACHER_TABLES = ("raptor_teacher", "d4_teacher")`, mix 0.5.
-              Earlier: 💡 deferred to after the 2026-10-03 quota reset. **Mapped 2026-10-01 (read-only agent over `notebook_score_0.942.ipynb`,
-              `src/build_teacher_pass.py` and `artifacts/kaggle_out/fork_v4/`) → recommendation: D4 alone.**
-              D4 = `mattiaangeli/rsna-knee-coatnet-d4-depthzone-swa3-b2` (CC0; ships its own runtime + a timm-1.0.22 wheel; backbone
-              not stated — "CoAtNet @384" inferred from file names): one model, Global96 stack 27/21/18/12/18 at 384 px / 130 mm with a
-              right-knee sagittal flip, rank-8 attention + a depth-zone adapter; gold 0.9302 (epochs chosen on gold twice — the most
-              optimistic of the three) vs Raptor 0.9254; 1 DICOM preparation + 1 backbone pass per study (Raptor 3 + 4) → est. ≈ 2–3 h
-              for 4,349 studies (inferred, no at-scale timing). resgated (same backbone as Raptor, gold 0.9095, 50/50 analog 0.9275 ≈
-              Raptor's) and the DINO ×20 + A5 stack (≈ 1,500 lines, in-sample folds) are not recommended. Builder: generalise
-              `build_teacher_pass.py` (all of cell 12, cell 14, the cv2-wheel install + the D4 block from cell 45's `_coat_substitute`
-              re-indented; patches: chunk root as `competition`, read the raw `coatnet_d4_depthzone_swa3_predictions.npz` (1, N, 12),
-              relax `_d4_check_outputs`' `fallback_studies == 0`, a view-count-generic `load_prior`; D4 flushes only per shard → loop
-              sub-chunks of 300–500 studies) ≈ 150–250 lines incl. tests; `merge_teacher.py` unchanged with `view_weights=[1.0]`.
-              **Cheapest first step (0 GPU):** get D4's gold-58 predictions (the source of reviewer B's 0.9346 analog; not under
-              `artifacts/` — likely inside the D4 Dataset), score 0.5 LLM + 0.25 Raptor + 0.25 D4 on gold by the P-49 method and the
-              D4~Raptor within-class ρ; then D4 over the 58 gold (must reproduce 0.9302; doubles as the timing spike). Needs Tian's go
-              — the 2026-09-23 decision to keep the CoAt children out of the teacher still stands.
-Hypothesis:   a second image-teacher table beside Raptor lifts the production member solo beyond `v09r`.
-Origin:       reviewers A (M2), B and D (2026-09-27 audit).
-Evidence:     options: the anchor's CoAt family (resgated top-3 + D4) or its transformer stack (DINO ×20 + A5). For: reviewer B's
-              E1 — D4 50/50 gold analog 0.9346; D4 adds to `v09r` on gold (rank-mean 0.929 vs 0.909; ρ 0.887). Against: A — the
-              CoAt family is Raptor's family (CoAtNet-2 on the same labels), little target diversity; D — DINO / A5 are
-              out-of-fold only if the authors' fold splits are recoverable, else in-sample on pilkwang's LLM labels (the P-38
-              failure shape), and the Rad stage is CC-BY-NC-SA; E2 — an honest weaker teacher (pilkwang `oof.npz`, gold 0.840)
-              dilutes the targets (−0.003..−0.007 on gold).
-Measure:      a 100-study spike (plausibility vs the LLM teacher and vs Raptor), then a production arm solo vs `v09r` / `v09u`.
-Noise floor:  the P-44 floor.
-Cost:         spike 0.2–0.3 h; a pass ≈ 8 GPU-h (the Raptor pass took 7.76); a builder of 100–490 lines; then a 2.8 h arm + 1
-              solo. Fork value ≈ 0 (the teacher is inside the anchor).
-If it works:  a two-teacher table in `rsna-knee-teacher-tables`; the production member retrains on it.
-If it fails:  Raptor stays the only image half.
-Depends on:   P-49 ✅ read (Raptor on gold: 0.9254; the analogs are in experiments.md 2026-09-28 "P-49"), P-44 (the floor), the 2026-10-03 reset.
-
 ### P-46 Upgrade the LLM half of the targets (absorbs P-16 and P-30)
-Status:       💡 low (new 2026-09-27).
+Status:       💡 low (new 2026-09-27). **2026-10-04: step 2 (the re-label) is superseded by P-65** — host rule 2.6.b permits
+              hosted LLMs, and the grading-aware Claude relabel of all 4,349 reports is done (`claude_v1`); its session E reads
+              the "better LLM half" hypothesis with a stronger vote than either step here. Step 1 (dread as a 4th vote; the table
+              has no gold rows, so it cannot be priced on gold) is the only untested part left, and it waits for E: if the Claude
+              vote does not move the LB, the LLM half is not binding and step 1 closes with it.
 Hypothesis:   a better LLM half — a 4th vote (step 1) or an open-weights re-label (step 2) — lifts the Raptor-distilled member solo.
 Origin:       P-30 (the dread table died only for lack of a judge — the solo LB is one now); P-16 (re-label inside Kaggle).
 Evidence:     the dread table (`dreaddevelopment/rsna-knee-labels`, CC0, 4,349 rows, no gold rows) is ρ 0.817 with our blend ("a
@@ -371,13 +220,14 @@ Evidence:     the dread table (`dreaddevelopment/rsna-knee-labels`, CC0, 4,349 r
               LLM's positive rate 52 %, rank vs rank 50 % (A: an operating-point artefact); a rank-based test within
               disagreements gives AUC 0.71 on Synovitis and 0.50–0.74 on every label (C: Raptor leans to dread on all labels).
               Step 2: a 14B open model reached 0.881 gold vs our blend's 0.8948.
-Measure:      step 1: the `v09r` recipe with dread as a 4th vote in the LLM blend (`build_targets.py --sources`), solo vs 0.927;
-              step 2: score the new table on gold-58 first, then the same arm, solo.
+Measure:      step 1: the production recipe (`v09r` when written; `v13e` 0.935 now) with dread as a 4th vote in the LLM blend
+              (`build_targets.py --sources`), solo vs that recipe's read;
+              step 2: → P-65.
 Noise floor:  the P-44 floor; gold-58 direction only.
-Cost:         ≈ 2.8 h per arm + 1 solo; step 2 is a new kernel (vLLM not in the image, T4 has no bf16) + ≈ 150 lines.
+Cost:         ≈ 2.8 h per arm + 1 solo.
 If it works:  the LLM half changes for every later member.
-If it fails:  the LLM half is not binding; the image half (P-43 / P-45) is.
-Depends on:   P-44 (the floor).
+If it fails:  the LLM half is not binding; the image half is.
+Depends on:   P-65 session E's read (after the 2026-10-10 reset), P-44 (the floor).
 
 ### P-48 Final-member polish: gold-58 as training rows + seed averaging
 Status:       💡 CONTESTED, parked; decide at P-50.
@@ -412,83 +262,22 @@ Evidence:     experiments.md 2026-09-30 "Silence-aware teacher mix": target gold
               gold positives at 0.17 (Fracture) / 0.48 (Baker's) / 0.75 (Synovitis), Raptor at 0.74 / 0.70 / 0.82. Against: 1.8 SD on 58;
               Raptor is optimistic on gold; Lateral OA drops 0.021 (22 silent negatives); the student shrinks target gains (P-49:
               0.9268 → 0.909).
-Measure:      arms `v11s` ‖ `v11s2` = the `v11a` / `v11b` recipe (c03, all 4,349, 8 ep, SWA; seeds 42 / 43) with
-              `TEACHER_SILENT_MIX = 0.75` (the silence mask from `report_labels_v2.csv` `__verdict == "UNK"`, already mounted); one
-              `PARALLEL_ARMS` session (the silent mix is per session, so it pairs only with its own seed twin); two solos, read
-              m = mean(`v11s`, `v11s2`) vs m(`v11a`, `v11b`) = 0.9305. If P-60 wins, re-read on top of the P-60 recipe.
-Noise floor:  **✅ ≥ 0.935 / 🔁 0.926–0.935 / ❌ ≤ 0.926** (the P-56 band, as P-60); gold-58 direction only.
-Cost:         code done (above); one c03 session ≈ 3.5 GPU-h (session D: 3.53 h for `v11a` ‖ `v11b`) + 2 solos.
-If it works:  every later member trains on the silence-aware target.
-If it fails:  the target is not binding at this resolution; the label side closes except a second image teacher (P-45).
-Depends on:   GPU after the 2026-10-03 reset; P-60 part 2 first (it holds the resume).
-
-### P-63 Per-finding spatial reader + slot-count correction (D4's head, ported at 224)
-Status:       🔁 2026-10-03: CLOSED, not adopted — `v11p` (one seed) #41 = 0.929 vs `v11a` 0.932 (−0.003; gold 0.9185 vs 0.9204);
-              experiments.md 2026-10-03 "Submissions #41–#43". The code stays (inert at the defaults).
-              🔧 implemented 2026-10-03: `Config.spatial_reader` (`SpatialFindingPool`, zero-initialised query, applied to
-              `enc.forward_features`; timm + window path only, refuses anything else) and `Config.slot_count_norm`
-              (`WindowAttnHead(count_norm=True)`: logits − log #valid windows of the token's slot); `WindowAttnHead` takes
-              (B, W, L, dim) per-label tokens; both keys in `INFER_MEMBER_KEYS` (read from the checkpoint). `window_head_test.py`:
-              zero query = GAP, 12 identical tokens = the 3-D path, count norm gives 0.5 / 0.5 slot mass (padding not counted),
-              spatial model = parent + 1 tensor and equals it untrained (max |diff| 4.8e-7), query at `lr_head` with a non-zero
-              gradient. Local CPU smoke green (`artifacts/local_p63/smoke.log`); Kaggle smoke = `rsna-knee-train-b` v2 **GREEN** (0.11 h; both children `ok  arm`, `teacher table raptor_teacher: 4349`, `reseeded 43 for arm v11p2`, arms carry `spatial_reader: True`, SWA written); real build
-              `artifacts/train_p63_real.py` (`PARALLEL_ARMS = ("v11p", "v11p2")`, Raptor 0.5). Real run waits behind P-45.
-Hypothesis:   our window head global-average-pools each window to one 768-d vector before any label sees it, which loses small
-              findings (Fracture, Contusion, the menisci); one attention query per finding over the backbone's patch grid (85 %
-              attention + 15 % average pool, logit cap 2) plus a log slot-count correction on the window-attention logits lifts the
-              c03 member solo above m(`v11a`, `v11b`) = 0.9305.
-Origin:       read of D4's shipped training + inference code (`artifacts/d4_ds/`, Dataset
-              `mattiaangeli/rsna-knee-coatnet-d4-depthzone-swa3-b2`, CC0; subagent read 2026-10-03, file:line cited there):
-              per-finding spatial reader `coatnet_global96_inference_model.py:23-83`, count correction `:175-247`; its ablation note
-              calls the 85/15 reader "successful" and a learned attention/GAP mixture "failed" (no numbers).
-Evidence:     D4's plain Global96 baseline (same trainer lineage, the reader, no FSX / depth adapter) reads 0.9274 / 0.9267 / 0.9250 on
-              its gold-best epochs (0.9305 averaged) — the FSX + depth-zone stack adds ≈ 0 on gold, so the reader + input are what
-              separates it from our 0.9204; but every one of those numbers is gold-selected. Other D4 differences, NOT in this card:
-              CoAtNet-2 @384 / 130 mm (our `v10c` @384 ≈ `v09h` @224 on fold 0, `v09x` @320 +0.002 LB), a 0.075 pairwise rank loss on
-              detached features + 24-study label-balanced groups, 24 epochs OneCycle at flat backbone 3e-5 (our 3e-5 at 8 epochs was
-              −0.013, P-34), no EMA, almost no augmentation. With our 22/22/22/12/6/6 windows each fluid slot gets ≈ 3.7× the
-              attention prior of a T1 slot — the count correction removes that.
-Measure:      arms on the `v11a` recipe (c03, Raptor 0.5, 8 ep, SWA) + the reader + count correction, seeds 42 / 43, one PARALLEL_ARMS
-              session; two solos, m vs 0.9305.
-Noise floor:  ✅ m ≥ 0.935 / 🔁 0.926 < m < 0.935 / ❌ m ≤ 0.926 (the P-56 band).
-Cost:         ≈ 60–80 lines (encoder returns the feature map; the window head takes per-label vectors) + unit checks in
-              `window_head_test.py`; ≈ 4 GPU-h; 2 solos.
-If it works:  the reader joins the production recipe; then the rank loss + label-balanced groups as one bundled arm, and 384 px only
-              if both read positive.
-If it fails:  the head is not where D4's lead comes from — most of that lead is gold selection.
-Depends on:   P-45 (GPU priority).
-
-### P-64 Long, heavy-augmentation CNN (`v13h`)
-Status:       ✅ 2026-10-04: the recipe carries to bigger CNNs — **#46 EfficientNet-B0 `v13e` 0.935 (our best solo), #45 ResNet-50
-              `v13r` 0.934** (session C, `rsna-knee-train` v43, 5.87 h); experiments.md 2026-10-04 "Submissions #44–#47".
-              ✅ 2026-10-03: **#42 = 0.931 vs `v13c` 0.921 (+0.010, beyond the 0.004 one-seed and 0.005 LB floors)** — the recipe
-              transfers; `v13h` is the production CNN member, scores in ≈ 18 min (experiments.md 2026-10-03 "Submissions #41–#43").
-              Next: session C (`v13r` ResNet-50 ‖ `v13e` EfficientNet-B0, staged) + the `v11a` + `v13h` blend. Training record:
-              `v13h` trained green in session A (`rsna-knee-train-b` v4, 4.40 h, beside `v11p`): gold-58 SWA 0.9001
-              vs `v13c` 0.9014 — the curve plateaus at ≈ 0.900 from epoch 12, so on gold 30 epochs + heavy aug = 12 + light
-              (direction only; gold has inverted the LB in ≥ 4 forum reports). Shipped `rsna-knee-ckpt-v13h`; solo ⏳ tonight
-              (experiments.md 2026-10-03 "Sessions A ‖ B").
-Hypothesis:   our CNN reads 0.921 (`v13c`, 12 epochs, light aug, c02) because it is under-regularised and under-trained, not because
-              ResNets are weak here; ResNet-34 on c03 with heavy augmentation, drop-path 0.1 and 30 epochs reads ≥ 0.930 solo.
-Origin:       forum mining 2026-10-03 (research.md 2.7.3): Tucker (H, "ResNet34 or EffNetB0. No attention … 0.94+"), Myo ("all about
-              adding aug and regularization", 50 epochs, best at 28, 5-fold 0.94), Scott (H, small ResNet single fold 0.949), CoolinLai
-              (5-fold ResNet-50 @224 0.954), SpeedSci (ResNet-50 0.940), Will (25 → 50 epochs +0.004).
-Evidence:     P-59 fixed our CNN's optimiser (+0.069 gold); P-60 (heavy aug + drop-path + 12 ep on the CoAtNet) reads tonight. Against:
-              P-29 (16 CoAtNet epochs over-trained on LLM targets without added regularisation).
-Measure:      `v13h` solo vs `v13c` 0.921 (one seed; the P-44 floor 0.004) and vs the CoAtNet `v11a` 0.932; as an ensemble member, the
-              pair `v11a` + `v13h` vs `v11a` alone.
-Noise floor:  one-seed delta ≥ 0.004 (P-44).
-Cost:         ≈ 3.4 GPU-h inside a two-arm session (ResNet-34 ≈ 6 min/epoch on c03, est.); 1 solo.
-If it works:  a second family for the 3–5-member ensemble; then EfficientNet-B0 / ResNet-50 variants and 40–50 epochs. **Staged
-              2026-10-03:** arms `v13r` (ResNet-50 a1) / `v13e` (EfficientNet-B0 ra) = `v13h` with the backbone swapped; private weight
-              Datasets `timm-resnet50-a1` / `timm-efficientnet-b0-ra` mounted in train / train-b / infer; unit + local smoke green
-              (`artifacts/train_sC_*.py`). The case for the CNN line: SpeedSci's CNNs read 0.940 on the LB vs their CoAtNet's 0.926,
-              and Tucker reports "low 0.95s" with ResNet-34 / EfficientNet-B0 on plain Qwen labels (745214).
-If it fails:  the CNN family stays an Efficiency-track candidate only (P-18).
-Depends on:   —.
+Measure:      (since 2026-10-04, on the CNN line) `v13es` ‖ `v13rs` = `v13e` / `v13r` exactly + `TEACHER_SILENT_MIX = 0.75` (the
+              silence mask from `report_labels_v2.csv` `__verdict == "UNK"`), one `PARALLEL_ARMS` session (session D); two solos,
+              read m(`v13es`, `v13rs`) vs m(`v13e`, `v13r`) = 0.9345. The two families at one seed each act as a two-seed read.
+              (The CoAtNet design `v11s` ‖ `v11s2` vs 0.9305 was parked on 10-03 and is kept in git history.)
+Noise floor:  **✅ ≥ 0.9390 / 🔁 0.9300–0.9389 / ❌ ≤ 0.9299** (band ± 0.0045); gold-58 direction only. P-66's seed twin `v13e2`
+              re-measures the CNN seed spread behind this band.
+Cost:         session D ≈ 6 GPU-h (session C, the same two arms flat: 5.87 h) + 2 solos.
+If it works:  the final members (P-50) and session E consider the silent mix; E needs `DISTILLED_SILENT_MIX` entries for its arms.
+If it fails:  the target is not binding at this resolution. The label side rests on P-65 (session E, after 10-10).
+Depends on:   — (session D running since 2026-10-04 10:15 UTC; solos 2026-10-05).
 
 ### P-65 Grading-aware Claude relabel of the reports (a genuinely independent LLM vote)
-Status:       🔁 2026-10-04: pilot read — Opus 0.9062 alone (LLM blend 0.8948), 0.9397 with Raptor (0.9324): under both
+Status:       ⏳ session E staged (Kaggle, after the 2026-10-10 reset); read m(`v13ec`, `v13rc`) vs m(`v13e`, `v13r`) = 0.9345:
+              ✅ ≥ 0.9390 / 🔁 0.9300–0.9389 / ❌ ≤ 0.9299 (experiments.md 2026-10-04 "P-65 full pass"; two arms, so this replaces
+              the one-arm read in Measure (2)).
+              🔁 2026-10-04: pilot read — Opus 0.9062 alone (LLM blend 0.8948), 0.9397 with Raptor (0.9324): under both
               pre-registered bars; Haiku 0.8639 ❌. Fracture (acute only) 0.815 → 0.924 and PF OA 0.903 → 0.967 gain; Effusion
               −0.030 / Baker's −0.092 lose (size thresholds collapse the ranking). experiments.md 2026-10-04 "P-65 gold-58 BLIND
               pilot". **Full pass DONE 2026-10-04 (Tian's go): 4,349 / 4,349, ≈ 25 min, ≈ 6.9 M tokens; `claude_v1` + composite
@@ -517,10 +306,11 @@ Measure:      (1) pilot, target level on gold-58, read ONCE: AUC of p per label 
 Noise floor:  gold-58 SE ≈ 0.03–0.09 per label; one-seed LB floor 0.004 (P-44).
 Cost:         pilot ≈ 2 × 30k tokens, minutes. Full pass ≈ 1.5 M input + ≈ 0.4 M output tokens in parallel subagents
               (≈ 1–2 h wall) — at API prices ≈ $6–8 (Haiku, batch) to ≈ $25–70 (Opus) per pass, under "minimal cost". Then
-              ≈ 3 GPU-h (one EfficientNet arm) + 1 solo.
+              ≈ 3 GPU-h (one EfficientNet arm) + 1 solo. Measured: the full pass took ≈ 25 min wall and ≈ 6.9 M subagent tokens;
+              session E is two arms, ≈ 6 GPU-h + 2 solos.
 If it works:  the LLM half becomes LLM + Claude for every later member.
 If it fails:  the label line closes; image-side (recipe, families, P-62 silent-cell teacher) only.
-Depends on:   Tian's go for the full pass (the 2026-09-28 "no hosted-API labels" choice is reopened, not reversed).
+Depends on:   — (Tian's go for the full pass given 2026-10-04; the pass ran).
 
 ### P-66 Bigger CNN (`v13b3`) + the first CNN seed twin (`v13e2`), trained on RunPod
 Status:       ⏳ 2026-10-04 14:50 UTC: **`v13b3` trained green on RunPod pod `kqgjkh0329ieqq` (RTX 4090, 2.2 h, 0.06 s/study): gold-58
@@ -604,11 +394,11 @@ Merged from brainstorm.md and research.md §5; one line each. Do not resurrect w
 | Decoding DICOM in the DataLoader each epoch; float32 caches; `.npz` + mmap; GPU decode at ≤ 512 px | 100× slower; 29.6 GB; mmap ignored; ~1–2.5× | [hida1211], [NumPy #5976], [nvImageCodec] |
 | `pip install` at scoring time | internet off | [pydicom plugin table] |
 | bf16 on T4; channels_last for ViT; `torch.compile` by default | no bf16 tensor cores; cuDNN-only; compile > gain (SDPA is the cheap win — P-08) | [PyTorch memory_format], critic 27 |
-| More *report-label* LLM sources beyond P-46's one test (dread as a 4th vote), Dawid–Skene, Snorkel, CARE, learned source weights | n_eff ≈ 2.2 in literature, **~1.5 here** (φ 0.88); our 0.002 spread. Image-grounded tables are the demonstrated lever (P-39); the LLM half is P-46 | [2605.29800], [BoxWRENCH], experiments.md, label_audit.md |
+| More *report-label* LLM sources beyond P-46's one test (dread as a 4th vote), Dawid–Skene, Snorkel, CARE, learned source weights | n_eff ≈ 2.2 in literature, **~1.5 here** (φ 0.88); our 0.002 spread. Image-grounded tables are the demonstrated lever (P-39); the LLM half is P-46. Exception on a new reason: P-65's grading-aware Claude vote (the host's severity thresholds) | [2605.29800], [BoxWRENCH], experiments.md, label_audit.md |
 | Co-teaching / DivideMix / DISC; focal / ASL / GradNorm / PCGrad | minority collapse; ≤ 0.01 over BCE | [LNMBench], [RAL], [Xin et al.] |
 | Calibrated priors with a 50% floor for zero-support states | OOF collapsed to base rate | [JunhaoLiXD V02] |
 | Translate-then-extract; sub-3B extractors; 70B on 2×T4 | precision loss; F1 0.74; ~40 GB weights | [2602.21374] |
-| Hosted LLM APIs for report text | plausible Rule 4.b violation; open-weights parity | CLAUDE.md, [Radiology 2025] |
+| ~~Hosted LLM APIs for report text~~ — **SUPERSEDED 2026-10-04 by host rule 2.6.b** (hosted LLMs permitted at minimal cost); it ran as P-65 | was: plausible Rule 4.b violation; open-weights parity | CLAUDE.md "Rules", [Radiology 2025] |
 | In-domain SSL continued pretraining as a first priority | in-domain ViT still below ImageNet AlexNet on MRNet | [SB-SSL] |
 | Auxiliary report-reconstruction head | same weak supervision as the targets; nothing new to learn | brainstorm.md #10 (speculative, unranked) |
 | Judging a target-source change on fold-0 OOF vs the LLM teacher | rewards agreement with the teacher, not truth: P-38's fold-0 +0.0109 read −0.001 in production (#19) | traps 39, experiments.md 2026-09-24 "Submission #19" |
@@ -627,9 +417,9 @@ Kaggle pages are JS-rendered; the CLI exposes none of these. Each blocks a card.
 
 | Question | Blocks | Where to read |
 |---|---|---|
-| Exact Rules text: Rule 4.b (data off-platform), winner licence clause, which assets a winning submission must make public, ≤ 9 h runtime, internet-off | P-50 (publishability, licence), P-46 step 2 (risk), P-18 | competition Rules page |
+| Exact Rules text: ~~Rule 4.b (data off-platform)~~ (**superseded 2026-10-04 by host rule 2.6.b**: hosted LLMs permitted, CLAUDE.md "Rules"), winner licence clause, which assets a winning submission must make public, ≤ 9 h runtime, internet-off | P-50 (publishability, licence), P-18 | competition Rules page |
 | Efficiency Prize formula and Base — is runtime CPU-only? | P-18 | Efficiency evaluation page; `ryanholbrook` notebook body |
 | radimagenet.com Terms & Conditions for the weights (the anchor's Rad stage) | P-50 | https://www.radimagenet.com/ |
 | Hidden test size and site/vendor mix (community: 16–19 sites; the "1,322 studies" figure is a public notebook's cache-sizing assumption, 0.3 × train — experiments.md Infrastructure 2026-09-27) | P-18 time budget, P-44 (LB sampling SD) | competition Data page; header pass at rerun |
-| Discussion threads: hidden-test decode issues, gold severity protocol | P-46 step 2 grading rubric | Discussion tab; pilkwang notebook gold-protocol cells |
-| Kaggle per-kernel output cap (assumed ~20 GB) and Datasets size limits | P-45 (pass sharding) | Kaggle docs: Notebooks → Output; Datasets → limits |
+| Discussion threads: hidden-test decode issues; ~~gold severity protocol~~ **ANSWERED** — research.md §2.7.3 (host grading rules, topic 733343; P-65's prompt was written from them) | was: P-46 step 2's grading rubric (now P-65) | Discussion tab |
+| Kaggle per-kernel output cap (assumed ~20 GB) and Datasets size limits | any future teacher pass (sharding; P-45 is closed) | Kaggle docs: Notebooks → Output; Datasets → limits |

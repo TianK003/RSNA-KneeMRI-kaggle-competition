@@ -105,7 +105,7 @@
 - DINOv2 position embeddings are interpolated from 518 px pretraining at any other resolution (HF `Dinov2Model` `interpolate_pos_encoding`), so a 224 vs 336 comparison changes the embedding grid as well as the pixels; DINOv2-**with-registers** variants (`facebook/dinov2-with-registers-small`) remove the high-norm attention artefacts that can distort attention pooling. [Darcet et al.](https://arxiv.org/abs/2309.16588). Not evaluated by any knee source; a cheap swap to test.
 - On this competition: DINOv2-S/14 224 baseline 0.809 public; EfficientNet-B0 320 mean-pool 0.664. [pilkwang](https://www.kaggle.com/code/pilkwang/rsna-knee-baseline-v1), [JunhaoLiXD](https://github.com/JunhaoLiXD/RSNA_Knee_Abnormality_Detection)
 
-**What does NOT work**: frozen features as the final model; BiomedCLIP/MedSAM/RAD-DINO; DINOv3 at 224; ViT-B/L at 4k studies; 1024 px; EfficientNet-B0; OrthoFoundation (not public); uniform high LR without LLRD/warmup.
+**What does NOT work**: frozen features as the final model; BiomedCLIP/MedSAM/RAD-DINO; DINOv3 at 224; ViT-B/L at 4k studies; 1024 px; EfficientNet-B0 (**corrected 2026-10-04:** on our `v13h` recipe it is our best solo, 0.935, #46); OrthoFoundation (not public); uniform high LR without LLRD/warmup.
 
 **Open questions**: 448 px + 4 slices vs 224 + more slices; ConvNeXt-Small vs RadImageNet as diversity member; radimagenet.com T&C and the winner-licence clause; in-notebook DINO continued pretraining; whether the 0.809 baseline's 5,507 s runtime is real.
 
@@ -338,7 +338,7 @@ Source: `artifacts/forum/<topic_id>.md` + `index.tsv` (gitignored). `ListTopics`
 `ListComments` (session scratch `harvest_forum.py`; the API rate-limits at ≈ 1 call/s → backoff). Two read-only agents read every
 topic; their full claim tables: `artifacts/research_1003/forum_part1.md` (ids < 736000), `forum_part2.md` (≥ 736000).
 
-**Host rulings (Po-Hao "Howard" Chen; supersede the "open" wording in CLAUDE.md "Rules"):**
+**Host rulings (Po-Hao "Howard" Chen; CLAUDE.md "Rules" now records them, with the formal rule 2.6.b):**
 - **Hosted LLM APIs may read the reports** (733965, 08-09, again 08-27: "You can use LLM API, such as those from OpenAI, to read
   the reports to generate the labels").
 - **External data:** KneeCoT is banned because it needs an institutional agreement (734109, 08-25). Click-through datasets
