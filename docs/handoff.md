@@ -6,6 +6,142 @@ to read first after a break.
 
 ---
 
+## 2026-10-04 (08:45 → 11:45 UTC) — labels researched end to end (host rule 2.6.b; forum + literature; **P-65 Claude relabel: blind gold pilot 🔁, full 4,349-report pass done and published**); **session D (P-62 silent-cell teacher on the CNNs) RUNNING**; sessions E (Claude target) and B3 staged; 10-05 placeholders ready
+
+Tian, in order:
+- **Priorities:** "we are not competing for best efficiency but want to reach higher score". Improve the models, ensemble the way
+  the public 0.946–0.947 teams do (P-50), explore labels, note the host's LLM rule in CLAUDE.md, re-read `discussion_735304.xml`,
+  and "estimate how much time [labelling them yourself] would take … and potential upside".
+- **Answers to my questions:**
+  - run the blind gold-58 pilot: yes;
+  - this week's GPU: the silent-cell teacher on the CNNs;
+  - full Opus relabel: "Run the full Opus pass now";
+  - the 10-05 submission plan: yes.
+- "/handoff now".
+
+Commits `c4a5445`, `7d090f7`, `a689335`, `7d16049`, plus this one. No session trailers (memory `no-session-trailer-in-commits`).
+
+### ⏳ Still in flight as this was written (11:45 UTC)
+
+**The watchers of this chat die with it, so poll by hand.**
+
+**Session D = `rsna-knee-train-b` v6 (REAL), P-62 on the CNNs.**
+- **What it is:** `PARALLEL_ARMS = ("v13es", "v13rs")`, `TEACHER_TABLES = ("raptor_teacher",)`, `TEACHER_MIX = 0.5`,
+  `TEACHER_SILENT_MIX = 0.75` (`artifacts/train_sD_real.py`). `v13es` / `v13rs` are `v13e` / `v13r` exactly, with Raptor at
+  0.75 on report-silent cells.
+- **Started:** pushed 10:15 UTC. Expect COMPLETE ≈ 16:00–16:30 UTC (session C took 5.87 h).
+- **How to check:** `kaggle kernels status tiankljucanin/rsna-knee-train-b`, then
+  `kaggle kernels output tiankljucanin/rsna-knee-train-b -p artifacts/kaggle_out/sD --file-pattern "(v13es|v13rs)_fold0_(best\.pt|oof\.csv)$|\.log$"`.
+- **Green** = parent `ok  arm` ×2 **and** each child log has:
+  - `teacher table raptor_teacher: 4349`;
+  - `P-62: report-silent cells (pilkwang UNK) mix at 0.75`;
+  - `freeze_bn: 49` (v13es) or `53` (v13rs);
+  - epochs 0–29, `SWA of last 3`, `-> <arm>_fold0_best.pt = SWA`;
+  - no `runtime guard` (traps 47).
+- **How to read it:** gold-58 SWA is direction only (`v13e` 0.9126, `v13r` 0.9111). `ERROR` with 0 files = traps 44 → re-push the
+  same build.
+
+Nothing else is running. Kaggle GPU **≈ 22 / 30 h** at 11:40 UTC (D still counting; ≈ 26.5 h when done; resets 2026-10-10). The
+10-04 submissions are used up (#44–#48).
+
+### Where things stand
+
+| | Status |
+|---|---|
+| Best LB / own / solo | 0.942 (public-stack fork) / **0.938** (#48 trio `v11a` + `v13r` + `v13e`) / **0.935** (`v13e`, EfficientNet-B0) |
+| Labels (P-65) | **Gold pilot, blind, read once:** Opus 0.9062 alone vs LLM blend 0.8948; 0.9397 with Raptor vs 0.9324 → 🔁, under both bars (0.910 / 0.945). Fracture 0.815 → 0.924, PF OA +0.064; Effusion −0.030, Baker's −0.092. Haiku 0.8639 ❌. **Full pass done** (4,349 / 4,349, ≈ 25 min, ≈ 6.9 M tokens): `claude_v1.csv` + composite `claude_rap_v1.csv` (⅔ Raptor rank + ⅓ Claude rank) in Dataset `rsna-knee-teacher-tables`. experiments.md 2026-10-04 "P-65 gold-58 BLIND pilot", "P-65 full pass" |
+| Research | research.md §2.7.5. The forum refresh found nothing new since 10-03 (`artifacts/research_1004/forum_new.md`); the literature review is `literature.md`. Extraction is near its ceiling; image-teacher pseudo-labels on silent cells are the only label lever with measured LB transfer (= P-62). Host rule 2.6.b (hosted LLMs permitted) is in CLAUDE.md "Rules" |
+| Staged, smoke green | **Session E** = `v13ec` ‖ `v13rc` (`v13e` / `v13r` on `TEACHER_TABLES = ("claude_rap_v1",)` at `TEACHER_MIX = 0.75` ≈ 0.25 LLM + 0.25 Claude + 0.5 Raptor). Build: `artifacts/train_sE_real.py`; Kaggle smoke `rsna-knee-train` v44 green |
+| Staged, no smoke | **`v13b3`** = EfficientNet-B3 @ 288 on the `v13h` recipe. Dataset `timm-efficientnet-b3-ra2` is mounted in train / train-b / infer; unit checks green; no Kaggle smoke yet |
+| 10-05 placeholders (green, submittable) | `rsna-knee-fork` **v11** = public 0.942 stack + trio at β 0.45 (`beta0.45`, our subprocess rc 0 in 104 s) · `rsna-knee-infer` **v45** = 4-model `v11a` + `v13h` + `v13r` + `v13e` · **v46** = CNN trio `v13h` + `v13r` + `v13e` |
+| Committed renders | `rsna-knee-train` = v44 **session E SMOKE**. `rsna-knee-train-b` = v6 **session D REAL (running)**. `rsna-knee-infer` = v46. `rsna-knee-fork` = v11 |
+
+### What we talked about and decided
+
+- **Score over efficiency** (Tian). The Efficiency track no longer steers anything. P-50 = our trio as the "diverse own leg" in the
+  public stack (β 0.45, like the 0.946–0.947 teams).
+- **Labels, decided by numbers:**
+  - The pilot read was pre-registered in card P-65 before it ran, and was read once.
+  - The prompt (`artifacts/claude_labels/prompt_v1.md`) was written from the host's grading rules only and is never iterated on
+    gold.
+  - Choosing a source per label on gold was rejected: 12 choices on 58 studies.
+  - Tian chose the full pass despite the 🔁. Its only judge is the LB, through session E.
+- **Session E target design:** the composite `claude_rap_v1` keeps Raptor at 0.5 and changes only the LLM half (0.5 LLM + 0.5
+  Claude). It reads the Claude vote against `v13e` / `v13r` alone.
+- **Session D read rule (pre-registered, P-62 card):** m(`v13es`, `v13rs`) vs m(`v13e`, `v13r`) = 0.9345 → ✅ ≥ 0.9390 / 🔁
+  0.9300–0.9389 / ❌ ≤ 0.9299. Two families at one seed each act as a two-seed read of the idea.
+- **Rejected:** Haiku for labelling (0.864); a VLM member (parity, A100-class); external data (Tucker reads the OAI ruling as no).
+
+### What we figured out
+
+1. **The CNN line is our best and blends across families.**
+   - EfficientNet-B0 0.935 > ResNet-50 0.934 > ResNet-34 0.931; the CoAtNet plateau is 0.929–0.932.
+   - Cross-family blends read above every member: #47 0.934, #48 0.938.
+   - Source: experiments.md "Submissions #44–#47", "Submission #48".
+2. **Our labels are not the bottleneck everywhere.** On gold:
+   - the LLM labels beat our models on ACL / MCL / PF OA (an image-side gap);
+   - our models beat the labels on Effusion / Fracture / Contusion / Medial OA.
+   - The three LLM sources are ≈ 1.5 votes (hans_v4 ~ sol56 agree 99.45 %).
+   - Source: research.md 2.7.5.
+3. **Grading-aware relabelling helps where the rule is acuity or compartment and hurts where it is a size threshold.**
+   - Gains: Fracture +0.109, PF OA +0.064.
+   - Losses: Effusion −0.030, Baker's −0.092.
+   - Over all 4,349, MCL positives fall to 1.4 % (vs 15.3 %) and Effusion to 18 % (vs 59 %).
+   - Fracture agrees more with Raptor (ρ 0.61) than with the LLM (0.42).
+4. **Severity grading needs a frontier model:** Haiku 0.864 vs Opus 0.906 on gold, matching the literature (GPT-4o 98 % vs mini
+   69 % on OA severity).
+
+### ⏭ Next action, in order
+
+1. **Pull session D when COMPLETE** (command and green criteria in the in-flight block above). Then:
+   - note the gold SWA of both arms;
+   - run `/update`;
+   - ship both with the ship loop (2026-10-03 entry, `for a in v13es v13rs`, source `artifacts/kaggle_out/sD`);
+   - add `tiankljucanin/rsna-knee-ckpt-v13es` / `-v13rs` to `kaggle/rsna-knee-infer/kernel-metadata.json`;
+   - build the placeholders from the CURRENT `src`: `sed -e 's/^FORCE_SMOKE = True/FORCE_SMOKE = False/' -e 's/^MODE = "auto"/MODE = "infer"/' -e 's/^INFER_MEMBERS = \[.*\]/INFER_MEMBERS = ["v13es"]/' src/kaggle_pipeline.py > artifacts/infer_solo_v13es.py`
+     (same for `v13rs`);
+   - `nbgen` → push → check `smoke False`, `infer members (1)`, decode-once verified, `constant labels 0`.
+   - Push placeholders only while a GPU slot is free (traps 50).
+2. **After 00:00 UTC 2026-10-05, the five submissions** (Tian's go). Send the fork FIRST, because it can take hours (#17 ≤ 8 h).
+   Use `kaggle competitions submit rsna-knee-abnormality-detection -k <slug> -v <N> -f submission.csv -m "<what + read rule>"`,
+   then `python src/watch_submission.py --ref <ref> --every 90` per submission. Read rules:
+   - (a) `rsna-knee-fork` **v11** (P-50: stack + trio β 0.45) vs #13 0.942: ✅ ≥ 0.945 / 🔁 0.941–0.944 / ❌ ≤ 0.940.
+   - (b) `rsna-knee-infer` **v45** (4-model) vs #48 0.938: ✅ ≥ 0.941 / 🔁 0.936–0.940 / ❌ ≤ 0.935.
+   - (c) `rsna-knee-infer` **v46** (CNN trio) vs #48 0.938. ≥ 0.938 means the CoAtNet member is not needed.
+   - (d) and (e) the `v13es` / `v13rs` solos from step 1: m vs 0.9345, using the session D rule above.
+3. `/update` after the reads (Submissions rows #49–#53, Scoreboard, cards P-50 / P-62).
+4. **GPU after the 2026-10-10 reset (30 h).** Only ≈ 3.5 h are left this week once D is done, and nothing staged fits in that.
+   - **Session E** (Claude target, ≈ 6 h). `src` changed after its smoke (the B3 backbone and arm were added), so rebuild from the
+     current `src` and smoke first:
+     - smoke: `sed -e 's/^PARALLEL_ARMS = ()/PARALLEL_ARMS = ("v13ec", "v13rc")/' -e 's/^TEACHER_TABLES = ()/TEACHER_TABLES = ("claude_rap_v1",)/' -e 's/^TEACHER_MIX = 0.5/TEACHER_MIX = 0.75/' src/kaggle_pipeline.py > artifacts/train_sE_kaggle_smoke.py`;
+     - then the same + `FORCE_SMOKE = False` → push `kaggle/rsna-knee-train`.
+     - If P-62 ✅, also decide whether E gets `TEACHER_SILENT_MIX` (that needs `DISTILLED_SILENT_MIX` entries for `v13ec` / `v13rc`).
+     - Read: m(`v13ec`, `v13rc`) vs 0.9345, same bands as D.
+   - **Then `v13b3`** (EfficientNet-B3 @ 288; Kaggle smoke first; pair it with a seed twin of the best CNN recipe).
+   - **Then the final members (P-50).**
+
+### Open decisions for Tian
+
+- **Order of the 10-10 GPU week:** session E vs B3 vs seed twins for the final ensemble.
+- **Whether to top up RunPod** so session E runs before 10-10. One EfficientNet / ResNet arm on a 4090 is likely a few dollars
+  (unverified).
+- **P-50 final picks by 10-15:** our best own ensemble (now 0.938) + the fork with our trio (read #49 first).
+- **Team-merge offers** on the forum (deadline 10-15).
+- **Licences:** the forum asks whether timm/torchvision ImageNet weights and RadImageNet (inside the public stack we fork) are
+  eligible. Read the rules page in a browser.
+
+### Things that will bite if forgotten
+
+- **`rsna-knee-train-b` v6 is a REAL render (session D).** `rsna-knee-train` v44 is the session E SMOKE; its real build must be
+  regenerated from `src` (see step 4).
+- **traps 49:** `kaggle datasets version -p <relative path>` can make no version while looking fine. Run it from inside the folder
+  and confirm with `kaggle datasets files`.
+- **traps 50:** only two GPU sessions at once. Infer placeholders need a free slot.
+- **`artifacts/claude_labels/` holds report text** (the batch inputs) and per-study labels. It is gitignored: never commit,
+  publish or paste it. `rsna-knee-teacher-tables` must stay private.
+- `kaggle/rsna-knee-train*/kernel-metadata.json` were re-serialised with 4-space indents (cosmetic).
+- `discussion.py` / `discussion_735304.xml` in the repo root are Tian's, untracked on purpose.
+
 ## 2026-10-03 (17:20 UTC) → 2026-10-04 (08:45 UTC) — 8 reads + session C: **the CNN line wins** (EfficientNet-B0 `v13e` 0.935 = best solo); **the three-family trio reads 0.938 = best own-model score**; P-45 / P-61 / P-63 closed
 
 Tian, in order:

@@ -949,3 +949,18 @@ bite (the harvest backed off: 5 × 2^k s, ≤ 120 s, 1.5 s between topics). **Do
 since 2026-10-03 add `*429*|*Too\ Many*) sleep` before the catch-all. Before acting on a watcher's exit, re-check
 `kernels status` once.
 
+
+### 49. `kaggle datasets version -p <relative path>` can fail with `[Errno 2] … .kaggle/uploads\<path>_<file>.json` and create NO version — while printing "Starting upload" (Tier 3, 2026-10-04)
+
+Adding `claude_v1.csv` to `rsna-knee-teacher-tables` from the repo root (`-p artifacts/ship_teacher`) printed the Errno 2 line about the
+CLI's resume cache and then `Starting upload for file claude_v1.csv`; `datasets status` said `ready`, but `datasets files` still listed
+only the old four tables — no version was made. Run from inside the folder instead (`cd artifacts/ship_teacher && kaggle datasets
+version -p . -m …`), as the ship loops always did, and **confirm the new file with `kaggle datasets files <slug>`** before relying on it
+(`status ready` alone refers to the previous version).
+
+### 50. A third GPU push fails with "Maximum batch GPU session count of 2 reached" — infer placeholders compete with training for the two slots (Tier 3, 2026-10-04)
+
+With session D training on `rsna-knee-train-b` and a smoke on `rsna-knee-train`, pushing an `rsna-knee-infer` placeholder was refused
+(`Kernel push error: Maximum batch GPU session count of 2 reached.`). Placeholders are GPU sessions too. Push them while a slot is free
+(before starting the second training session, or after a smoke ends), and do not plan a two-session training sitting on a day whose
+submissions still need placeholders.
