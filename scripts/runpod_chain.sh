@@ -16,6 +16,13 @@
 # one by one -- the cache is pulled once for both.
 # EXPECT_TEACHER (default: every table named in RSNA_TEACHER_TABLES): each must be in the downloaded teacher-tables Dataset
 # with >= EXPECT_ROWS (4349) rows; TEACHER_WAIT_MIN (default 0) = minutes to keep re-downloading until it is.
+# 2026-10-04 (P-66):
+# SEQ_ARMS=1: train the arms ONE AFTER ANOTHER on GPU 0, in the order given (an arm that fails does not stop the next). Use it
+# when the arms do not fit one GPU together, or to bound the spend arm by arm.
+# AUTO_STOP=1: `runpodctl stop pod $RUNPOD_POD_ID` when the job ends, success or failure -- GPU billing stops even if nobody is
+# watching (the volume is kept; delete the pod by hand after the ship is confirmed).
+# Before the chain: `mkdir -p /workspace/kaggle && ln -sfn /workspace/kaggle /kaggle` so /kaggle/working (every _last.pt)
+# lives on the persistent volume and survives a stop (traps 46); put CACHE_ROOT on fast local storage, never on MooseFS.
 set -euo pipefail
 
 ARMS=("$@")
@@ -30,9 +37,15 @@ CACHE_PREFIX="${CACHE_PREFIX:-rsna-knee-cache2}"
 CACHE2=("$CACHE_PREFIX-a" "$CACHE_PREFIX-b" "$CACHE_PREFIX-c" "$CACHE_PREFIX-d")
 LABELS=(pilkwang/rsna-knee-llm-labels stevenleehans/rsna-knee-llm-report-labels lixin73/rsna-knee-llm-report-labels-sol56
         tiankljucanin/rsna-knee-teacher-tables)
-WEIGHTS=(timm-coatnet-rmlp-1-rw-224 timm-coatnet-rmlp-2-rw-384 convnext-tiny-224-hf)
+WEIGHTS=(timm-coatnet-rmlp-1-rw-224 timm-coatnet-rmlp-2-rw-384 convnext-tiny-224-hf
+         timm-resnet50-a1 timm-efficientnet-b0-ra timm-efficientnet-b3-ra2)   # the CNN line (P-64 / P-66)
+# The cache scheme the manifests carry in their names (manifest_shard<k>_<scheme>.csv): c02 unless the c03 kernels are pulled.
+CACHE_SCHEME="${CACHE_SCHEME:-$([ "$CACHE_PREFIX" = rsna-knee-cache3 ] && echo c03 || echo c02)}"
 
 log() { echo "[$(date +%H:%M:%S)] $*"; }
+if [ "${AUTO_STOP:-0}" = 1 ]; then
+  trap 'rc=$?; log "job exit rc=$rc -- AUTO_STOP: stopping pod ${RUNPOD_POD_ID:-?}"; runpodctl stop pod "${RUNPOD_POD_ID:-}" || true' EXIT
+fi
 # 2026-09-29: a 429 (Too Many Requests) on train_series.csv, while the four cache pulls ran, killed the job under set -e
 # (traps 45). Every small download now retries with back-off instead of aborting the chain.
 retry() { local n=0; until "$@"; do n=$((n + 1)); [ "$n" -ge 6 ] && { echo "!! gave up after $n tries: $*"; return 1; }
@@ -99,13 +112,13 @@ done
 log "waiting for the cache pulls"
 for p in "${pids[@]}"; do wait "$p" || true; done
 
-verify() {   # every blob named by a c02 manifest exists and holds exactly the manifest's rows for it
-  python - "$CACHE_ROOT" <<'EOF'
+verify() {   # every blob named by a c02 / c03 manifest exists and holds exactly the manifest's rows for it
+  python - "$CACHE_ROOT" "$CACHE_SCHEME" <<'EOF'
 import glob, os, sys
 import numpy as np, pandas as pd
-root = sys.argv[1]
+root, scheme = sys.argv[1], sys.argv[2]
 n_blob = n_bad = n_study = 0
-for mpath in sorted(glob.glob(os.path.join(root, "*", "manifest_shard*_c02.csv"))):
+for mpath in sorted(glob.glob(os.path.join(root, "*", f"manifest_shard*_{scheme}.csv"))):
     m = pd.read_csv(mpath)
     m = m[m.get("cached", 1) == 1]
     arr_dir = os.path.join(os.path.dirname(mpath), str(m.cache_version.iloc[0]))
@@ -135,27 +148,43 @@ for attempt in 1 2 3; do
 done
 du -sh "${CACHE2[@]/#/$CACHE_ROOT/}"
 
+log "kaggle auth check (the ship at the end needs it too)"
+retry kaggle datasets files "$OWNER/rsna-knee-teacher-tables" > /dev/null
+
 tpids=()
 n_gpu=$(nvidia-smi -L | wc -l)
 [ "$n_gpu" -ge 1 ] || n_gpu=1
+set +e
 for i in "${!ARMS[@]}"; do
   ARM="${ARMS[$i]}"
   gpu=$(( i % n_gpu ))                               # more arms than GPUs share one (a 1 x 5090 pod runs both)
-  log "TRAIN $ARM on GPU $gpu (TEACHER_TABLES ${RSNA_TEACHER_TABLES:-()}) -> $WORK/job_train_$ARM.log"
-  ( CUDA_VISIBLE_DEVICES=$gpu bash "$REPO/scripts/runpod_bootstrap.sh" train "$ARM" > "$WORK/job_train_$ARM.log" 2>&1 ) &
-  tpids+=($!)
+  [ "${SEQ_ARMS:-0}" = 1 ] && gpu=0
+  log "TRAIN $ARM on GPU $gpu (TEACHER_TABLES ${RSNA_TEACHER_TABLES:-()}, MIX ${RSNA_TEACHER_MIX:-0.5}) -> $WORK/job_train_$ARM.log"
+  if [ "${SEQ_ARMS:-0}" = 1 ]; then
+    CUDA_VISIBLE_DEVICES=$gpu bash "$REPO/scripts/runpod_bootstrap.sh" train "$ARM" > "$WORK/job_train_$ARM.log" 2>&1
+    log "TRAIN $ARM ended rc=$?"
+  else
+    ( CUDA_VISIBLE_DEVICES=$gpu bash "$REPO/scripts/runpod_bootstrap.sh" train "$ARM" > "$WORK/job_train_$ARM.log" 2>&1 ) &
+    tpids+=($!)
+  fi
 done
-set +e
 for p in "${tpids[@]}"; do wait "$p"; done
 set -e
+# Ship only a finished member: a guard-stopped run also leaves a _best.pt (a mid-schedule EMA under ckpt_policy="last",
+# traps 47). A ship can land inside the Kaggle token's 30-min post-expiry window (traps 20): retry for ~45 min.
 shipped=0
 for ARM in "${ARMS[@]}"; do
   ls -la "$WORK" | grep "$ARM" || true
-  if [ -f "$WORK/${ARM}_fold0_best.pt" ]; then
-    log "SHIP $ARM"
-    bash "$REPO/scripts/runpod_bootstrap.sh" ship "$ARM" && shipped=$((shipped + 1))
+  L="$WORK/train_$ARM.log"
+  if [ -f "$WORK/${ARM}_fold0_best.pt" ] && grep -q "SWA of last" "$L" && ! grep -q "stopping: runtime guard" "$L"; then
+    for t in 1 2 3 4 5 6 7 8 9 10; do
+      log "SHIP $ARM (try $t)"
+      if bash "$REPO/scripts/runpod_bootstrap.sh" ship "$ARM"; then shipped=$((shipped + 1)); break; fi
+      sleep 300
+    done
   else
-    echo "!! no ${ARM}_fold0_best.pt -- not shipping $ARM (tail of its log:)"; tail -20 "$WORK/job_train_$ARM.log" || true
+    echo "!! $ARM not finished (no _best.pt, no 'SWA of last', or a runtime-guard stop) -- not shipping (tail of its log:)"
+    tail -20 "$WORK/job_train_$ARM.log" || true
   fi
 done
 log "job done: shipped $shipped / ${#ARMS[@]}"

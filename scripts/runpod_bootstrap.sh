@@ -94,10 +94,13 @@ train)
   # One sed'd copy per arm, so two arms can train on two GPUs at once without overwriting each other.
   mkdir -p artifacts
   TEACHER="${RSNA_TEACHER_TABLES:-}"
+  # RSNA_TEACHER_MIX (e.g. 0.75) is sed'd into TEACHER_MIX; unset keeps 0.5. A distilled arm refuses a mix other than its
+  # DISTILLED_MIX entry (v13ec / v13rc need 0.75), so this is the only way to run one here.
   sed -e 's/^FORCE_SMOKE = True/FORCE_SMOKE = False/' -e 's/^MODE = "auto"/MODE = "train"/' \
       -e "s/^TEACHER_TABLES = ()/TEACHER_TABLES = ${TEACHER:-()}/" \
+      -e "s/^TEACHER_MIX = 0.5/TEACHER_MIX = ${RSNA_TEACHER_MIX:-0.5}/" \
       src/kaggle_pipeline.py > "artifacts/runpod_train_${ARM}.py"
-  log "TEACHER_TABLES in the copy: $(grep -m1 '^TEACHER_TABLES = ' "artifacts/runpod_train_${ARM}.py")"
+  log "TEACHER_TABLES / MIX in the copy: $(grep -m1 '^TEACHER_TABLES = ' "artifacts/runpod_train_${ARM}.py") / $(grep -m1 '^TEACHER_MIX = ' "artifacts/runpod_train_${ARM}.py")"
   export RSNA_ARM="$ARM" RSNA_TRAIN_ONLY=1 RSNA_WORKERS="${RSNA_WORKERS:-8}" \
          RSNA_RUNTIME_H="${RSNA_RUNTIME_H:-40}" PYTHONUTF8=1 PYTHONPATH=src
   log "training $ARM (log -> $WORK/train_$ARM.log); resume = re-run this command"

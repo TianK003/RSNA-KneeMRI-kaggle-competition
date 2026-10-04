@@ -691,6 +691,11 @@ def main():
     diff = {k for k in K["asdict"](cx) if getattr(cx, k) != getattr(ch, k)} - {"version"}
     check(diff == {"backbone", "img_size"} and cx.img_size == 288 and da["v13b3"] == ("raptor_teacher",),
           f"v13b3 = v13h with backbone efficientnet_b3 @ 288 ({sorted(diff)})")
+    # 2026-10-04 (P-66): the CNN seed twin = v13e with only the seed changed
+    cx, cp = Config(smoke=False, **arms["v13e2"]), Config(smoke=False, **arms["v13e"])
+    diff = {k for k in K["asdict"](cx) if getattr(cx, k) != getattr(cp, k)} - {"version"}
+    check(diff == {"seed"} and cx.seed == 43 and cp.seed == 42 and da["v13e2"] == ("raptor_teacher",),
+          f"v13e2 = v13e at seed 43 ({sorted(diff)})")
 
     print("\n" + ("UNIT CHECKS PASSED" if not fails else f"UNIT CHECKS FAILED ({len(fails)}):\n  - " + "\n  - ".join(fails)))
     sys.exit(1 if fails else 0)
