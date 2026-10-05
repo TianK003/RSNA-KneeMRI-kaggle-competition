@@ -3364,6 +3364,24 @@ lifted the blend 0.002 *above* B3 alone. The corrected rule and the B rows' pred
 **Verdict #52: ✅ KEEP** (+0.004 vs #48, bar ≥ 0.941). Our best own score, **0.942 = the public-stack fork**, and the own final-pick
 candidate.
 
+**CORRECTED 2026-10-05 (02:10), from the RunPod critic's review:** the blend table above missed two flat blends whose members all
+have solo reads:
+- #29 `v09r` + `v09u` + `v09x`: 0.927 / 0.927 / 0.929, mean 0.9277 → 0.931 (+0.0033);
+- #36 `v09o` + `v09o2`: 0.927 / 0.927 → 0.928 (+0.001).
+
+With all ten, **the gain over the members' mean splits by family, not only by count:**
+- **same recipe** (seed or small variants): #26 +0.003, #32 +0.0015, #36 +0.001, #29 +0.0033, so ≈ +0.001–0.0033;
+- **cross-family:** #47 +0.0025, #23 +0.0045, #38 +0.0047, #48 +0.0043, #53 +0.0047, and #52 +0.0062 at five members.
+
+So g(2) spans 0.001–0.0045 and g(3) 0.0033–0.0047. The low ends are the same-recipe blends. LB rounding (0.001) makes the
+third-decimal spans false precision; read the rule as "cross-family ≈ +0.004–0.006, same-recipe ≈ +0.001–0.003". This changes the
+predictions for the EfficientNet-only blends:
+- B10 (`v13b3` + `v13e2`) ≈ 0.940–0.942;
+- B11 (+ `v13e`) ≈ 0.941–0.942.
+
+B0 and B3 sit at within-class ρ 0.888, the same as a seed pair, so these blends are priced as same-recipe. Neither is predicted to
+beat B6. **What beats B6 is most likely a new family at ≥ 0.935, not more EfficientNets.**
+
 ## Infrastructure
 
 ### 2026-09-27 — The "0.943 Speedy Raptors CoAtNet D4" notebook is our anchor **plus two CoAt readers**, not a faster graph; its "< 30 min" is a 3-study commit run · P-41 (threaded scan + 8 decode workers) smoke-green and byte-identical

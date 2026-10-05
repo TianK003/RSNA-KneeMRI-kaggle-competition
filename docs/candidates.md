@@ -37,9 +37,12 @@ Since 10-05 every row here is read against **#52 (B6) 0.942: ✅ ≥ 0.946 / �
 (B6 is the bar to beat for our own final pick). "Build" means a
 new `rsna-knee-infer` placeholder (≈ 10 GPU-min; recipe at the bottom).
 
-**Blend rule (10-05, n = 8 flat blends, experiments.md "Submissions #49–#53"):** a flat rank-mean reads ≈ its members' mean solo LB
-+ g(n): g(2) ≈ +0.0015–0.0045, g(3) ≈ +0.0045, g(5) ≈ +0.006 (one point, #52). Both member strength and member count pay. "Pred."
-below is that rule's range (a working rule, LB rounded to 0.001). Member solos: `v13b3` 0.940, `v13e2` 0.938, `v13e` 0.935, `v13r` 0.934, `v11a` 0.932, `v13h` 0.931.
+**Blend rule (10-05, all 10 flat blends with solo-read members, experiments.md "Submissions #49–#53" + its CORRECTED note):**
+a flat rank-mean reads ≈ its members' mean solo LB + a gain that depends on family diversity and count:
+- same recipe (seeds, small variants): + 0.001–0.0033 (#26, #29, #32, #36);
+- cross-family: + 0.0025–0.0047 at 2–3 members (#23, #38, #47, #48, #53), + 0.006 at 5 (#52).
+B0 and B3 count as same-recipe (within-class ρ 0.888 = a seed pair). "Pred." below is that rule's range. It is a working
+rule, LB rounded to 0.001. Member solos: `v13b3` 0.940, `v13e2` 0.938, `v13e` 0.935, `v13r` 0.934, `v11a` 0.932, `v13h` 0.931.
 
 | # | Members | What it tests / contributes | Placeholder | Gold-58 |
 |---|---|---|---|---|
@@ -50,8 +53,8 @@ below is that rule's range (a working rule, LB rounded to 0.001). Member solos: 
 | B7 | `v11a` + `v13b3` | The two best families alone, as a pair. Pred. ≈ 0.938–0.940 (mean 0.936) | build | 0.9267 |
 | B8 | all 8: `v11a`, `v13h`, `v13r`, `v13e`, `v13b3`, `v13e2`, `v13es`, `v13rs` | Does "everything" beat a curated 3–5? (Tian prefers 3–5) | build | 0.9217 |
 | B9 | `v11a` + `v13rs` + `v13es` | #48 with the P-62 members swapped in | build | 0.9224 |
-| B10 | `v13b3` + `v13e2` | **The strongest pair (new 10-05).** The blend rule's best bet: two members within 0.002. Pred. ≈ 0.941–0.943 (mean 0.939). Strength vs count: does the best pair match the five? Read vs B6 0.942 (header bands) | build | — |
-| B11 | `v13b3` + `v13e2` + `v13e` | **The strong EfficientNet triple (new 10-05).** B10 + the seed-42 B0; three members, the more robust shape for the private split. Pred. ≈ 0.942 (mean 0.9377 + g(3)). Read vs B6 0.942 | build | — |
+| B10 | `v13b3` + `v13e2` | **The strongest pair (new 10-05).** The blend rule's best bet: two members within 0.002. Pred. ≈ 0.940–0.942 (mean 0.939, same-recipe gain). Strength vs count: does the best pair match the five? Read vs B6 0.942 (header bands). **Low value after the 10-05 correction** | build | — |
+| B11 | `v13b3` + `v13e2` + `v13e` | **The strong EfficientNet triple (new 10-05).** B10 + the seed-42 B0; three members, the more robust shape for the private split. Pred. ≈ 0.941–0.942 (mean 0.9377, same-recipe gain). Read vs B6 0.942. **Low value after the 10-05 correction** | build | — |
 
 ## C. Submission candidates — the public stack plus our models (P-50)
 
@@ -86,10 +89,10 @@ RunPod works at any time:
 | # | Arm(s) | What it tests / adds | Gate (wait for) | Est. cost | Card |
 |---|---|---|---|---|---|
 | T1 | Session E: `v13ec` ‖ `v13rc` (`claude_rap_v1` at mix 0.75) | Does the Claude relabel improve the CNNs? Read: their mean vs 0.9345 | A3, so E knows whether to add the silent mix | RunPod ≈ 2.6 h ≈ $2, or Kaggle ≈ 6 h after 10-10 | P-65 (the critic rated its expected gain under its own bar) |
-| T2 | B3 at seed 43 (arm to add) | A second B3 seed: a 2-seed B3 member for the final ensemble | **gate met:** A1 ✅ (#50 0.940, 10-05); needs a critic-checked case + Tian's go | ≈ 2.4 h ≈ $1.8 | P-66 → P-50 |
+| T2 | B3 at seed 43 (arm to add) | A second B3 seed: a 2-seed B3 member for the final ensemble | **gate met:** A1 ✅ (#50 0.940, 10-05). **Critic (10-05): wait for A3 (10-06), then train B3 seed 43 on A3's winning target (silent mix if A3 ✅, flat otherwise). First write its P-50 entry rule (e.g. "B6 + T2 replaces B6 at ≥ 0.941"). Optionally put T1 on the same pod (≈ $4 total). Keep ≥ $3 in reserve.** Value: de-biases the B3 recipe (one 0.940 draw, s 0.003) and gives a RunPod-only final member; its LB effect (≈ +0.001) is under the floor | ≈ 2.4 h ≈ $1.9 | P-66 → P-50 |
 | T3 | `v13r` at seed 43 (arm to add) | A 2-seed ResNet-50 member | B5 showing that seed averaging pays (A2 read 10-05: s = 0.003) | ≈ 1.8 h ≈ $1.3 | P-50 |
 | T4 | B3 on the winning target (silent mix and/or Claude) | The best target on the best backbone | A3 / T1 ✅ | ≈ 2.4 h ≈ $1.8 | P-62 / P-65 |
-| T5 | A bigger or new CNN on the `v13h` recipe (e.g. EfficientNet-B4, ConvNeXt-T) | Does more capacity keep paying? | A1 ✅ by a clear margin: **not met** (#50 0.940 is +0.0035 over the B0 seed mean, under the 0.004 bar) | ≈ 3–4 h + a weight Dataset + smoke | new card first |
+| T5 | A bigger or new CNN on the `v13h` recipe (e.g. EfficientNet-B4, ConvNeXt-T) | Does more capacity keep paying? | A1 ✅ by a clear margin: **not met** (#50 0.940 is +0.0035 over the B0 seed mean, under the 0.004 bar). Critic (10-05): not as written. B4 @ 336 is two changes at once, needs ≈ 25 GB VRAM (over a 4090's 24) and ≈ $3.7. If wanted: B4 @ 288 with a card. A new family on Kaggle after 10-10 (ConvNeXt-T, weights Dataset exists) fits the blend rule better | ≈ 3–4 h + a weight Dataset + smoke | new card first |
 | T6 | Final members (Kaggle, after 10-10) | Retrains of the chosen recipes and seeds for the two final picks | the reads above | Kaggle quota | P-50 |
 
 ## How to build and send a candidate
