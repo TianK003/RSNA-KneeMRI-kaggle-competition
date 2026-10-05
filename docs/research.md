@@ -59,7 +59,7 @@
 - Views were dropped when they moved CV < 0.01–0.02 (brendanartley axial T2).
 - Soft/pseudo labels and label denoising were load-bearing (yu4u: max(logit, GT) relabel twice, bw 0.881→0.917).
 - Ensembles were folds × seeds × backbones, equal weights by CV; public ≈ private when CV was patient-grouped.
-- 2025 aneurysm (segmentation + 3D on multi-A100) does not transfer. [k951286 deck](https://speakerdeck.com/k951286/kaggle-rsna-intracranial-aneurysm-detectionkonpe-fan-sheng-hui), [MIC-DKFZ](https://github.com/MIC-DKFZ/kaggle-rsna-intracranial-aneurysm-detection-2025-solution)
+- 2025 aneurysm (segmentation + 3D on multi-A100) does not transfer. **CORRECTED 2026-10-05 (§2.7.7):** the k951286 deck is the 45th place's and MIC-DKFZ was 7th; the winner was a solo on one RTX 4090 (≈ 26 GPU-h), still ROI- and segmentation-first, so the conclusion stands. [k951286 deck](https://speakerdeck.com/k951286/kaggle-rsna-intracranial-aneurysm-detectionkonpe-fan-sheng-hui), [MIC-DKFZ](https://github.com/MIC-DKFZ/kaggle-rsna-intracranial-aneurysm-detection-2025-solution)
 - MRI normalisation in a 12k multi-vendor benchmark: per-volume z-score or 0.5–99.5 percentile clip. [AnyMC3D Table 3]
 
 **What does NOT work**: LSTM/GRU heads on DINO features; frozen FM + linear head as the model (MedImageInsight 0.785 frozen vs 0.894 adapted); 3D/nnU-Net-first; H-flip in either variant — **with** medial↔lateral label swap (MCL has no lateral counterpart label; medial/lateral OA and meniscus would swap) or **without** swap (mirroring a right knee yields a left knee, so after laterality canonicalisation it re-introduces the chirality the normalisation removed). Both are dead-ended until a specific ablation is designed; focal loss + oversampling for a 16% positive rate; DINOv2→DINOv3 as an accuracy gain; public-LB-selected blends.
@@ -556,6 +556,102 @@ flips, drop-path 0.1, 30 ep, LR 3e-4, frozen BN, SWA 27–29, 0.5 LLM + 0.5 Rapt
    dropped): the only quantified input curve in the forum (0.917 → 0.932), but on CoAtNet-384, and Ziad's attention pipeline went
    negative at higher density. Lower priority than 1–2.
 
+#### 2.7.7 Literature deltas and the RSNA 2025 aneurysm write-ups, read for transfer (2026-10-05)
+
+A second subagent covered (a) knee-MRI classification literature, (b) report-derived weak labels, (c) ensembling practice, (d)
+pretraining, and (e) the RSNA 2025 1st–9th place write-ups (verbatim copies harvested from that forum through the API; the 1st-place
+GitHub repo read as well). Only what is new relative to §2.1 / 2.2 / 2.5 / 2.6 is listed. [F] = read in full, [V] = web page read,
+[S] = search snippet, [U] = unverified.
+
+**(a) Knee-MRI input design and intrinsic difficulty.**
+- 54-study systematic review: ACL 36 %, meniscus 24 %, OA 17 %, "abnormal" 20 %; backbones ResNet 21 %, VGG 11 %, DenseNet 8 % [S,
+  PMC12021734]. Effusion, synovitis, Baker's, contusion and fracture have essentially no published knee-MRI classification
+  benchmarks; gold-58 is our only reference for 5 of our 12 labels.
+- 9-abnormality multicentre system (13,419 patients, 5 centres; 2D multi-plane ResNet on PD-FS only, planes concatenated): primary
+  findings (meniscus / cartilage / ACL) AUC 0.898 internal → 0.852 / 0.812 external; secondary (PCL / MCL / LCL / fat pad / plica /
+  cyst) 0.815 → 0.744 / 0.774 [V, PMC12508577]. Fat-sat PD carries most findings; MCL- and cyst-type labels sit ≈ 0.08 below the big
+  three even at 9k patients, so our MCL and Baker's ceilings are structural.
+- Meniscus distillation from an arthroscopy-informed teacher: medial 0.773 → 0.792, lateral 0.672 → 0.751 [S, Frontiers 2023].
+  Distillation helps the lateral meniscus most, as our Raptor gains did.
+- MRNet-validation "SOTA" spreads 0.83–0.95 for the meniscus; ACL 2D 0.931 vs 3D 0.871 [S/U]. Nothing beyond §2.1's "2D ≥ 3D".
+- SKM-TEA and fastMRI+ are reconstruction datasets with box labels; no study-level classification AUCs exist for our label set [S].
+- Diffuse marrow signal and fluid are hard even with dense labels: BML segmentation Dice 0.60–0.75; effusion from 3 sagittal
+  slices 61.5 % accuracy; Baker's exists only as detection [S/V]. Contusion / fracture / effusion stay our low labels; architecture
+  will not buy them.
+- This competition's 18th place on 08-09 (public 0.903): EfficientNet-B3 @ 288, 12 slices / series, max-pool, Qwen3.6-35B labeller
+  at 0.833 accuracy vs gold; the author names labeller accuracy, not the image model, as the bottleneck [V, HF blog].
+
+**(b) Report-derived weak labels.**
+- CheXpert uncertainty policies are per-pathology: U-Ones + smoothing wins on some labels, U-MultiClass on others, U-Ignore is worst
+  on high-uncertainty labels [V, arXiv 1911.06475]. Silent / uncertain cells need a per-label rule (our `TEACHER_SILENT_MIX` is the
+  right knob; one global value is the crude version).
+- Rep-GLS: an LLM extracts hedge terms → a per-sample smoothing rate used as a soft target; mean AUC 84.1 vs 79.6 for plain BCE [V,
+  arXiv 2508.02495]. **Our Claude table already carries a per-cell certainty field (`m` = pos / sub / neg / unk and `p`).** It can
+  drive a per-cell teacher weight, not only a global mix.
+- GPT-4o on 61k upper-extremity reports: 98.6 % label accuracy; resolving "uncertain" as 1 or 0 changed nothing [V, arXiv 2510.05664].
+  Uncertainty handling matters when labeller accuracy is ≈ 0.83, not 0.99.
+- Rubric text beats few-shot examples for GPT-4 labelling (F1 0.51 → 0.82 on MSK) [V, HIR 2025]; translation loses rare terms (37 %
+  vs 65 % balanced accuracy on a rare finding) [S]. Our `prompt_v1.md` is a per-finding rubric read in-language: the right shape.
+- Mixtral labels on 15.9k radiographs → CNN AUC 0.926, "comparable to manual" [S]. A 60-paper noisy-label review recommends robust
+  losses / weighting first; co-teaching has no medical multi-label win over soft targets [V, arXiv 2403.13111]. Soft pseudo-
+  distillation gave +0.03 CV to the aneurysm 4th place [F]. Our teacher mix is the mainstream answer; co-teaching is not worth a run.
+
+**(c) Ensembling.**
+- Low-data transfer: ensembling *different pretrained models* beats seed ensembles, greedy selection on validation loss [V, arXiv
+  2010.06866]; a single larger model replicates ensemble gains, diversity metrics do not predict them [V, arXiv 2202.06985]. Matches
+  our 10-05 blend rule (cross-family +0.004–0.006, same recipe +0.001–0.003).
+- Lumbar 2024 3rd: 30 models plain-averaged over inputs / archs / aug / aux / pseudo [S]. Aneurysm top-6 all used CV-weighted
+  probability means, nobody rank-averaged; the one team that tuned weights partly on the public LB fell on the private one [F].
+  CV-weighted held rank; LB-tuned lost it.
+
+**(d) Pretraining.**
+- DINOv2 was *weaker* than ImageNet CNNs / ViTs on clinical brain-MRI grading [V, arXiv 2402.07595]; DINOv3 (frozen) is at parity with
+  medical models and collapses on some modalities [V, arXiv 2509.06467]; DINOv3 vs DINOv2 vs ImageNet on 814k CXR: parity at 224,
+  DINOv3 ahead only at 512 [S]; RadiologyNET (1.2 M images) ≈ ImageNet except at 5 % data [S]. **At 224–288 px a self-supervised or
+  radiology init buys nothing over timm ImageNet weights.** The only large pretraining effect found anywhere is *in-task dense*
+  pretraining (aneurysm 1st: 0.794 → 0.902 from a vessel-segmentation-pretrained backbone), which needs dense labels we do not have.
+
+**(e) RSNA 2025 Intracranial Aneurysm Detection — the write-ups [F, 611846 / 611867 / 611856 / 611893 / 611849 / 611925 / 612039 /
+611908; 1st-place repo uchiyama33/rsna2025_1st_place V].** Corrections to §2.2: the k951286 deck is the *45th* place's; MIC-DKFZ was
+*7th* (4 × A100, 4.5 days); the winner was a solo on **one RTX 4090** (≈ 26 GPU-h for the whole pipeline). Final order (RSNA news page
+V): 1 tomoon33, 2 BraveCoWCoW, 3 BTYND, 4 Harshit Sheoran (solo, 8 days), 5 "more CV challenge pls", 6 Ian / Theo / Bartley, 7
+MIC-DKFZ, 8 Konni, 9 Tom.
+- Data: one row per *series* (CTA / MRA / T1post / T2), 13 location labels + "present", (x, y, SOP) localisers per aneurysm, vessel
+  segmentations for a subset. A saccular aneurysm is a focal object at a bifurcation, which is why every top solution is ROI-first.
+- 1st: coarse 3D nnU-Net → 140 mm cube → two fine nnU-Nets tuned for recall → tight ROI; 3D classifier whose **backbone is the
+  vessel-segmentation-pretrained nnU-Net**, vessel-region-masked pooling per location + global vector → location-aware transformer →
+  per-label MLP; auxiliary task reconstructs a 5-voxel sphere at each aneurysm; 14 BCEs with loss weights 0.1 / 0.05 / 1.0
+  (location / present / sphere: higher classification weights overfit); AdamW 1e-4, cosine + warm-up, EMA, 30 epochs; aug = noise /
+  blur / intensity / contrast / sharpen / inversion, xyz flips, rot ± 10°, scale / shear ± 10 %, grid distortion, **low-resolution
+  simulation**; mean of 4 folds, L-R flip TTA; **on any pipeline failure, fall back to the OOF-mean probabilities**. Ablation (3
+  folds): full 0.902; without the seg-pretrained backbone 0.794; without the aux sphere loss 0.876; all weights 1.0 0.884; without the
+  transformer 0.896; full resolution 0.916.
+- 2nd–6th: 2D nnU-Net ROI → 3D multi-task nnU-Net with external TopCoW data, hand-corrected L / R label mix-ups, flip-with-swap, 8 ×
+  TTA (public / private 0.844 / 0.813 → 0.900 / 0.867 step by step); YOLO crop → 3D ResNet-18 from scratch, 11 crop / resolution
+  variants, "vessel segmentation, MIL and LSTMs did not help"; DINOv3 box regression → CoaT @ 384 on 2.5D, +rot ± 25 → +2.5D → +soft
+  pseudo-distillation (CV 0.805 → 0.89); YOLO → ViT-L / EVA-L @ 384, 33 negatives relabelled, ≈ $700 of GPU; skull crop → CoAtNet /
+  MaxViT @ 384 + sequence model, manual label refinement ≈ +0.01 CV each, "CT windowing and RNN heads did not help".
+- Shared: ROI first (all six); localisation labels turned into dense / aux targets (all but 4th); flip-with-label-swap (2nd, 5th,
+  6th); heavy augmentation; 2–4-fold probability means + flip TTA; CV far above the LB and a public → private drop of ≈ 0.03.
+
+**Transfer assessment, ingredient by ingredient.**
+
+| Ingredient | Transfer | Why |
+|---|---|---|
+| Coarse-to-fine anatomy-guided ROI | PARTIALLY | our 150 mm crop is the coarse step; per-label fine crops (menisci, popliteal fossa) need segmentations we lack |
+| In-task segmentation-pretrained backbone (+0.11) | NO | no dense labels; our analogue is image-teacher distillation, already in use |
+| High-weight auxiliary localisation loss | NO | no coordinates; the report is text and absent at test time |
+| Region-masked per-label pooling + location transformer | PARTIALLY | our per-label window attention is the slice-axis analogue; fixed compartment regions after laterality normalisation are untested |
+| L-R flip with label swap | PARTIALLY | needs a complete partner map; MCL has none (§2.2 dead-ends it) |
+| Loss balance (aux ≫ classification against overfitting on rare positives) | PARTIALLY | maps onto our teacher-mix weights |
+| Heavy intensity + geometric aug incl. low-resolution simulation | **YES** | slice-thickness / low-res simulation is cheap and untried; the rest overlaps P-64 "heavy" |
+| AdamW 1e-4, cosine, EMA, 30 epochs | YES | already our recipe |
+| Fold means + flip TTA | PARTIALLY | folds yes; geometric TTA is our dead end (P-12) |
+| OOF-mean fallback on pipeline failure | **YES** | better than a crash or 0.5 at the hidden rerun (card P-70) |
+| Dataset / label cleaning (≈ 60 series, L/R fixes, flipped negatives) | PARTIALLY | only the labeller side (report-vs-gold audit) is open to us |
+| From-scratch 3D on whole volumes | NO | failed for them too without tight ROIs |
+| Budget datapoint: the winner's whole pipeline ≈ 26 GPU-h on one 4090 | YES | our $7 ≈ 9 such hours; Kaggle ≈ 60 T4-GPU-h per week |
+
 ### 2.8 Data-pipeline engineering
 
 **What we learned**
@@ -591,6 +687,37 @@ flips, drop-path 0.1, 30 ep, LR 3e-4, frozen BN, SWA 27–29, 0.5 LLM + 0.5 Rapt
 - **Efficiency Prize may score CPU-only runtime** (RSNA-style precedent); if so ViT-S × 6 slots × K on CPU is the binding constraint, not GPU — check the `ryanholbrook` notebook body.
 
 ---
+
+### 2.10 What the 2026-10-05 research changes (forum 2.7.6 + literature / RSNA 2025 2.7.7), against our own measurements
+
+**Three sources, kept apart.**
+
+| | Past competitions and literature | The 2026 knee top teams (forum) | Our own reads (experiments.md) |
+|---|---|---|---|
+| Backbone / resolution | 2.5D CNN or hybrid at 224–384; ImageNet init as good as DINO / radiology init at ≤ 288 | ResNet-50, small ResNets, CoAtNet at 224–288; nobody ≥ 0.949 above 288; no 3D / MIL ≥ 0.94 | R34 0.931 → R50 0.934 → B0 0.935 / 0.938 → B3 @ 288 0.940 (+0.0035 over the B0 seed mean) |
+| Labels / targets | soft targets + distillation / pseudo-labels are the mainstream answer; per-label uncertainty policies; labeller certainty as a per-cell soft target | own soft LLM labels (≈ 0.89 gold) + pseudo-labels from *different-source* image teachers, > 0.5 on silent cells; same-encoder OOF flat | Raptor distillation +0.009 (our biggest single lever); same-family teachers flat (P-54 / P-55); D4 / self-distill / cross-fit gold gains did not transfer; Claude table built, untrained |
+| Training recipe | heavy geometric + intensity aug universal; 10–40 epochs; low-resolution simulation (aneurysm 1st) | aug stacks ablated one at a time; 50 epochs with patience; "regularisation is all" | one heavy-aug setting (P-64) gave +0.010; nothing ablated since |
+| Validation | CV-weighted means hold private rank; LB-tuned blends fall | a 5-fold report-label CV trusted at 0.003 is the only ruler used by the credible 0.95 teams; gold-58 inverts for many | fold-0 OOF floor 0.008; gold-58 inverted the LB several times (traps 39); we judge by one-slot LB solos |
+| Ensembling | different pretrained models > seeds; a bigger single model can replace an ensemble | 5-fold vs full-data single ≈ 0–0.002; Dread +0.003 from a second family | flat blend ≈ members' mean + 0.004–0.006 across families, + 0.001–0.003 within a recipe; B6 0.942 = fork |
+| Iteration | — | ≈ 900 models (Scott); "a lot of incremental improvements" (tennogh) | ≈ 10 CNN runs in total |
+
+**What follows.**
+1. The capacity / resolution ladder is close to its end at B3 @ 288; the next 0.005–0.01 per single lives in (i) the training recipe,
+   found by ablation against a trusted ruler, and (ii) a different-family image teacher mixed heavier on the report-silent cells.
+2. We have no ruler. Gold-58 is direction only and the LB gives one read per slot per day. A cheap proxy's pooled 5-fold OOF against
+   the LLM targets is valid for *image-side* changes (traps 39 only forbids it for target changes) and its floor should be ≈ 0.0036
+   (P-02's 0.008 / √5), which is what Tucker reports. **→ card P-67.**
+3. The Raptor-only teacher is one family (CoAtNet); the forum's label gains came from multi-source teachers. A CNN-family OOF table
+   is a free by-product of P-67's 5-fold runs. **→ card P-68** (after the P-62 read, which tests the silent-cell weight).
+4. More EfficientNet seeds pay +0.001 each; a new family pays +0.002–0.003. **→ card P-69** (ConvNeXt-T on the `v13h` recipe).
+5. Things to stop considering: resolution > 288, EfficientNet-B4-class capacity, 3D, MIL, DINOv3 / RadImageNet / medical foundation
+   backbones, fork β or blend-weight tuning, geometric TTA, co-teaching, external datasets, multimodal-LLM image labelling (no bulk
+   images, no internet at inference, 18 days).
+6. Two cheap transfers from the aneurysm winner: low-resolution (slice-thickness) simulation as one P-67 variable, and a per-study
+   prediction fallback at the hidden rerun (**P-70**).
+7. Honest ceiling: if the loop finds +0.005 on the proxy and half of it reaches five production members, B6 goes to ≈ 0.945–0.947
+   (rank ≈ 200–250 today) and the fork leg follows. 0.950 (rank ≈ 100) needs singles at ≈ 0.945; 0.955 is out of reach on this path
+   in 18 days. The flat, untuned B6 is the better private-LB ticket at equal public score.
 
 ## 3. Recommended default training recipe
 

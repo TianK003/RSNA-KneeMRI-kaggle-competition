@@ -61,6 +61,9 @@ result*, per unit of cost. "Depends on" lists hard blockers only. EVs are solo-L
 
 | rank | id | title | status | expected value | cost | depends on |
 |---|---|---|---|---|---|---|
+| 0n | P-67 | Fast-proxy 5-fold CV ruler + single-variable recipe ablation loop | 💡 proposed 2026-10-05 (research.md 2.7.6 / 2.7.7 / 2.10) — **Tian decides the 10-10 week: this loop vs more members** | + 0.003–0.005 per production member if ≥ half transfers → B6 ≈ 0.945–0.947 | ≈ 16 proxy variants per 30-h Kaggle week, or ≈ $0.6 each on a 4090; + 1 transfer arm | a measured pooled-OOF floor (2 seeds) |
+| 0o | P-68 | Different-family (CNN OOF) image teacher at ≥ 0.5 on report-silent cells | 💡 proposed 2026-10-05 | 0..+ 0.004 solo (forum claims + 0.011; same-family was flat for us) | OOF free from P-67's best proxy, or ≈ $4 / 15 session-h; + 1 arm | the P-62 read; P-67 |
+| 0p | P-69 | Sixth family for B6: ConvNeXt-T on the `v13h` recipe | 💡 proposed 2026-10-05 | B6 + 0.002–0.003 (cross-family rule) | 1 Kaggle arm ≈ 6 h + a loader check | the 10-10 quota |
 | 0i | P-62 | Silence-aware teacher mix (Raptor 0.75 where the report is silent, 0.5 where it speaks) | ⏳ **session D TRAINED green 2026-10-04 (`rsna-knee-train-b` v6, 5.94 h): gold-58 SWA `v13es` 0.9107 / `v13rs` 0.9160 vs 0.9126 / 0.9111 (direction only); shipped `rsna-knee-ckpt-v13es` / `-v13rs`; solos 10-05 = `rsna-knee-infer` v49 / v50; read m vs 0.9345 (✅ ≥ 0.9390)** | 0..+0.002 — likely under the 0.004 one-seed floor | one c03 session ≈ 3.5 GPU-h + 2 solos | — |
 | 0l | P-65 | Grading-aware Claude relabel of the reports (an independent, severity-aware LLM vote) | ⏳ **full pass DONE 2026-10-04: 4,349 rows, ≈ 25 min, ≈ 6.9 M tokens; `claude_v1` / `claude_rap_v1` published in `rsna-knee-teacher-tables`; session E (`v13ec` ‖ `v13rc` on `claude_rap_v1` at mix 0.75) staged — runs on Kaggle after the 2026-10-10 reset, after session D's P-62 read; read m vs 0.9345 (✅ ≥ 0.9390)** — pilot 🔁 (Opus 0.9062 alone / 0.9397 with Raptor, bars 0.910 / 0.945 not met; Haiku 0.8639 ❌) | 0..+0.005 (literature + forum); the policy-misaligned labels are the upside | session E ≈ 6 GPU-h + 2 solos | — (Tian's go given) |
 | 4 | P-50 | Final selection and publishability | 💡 decide by 2026-10-15; **own candidate = B6 #52 0.942** (`v11a` + `v13r` + `v13e` + `v13b3` + `v13e2`, = the public-stack fork, replaces #48 0.938); fork candidate = the public stack with our trio at β 0.45 (**#49 0.943**, 🔁 +0.001, rank 373; `rsna-knee-fork` v11), next C2 with B6 as the leg | decides what the private LB scores | a browser session; ≤ 1 fork check | P-40 🔁 closed (#22 / #27), the fork v11 read, Rules page |
@@ -69,6 +72,7 @@ result*, per unit of cost. "Depends on" lists hard blockers only. EVs are solo-L
 | 7 | P-46 | Upgrade the LLM half of the targets (absorbs P-16, P-30) | 💡 low — step 2 (re-label) superseded by P-65; step 1 (dread as a 4th vote) left | 0..+0.002 (dread vote) | ≈ 2.8 h per arm + 1 solo | P-65 session E's read |
 | 8 | P-48 | Final-member polish: gold-58 as training rows + seed averaging | 💡 contested, parked | +0.001..0.002, unreadable by construction | part of the final retrain | P-50 decision |
 | 9 | P-51 | Teacher-aware confidence weights | 💡 low | 0..+0.002 | ≈ 20 lines + 2.8 h; 1 solo | P-44 floor |
+| 10 | P-70 | Per-study prediction fallback at the hidden rerun (train prior instead of a crash) | 💡 low, infra, proposed 2026-10-05 | robustness of both final picks | ≈ 20 lines + 1 smoke | — |
 
 ### Closed cards
 
@@ -137,6 +141,81 @@ result*, per unit of cost. "Depends on" lists hard blockers only. EVs are solo-L
 ---
 
 ## Cards
+
+### P-67 Fast-proxy 5-fold CV ruler + single-variable recipe ablation loop
+Status:       💡 proposed 2026-10-05 (research.md 2.7.6 / 2.7.7 / 2.10). **Tian decides whether the 10-10 quota week goes to this
+              loop or to more members of known recipes.** Nothing built.
+Hypothesis:   a cheap CNN (ResNet-34 or EfficientNet-B0 @ 224 on c03 with the windows subsampled, 10–12 epochs, 5 folds) gives a
+              pooled report-label OOF whose seed floor is ≈ 0.003–0.004 macro, and ablating one training variable at a time against
+              it finds ≥ +0.005 on the proxy, of which ≥ half transfers to the 30-epoch production members.
+Origin:       forum: Tucker (740610: 5-fold report-label CV, 0.003 threshold, aug stacks ablated singly), Scott (≈ 900 models), Myo
+              (50 ep, patience 8, best at 28); our P-02 (fold-0 seed floor 0.008 → pooled 5-fold ≈ 0.008 / √5 ≈ 0.0036); the
+              aneurysm 1st-place aug list (low-resolution simulation, grid distortion, intensity ops).
+Evidence:     P-64 gave +0.010 from one heavy-aug + schedule setting on ResNet-34 and nothing has been ablated since; no forum
+              post publishes a stack, so the stack has to be found. Image-side changes may be judged on the LLM-target OOF
+              (traps 39 forbids that only for target changes).
+Measure:      pooled 5-fold OOF macro-AUC vs `y__*` (the LLM blend) over the 4,349 report-only studies (`src/fold_oof_summary.py`);
+              gold-58 reported, not read. Variables, in order: (1) aug components added one at a time to the P-64 "heavy" stack —
+              rotation ± 10–25°, scale / shear ± 10 %, grid distortion, low-resolution (slice-thickness) simulation, Gaussian noise /
+              blur, contrast / sharpen, gamma; (2) 30 vs 50 epochs with best-epoch selection; (3) head: window-attn vs GAP / max
+              pooling; (4) drop-path 0.1 vs 0.2, EMA on / off; (5) mixup / cutmix across studies; (6) slot layout within c03
+              (Dread: non-fluid slots weighted, blank slices dropped); (7) label smoothing / target temperature.
+Noise floor:  measured first: two seeds of the baseline proxy → the pooled seed delta (expected ≈ 0.0036). Ablation bar = 1.5 × the
+              measured floor. A variable that clears it on the proxy is confirmed by ONE production arm before the final retrains.
+Cost:         proxy 5-fold ≈ 3.3 T4-GPU-h (≈ 40 min / fold) → ≈ 5 variants per 9-h Kaggle session on both T4s → ≈ 16 per 30-h week;
+              or ≈ $0.6 per variant on a 4090. Setup ≈ 1 arm dict + `FIVE_FOLD` + the existing OOF summary; first session = baseline
+              × 2 seeds + 3 variables. The transfer check = 1 production arm (≈ 6 h).
+If it works:  the winning stack goes into every final retrain (P-50 week of 10-17: B3 × 2 seeds, B0 × 2, R50, the P-69 family) →
+              each member + 0.003–0.005 → B6 ≈ 0.945–0.947 and the fork leg with it.
+If it fails:  nothing clears 1.5 × the floor, or the proxy's wins do not transfer in the production check → week 2 = plain retrains
+              with more seeds / families (blend rule: + 0.001–0.003).
+Depends on:   Tian's go on the 10-10 week; the P-62 read does not block it (image-side only).
+
+### P-68 Different-family image teacher on the report-silent cells (a CNN OOF table at ≥ 0.5)
+Status:       💡 proposed 2026-10-05.
+Hypothesis:   mixing a CNN-family OOF teacher (5-fold cross-fit of the B0 / B3 recipe) into the training targets at ≥ 0.5 on
+              report-silent cells, beside Raptor (a CoAtNet) and the LLM blend, lifts a production solo by ≥ 0.004.
+Origin:       forum 2.7.6: Archit (OOF image predictions > 50 % on silent cells, "only because the predictions were properly out of
+              fold"), Raymond + 0.011 and SpeedSci + 0.011 from multi-source teachers; same-encoder OOF flat for Myo and for us
+              (P-54 / P-55, the CoAtNet cross-fit on CoAtNet students). Literature 2.7.7: per-label uncertainty policies (CheXpert),
+              soft pseudo-distillation + 0.03 CV (aneurysm 4th).
+Evidence:     our only teacher gain is cross-family (Raptor CoAtNet → DINOv2 / CoAtNet students + 0.009); the Claude table's `m` field
+              gives a second, finer silence mask than pilkwang `UNK`.
+Measure:      solo LB of one production arm on the new mix vs its flat twin (one-seed ≥ 0.004), or a pair read ± 0.0045; gold
+              direction only. The table itself: `src/build_distill_table.py` + quantile matching (both exist), plausibility by
+              `src/teacher_plausibility.py`.
+Noise floor:  ≥ 0.004 one-seed.
+Cost:         the OOF table is free from P-67's best proxy 5-fold (a ≈ 0.92-level teacher), or ≈ 5.5 4090-h ≈ $4 / ≈ 15 Kaggle
+              session-h for a 30-epoch B0 cross-fit (a ≈ 0.935-level teacher); then one production arm ≈ 6 h.
+If it works:  all final retrains train on it. If it fails: the label side is closed; Raptor 0.5 (± the P-62 silent weight) stays.
+Depends on:   the P-62 read (A3, 10-06: the silent-cell weight); P-67 for the free OOF.
+
+### P-69 A sixth family for B6: ConvNeXt-T on the `v13h` recipe
+Status:       💡 proposed 2026-10-05.
+Hypothesis:   a ConvNeXt-T member at ≥ 0.935 lifts B6 by + 0.002–0.003 (the cross-family blend rule at six members), against + 0.001
+              for another EfficientNet seed.
+Origin:       experiments.md 2026-10-05 (blend rule); literature 2.7.7(c): ensembles of different pretrained models beat seed
+              ensembles; Dread 0.941 → 0.944 with a ConvNeXt added.
+Evidence:     `v06c` ConvNeXt-T was a weak early member (c01, DINOv2-era recipe: OOF 0.8562, blend + 0.004) and has never run on the
+              `v13h` recipe; the weight Dataset `convnext-tiny-224-hf` (Apache-2.0) exists. Needs a loader check (HF-format weights
+              vs `backbone="timm:convnext_tiny"`; `src/window_head_test.py`).
+Measure:      solo LB (a member if ≥ 0.933) and B6 + ConvNeXt vs B6 0.942 (✅ ≥ 0.946 / 🔁 0.939–0.945).
+Noise floor:  blend + 0.004 over B6; solo ≥ 0.004.
+Cost:         one Kaggle arm ≈ 6 h on one T4 (pairs with another arm in the same session) + the loader check + a smoke.
+If it works:  a member and part of the fork leg. If it fails: the families stay at three.
+Depends on:   the 10-10 quota.
+
+### P-70 Per-study prediction fallback at the hidden rerun (train prior instead of a crash)
+Status:       💡 low, infrastructure; proposed 2026-10-05.
+Hypothesis:   the hidden-test rerun can hit a decode / shape failure on a study we never saw; writing the training-prevalence (or
+              OOF-mean) probabilities for that study, instead of raising or writing 0.5, keeps the whole submission scoring.
+Origin:       the RSNA 2025 1st place falls back to OOF-mean probabilities on any pipeline failure (research.md 2.7.7).
+Evidence:     our "loud-failure submission" (kernel v4) is designed to be visible in a placeholder run; what the inference loop does
+              per study at the rerun has not been reviewed since.
+Measure:      code review of the per-study exception path; one smoke with an injected corrupt study; the submission must still be
+              complete and the failure logged.
+Noise floor:  n/a (robustness).
+Cost:         ≈ 20 lines + one smoke. Depends on: nothing.
 
 ### P-50 Final selection and publishability
 Status:       💡 new 2026-09-27; decide by the 2026-10-15 entry deadline. **2026-10-05: the own candidate is B6 = #52 0.942**

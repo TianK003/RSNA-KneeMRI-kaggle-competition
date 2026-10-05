@@ -87,22 +87,29 @@ rule, LB rounded to 0.001. Member solos: `v13b3` 0.940, `v13e2` 0.938, `v13e` 0.
 
 ## D. Training candidates (GPU)
 
-Kaggle GPU is out until 2026-10-10 (3.33 h left: enough for placeholders, not a training session).
+**Budget (2026-10-05).** Kaggle: 3.33 h left until 10-10, then 30 h on 10-10 and 30 h on 10-17; the quota counts *session* hours and
+every session has two T4s (`PARALLEL_ARMS`), so ≈ 60 T4-GPU-h per week. RunPod: ≈ $7 ≈ 9 h on a 4090 ($0.74/h); every pod needs a
+written case checked by a critic subagent, then Tian's go. Measured speeds: a 30-ep CNN arm ≈ 5.9 h on a T4 (B0 / R50 / R34), B0 ≈ 65
+min and B3 @ 288 ≈ 2.2 h on a 4090; B3 @ 288 is RunPod-only (12–15 h and a memory risk on a T4). Deadline 10-22; final picks can be
+changed until then (10-15 is the entry / merger deadline).
 
-RunPod works at any time:
-- **budget:** ≈ $7 left of Tian's top-up, about 9 pod-hours on an RTX 4090 at $0.74/h;
-- **rule:** every RunPod run needs a written case checked by a critic subagent, then Tian's go;
-- **measured speed** on a 4090: B0 ≈ 65 min for 30 epochs, B3 @ 288 ≈ 2.2 h, setup + c03 pull ≈ 20 min. ResNet-50 is estimated at
-  ≈ 1.5 h.
+**The decision for Tian (research.md 2.10):** the 10-10 week goes either to **the ablation loop (T7)**, which can lift every final
+member, or to **more members of known recipes (T6 only)**, which the blend rule prices at + 0.001–0.003. Recommendation: T7 + one
+family arm (T8) in week 1, final retrains (T6) in week 2.
 
-| # | Arm(s) | What it tests / adds | Gate (wait for) | Est. cost | Card |
+| # | Arm(s) | What it tests / adds | Gate | Est. cost | Card |
 |---|---|---|---|---|---|
-| T1 | Session E: `v13ec` ‖ `v13rc` (`claude_rap_v1` at mix 0.75) | Does the Claude relabel improve the CNNs? Read: their mean vs 0.9345 | A3, so E knows whether to add the silent mix | RunPod ≈ 2.6 h ≈ $2, or Kaggle ≈ 6 h after 10-10 | P-65 (the critic rated its expected gain under its own bar) |
-| T2 | B3 at seed 43 (arm to add) | A second B3 seed: a 2-seed B3 member for the final ensemble | **gate met:** A1 ✅ (#50 0.940, 10-05). **Critic (10-05): wait for A3 (10-06), then train B3 seed 43 on A3's winning target (silent mix if A3 ✅, flat otherwise). First write its P-50 entry rule (e.g. "B6 + T2 replaces B6 at ≥ 0.941"). Optionally put T1 on the same pod (≈ $4 total). Keep ≥ $3 in reserve.** Value: de-biases the B3 recipe (one 0.940 draw, s 0.003) and gives a RunPod-only final member; its LB effect (≈ +0.001) is under the floor | ≈ 2.4 h ≈ $1.9 | P-66 → P-50 |
-| T3 | `v13r` at seed 43 (arm to add) | A 2-seed ResNet-50 member | B5 showing that seed averaging pays (A2 read 10-05: s = 0.003) | ≈ 1.8 h ≈ $1.3 | P-50 |
-| T4 | B3 on the winning target (silent mix and/or Claude) | The best target on the best backbone | A3 / T1 ✅ | ≈ 2.4 h ≈ $1.8 | P-62 / P-65 |
-| T5 | A bigger or new CNN on the `v13h` recipe (e.g. EfficientNet-B4, ConvNeXt-T) | Does more capacity keep paying? | A1 ✅ by a clear margin: **not met** (#50 0.940 is +0.0035 over the B0 seed mean, under the 0.004 bar). Critic (10-05): not as written. B4 @ 336 is two changes at once, needs ≈ 25 GB VRAM (over a 4090's 24) and ≈ $3.7. If wanted: B4 @ 288 with a card. A new family on Kaggle after 10-10 (ConvNeXt-T, weights Dataset exists) fits the blend rule better | ≈ 3–4 h + a weight Dataset + smoke | new card first |
-| T6 | Final members (Kaggle, after 10-10) | Retrains of the chosen recipes and seeds for the two final picks | the reads above | Kaggle quota | P-50 |
+| **T7** | **P-67 loop**: proxy baseline × 2 seeds (the floor), then one variable per 5-fold run (aug components, 50 ep, head, drop-path / EMA, mixup, slot layout, smoothing) | the training recipe, judged on a pooled 5-fold report-label OOF; the forum's 0.95 teams' method | Tian's go on the 10-10 week | ≈ 5 variants per 9-h session, ≈ 16 per week; or $0.6 each on a 4090 | P-67 |
+| **T8** | **P-69** ConvNeXt-T on the `v13h` recipe | a sixth family for B6 (+ 0.002–0.003 by the blend rule) | 10-10 quota; loader check first | 1 arm ≈ 6 h (shares a session with T7) | P-69 |
+| T1 | Session E: `v13ec` ‖ `v13rc` (`claude_rap_v1` at mix 0.75) | does the Claude relabel improve the CNNs? Read: their mean vs 0.9345 | A3 (10-06), so E knows whether to add the silent mix | RunPod ≈ 2.6 h ≈ $2, or Kaggle ≈ 6 h | P-65 |
+| T9 | **P-68** teacher arm: one production arm on LLM + Raptor + a CNN-family OOF (≥ 0.5 on silent cells) | the forum's multi-source pseudo-label gain | the A3 read + an OOF table (free from T7's best proxy) | 1 arm ≈ 6 h | P-68 |
+| T6 | Final members (week of 10-17): B3 × 2 seeds (RunPod), B0 × 2, R50, the T8 family — all on the winning stack and target | the two final picks (B6-successor; the fork leg) | T7 / T9 / T1 reads | ≈ 30 Kaggle session-h + ≈ $4 RunPod for the B3s | P-50 |
+| T2 | B3 at seed 43 **now** | de-biases the single 0.940 draw; the critic's case is written | folded into T6: the final B3 retrain on the winning recipe *is* the second draw. Run now only if A3 ✅ makes a new-target B3 urgent | ≈ $1.9 | P-50 |
+| T3 / T4 | R50 seed 2; B3 on the winning target | — | = T6 | — | P-50 |
+| ~~T5~~ | a bigger CNN (B4 @ 288 / 336) | **dropped 10-05:** the forum's ≥ 0.949 singles are R50-class at 224–288, "bigger is null", no gain above 288; the critic priced B4 @ 336 at ≈ 25 GB VRAM and ≈ $3.7 | — | — | → P-69 (a new family instead) |
+
+**Dropped directions (research.md 2.10, item 5):** resolution > 288, B4-class capacity, 3D, MIL / bags, DINOv3 / RadImageNet / medical
+foundation backbones, fork β or blend-weight tuning, geometric TTA, co-teaching, external datasets, multimodal-LLM image labelling.
 
 ## How to build and send a candidate
 
