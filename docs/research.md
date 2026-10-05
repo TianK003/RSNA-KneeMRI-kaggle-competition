@@ -478,6 +478,84 @@ student**, mostly on report-silent cells.
 - Licence questions are open on the forum for torchvision ImageNet weights and RadImageNet. RadImageNet is in the public stack our
   fork submits.
 
+#### 2.7.6 Forum re-read for the ≥ 0.949 single models (2026-10-05, after the 10-05 reads)
+
+**Why.** Our best single is `v13b3` (EfficientNet-B3 @ 288) at 0.940 and our five-model flat blend B6 reads 0.942 = the public stack.
+Several users claim 0.949–0.954 singles. A subagent re-mined every harvested topic (`artifacts/forum_1004/`, 106 topics; refreshed
+10-05 to `artifacts/forum_1005/`, 107 topics: three new, none with a recipe) plus `discussion_735304.xml` for what those teams do that
+we do not. One correction to §2.7.2: Prateek's "CoAtNet-2 @352, 4 cross-fitted folds" is in no harvested post or the XML (several
+09-23 comments are deleted) — unverifiable. Scott Willis never states a resolution; "@224" for him is an inference.
+
+**A. The claimants (public solo LB unless said; n.s. = not stated; rank = 10-03 team rank).**
+
+| User (topic; rank) | Score | Backbone | Input | Labels | Training / validation | Said moved most |
+|---|---|---|---|---|---|---|
+| CoolinLai (735304; #21, 0.957) | **0.954**, 5-fold | ResNet-50 (ImageNet, inferred) | 224 px; rest n.s. | n.s. (asked twice, no answer) | n.s. | n.s. |
+| Scott Willis (735304, 740474; #6, 0.959) | **0.949** single fold, single model; gold ≈ 0.930 | "a smaller resnet"; only ResNet / EffNet ever | n.s. (224 inferred); reads a subset of the DICOMs (scores in ≈ 5 min) | own local Gemma-4, iterated "until good enough", ≈ 0.89 gold; no public labels | "around 900 models"; "work around the low quality labels" (method n.s.); expects a private drop | small model + fast iteration |
+| Archit Konde (735304; #50, 0.954) | **0.950** single fold; OOF gold 0.930 | CoAtNet | 2.5D @ 224, "a few neighbouring slices at a time" | extracted labels + **OOF** image predictions mixed in, > 50 % model on silent cells; soft, never rounded | OOF on gold + calibration on the 58 | OOF-mixed targets: "the labels were the bottleneck" |
+| Raymond Yuen (735304, 743148, 742327; #45, 0.955) | **0.949** single CoAtNet, full train; gold ≈ 0.925; labels 0.89 gold | CoAtNet | 288 px (384 → 288 flat) | public + API + local labels → teacher models → pseudo-labels at 0.5 + 0.5; < $5 API | full train, no folds; gold only; "0.930 local scored worse than 0.926 local" | teacher pseudo-labels (+0.011) |
+| Tucker Arrants (735304, 740610, 745214; #40, 0.955) | 0.943 5-fold (08-16) → "low 0.95 range" (10-02) | ResNet-34 / EffNet-B0 class; "no attention, simple pooling" | 224 / 288 "sweet spot" | own single-prompt Qwen, ≈ 0.89 gold; soft; trains on the 58 too (1.3 % of the loss) | augmentation stacks ablated one at a time ("MRI-specific" ones from past comps); 5-fold OOF vs report labels, trusted at 0.003; never gold / LB | augmentation (inferred from his advice) |
+| tennogh (735304; team #5, 0.959) | 0.942 / 0.943 TTA | n.s. | 288 px | own ≈ public; OOF pseudo-labels | "a lot of incremental improvements"; OOF pseudo-labels track LB | n.s. |
+| Dread (737696, 742050, 740375; 0.944) | 0.941 single CoAtNet; 0.944 + ConvNeXt | CoAtNet-384 (+ ConvNeXt) | 336-px cache, **140 mm**, 64 → **80 slices / study over 2–98 %**, slots 22 sagF / 18 sag / 15 corF / 10 cor / 15 ax, 78 windows | own public labels | full labelled set, small holdout picks the checkpoint; best-3-epoch mean; SWA ≈ 0 | slice **density**: "44 slices over 2 to 98 percent scored 0.917 against 0.926 for 44 over 6 to 94 … 80 slices to 0.932" |
+| SpeedSci (744511, 745214; team 0.949) | 0.942 DINOv2 / 0.940 EffNet-B4 / 0.940 ResNet-50, all 5-fold | three families | n.s. | GPT + Claude + Gemini vote → OOF / teacher refinement; DINOv2 0.931 → 0.942 "just changing the labels" | gold inverts (EffNet gold 0.945 → LB 0.910) | labels (DINOv2 only) |
+| Myo Min Htet (743148, 738172; #118, 0.949) | 0.940 5-fold ResNet; 0.935 single | "simple resnet" | 224 px; **24 slices**, drops "low quality and no info" slices | own LLM 0.908 gold; same-encoder 50/50 OOF flat on LB | **50 epochs, patience 8, best at 28**; "heavy augmentation and regularization" | aug + regularisation |
+| NguyenThanhNhan (735304; #62, 0.953) | 0.950 single fold | Qwen 3.5-2B VLM, LoRA + vision encoder | 384 px | n.s. | ≈ 3.5 h rented GPU | — |
+
+Key quotes: Tucker 740610 — "224px / 288px and a simple CNN encoder, like a ResNet34 or EffNetB0. No attention mechanisms, just use
+simple pooling operations. You can score in the 0.94+ range with this alone … Then ablate through the standard image augmentation
+stacks." Archit 735304 — "50/50 already jumped, going heavier on the model added a bit more … only because the predictions were
+properly out of fold." Scott 740474 — "I've trained around 900 models at this point." Myo 743148 — "it is all about adding aug and
+regulariztion coz the model easy to get overfit."
+
+**B. Other disclosures.**
+- Split / test size / runtime: site stratification and all-planes-present unanswered (734681, 744519); "≈ 1,300" hidden studies is a
+  participant assumption (744230, 736678); the 9 h covers scoring only (740474); Efficiency counts whole-notebook wall time (733475).
+- Hosts: image labels are authoritative and read independently of the reports; bilateral exams had report text or DICOM metadata
+  adjusted (733826); borderline = negative, size / acuity thresholds (733343); OAI only with institutional sign-off → "a no" (741819).
+- CV vs LB: report-label OOF under-reads the LB by ≈ 0.02–0.05, non-linearly (736635); gold inverted the LB for SpeedSci, Lê and
+  Raymond, but tracked it for Komil and Cody. **Tucker's 5-fold report-label CV at a 0.003 threshold is the only ruler anyone credible
+  trusts.** (That is also what our P-02 floor predicts: fold-0 OOF seed floor 0.008 macro → pooled 5-fold ≈ 0.008 / √5 ≈ 0.0036.)
+- Labels of the strong teams: all **own** open-LLM extractions (Gemma-4, Qwen) at ≈ 0.89 gold; nobody at ≥ 0.949 names Steven's or
+  pilkwang's tables. Every gain attributed to labels is pseudo-label / multi-source (Raymond +0.011, SpeedSci +0.011, Yann +0.015 from
+  combining sets); a same-encoder OOF teacher was flat three times (Myo, our P-54 / P-55, Archit's caveat).
+- > 288 px: no gain anywhere (Raymond, tennogh, Tucker; Less @384 0.937; KalyanG17 CoAtNet @384 0.935). 3D: nobody ≥ 0.94. MIL / bags:
+  Tom @392 bag-of-32 0.915; Pand ConvNeXt-T MIL 0.935. Coverage saturates: Ziad flat after ≈ 31 windows, 8 → 10 slices / slot −0.0045
+  under attention pooling; Dread 48 → 72 windows still +0.003.
+- Sequence handling: Dread keeps non-fluid sagittal (18) and coronal (10) slots; gchauhan warns "non-FS" merges T1 / PD / T2; no
+  measured gain. Pooling: mean instead of attention −0.014 (Ziad), swapped at inference −0.02 (Dread), vs Tucker's "no attention" —
+  contradictory. SWA: nothing over six pairs. RadImageNet: +0.019 trunk, +0.020 more with centre slice × 3 (Ziad fold 0); negative for
+  Dread; licence-blocked for us. 5-fold vs full-data single: ≈ 0–0.002.
+- New since 10-04 (harvest 10-05): hengck23 (745861) proposes multimodal-LLM active labelling of slices and has only just started;
+  Chris Deotte is considering it; OmerZalman got "80–90 % correct" on 800 studies that way. Not feasible for us (no bulk images, no
+  internet at inference, 18 days). 745576: "labels from the reports cap at around 0.9; ensembles and augmentation (flipping, zoom)" —
+  generic. 745759: slice order in the public baseline is random (+0.028) — we fixed that on day one (traps 3).
+
+**C. Delta against our `v13b3`** (EffNet-B3 @ 288, c03 24/24/24/14/8/8 at 150 mm, window-attn over ≈ 90 windows, heavy aug without
+flips, drop-path 0.1, 30 ep, LR 3e-4, frozen BN, SWA 27–29, 0.5 LLM + 0.5 Raptor, train_all):
+
+| Dimension | Strong singles | vs ours | Confidence |
+|---|---|---|---|
+| Backbone / capacity | ResNet-50, small ResNet / EffNet, CoAtNet | none; "bigger is null" (735154, 738096) | quoted |
+| Resolution | 224–288 | none | quoted |
+| Slices / planes / crop | Dread 80 slices, 140 mm, non-fluid slots kept; Myo 24 + blank-slice removal | we are at or above their density; 150 vs 140 mm is inside their flat range | quoted for Dread / Myo; unknown for Scott, CoolinLai, Tucker |
+| Labels / target form | ≈ 0.89-gold own labels, soft, + OOF / teacher pseudo-labels from **different** sources, ≥ 50 % model on silent cells | we have one 50/50 teacher (Raptor, a CoAtNet); missing: a different-family teacher and a heavier silent-cell mix (P-62 tests the latter) | quoted |
+| Schedule / augmentation | 50 ep best @ 28; 25 → 50 ep +0.004; standard + MRI-specific stacks ablated singly | comparable length; **no one published a stack or hyperparameters** | direction quoted, magnitudes unknown |
+| Head | "no attention, simple pooling" vs −0.014 without attention | unknown | contradictory |
+| Validation / iteration | Tucker: 5-fold report-label CV at 0.003; Scott: ≈ 900 models | **we have no CV ruler and ≈ 10 CNN runs** | quoted |
+| TTA / inference | TTA +0.001; full window coverage | parity | quoted |
+
+**D. What this says we should change (ranked by evidence).**
+1. **Iteration with a ruler.** The 0.955–0.959 teams ran a disciplined loop on cheap models against a 5-fold report-label CV; we judged
+   ≈ 10 CNN runs by gold-58 (direction only, traps 39) and solo LB reads (one per slot). For *image-side* recipe changes (augmentation,
+   head, epochs, slot layout) the report-label OOF is a valid ruler — traps 39 only forbids it for *target* changes. A B0 @ 224 at 8–12
+   epochs, 5 folds, costs ≈ 1.5 h ≈ $1.1 on a 4090 or one T4 GPU-slot for ≈ 8 h.
+2. **A different-family teacher on the silent cells.** Raptor is a CoAtNet; a CNN-family OOF teacher (5-fold cross-fit of B0 / B3)
+   mixed > 0.5 on report-silent cells is what Archit / Raymond / SpeedSci describe. P-54 / P-55 (same family as Raptor) were flat, as the
+   forum predicts. P-62 (silent-cell weight) reads 10-06.
+3. **Dread's geometry as one arm** (140 mm, non-fluid sagittal and coronal slots, ≈ 1.2 % of the stack per slice, blank slices
+   dropped): the only quantified input curve in the forum (0.917 → 0.932), but on CoAtNet-384, and Ziad's attention pipeline went
+   negative at higher density. Lower priority than 1–2.
+
 ### 2.8 Data-pipeline engineering
 
 **What we learned**
