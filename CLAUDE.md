@@ -32,7 +32,7 @@ is in [docs/experiments.md](docs/experiments.md).
 | [docs/traps.md](docs/traps.md) | Bugs and **silent** failure modes, tiered by damage | Before writing pipeline code |
 | [docs/experiments.md](docs/experiments.md) | Every measurement, with a verdict | Before proposing an experiment |
 | [docs/candidates.md](docs/candidates.md) | **The queue:** which models / ensembles to submit and which arms to train next, what each tests, its read rule, placeholder status | Before choosing the next submissions or GPU run |
-| [docs/proposals.md](docs/proposals.md) | **Ranked backlog as testable cards** — live cards ranked on top with full bodies; closed cards as one-line pointers to their experiments.md entries | When choosing what to do next |
+| [docs/proposals.md](docs/proposals.md) | **Ranked backlog of live, testable cards** (full bodies) + **Dropped directions, each with the why** (forum / literature / our reads). A measured card leaves this file: its one-line pointer is the closed-cards index at the end of experiments.md | When choosing what to do next, and before proposing anything |
 | [docs/research.md](docs/research.md) | Literature + prior-competition research behind the cards (18-agent workflow, critic-fixed) | Before changing a training parameter or model |
 | [docs/brainstorm.md](docs/brainstorm.md) | Open questions and strategy notes only | When a question needs a browser |
 | [docs/setup.md](docs/setup.md) | Bootstrapping a new machine | New clone / new laptop |

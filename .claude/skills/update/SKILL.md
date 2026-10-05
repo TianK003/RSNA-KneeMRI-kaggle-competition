@@ -21,7 +21,8 @@ user wants a session log too, run this first, then `/handoff`.
 | A public LB score | `experiments.md` **Submissions table** *and* the Scoreboard | One row: `#`, date, kernel version, config change, OOF, LB, notes |
 | An idea we have not run yet | `proposals.md` | A full P-nn card (template in that file) + a row in the ranked index |
 | A card whose status moved | `proposals.md` | Edit the card's `Status:` **and** its ranked-index row — both, or the index lies |
-| A card whose result is now measured | `experiments.md` (result) + `proposals.md` (card reduced to a pointer) | Untried ideas never go to experiments.md; measured ones never stay in proposals.md |
+| A card whose result is now measured | `experiments.md` (the result entry **and** one row in its closed-cards index at the end) + `proposals.md` (the card body and its index row are **deleted**) | Untried ideas never go to experiments.md; measured ones never stay in proposals.md (Tian, 2026-10-05: live cards only) |
+| A direction we decide against (forum / literature / our reads say no) | `proposals.md` **Dropped directions** | One row: direction, why, source; delete any live card on it |
 | A bug, or a failure that looked fine while being wrong | `traps.md` | Numbered entry in the correct tier (1 = corrupts results silently, 2 = wastes a session, 3 = friction) |
 | A fact about the data, competition, or repo state we verified this session | `CLAUDE.md` | Edit in place; say how it was verified and on what date |
 | A question that needs a browser or a human decision | `brainstorm.md` | Open-questions table |
