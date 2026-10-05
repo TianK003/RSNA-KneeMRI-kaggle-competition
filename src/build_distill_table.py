@@ -19,13 +19,18 @@ DEFAULT_SETS = ["artifacts/kaggle_out/pod_v09h_5fold/v09h_fold[0-9]_oof.csv",   
                 "artifacts/kaggle_out/folds_v4/v05g_fold[0-9]_oof.csv"]         # pooled OOF 0.8467
 
 
-def _load_set(pattern: str, per_fold_rank: bool = False) -> pd.DataFrame:
+def _load_set(pattern: str, per_fold_rank: bool = False, expect_folds: int | None = None,
+              expect_rows: int | None = None) -> pd.DataFrame:
     """One complete OOF set = one csv per fold. per_fold_rank (P-54, 2026-09-28): each fold's predictions become rank
     percentiles WITHIN that fold before pooling, so a fold model that is calibrated higher or lower than its siblings does
     not shift its fifth of the table (the pooled rank then compares studies across folds on equal terms)."""
     files = sorted(glob.glob(pattern))
     if not files:
         raise SystemExit(f"no OOF csvs match {pattern}")
+    # P-68 (2026-10-05, the critic): a partial k-fold set would build a table that silently leaves rows uncovered, and
+    # mix_teacher falls back to the LLM value on uncovered rows -- refuse instead.
+    if expect_folds is not None and len(files) != expect_folds:
+        raise SystemExit(f"{pattern}: {len(files)} fold csvs, expected {expect_folds}: {files}")
     parts = []
     for f in files:
         d = pd.read_csv(f, dtype={"StudyInstanceUID": str})
@@ -36,11 +41,14 @@ def _load_set(pattern: str, per_fold_rank: bool = False) -> pd.DataFrame:
     d = pd.concat(parts, ignore_index=True)
     if d.StudyInstanceUID.duplicated().any():
         raise SystemExit(f"{pattern}: a study appears in more than one fold's OOF")
+    if expect_rows is not None and len(d) != expect_rows:
+        raise SystemExit(f"{pattern}: {len(d)} studies, expected {expect_rows} (an incomplete OOF set)")
     return d.set_index("StudyInstanceUID")[[f"pred__{l}" for l in LABELS]]
 
 
-def build_distill_table(oof_globs: list[str], out_csv: str, per_fold_rank: bool = False) -> pd.DataFrame:
-    sets = [_load_set(p, per_fold_rank) for p in oof_globs]
+def build_distill_table(oof_globs: list[str], out_csv: str, per_fold_rank: bool = False,
+                        expect_folds: int | None = None, expect_rows: int | None = None) -> pd.DataFrame:
+    sets = [_load_set(p, per_fold_rank, expect_folds, expect_rows) for p in oof_globs]
     ids = set(sets[0].index)
     for s, pat in zip(sets[1:], oof_globs[1:]):
         if set(s.index) != ids:
@@ -67,5 +75,8 @@ if __name__ == "__main__":
     ap.add_argument("--out", default="artifacts/teacher/selfdistill_v1.csv")
     ap.add_argument("--per-fold-rank", action="store_true",
                     help="rank each fold's predictions within the fold before pooling (P-54 cross-fit table)")
+    ap.add_argument("--expect-folds", type=int, default=None, help="refuse a set with a different number of fold csvs")
+    ap.add_argument("--expect-rows", type=int, default=None, help="refuse a set covering a different number of studies")
     a = ap.parse_args()
-    build_distill_table(a.sets, a.out, per_fold_rank=a.per_fold_rank)
+    build_distill_table(a.sets, a.out, per_fold_rank=a.per_fold_rank, expect_folds=a.expect_folds,
+                        expect_rows=a.expect_rows)

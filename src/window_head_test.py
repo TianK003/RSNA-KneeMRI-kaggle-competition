@@ -788,11 +788,13 @@ def main():
               f"{a} = v14p + {sorted(keys)} only, on raptor_teacher ({sorted(diff)})")
     check(len({Config(smoke=False, **arms[a]).aug_extra for a in ("v14lr", "v14th", "v14gd", "v14bl", "v14ns", "v14sh")})
           == 6, "the six aug_extra arms test six different single components")
-    ceo, ce = Config(smoke=False, **arms["v13eo"]), Config(smoke=False, **arms["v13e"])
-    diff = {k for k in K["asdict"](ceo) if getattr(ceo, k) != getattr(ce, k)} - {"version"}
-    check(diff == set() and da["v13eo"] == ("raptor_teacher", "cnnoof_v1") and K["DISTILLED_SILENT_MIX"]["v13eo"] == 0.8
-          and "v13eo" not in dm and "cnnoof_v1" in K["TEACHER_PATHS"],
-          f"v13eo = v13e (recipe identical) on raptor_teacher + cnnoof_v1, mix 0.5, silent 0.8 ({sorted(diff)})")
+    for a, parent, tables in (("v13ex", "v13e", ("raptor_teacher", "xfit_v09k")), ("v11o", "v11a", ("raptor_teacher", "cnnoof_v1")),
+                              ("v13eo", "v13e", ("raptor_teacher", "cnnoof_v1"))):
+        ca, cp = Config(smoke=False, **arms[a]), Config(smoke=False, **arms[parent])
+        diff = {k for k in K["asdict"](ca) if getattr(ca, k) != getattr(cp, k)} - {"version"}
+        check(diff == set() and da[a] == tables and a not in dm and a not in K["DISTILLED_SILENT_MIX"]
+              and all(t in K["TEACHER_PATHS"] for t in tables),
+              f"{a} = {parent} (recipe identical) on {' + '.join(tables)}, flat mix 0.5, no silent mix ({sorted(diff)})")
 
     print("\n" + ("UNIT CHECKS PASSED" if not fails else f"UNIT CHECKS FAILED ({len(fails)}):\n  - " + "\n  - ".join(fails)))
     sys.exit(1 if fails else 0)

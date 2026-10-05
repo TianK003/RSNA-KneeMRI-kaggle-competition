@@ -416,11 +416,18 @@ SHIPPED_ARMS = [
     ("v14r288", {**PROXY, "img_size": 288}),
     ("v14db", {**PROXY, "drop_blank_frac": 0.3}),
     ("v14ep20", {**PROXY, "epochs": 20}),
-    # 2026-10-05 (P-68, Tian: "especially this one"): the v13e production recipe on a DIFFERENT-FAMILY teacher -- the
-    # CNN proxy's own 5-fold OOF (`cnnoof_v1` = src/build_distill_table.py --per-fold-rank over the v14p + v14p2 OOFs),
-    # averaged with Raptor (a CoAtNet) and mixed 0.5 on addressed cells and 0.8 on report-silent cells (Archit 735304:
-    # "> 50 % model on the silent cells, only because the predictions were properly out of fold"). The silent mix is
-    # revisited after the A3 / P-62 read (10-07).
+    # 2026-10-05 (P-68, Tian: "especially this one"; redesigned the same day after the critic): an out-of-fold image
+    # teacher from a DIFFERENT model family than the student, averaged with Raptor after quantile matching, at the flat
+    # mix 0.5 -- so the LLM share stays 0.5 and the ONE change is the image-teacher half (Raptor alone -> Raptor + an
+    # OOF table). A silent-cell mix (P-62) is added only if A3 reads ✅ on 10-07 (sed TEACHER_SILENT_MIX; pin it here).
+    # Same-family OOF teachers read flat for us (P-55: CoAtNet OOF -> CoAtNet students) and for Myo; hence the pairing:
+    #   v13ex = the v13e B0 student on `xfit_v09k` (the P-54 CoAtNet cross-fit OOF; exists now -> trainable at 10-10 00:00);
+    #   v11o  = the v11a CoAtNet student on `cnnoof_v1` (the P-67 floor pair's B0 OOF; built after the floor run);
+    #   v13eo = the v13e B0 student on `cnnoof_v1` -- the SAME-family control (Archit's own-model setup), lowest priority.
+    # Gold-58 of all three is NOT readable: both OOF tables come from k-fold runs that trained the gold rows at weight 8.
+    ("v13ex", {**PROD, **V09R_KW, **C03_KW, "backbone": "timm:efficientnet_b0", "lr_backbone": 3e-4, "llrd_decay": 1.0,
+               "freeze_bn": True, "aug": "heavy", "drop_path": 0.1, "epochs": 30}),
+    ("v11o", {**PROD, **V09R_KW, **C03_KW}),
     ("v13eo", {**PROD, **V09R_KW, **C03_KW, "backbone": "timm:efficientnet_b0", "lr_backbone": 3e-4, "llrd_decay": 1.0,
                "freeze_bn": True, "aug": "heavy", "drop_path": 0.1, "epochs": 30}),
 ]
@@ -562,11 +569,12 @@ DISTILLED_ARMS = {"v09s": ("selfdistill_v1",), "v09t": ("selfdistill_v1",),
                   "v14p": ("raptor_teacher",), "v14p2": ("raptor_teacher",),
                   **{a: ("raptor_teacher",) for a in ("v14lr", "v14th", "v14gd", "v14bl", "v14ns", "v14sh", "v14mx",
                                                       "v14r288", "v14db", "v14ep20")},
+                  "v13ex": ("raptor_teacher", "xfit_v09k"), "v11o": ("raptor_teacher", "cnnoof_v1"),
                   "v13eo": ("raptor_teacher", "cnnoof_v1")}
 # 2026-09-28 (traps 40's second gap): the mix a distilled arm must train with; every other distilled arm trains at 0.5.
 DISTILLED_MIX = {"v09o": 0.75, "v09o2": 0.75, "v13ec": 0.75, "v13rc": 0.75, "v13ecp": 1.0}
 # P-62: the silent-cell mix an arm must train with; every arm not listed trains without one (TEACHER_SILENT_MIX = None).
-DISTILLED_SILENT_MIX = {"v11s": 0.75, "v11s2": 0.75, "v13es": 0.75, "v13rs": 0.75, "v13eo": 0.8}
+DISTILLED_SILENT_MIX = {"v11s": 0.75, "v11s2": 0.75, "v13es": 0.75, "v13rs": 0.75}
 if TEACHER_SILENT_MIX is not None and not TEACHER_TABLES:
     raise SystemExit("TEACHER_SILENT_MIX is set without TEACHER_TABLES -- there is no teacher to re-weight")
 # Every arm this session can train: the filters, and the sequential loop's list itself (a run with no filter).

@@ -9,7 +9,7 @@ How this file relates to the others:
 - **This file is only the queue.** When a candidate is read, its row is deleted here and its score goes to experiments.md
   (Submissions table + Scoreboard) through `/update`. Never keep a score in two places.
 
-Updated 2026-10-05 (12:35 UTC). All five 10-05 reads are in (#49–#53). Session E is trained and shipped. **Tian, 10-05 ≈ 12:00 UTC:
+Updated 2026-10-05 (13:05 UTC). All five 10-05 reads are in (#49–#53). Session E is trained and shipped. **Tian, 10-05 ≈ 12:00 UTC:
 no training on 10-05 or 10-06; the next days only submit work we already have.** Training (section D) resumes at the 10-10 reset.
 5 slots on every UTC day to the 10-22 deadline.
 
@@ -127,15 +127,27 @@ counts *session* hours and every session has two T4s (`PARALLEL_ARMS`), so ≈ 6
 T4 (B0 / R50 / R34), B0 ≈ 71 min and B3 @ 288 ≈ 2.2 h on a 4090; B3 @ 288 is RunPod-only (12–15 h and a memory risk on a T4).
 Deadline 10-22; final picks can be changed until then (10-15 is the entry / merger deadline).
 
-**The decision for Tian (research.md 2.10):** the 10-10 week goes either to **the ablation loop (T7)**, which can lift every final
-member, or to **more members of known recipes (T6 only)**, which the blend rule prices at + 0.001–0.003. Recommendation: T7 + one
-family arm (T8) in week 1, final retrains (T6) in week 2. The P2 / P3 reads of 10-07 / 10-08 (B14, B13, B4 / B5) set T6's composition.
+**Tian's focus for the 10-10 week (2026-10-05):** the P-68 teacher first ("especially this"), then the P-67 augmentation loop and
+the four additions (B0 @ 288, blank windows, the longer schedule with snapshots, gold rows in the final retrains). All of it is
+implemented and unit / local-smoke green (proposals.md P-67, P-68). **RunPod on 10-07 was priced and rejected** by the critic
+(≈ $3.8, no decision unlocked before the 10-17 retrains, and it would leave less than one B3 retrain); everything runs on Kaggle.
+
+**The 10-10 plan (two Kaggle sessions at a time, two T4s each; ≈ 30 session-h this week):**
+1. **00:00, session A:** the P-67 floor pair `v14p` ‖ `v14p2` (≈ 3.75 h) → the ruler's floor (from the per-fold paired
+   differences) and the `cnnoof_v1` table.
+2. **00:00, session B:** `v13ex` (P-68, B0 on Raptor + the CoAtNet OOF `xfit_v09k`; ≈ 6 h) ‖ a second ≈ 6-h arm (P-69
+   ConvNeXt-T once its loader check passes, else `v13eo`'s twin slot stays idle).
+3. **≈ 04:00, session C (after A):** `v11o` (P-68, CoAtNet on Raptor + `cnnoof_v1`) ‖ the first augmentation variant
+   (`v14lr`).
+4. **Then, two proxy variants per session in the evidence order:** `v14gd`, `v14mx`, `v14r288`, `v14ep20`, `v14bl` / `v14ns` /
+   `v14sh`, `v14th`, `v14db`. A variant that clears 1.5 × the floor gets ONE production transfer arm before the week-2 retrains.
+5. **The silent mix:** if A3 reads ✅ on 10-07, the P-68 arms add `TEACHER_SILENT_MIX` 0.75–0.8 (pinned per arm first).
 
 | # | Arm(s) | What it tests / adds | Gate | Est. cost | Card |
 |---|---|---|---|---|---|
-| **T7** | **P-67 loop**: proxy baseline × 2 seeds (the floor), then one variable per 5-fold run (aug components, 50 ep, head, drop-path / EMA, mixup, slot layout, smoothing) | the training recipe, judged on a pooled 5-fold report-label OOF; the forum's 0.95 teams' method. The epoch-budget variant answers the epoch-selection question too (experiments.md "Session E chain 2") | the 10-10 reset | ≈ 5 variants per 9-h session, ≈ 16 per week; or $0.6 each on a 4090 | P-67 |
+| **T7** | **P-67 loop**: proxy baseline × 2 seeds (the floor), then one variable per 5-fold run: `v14lr` / `v14th` / `v14gd` / `v14bl` / `v14ns` / `v14sh` (augmentation components), `v14mx` (mixup), `v14r288` (B0 @ 288), `v14db` (blank windows), `v14ep20` (longer schedule); later head, drop-path / EMA, slot layout, smoothing | the training recipe, judged on a pooled 5-fold report-label OOF; the forum's 0.95 teams' method. The epoch-budget variant answers the epoch-selection question too (experiments.md "Session E chain 2") | the 10-10 reset | ≈ 5 variants per 9-h session, ≈ 16 per week; or $0.6 each on a 4090 | P-67 |
 | **T8** | **P-69** ConvNeXt-T on the `v13h` recipe | a sixth family for B6 (+ 0.002–0.003 by the blend rule) | 10-10 quota; loader check first | 1 arm ≈ 6 h (shares a session with T7) | P-69 |
-| T9 | **P-68** teacher arm: one production arm on LLM + Raptor + a CNN-family OOF (≥ 0.5 on silent cells) | the forum's multi-source pseudo-label gain | the A3 read + an OOF table (free from T7's best proxy) | 1 arm ≈ 6 h | P-68 |
+| **T9** | **P-68** cross-family OOF teachers at the flat mix 0.5: `v13ex` (B0 on Raptor + `xfit_v09k`), `v11o` (CoAtNet on Raptor + `cnnoof_v1`); `v13eo` (B0 on `cnnoof_v1`) the same-family control | the forum's multi-source pseudo-label gain, in the cross-family form that our own reads leave open | `v13ex`: none (10-10 00:00); `v11o` / `v13eo`: the floor run's table; a silent mix only if A3 ✅ | ≈ 6 T4-h per arm | P-68 |
 | T6 | Final members (week of 10-17): B3 × 2 seeds (RunPod), B0 × 2, R50, the T8 family, a CoAtNet if B14 / B13 say so — all on the winning stack and target | the two final picks (B6-successor; the fork leg) | T7 / T9 reads; A3 / A4 / A5; B14 / B13 / B4 / B5 | ≈ 30 Kaggle session-h + ≈ $4 RunPod for the B3s | P-50 |
 | T2 | B3 at seed 43 **now** | de-biases the single 0.940 draw; the critic's case is written | **paused** with the rest of D; folded into T6 (the final B3 retrain on the winning recipe *is* the second draw) | ≈ $1.9 | P-50 |
 | T3 / T4 | R50 seed 2; B3 on the winning target | — | = T6 | — | P-50 |

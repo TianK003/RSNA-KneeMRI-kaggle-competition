@@ -64,7 +64,7 @@ result*, per unit of cost. "Depends on" lists hard blockers only. EVs are solo-L
 
 | rank | id | title | status | expected value | cost | depends on |
 |---|---|---|---|---|---|---|
-| 0m | P-68 | Different-family (CNN OOF) image teacher at ≥ 0.5 on report-silent cells | 🔧 **implemented 2026-10-05, effect pending; Tian's top priority ("especially this")**: arm `v13eo` (v13e on `raptor_teacher` + `cnnoof_v1`, mix 0.5, silent 0.8) and the `cnnoof_v1` table slot in src, unit checks green; the table is built from the P-67 floor run's five-fold OOFs (`build_distill_table.py --per-fold-rank`), then one production arm | 0..+ 0.004 solo (forum claims + 0.011; same-family was flat for us) | free with the P-67 floor run + 1 arm (≈ 6 T4-h or ≈ 71 min on a 4090) | the P-67 floor run; A3 (10-07) for the silent mix |
+| 0m | P-68 | Different-family OOF image teacher (cross-family pairs; silent-cell weight only if A3 ✅) | 🔧 **implemented 2026-10-05, effect pending; Tian's top priority ("especially this"); redesigned after the critic the same day**: `v13ex` (B0 student on Raptor + `xfit_v09k`, the CoAtNet cross-fit OOF; trainable at the 10-10 reset), `v11o` (CoAtNet student on Raptor + `cnnoof_v1`, the B0 floor pair's OOF; after the floor run), `v13eo` (B0 on `cnnoof_v1`, the same-family control), all at the flat mix 0.5; RunPod on 10-07 = NO-GO (critic: ≈ $3.8, no decision unlocked before 10-17) | 0..+ 0.004 solo (forum claims + 0.011; same-family read flat for us) | the P-67 floor run + 1–2 Kaggle arms (≈ 6 T4-h each) | A3 (10-07) for any silent mix; the P-67 floor run for `cnnoof_v1` |
 | 0n | P-67 | Fast-proxy 5-fold CV ruler + single-variable recipe ablation loop | 🔧 **implemented, effect pending: the floor pair `v14p` / `v14p2` and, since 10-05 (Tian: "focus on these"), ten one-variable arms `v14lr` / `v14th` / `v14gd` / `v14bl` / `v14ns` / `v14sh` (augmentation components), `v14mx` (mixup), `v14r288` (B0 @ 288), `v14db` (blank windows), `v14ep20` (longer schedule); unit checks + a local CPU smoke green; the floor run starts at the 10-10 reset** — approved by Tian (research.md 2.7.6 / 2.7.7 / 2.10) | + 0.003–0.005 per production member if ≥ half transfers → B6 ≈ 0.945–0.947 | ≈ 16 proxy variants per 30-h Kaggle week, or ≈ $0.6 each on a 4090; + 1 transfer arm | a measured pooled-OOF floor (2 seeds) |
 | 0p | P-69 | Sixth family for B6: ConvNeXt-T on the `v13h` recipe | ✅ approved with the loop 2026-10-05 (the week-1 family arm); loader check first | B6 + 0.002–0.003 (cross-family rule) | 1 Kaggle arm ≈ 6 h + a loader check | the 10-10 quota |
 | 0i | P-62 | Silence-aware teacher mix (Raptor 0.75 where the report is silent, 0.5 where it speaks) | ⏳ **session D TRAINED green 2026-10-04 (`rsna-knee-train-b` v6, 5.94 h): gold-58 SWA `v13es` 0.9107 / `v13rs` 0.9160 vs 0.9126 / 0.9111 (direction only); shipped `rsna-knee-ckpt-v13es` / `-v13rs`; solos 10-05 = `rsna-knee-infer` v49 / v50; read m vs 0.9345 (✅ ≥ 0.9390)** | 0..+0.002 — likely under the 0.004 one-seed floor | one c03 session ≈ 3.5 GPU-h + 2 solos | — |
@@ -112,7 +112,9 @@ Measure:      pooled 5-fold OOF macro-AUC vs `y__*` (the LLM blend) over the 4,3
               snapshots `_ep{e}_ema.pt`, submittable) and `train_gold` (P-48). Unit checks (`src/window_head_test.py`) and a local
               CPU smoke with every switch on (mixup on a two-study batch, all six components at p 1, blank dropping, snapshots,
               SWA, inference) green.
-Noise floor:  measured first: two seeds of the baseline proxy → the pooled seed delta (expected ≈ 0.0036). Ablation bar = 1.5 × the
+Noise floor:  measured first: two seeds of the baseline proxy → the pooled seed delta (expected ≈ 0.0036). **2026-10-05 (critic):** one
+              pooled |Δ| is a single draw; estimate the floor from the five per-fold paired seed differences instead (their SD / √5
+              for the pooled macro), or add a third baseline seed. Ablation bar = 1.5 × the
               measured floor. A variable that clears it on the proxy is confirmed by ONE production arm before the final retrains.
 Cost:         proxy 5-fold ≈ 3.3 T4-GPU-h (≈ 40 min / fold) → ≈ 5 variants per 9-h Kaggle session on both T4s → ≈ 16 per 30-h week;
               or ≈ $0.6 per variant on a 4090. Setup ≈ 1 arm dict + `FIVE_FOLD` + the existing OOF summary; first session = baseline
@@ -124,16 +126,28 @@ If it fails:  nothing clears 1.5 × the floor, or the proxy's wins do not transf
 Depends on:   Tian's go on the 10-10 week; the P-62 read does not block it (image-side only).
 
 ### P-68 Different-family image teacher on the report-silent cells (a CNN OOF table at ≥ 0.5)
-Status:       🔧 **implemented 2026-10-05, effect pending — Tian's top priority ("especially this one")**. In src: the arm `v13eo` =
-              `v13e` exactly on `TEACHER_TABLES = ("raptor_teacher", "cnnoof_v1")` at mix 0.5 and `TEACHER_SILENT_MIX` 0.8 (the two
-              tables are averaged after quantile matching: addressed cells 0.5 LLM + 0.25 Raptor + 0.25 CNN-OOF, silent cells
-              0.2 LLM + 0.4 + 0.4), pinned in DISTILLED_ARMS / DISTILLED_SILENT_MIX; the `cnnoof_v1` slot in TEACHER_PATHS; unit
-              checks green. **The table does not exist yet:** it is built from the P-67 floor run (`v14p` + `v14p2`, five folds
-              each) with `src/build_distill_table.py --sets "<dir>/v14p_fold[0-9]_oof.csv" "<dir>/v14p2_fold[0-9]_oof.csv"
-              --per-fold-rank --out artifacts/teacher/cnnoof_v1.csv`, read for plausibility (`src/teacher_plausibility.py`, the
-              OOF also covers the 58 gold rows) and published to `rsna-knee-teacher-tables` (private). The silent mix 0.8 is
-              revisited after A3 (the P-62 pair, 10-07): a ❌ there moves it to a flat 0.5. Each later P-67 variant adds a
-              five-fold OOF set, so the teacher can be rebuilt from the best few proxies (`cnnoof_v2`) in week 1.
+Status:       🔧 **implemented 2026-10-05, effect pending — Tian's top priority ("especially this one"); REDESIGNED the same day
+              after the critic subagent** (artifacts/runpod_case_P68_1007.md + its review):
+              - **Cross-family pairs only.** Same-family OOF teachers read flat for us (P-55: CoAtNet OOF into CoAtNet students)
+                and for Myo; Archit's own-model setup is the one counter-example. So: `v13ex` = the `v13e` B0 student on
+                `raptor_teacher` + `xfit_v09k` (the P-54 CoAtNet cross-fit OOF, which already exists → trainable at the 10-10 reset,
+                first session); `v11o` = the `v11a` CoAtNet student on `raptor_teacher` + `cnnoof_v1` (the B0 floor pair's OOF,
+                built after the P-67 floor run); `v13eo` = the B0 student on `cnnoof_v1`, the same-family control, lowest priority.
+              - **One variable.** All three at the flat mix 0.5 (the two tables averaged after quantile matching: 0.5 LLM +
+                0.25 Raptor + 0.25 OOF), so the LLM share stays 0.5 and the change is the image-teacher half. A silent-cell mix
+                (P-62) is added only if A3 reads ✅ on 10-07 (then pin it in DISTILLED_SILENT_MIX and sed TEACHER_SILENT_MIX).
+              - **Reads:** each solo vs its parent's seed mean (B0: 0.9365; CoAtNet `v11a` / `v11b` 0.932 / 0.929 → 0.9305), the
+                one-seed bands (✅ ≥ parent + 0.004). **Gold-58 is not readable here, not even for direction:** both OOF tables come
+                from k-fold runs that trained the gold rows at weight 8.
+              - **RunPod 10-07 = NO-GO** (critic): recomputed ≈ 5 h ≈ $3.8, not $2.6 (per-study overhead does not shrink with the
+                window count); the week-2 retrains start 10-17, so a 10-08 read unlocks nothing earlier than a 10-10 Kaggle read;
+                it would leave ≈ $1.2, under one B3 retrain. On Kaggle, `v13ex` goes out at 10-10 00:00 beside P-69 and reads 10-10
+                evening; `v11o` follows the floor run.
+              - **The table:** `src/build_distill_table.py --sets "<dir>/v14p_fold[0-9]_oof.csv" "<dir>/v14p2_fold[0-9]_oof.csv"
+                --per-fold-rank --expect-folds 5 --expect-rows 4407 --out artifacts/teacher/cnnoof_v1.csv` (refuses a partial
+                set: `mix_teacher` would silently fall back to the LLM value on uncovered rows), a plausibility read
+                (`src/teacher_plausibility.py`), then publish to `rsna-knee-teacher-tables` (private). Later P-67 variants each add
+                a five-fold OOF set, so `cnnoof_v2` can pool the best few proxies.
 Hypothesis:   mixing a CNN-family OOF teacher (5-fold cross-fit of the B0 / B3 recipe) into the training targets at ≥ 0.5 on
               report-silent cells, beside Raptor (a CoAtNet) and the LLM blend, lifts a production solo by ≥ 0.004.
 Origin:       forum 2.7.6: Archit (OOF image predictions > 50 % on silent cells, "only because the predictions were properly out of
