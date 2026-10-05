@@ -6,6 +6,103 @@ to read first after a break.
 
 ---
 
+## 2026-10-05 (09:29 → 10:57 UTC) — session E chain 1 in: **`v13ecp` gold-58 0.9063 (direction only), shipped, placeholder infer v53 green**; the 10-06 submitter is running with four sends; chain 2 (`v13ec`) still training; **local watchers killed for low laptop memory**, so the pod now stops itself; safety handoff
+
+Tian: "read the handoff and continue working on the last state", with the previous session's closing plan pasted (log each E arm, build
+v53 / v54, append them to the plan, start the 00:00:30 submitter; `v13ecp` is the E slot that counts, `v13ec` the fifth). Commits
+`d9243fc`, `f598a13`, plus this one.
+
+### ⏳ Still in flight as this was written (10:57 UTC)
+
+| In flight | What it is | Started | How to check | How to read it |
+|---|---|---|---|---|
+| **RunPod pod `j4obvfotdbdudo`** (RTX 4090, $0.74/h) | Session E chain 2 = `v13ec` (0.25 LLM + 0.5 Raptor + 0.25 Claude via `claude_rap_v1` at mix 0.75, B0 seed 42). Epoch 12 of 30 at 10:54 → SWA + ship to `rsna-knee-ckpt-v13ec` ≈ 11:38 UTC (45-min token-window retry inside the chain). Chain 1 is done (below) | 10:24 | `ssh -i ~/.ssh/id_ed25519 -p 47761 root@103.196.86.187 'tail -5 /workspace/job_E.log; cat /workspace/stopper.log'` (fails once the pod is stopped) · `.venv/Scripts/kaggle.exe datasets files tiankljucanin/rsna-knee-ckpt-v13ec` · MCP `get-pod j4obvfotdbdudo` | **Green:** `chain 2 rc=0`, then a final `job done` line, and the Dataset lists `v13ec_fold0_best.pt`. **Suspicious:** `!!` lines, a `_last.pt` without `_best.pt` (guard stop, do not ship, traps 47), no Dataset after 12:30 |
+| **Pod self-stop** `/workspace/stopper.sh` (pid 4912 on the pod, `setsid nohup`) | Reads the pod-scoped key from `/proc/1/environ`, waits for the job's final ` job done` line **or 13:30 UTC**, then calls the GraphQL `podStop` and logs the reply to `/workspace/stopper.log`. Stop, not delete: `/workspace` (checkpoints, logs, cache) survives | 10:54 | MCP `get-pod j4obvfotdbdudo` → `EXITED` after ≈ 11:40 | `stopper.log` should show `ships: 2 of 2` and a `podStop` reply. Still `RUNNING` after 13:35 → MCP `pod-action stop` |
+| **Auto-submitter, Windows pid 11624** | `src/auto_submit.py --plan artifacts/submit_plan_1006.json --at 2026-10-06T00:00:30Z`: **fork v12 → infer v53 → v49 → v50** (four; v54 is not in it). Blocks idle sleep | 10:55 | `tail -30 artifacts/auto_submit_1006.log` (+ `.err`); `Get-Process -Id 11624` | **Green** = `sent 4 / 4`, then four `watch_<ref>.log` files. **Suspicious:** `FAILED after 3 attempts`, a Traceback in `.err`, or pid 11624 gone before 00:00 → the fallback in next action 5 |
+| Kaggle OAuth token | valid to **21:08 UTC** (the pod holds a copy); the submitter's pre-flight call renews it at 00:00 | 09:08 | `access_token_expiration` in `~/.kaggle/credentials.json` | the pod's ship at ≈ 11:38 is inside the window |
+
+### Where things stand
+
+| | Status |
+|---|---|
+| `v13ecp` (E chain 1) | ✅ trained 09:13 → 10:24 (2.3 min/epoch: the network volume did not slow it); gold-58 SWA **0.9063** vs the B0 seed pair 0.9126 / 0.9151, 🔁 direction only. Shipped `rsna-knee-ckpt-v13ecp`, local backup `artifacts/kaggle_out/pod_v13ecp/` (md5 identical). experiments.md 2026-10-05 "Session E on RunPod, chain 1" + Scoreboard row |
+| Placeholder | **infer v53 = `v13ecp` solo, green** (`smoke False`, `v13ecp/fold0` at 0.9063, decode-once verified, `constant labels 0`); `rsna-knee-ckpt-v13ecp` added to `kaggle/rsna-knee-infer/kernel-metadata.json` (43 sources) |
+| 10-06 plan | `artifacts/submit_plan_1006.json` = fork v12, v53, v49, v50, loaded by pid 11624. v54 (`v13ec`) goes by hand (next action 5) |
+| Committed renders | `rsna-knee-infer` = **v53** (submittable) · `rsna-knee-fork` = v12 (C2, submittable; do not re-push before the send) · `rsna-knee-train` = v45 SMOKE · `rsna-knee-train-b` = v6 REAL, never re-push as is |
+| Budgets | Kaggle ≈ 2.8 h left to 10-10 (v53 ≈ 5 min); RunPod: E ≈ 2.6 h ≈ $2 if the stop fires at ≈ 11:40; 10-05 slots all used, 5 on 10-06 |
+| Docs | candidates.md A4 (`v13ecp`, v53 ✅) / A5 (`v13ec`, to build) rows; P-65 status + index; CLAUDE.md state; traps 51 addendum |
+
+### What we talked about and decided
+
+- **The defaults from the pasted plan stand:** `v13ecp` is the E slot that counts and sends second (after the fork, before the P-62
+  pair); `v13ec` rides as the fifth.
+- **The submitter started early (10:55) with four sends**, not after v54. Claude Code killed every local background watcher at
+  ≈ 10:50 because the laptop was critically low on memory, and its notice says not to restart them unasked. A session that cannot
+  wake itself might not be there at 23:30, so the four green sends were locked in now. v54 then goes by hand on 10-06.
+- **The pod stops itself instead of waiting for a watcher.** The previous session launched E with `AUTO_STOP=0` because the ssh env
+  showed no key; the key was in `/proc/1/environ` (traps 51 addendum). A stop keeps every file, so it is safe before the local backup.
+  The delete waits until the `v13ec` ship is confirmed (memory `runpod-checkpoint-safety`).
+
+### What we figured out
+
+1. **The Claude target moves the student where it moved the labels** (experiments.md "Session E on RunPod, chain 1"). Against the B0
+   seed mean, Baker's −0.046 and Effusion −0.032 fall, the pilot's size-threshold losses. Lateral Meniscus +0.029 and Lateral OA +0.020
+   rise. Signs agree on 7 of 11. MCL −0.041 and Contusion −0.030 fall where the target was flat. On gold the target rose +0.007 and the
+   student fell −0.008; the solo LB decides (traps 39).
+2. **Swapping the LLM half for Claude moves the gold ranking about as much as a seed** (within-class ρ to `v13e` 0.883 vs the seed
+   pair's 0.888), so gold cannot say whether it adds diversity.
+3. **A US-NC-1 pod on its network volume trains B0 as fast as EUR-IS-1 did** (2.2 + 0.1 min per epoch; 48 GB cache in 3 min).
+
+### ⏭ Next action, in order
+
+1. **After ≈ 11:40 UTC, confirm the `v13ec` ship:** `.venv/Scripts/kaggle.exe datasets files tiankljucanin/rsna-knee-ckpt-v13ec` must
+   list `v13ec_fold0_best.pt`, the OOF and `train_v13ec.log`. MCP `get-pod j4obvfotdbdudo` should read `EXITED`.
+   - **No Dataset** (ship failed, or the 13:30 deadline fired first): MCP `pod-action j4obvfotdbdudo start`; the ssh port may change,
+     so read it from `get-pod`. Check `ls /kaggle/working/v13ec_fold0_best.pt` and `grep "SWA of last" /kaggle/working/job_train_v13ec.log`,
+     then `cd /workspace/repo && bash scripts/runpod_bootstrap.sh ship v13ec`. Never ship a `_last.pt` without `_best.pt` (traps 47).
+2. **Local backup, then delete:** `.venv/Scripts/kaggle.exe datasets download -d tiankljucanin/rsna-knee-ckpt-v13ec -p
+   artifacts/kaggle_out/pod_v13ec --unzip`. Then MCP `delete-pod j4obvfotdbdudo`; `list-pods` must be empty; `list-billing` for the
+   cost (expect ≈ $2).
+3. **Gold read for the log:** `grep -A 15 "SWA of last" artifacts/kaggle_out/pod_v13ec/train_v13ec.log`. Add the per-label table and
+   within-class ρ in the layout of the chain 1 entry. `/update`: entry "Session E on RunPod, chain 2" + Scoreboard row, P-65 status +
+   index, candidates A5 + T1, CLAUDE.md state.
+4. **Placeholder v54 (≈ 5 GPU-min):** `sed -e 's/^FORCE_SMOKE = True/FORCE_SMOKE = False/' -e 's/^MODE = "auto"/MODE = "infer"/' -e
+   's/^INFER_MEMBERS = \[.*\]/INFER_MEMBERS = ["v13ec"]/' src/kaggle_pipeline.py > artifacts/infer_solo_v13ec.py`. Add
+   `tiankljucanin/rsna-knee-ckpt-v13ec` to `kaggle/rsna-knee-infer/kernel-metadata.json`, then run `nbgen` and push. **Green** =
+   `"smoke": "False"`, `infer members (1): v13ec/fold0` at its gold score, `decode-once verified`, `constant labels 0`.
+5. **10-06 sends:**
+   - After ≈ 00:05 UTC, `tail -30 artifacts/auto_submit_1006.log` should show `sent 4 / 4`.
+   - **Fallback** if it did not send: `PYTHONUTF8=1 .venv/Scripts/python.exe src/auto_submit.py --plan artifacts/submit_plan_1006.json`.
+     With no `--at` it sends at once and skips any message already sent that day.
+   - **Then send v54 by hand**, and run `src/watch_submission.py --ref <ref> --every 90`:
+     ```bash
+     .venv/Scripts/kaggle.exe competitions submit rsna-knee-abnormality-detection -k tiankljucanin/rsna-knee-infer -v 54 -f submission.csv -m "E / P-65 v13ec solo: v13e recipe on 0.25 LLM + 0.5 Raptor + 0.25 Claude (claude_rap_v1 at mix 0.75), gold-58 <x>; vs B0 seed mean 0.9365: >=0.9405 keep / 0.933-0.940 inconclusive / <=0.932 harmful"
+     ```
+   - Alternative before 23:30: append v54 to the plan, `Stop-Process -Id 11624`, and relaunch with the 10-05 entry's command. **Never**
+     run two submitters at once.
+6. **10-06 reads, then `/update` per score:**
+   - **C2** vs #49 0.943: ✅ ≥ 0.946 / 🔁 0.942–0.945 / ❌ ≤ 0.941.
+   - **A3** = m(`v13es`, `v13rs`) vs 0.9345: ✅ ≥ 0.9390 / 🔁 0.9300–0.9389 / ❌ ≤ 0.9299.
+   - **E doses** `v13ecp` / `v13ec`, each vs 0.9365: ✅ ≥ 0.9405 / 🔁 0.933–0.940 / ❌ ≤ 0.932. ✅ at 0.5 and not at 0.25 means the dose
+     matters. Both 🔁 means the label side closes and the work goes image-side only.
+7. **10-10 reset:** the P-67 floor run, command unchanged (the entry below, next action 6).
+
+### Open decisions for Tian
+
+- **Allow local watchers again?** Claude Code stopped them for low memory (3.8 of 15.3 GB free at 10:53; Chrome, Discord and VS Code
+  are the largest users). Closing some of those, or starting Claude Code with `CLAUDE_CODE_DISABLE_BG_SHELL_PRESSURE_REAP=1`, lets a
+  session watch again. Until then, every step above is a one-off command.
+- Unchanged from the entry below: the 10-10 week (P-67 + P-69, or plain retrains); week-2 final retrains; final picks by 10-22.
+
+### Things that will bite if forgotten
+
+- **After ≈ 11:40 the pod is stopped, not deleted.** A stopped pod still bills its disk. Delete it once `v13ec` is confirmed and backed
+  up (next action 2).
+- **pid 11624 holds a four-entry plan.** Editing `submit_plan_1006.json` now changes nothing for it: it read the plan at start.
+- The laptop must stay on, on mains power, with the lid open until ≈ 00:02 UTC. The submitter blocks idle sleep only.
+- The plan names `rsna-knee-fork` v12 and `rsna-knee-infer` v53 / v49 / v50. Pushing `rsna-knee-infer` for v54 is safe, because a
+  submission names its version. Do not re-push the fork.
+
 ## 2026-10-05 (00:40 → 09:20 UTC) — the 10-05 five read (**fork + trio 0.943 = rank 373; B3 solo 0.940; our own five-member B6 0.942 = the public stack**); research day (forum re-read, literature, RSNA 2025); **the ablation loop P-67 approved and smoke-green; C2 built (fork v12); session E RUNNING on RunPod**; proposals.md = live cards only; safety handoff while the pod runs
 
 Tian, in order: "read the handoff and tell me your overnight job"; "Yes, do that [the waiter] … in the morning I want a report";
