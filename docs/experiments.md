@@ -120,6 +120,7 @@ agreement with the teacher, not truth. A one-seed LB delta needs ≥ 0.004 (P-44
 | 2026-10-05 | **B3 swap, submission #53 (`rsna-knee-infer` v52)**: flat rank-mean `v11a` + `v13r` + `v13b3` | gold-58 0.9254 | **0.940** | **🔁 +0.002 vs #48; = `v13b3` alone.** Every flat blend we have sent reads ≈ the members' mean + 0.002–0.005 (n = 7), so weak members now cost more than they add (entry "Submissions #49–#53") |
 | 2026-10-05 | **B6, submission #52 (`rsna-knee-infer` v51)**: flat rank-mean of all five, `v11a` + `v13r` + `v13e` + `v13b3` + `v13e2` | gold-58 0.9256 | **0.942** | **✅ KEEP: +0.004 vs #48 (bar ≥ 0.941). Our own models = the public-stack fork (0.942); the own final-pick candidate (P-50).** Corrected blend rule: LB ≈ the members' mean + g(n), g(2) ≈ 0.0015–0.0045, g(3) ≈ 0.0045, g(5) ≈ 0.006 (entry "Submissions #49–#53") |
 | 2026-10-05 | **P-50 fork, submission #49 (`rsna-knee-fork` v11, sent 00:41, ref 56838006)**: the public 0.942 stack + the #48 trio (`v11a` + `v13r` + `v13e`) as our leg at β 0.45 | — | **0.943** | **🔁 +0.001 vs #13 / #15 (band 0.941–0.944); our best public number: rank 373 of 5,187, up from ≈ 1,381 (the 0.942 plateau is ≈ 1,000 forks wide).** The first own leg to lift the stack (β 0.10–0.20 legs read 0.000 / −0.001); 5.3 h to score. Next: C2 = the stack + B6 (entry "Submissions #49–#53") |
+| 2026-10-05 | **Session E chain 1, `v13ecp` (RunPod RTX 4090, 71 min, P-65)**: `v13e` exactly (B0, seed 42) on **0.5 Raptor + 0.5 Claude**, no LLM-blend share (`TEACHER_MIX` 1.0 over `raptor_teacher` + `claude_v1`) | gold-58 SWA **0.9063** (B0 seed pair 0.9126 / 0.9151; Baker's −0.046, Effusion −0.032 and MCL −0.041 down, Lateral Meniscus +0.029 and Lateral OA +0.020 up; within-class ρ to `v13e` 0.883, the seed pair's 0.888) | ⏳ (solo 10-06, `rsna-knee-infer` v53) | **✅ run green, shipped; 🔁 direction only** — read vs the B0 seed mean 0.9365: ✅ ≥ 0.9405 / 🔁 0.933–0.940 / ❌ ≤ 0.932 (entry "Session E on RunPod, chain 1") |
 
 **External reference points** (not ours — for calibrating ambition):
 
@@ -3400,6 +3401,67 @@ beat B6. **What beats B6 is most likely a new family at ≥ 0.935, not more Effi
 
 **Verdict #49: 🔁 by the pre-registered rule (+0.001, band 0.941–0.944); our best public number (0.943, rank 373).** The fork +
 own leg stays the second final-pick candidate, and C2 (B6 as the leg) is the next fork build.
+
+### 2026-10-05 — Session E on RunPod, chain 1: `v13ecp` (B0 on 0.5 Raptor + 0.5 Claude, no LLM-blend share) trained in 71 min · gold-58 SWA **0.9063** vs the B0 seed pair 0.9126 / 0.9151 · ✅ run green, shipped; 🔁 direction only · solo 10-06
+
+**Setup** (P-65 step 2, Tian's go "Go E"; candidates.md T1). Pod `j4obvfotdbdudo`, one RTX 4090, US-NC-1, $0.74/h, created 09:09 UTC.
+- **Arm:** `v13e` exactly (EfficientNet-B0 @ 224 on c03, CNN LR 3e-4 uniform, frozen BN, heavy aug, drop-path 0.1, 30 epochs, SWA
+  27–29, seed 42, all 4,349 report-only studies).
+- **Only the target changes:** `TEACHER_TABLES = ("raptor_teacher", "claude_v1")`, `TEACHER_MIX = 1.0`. The log confirms `training
+  targets = (1 - 1.0) * LLM + 1.0 * quantile-matched ['raptor_teacher', 'claude_v1']`, both tables 4,349 studies. So the LLM blend's
+  half of `v13e`'s target is replaced by the Claude (Opus 5.5) relabel. Evaluation targets are unchanged.
+- **Speed:** 0.03 s/study, 2.2 min train + 0.1 min val per epoch, the same as `v13e2` on the EUR-IS-1 pod. The network volume did not
+  slow it. The 48 GB c03 cache pulled and verified in 3 min (71 blobs, 0 bad).
+- **Run checks:** `SWA of last 3`, `-> v13ecp_fold0_best.pt = SWA`, no runtime guard, `completed: true`.
+- **Ship:** `rsna-knee-ckpt-v13ecp` at 10:24 UTC (best.pt 17.7 MB, OOF, log; `kaggle datasets files` confirmed). Local backup
+  `artifacts/kaggle_out/pod_v13ecp/`, md5 identical to the pod's file.
+
+Gold-58 EMA by epoch (all 58, reported only):
+
+| epoch | 0 | 4 | 9 | 14 | 19 | 24 | 29 | SWA |
+|---|---|---|---|---|---|---|---|---|
+| `v13ecp` (Raptor + Claude) | 0.7619 | 0.9038 | 0.9113 | **0.9185** | 0.9148 | 0.9063 | 0.9063 | **0.9063** (CI95 0.876–0.932) |
+| `v13e2` (seed 43) | 0.7796 | 0.9102 | 0.9188 | 0.9201 | 0.9178 | 0.9150 | 0.9158 | 0.9151 |
+| `v13e` (seed 42) | 0.7757 | 0.9032 | 0.9079 | 0.9104 | 0.9115 | 0.9136 | 0.9126 | 0.9126 |
+
+The late drift from the epoch-14 peak is −0.012, vs −0.005 for `v13e2`. That is direction only, like everything on gold here.
+
+**Per label vs the B0 seed mean** (`v13ecp` / mean of `v13e`, `v13e2` / Δ), next to what the target itself did on gold in the pilot
+(0.5 Opus + 0.5 Raptor minus 0.5 LLM + 0.5 Raptor, entry "P-65 gold-58 BLIND pilot"):
+
+| label | `v13ecp` | B0 mean | Δ student | Δ target (pilot) |
+|---|---|---|---|---|
+| ACL | 0.956 | 0.963 | −0.007 | +0.003 |
+| MCL | 0.912 | 0.952 | **−0.041** | 0.000 |
+| Medial Meniscus | 0.957 | 0.946 | +0.011 | +0.008 |
+| Lateral Meniscus | 0.878 | 0.850 | **+0.029** | +0.010 |
+| Medial OA | 0.986 | 0.984 | +0.002 | −0.014 |
+| Lateral OA | 0.857 | 0.837 | **+0.020** | +0.042 |
+| PF OA | 0.879 | 0.874 | +0.005 | +0.024 |
+| Effusion | 0.892 | 0.924 | **−0.032** | −0.009 |
+| Synovitis | 0.809 | 0.816 | −0.007 | +0.033 |
+| Baker's | 0.937 | 0.983 | **−0.046** | −0.043 |
+| Contusion | 0.941 | 0.971 | **−0.030** | +0.006 |
+| Fracture | 0.874 | 0.867 | +0.007 | +0.029 |
+| **macro** | **0.9063** | **0.9139** | **−0.0076** | **+0.0073** |
+
+- **The student follows the Claude labels where they moved most.** Baker's falls as the target did, the size thresholds the pilot
+  flagged. Lateral OA and Lateral Meniscus rise with it. Signs agree on 7 of the 11 labels the target moved.
+- **MCL and Contusion fall where the target was flat.** That is the seed-sized scatter of 58 studies (per-label seed moves reach 0.02)
+  or a real cost; gold cannot tell.
+- **On gold the target rose +0.007 and the student fell −0.008.** Gold has inverted the LB direction of target changes before (traps
+  39), so this predicts nothing about the solo.
+
+**Diversity on gold** (within-class Spearman, the method of the P-66 entries): `v13ecp` ~ `v13e` 0.883, ~ `v13e2` 0.873, ~ `v13es`
+0.888, ~ `v13b3` 0.860, ~ `v13r` 0.861, ~ `v11a` 0.834. The seed pair `v13e` ~ `v13e2` is 0.888. So the target swap moves the ranking
+about as much as a seed does, and gold cannot separate the two. Gold rank-means: `v13ecp` + `v13e` 0.9131, + `v13e2` 0.9157; B6 + `v13ecp`
+0.9244 vs B6 0.9256.
+
+**The read is the solo LB** (candidates.md T1, pre-registered): vs the B0 seed mean 0.9365, ✅ ≥ 0.9405 / 🔁 0.933–0.940 / ❌ ≤ 0.932.
+Placeholder `rsna-knee-infer` **v53** pushed 10:28 UTC.
+
+**Verdict: ✅ the run (green, shipped, backed up); 🔁 gold −0.008, a seed-level difference against a 0.05 floor.** The solo is read
+2026-10-06. Chain 2 (`v13ec`, 0.25 LLM + 0.5 Raptor + 0.25 Claude) started on the same pod at 10:24.
 
 ## Infrastructure
 

@@ -9,7 +9,7 @@ How this file relates to the others:
 - **This file is only the queue.** When a candidate is read, its row is deleted here and its score goes to experiments.md
   (Submissions table + Scoreboard) through `/update`. Never keep a score in two places.
 
-Updated 2026-10-05 (06:30 UTC). All five 10-05 reads are in (#49–#53). 5 slots on every UTC day to the 10-22 deadline.
+Updated 2026-10-05 (10:40 UTC). All five 10-05 reads are in (#49–#53). Session E chain 1 (`v13ecp`) is trained and shipped; chain 2 (`v13ec`) is training. 5 slots on every UTC day to the 10-22 deadline.
 
 ## Priority (Tian, 2026-10-05: gather the research first, then build; nothing is built yet)
 
@@ -17,7 +17,7 @@ Updated 2026-10-05 (06:30 UTC). All five 10-05 reads are in (#49–#53). 5 slots
 |---|---|---|---|
 | **1** | **C2** — the public stack + B6 as our leg at β 0.45 (section C) | The fork with the 0.938 trio read 0.943 (#49, rank 373); a 0.942 leg should add more. The highest-stake single read left for the final picks. ≈ 6 h to score: first send of its day | **built: fork v12, placeholder green** (Tian's go 10-05 after the research read); sends 10-06 00:00:30 UTC via `auto_submit.py` |
 | **2** | **A3** — the P-62 pair, `v13es` + `v13rs` (section A) | Decides the target of every arm trained after it (silent mix or flat). Placeholders green | ready to send (two slots) |
-| **3** | **T2 (+ T1 on the same pod)** — B3 at seed 43 on A3's winning target, optionally session E (section D) | Critic-vetted 10-05: de-biases the one 0.940 B3 draw, adds a RunPod-only final member; E settles the Claude-label question for ≈ $2 more. ≈ $4 of the ≈ $7 | case written; waits for A3, then Tian's go |
+| **3** | **T2** — B3 at seed 43 on A3's winning target (section D). T1 (session E) went ahead on its own on 10-05 | Critic-vetted 10-05: de-biases the one 0.940 B3 draw, adds a RunPod-only final member. ≈ $1.9 of the ≈ $4.8 left after E | case written; waits for A3, then Tian's go |
 | **4** | **New families on the `v13h` recipe** (Kaggle after 10-10; section D, T5 / T6) | The blend rule says a sixth family at ≥ 0.935 lifts B6 more than another EfficientNet seed | pick the families from the 10-05 research |
 | — | B1 / B2 / B4 / B5 / B7 / B10 / B11 | All predicted under B6 by the blend rule | hold |
 
@@ -39,6 +39,8 @@ member + 0.004.
 
 | # | Candidate | What it tests / contributes | Decides | Read rule | Placeholder | Gold-58 |
 |---|---|---|---|---|---|---|
+| A4 | `v13ecp` (P-65, session E chain 1): `v13e` on 0.5 Raptor + 0.5 Claude, no LLM-blend share | Does the Claude relabel lift the CNNs at the full dose? | The Claude share of the week-2 retrains (with A5) | vs the B0 seed mean 0.9365: ✅ ≥ 0.9405 / 🔁 0.933–0.940 / ❌ ≤ 0.932 | **v53** ⏳ (pushed 10:28) | 0.9063 |
+| A5 | `v13ec` (P-65, session E chain 2): 0.25 LLM + 0.5 Raptor + 0.25 Claude | The half dose: with A4 and the dose-0 seeds, a dose-response read | as A4 | as A4 | after chain 2 (≈ 11:40) | training |
 | A3 | `v13es` + `v13rs` (P-62: Raptor 0.75 on report-silent cells) — **one read, two submissions** | Does weighting the image teacher on report-silent cells lift the CNNs? | Whether session E and the final members train with `TEACHER_SILENT_MIX` | mean of the two vs 0.9345: ✅ ≥ 0.9390 / 🔁 0.9300–0.9389 / ❌ ≤ 0.9299. On gold, both move less than a seed change, so 🔁 is likely | **v49** + **v50** ✅ | 0.9107 / 0.9160 |
 
 ## B. Submission candidates — ensembles of members we have
@@ -101,7 +103,7 @@ family arm (T8) in week 1, final retrains (T6) in week 2.
 |---|---|---|---|---|---|
 | **T7** | **P-67 loop**: proxy baseline × 2 seeds (the floor), then one variable per 5-fold run (aug components, 50 ep, head, drop-path / EMA, mixup, slot layout, smoothing) | the training recipe, judged on a pooled 5-fold report-label OOF; the forum's 0.95 teams' method | Tian's go on the 10-10 week | ≈ 5 variants per 9-h session, ≈ 16 per week; or $0.6 each on a 4090 | P-67 |
 | **T8** | **P-69** ConvNeXt-T on the `v13h` recipe | a sixth family for B6 (+ 0.002–0.003 by the blend rule) | 10-10 quota; loader check first | 1 arm ≈ 6 h (shares a session with T7) | P-69 |
-| T1 | **Session E, RUNNING on RunPod pod `j4obvfotdbdudo` since 10-05 09:10 UTC (Tian's go):** `v13ecp` (0.5 Raptor + 0.5 Claude, no LLM share) then `v13ec` (0.25 LLM + 0.5 Raptor + 0.25 Claude), both B0 seed 42 | does the Claude relabel improve the CNNs, and does the dose matter? Read each solo vs the B0 seed mean 0.9365: ✅ ≥ 0.9405 / 🔁 0.933–0.940 / ❌ ≤ 0.932 | none (Tian chose not to wait for A3) | ≈ 2.6 h ≈ $2.2 | P-65 |
+| T1 | **Session E on RunPod pod `j4obvfotdbdudo` since 10-05 09:10 UTC (Tian's go): chain 1 `v13ecp` done 10:24 (gold 0.9063, shipped, = A4); chain 2 training.** `v13ecp` (0.5 Raptor + 0.5 Claude, no LLM share) then `v13ec` (0.25 LLM + 0.5 Raptor + 0.25 Claude), both B0 seed 42 | does the Claude relabel improve the CNNs, and does the dose matter? Read each solo vs the B0 seed mean 0.9365: ✅ ≥ 0.9405 / 🔁 0.933–0.940 / ❌ ≤ 0.932 | none (Tian chose not to wait for A3) | ≈ 2.6 h ≈ $2.2 | P-65 |
 | T9 | **P-68** teacher arm: one production arm on LLM + Raptor + a CNN-family OOF (≥ 0.5 on silent cells) | the forum's multi-source pseudo-label gain | the A3 read + an OOF table (free from T7's best proxy) | 1 arm ≈ 6 h | P-68 |
 | T6 | Final members (week of 10-17): B3 × 2 seeds (RunPod), B0 × 2, R50, the T8 family — all on the winning stack and target | the two final picks (B6-successor; the fork leg) | T7 / T9 / T1 reads | ≈ 30 Kaggle session-h + ≈ $4 RunPod for the B3s | P-50 |
 | T2 | B3 at seed 43 **now** | de-biases the single 0.940 draw; the critic's case is written | folded into T6: the final B3 retrain on the winning recipe *is* the second draw. Run now only if A3 ✅ makes a new-target B3 urgent | ≈ $1.9 | P-50 |
