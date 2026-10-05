@@ -121,6 +121,7 @@ agreement with the teacher, not truth. A one-seed LB delta needs ≥ 0.004 (P-44
 | 2026-10-05 | **B6, submission #52 (`rsna-knee-infer` v51)**: flat rank-mean of all five, `v11a` + `v13r` + `v13e` + `v13b3` + `v13e2` | gold-58 0.9256 | **0.942** | **✅ KEEP: +0.004 vs #48 (bar ≥ 0.941). Our own models = the public-stack fork (0.942); the own final-pick candidate (P-50).** Corrected blend rule: LB ≈ the members' mean + g(n), g(2) ≈ 0.0015–0.0045, g(3) ≈ 0.0045, g(5) ≈ 0.006 (entry "Submissions #49–#53") |
 | 2026-10-05 | **P-50 fork, submission #49 (`rsna-knee-fork` v11, sent 00:41, ref 56838006)**: the public 0.942 stack + the #48 trio (`v11a` + `v13r` + `v13e`) as our leg at β 0.45 | — | **0.943** | **🔁 +0.001 vs #13 / #15 (band 0.941–0.944); our best public number: rank 373 of 5,187, up from ≈ 1,381 (the 0.942 plateau is ≈ 1,000 forks wide).** The first own leg to lift the stack (β 0.10–0.20 legs read 0.000 / −0.001); 5.3 h to score. Next: C2 = the stack + B6 (entry "Submissions #49–#53") |
 | 2026-10-05 | **Session E chain 1, `v13ecp` (RunPod RTX 4090, 71 min, P-65)**: `v13e` exactly (B0, seed 42) on **0.5 Raptor + 0.5 Claude**, no LLM-blend share (`TEACHER_MIX` 1.0 over `raptor_teacher` + `claude_v1`) | gold-58 SWA **0.9063** (B0 seed pair 0.9126 / 0.9151; Baker's −0.046, Effusion −0.032 and MCL −0.041 down, Lateral Meniscus +0.029 and Lateral OA +0.020 up; within-class ρ to `v13e` 0.883, the seed pair's 0.888) | ⏳ (solo 10-06, `rsna-knee-infer` v53) | **✅ run green, shipped; 🔁 direction only** — read vs the B0 seed mean 0.9365: ✅ ≥ 0.9405 / 🔁 0.933–0.940 / ❌ ≤ 0.932 (entry "Session E on RunPod, chain 1") |
+| 2026-10-05 | **Session E chain 2, `v13ec` (RunPod RTX 4090, 71 min, P-65)**: `v13e` exactly (B0, seed 42) on **0.25 LLM + 0.5 Raptor + 0.25 Claude** (`claude_rap_v1` at mix 0.75, the registered design) | gold-58 SWA **0.9116** (B0 seed pair 0.9126 / 0.9151; Baker's −0.037, MCL −0.032, Contusion −0.033 down at this dose too; Effusion back to −0.004; within-class ρ to `v13e` 0.886) | ⏳ (solo 10-06, `rsna-knee-infer` v54) | **✅ run green, shipped, pod deleted (E ≈ $1.9); 🔁 direction only** — read vs the B0 seed mean 0.9365 (same bands). Fair epoch-selection test on gold: +0.007 (`v13ecp`) / −0.001 (`v13ec`), 🔁 (entry "Session E chain 2") |
 
 **External reference points** (not ours — for calibrating ambition):
 
@@ -3462,6 +3463,78 @@ Placeholder `rsna-knee-infer` **v53** pushed 10:28 UTC.
 
 **Verdict: ✅ the run (green, shipped, backed up); 🔁 gold −0.008, a seed-level difference against a 0.05 floor.** The solo is read
 2026-10-06. Chain 2 (`v13ec`, 0.25 LLM + 0.5 Raptor + 0.25 Claude) started on the same pod at 10:24.
+
+### 2026-10-05 — Session E chain 2: `v13ec` (B0 on 0.25 LLM + 0.5 Raptor + 0.25 Claude) gold-58 SWA **0.9116** vs the B0 seed pair 0.9126 / 0.9151 · pod stopped itself and was deleted, E ≈ $1.9 · epoch selection on gold, tested fairly on both E arms: **+0.007 / −0.001** · ✅ run green, shipped; 🔁 direction only · solo 10-06
+
+**Setup:** `v13e` exactly (B0, seed 42), `TEACHER_TABLES = ("claude_rap_v1",)` at `TEACHER_MIX = 0.75`. The log reads `training targets
+= (1 - 0.75) * LLM + 0.75 * quantile-matched ['claude_rap_v1']`, which is 0.25 LLM + 0.5 Raptor + 0.25 Claude, the design P-65
+registered. Trained 10:25 → 11:36 UTC at the same 2.3 min/epoch; `SWA of last 3`, `-> v13ec_fold0_best.pt = SWA`, no guard.
+
+**What happened after training:**
+- **Ship:** `rsna-knee-ckpt-v13ec` at 11:36 UTC (best.pt 17.7 MB, OOF, log; `kaggle datasets files` confirmed). The local backup is the
+  Dataset download, `artifacts/kaggle_out/pod_v13ec/`; the pod was already stopped, so there is no md5 against it.
+- **Stop:** the job's final line fired `/workspace/stopper.sh` (traps 51 addendum). `get-pod` read `EXITED` at 11:47; the pod was
+  deleted at 11:48 and `list-pods` is empty.
+- **Cost:** pod 09:09 → ≈ 11:37 ≈ 2.5 h × $0.74 ≈ $1.9 (billing read $1.26 for the day at 11:48 and lags). ≈ $5 of RunPod credit is left.
+
+Gold-58 EMA by epoch (all 58, reported only):
+
+| epoch | 0 | 4 | 9 | 14 | 19 | 24 | 29 | SWA |
+|---|---|---|---|---|---|---|---|---|
+| `v13ec` (0.25 Claude) | 0.7613 | 0.8973 | 0.9080 | 0.9108 | **0.9169** | 0.9137 | 0.9117 | **0.9116** (CI95 0.880–0.939) |
+| `v13ecp` (0.5 Claude) | 0.7619 | 0.9038 | 0.9113 | **0.9185** | 0.9148 | 0.9063 | 0.9063 | 0.9063 |
+| `v13e` (no Claude, same seed) | 0.7757 | 0.9032 | 0.9079 | 0.9104 | 0.9115 | 0.9136 | 0.9126 | 0.9126 |
+
+**Per label, the two doses vs the B0 seed mean** (`v13e`, `v13e2`):
+
+| label | `v13ec` | `v13ecp` | B0 mean | Δ 0.25 | Δ 0.5 |
+|---|---|---|---|---|---|
+| ACL | 0.952 | 0.956 | 0.963 | −0.011 | −0.007 |
+| MCL | 0.921 | 0.912 | 0.952 | **−0.032** | **−0.041** |
+| Medial Meniscus | 0.966 | 0.957 | 0.946 | +0.020 | +0.011 |
+| Lateral Meniscus | 0.871 | 0.878 | 0.850 | +0.021 | +0.029 |
+| Medial OA | 0.989 | 0.986 | 0.984 | +0.005 | +0.002 |
+| Lateral OA | 0.847 | 0.857 | 0.837 | +0.011 | +0.020 |
+| PF OA | 0.874 | 0.879 | 0.874 | 0.000 | +0.005 |
+| Effusion | 0.919 | 0.892 | 0.924 | −0.004 | **−0.032** |
+| Synovitis | 0.822 | 0.809 | 0.816 | +0.006 | −0.007 |
+| Baker's | 0.946 | 0.937 | 0.983 | **−0.037** | **−0.046** |
+| Contusion | 0.938 | 0.941 | 0.971 | **−0.033** | **−0.030** |
+| Fracture | 0.894 | 0.874 | 0.867 | +0.028 | +0.007 |
+| **macro** | **0.9116** | **0.9063** | **0.9139** | **−0.0023** | **−0.0076** |
+
+- **Baker's, MCL and Contusion fall at both doses** (−0.03 to −0.05). Both E arms and `v13e` share seed 42, so `v13e` alone is the
+  same-seed control, and it has MCL 0.952 and Contusion 0.970. Baker's is the pilot's size-threshold loss. MCL and Contusion were
+  flat in the pilot's target, so their fall has no explanation on the label side.
+- **Effusion recovers at the half dose** (−0.004 vs −0.032). The menisci and the lateral compartment rise at both doses.
+- **None of this clears the 0.05 gold floor.** The solos decide (traps 39).
+
+**Diversity on gold** (within-class ρ): `v13ec` ~ `v13e` 0.886, ~ `v13ecp` 0.881, ~ `v13es` 0.907, ~ `v13b3` 0.885, ~ `v13r` 0.870,
+~ `v11a` 0.837. As with `v13ecp`, the ranking moves about as much as a seed does (seed pair 0.888). Gold rank-means: B6 0.9256, + `v13ec`
+0.9240, + both E arms 0.9234.
+
+**Epoch selection on gold, tested fairly (Tian asked whether shipping the last epochs loses performance).** Production arms ship the
+SWA of the last three EMA snapshots (`ckpt_policy="last"`); per-epoch weights are not saved, only per-epoch gold predictions. The test
+picks the best epoch on a random half of the 58 gold studies and scores it on the other half against the shipped SWA. 500 splits, both
+directions, every label with ≥ 2 positives and ≥ 2 negatives in each half.
+
+| arm | in-sample peak − SWA | fair gain of the picked epoch vs SWA | splits > 0 | picked epoch, median (IQR) |
+|---|---|---|---|---|
+| `v13ecp` | +0.0121 (epoch 14) | **+0.0066** (sd 0.0084) | 82 % | 14 (13–14) |
+| `v13ec` | +0.0053 (epoch 19) | **−0.0006** (sd 0.0081) | 58 % | 18 (15–19) |
+
+For `v13ec` the candidates are epochs 0–24 only: epochs 25–29's per-epoch files were on the deleted pod, and those epochs sit next to
+the SWA. About half of `v13ecp`'s in-sample peak survives the fair test, and none of `v13ec`'s does. Both are far below the gold floor.
+The question belongs to the P-67 five-fold ruler, where the epoch budget is already a planned variable (the 50-epoch arm); saving an EMA
+snapshot every few epochs (≈ 18 MB each for B0) would make an earlier epoch submittable. Earlier reads of the same question: P-22 (the
+concat head decayed, +0.013 split-half on 882 OOF studies), the 8-epoch CoAtNets (−0.0001 / −0.0002), P-29 (16 epochs over-trained by
+0.012 on OOF; fixed by the epoch budget, not by selection).
+
+**The read is the solo LB** (candidates.md A5): vs the B0 seed mean 0.9365, ✅ ≥ 0.9405 / 🔁 0.933–0.940 / ❌ ≤ 0.932. With A4 it is a
+three-dose read on one backbone and seed (0 / 0.25 / 0.5 Claude). Placeholder `rsna-knee-infer` **v54**.
+
+**Verdict: ✅ the run (green, shipped, backed up; E ≈ $1.9, pod deleted); 🔁 gold −0.002, a seed-level difference.** The solo is read
+2026-10-06. Epoch selection on gold: 🔁, mixed sign on the two arms, under the floor.
 
 ## Infrastructure
 
