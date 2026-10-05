@@ -17,11 +17,11 @@ is in [docs/experiments.md](docs/experiments.md).
 
 | | |
 |---|---|
-| Public LB (2026-10-04) | **Top 0.963**; 10th 0.959; 106 teams ≥ 0.950; 5,117 teams. **We are rank 1,408 at 0.942** |
-| Our best | **LB 0.942** = the public-stack fork (#13 / #15). **Own models 0.942** = #52 (B6), a flat rank-mean of `v11a` + `v13r` + `v13e` + `v13b3` + `v13e2`, `rsna-knee-infer` v51: equal to the fork. **Solo 0.940** = #50 `v13b3` (EfficientNet-B3 @ 288, P-66). A flat blend reads ≈ its members' mean + a gain: ≈ 0.004–0.006 across families, ≈ 0.001–0.003 within one recipe (experiments.md 10-05). CNN seed spread s = 0.003 (#51 `v13e2` 0.938 vs `v13e` 0.935) |
+| Public LB (2026-10-05, 06:02 UTC) | **Top 0.963**; 10th 0.959; 113 teams ≥ 0.950; 303 ≥ 0.945; 5,187 teams. **We are rank 373 at 0.943** (#49). The 0.942 plateau (the forked public stack) is ≈ 1,000 teams wide: 0.942 = rank 1,381 |
+| Our best | **LB 0.943** = #49, the public stack + our #48 trio at β 0.45 (`rsna-knee-fork` v11; 🔁 +0.001 over the stack alone, 5.3 h to score). **Own models 0.942** = #52 (B6), a flat rank-mean of `v11a` + `v13r` + `v13e` + `v13b3` + `v13e2`, `rsna-knee-infer` v51: equal to the fork. **Solo 0.940** = #50 `v13b3` (EfficientNet-B3 @ 288, P-66). A flat blend reads ≈ its members' mean + a gain: ≈ 0.004–0.006 across families, ≈ 0.001–0.003 within one recipe (experiments.md 10-05). CNN seed spread s = 0.003 (#51 `v13e2` 0.938 vs `v13e` 0.935) |
 | Production recipe | CNNs on the `v13h` recipe: c03 input, CNN LR 3e-4 uniform, frozen BN, heavy aug, drop-path 0.1, 30 epochs, SWA of 27–29. Targets 0.5 LLM + 0.5 quantile-matched Raptor. The c03 CoAtNet `v11a` is the non-CNN family |
-| Trained, LB pending | **Session D** (P-62, Kaggle): `v13es` 0.9107 / `v13rs` 0.9160 on gold. **P-66** (RunPod 4090, ≈ $2.6, pod deleted): `v13b3` (EfficientNet-B3 @ 288) 0.9222, `v13e2` (`v13e` at seed 43) 0.9151. All four are shipped as `rsna-knee-ckpt-<arm>`. No training is running. **Scoring now (sent 10-05 00:41–00:45 UTC):** #49 fork v11 (C1), #50 `v13b3` solo (**0.940**), #51 `v13e2` solo (**0.938**), #52 five-member B6 (**0.942**), #53 B3 swap (**0.940**) |
-| Next | **The queue: [docs/candidates.md](docs/candidates.md)** — every model / ensemble to score and every arm to train next, with what each tests and its read rule. The 10-05 five are #49–#53, scores ⏳. The 10-06 candidates (infer v45 / v46 / v49 / v50) are green. After the 10-10 GPU reset: the final members. Final picks (P-50) by 10-15; deadline 10-22 |
+| Trained, LB pending | **Session D** (P-62, Kaggle): `v13es` 0.9107 / `v13rs` 0.9160 on gold. **P-66** (RunPod 4090, ≈ $2.6, pod deleted): `v13b3` (EfficientNet-B3 @ 288) 0.9222, `v13e2` (`v13e` at seed 43) 0.9151. All four are shipped as `rsna-knee-ckpt-<arm>`. No training is running. **10-05 reads, all in:** #49 fork + trio **0.943** (🔁), #50 `v13b3` solo **0.940** (✅), #51 `v13e2` solo **0.938** (s = 0.003), #52 five-member B6 **0.942** (✅), #53 B3 swap **0.940** (🔁) |
+| Next | **The queue: [docs/candidates.md](docs/candidates.md)** — every model / ensemble to score and every arm to train next, with what each tests and its read rule. 10-06: C2 (fork + B6 leg, to build) first, then the P-62 pair (infer v49 / v50, green). After the 10-10 GPU reset: the final members. Final picks (P-50) by 10-15; deadline 10-22 |
 | Budgets | Kaggle GPU 30 h/week: 26.67 h used, 3.33 h left until the 2026-10-10 reset. 5 submissions per UTC day. RunPod only after a justification checked by a critic subagent and Tian's go |
 
 ## 📚 Documentation map — read the relevant one before acting
@@ -373,7 +373,7 @@ Macro ROC-AUC is invariant to any strictly increasing per-label transform, so:
 Public LB on 2026-10-04 (full CSV via `kaggle competitions leaderboard -d`):
 - **Top 0.963**; ranks 1–10 span 0.959–0.963.
 - 49 teams ≥ 0.955, 106 ≥ 0.950, 291 ≥ 0.945; 5,117 teams in total.
-- **We are at 0.942 (rank 1,408)** with the public-stack fork (#13 / #15).
+- **We are at 0.943 (rank 373)** with the public stack + our #48 trio at β 0.45 (#49); the stack alone (0.942) is rank 1,381.
 - Our own models read **0.942** (#52, five members, equal to the fork) and **0.940** solo (#50 `v13b3`, EfficientNet-B3; B0 seeds 0.935 / 0.938).
 - Earlier snapshots are in research.md §2.7.3–2.7.4 and experiments.md.
 

@@ -119,6 +119,7 @@ agreement with the teacher, not truth. A one-seed LB delta needs ≥ 0.004 (P-44
 | 2026-10-04 | **Session D (`rsna-knee-train-b` v6, 5.94 h), P-62 on the CNNs**: `v13es` / `v13rs` = `v13e` / `v13r` + Raptor 0.75 on report-silent cells | gold-58 SWA **0.9107 / 0.9160** (flat 0.9126 / 0.9111; pair mean +0.0015; ρ to the flat parents 0.932 / 0.948, closer than a seed twin's 0.888) | ⏳ (solos 10-05, `rsna-knee-infer` v49 / v50) | **✅ runs green; 🔁 direction only** — read m(`v13es`, `v13rs`) vs 0.9345: ✅ ≥ 0.9390 / 🔁 0.9300–0.9389 / ❌ ≤ 0.9299 (entry "Session D") |
 | 2026-10-05 | **B3 swap, submission #53 (`rsna-knee-infer` v52)**: flat rank-mean `v11a` + `v13r` + `v13b3` | gold-58 0.9254 | **0.940** | **🔁 +0.002 vs #48; = `v13b3` alone.** Every flat blend we have sent reads ≈ the members' mean + 0.002–0.005 (n = 7), so weak members now cost more than they add (entry "Submissions #49–#53") |
 | 2026-10-05 | **B6, submission #52 (`rsna-knee-infer` v51)**: flat rank-mean of all five, `v11a` + `v13r` + `v13e` + `v13b3` + `v13e2` | gold-58 0.9256 | **0.942** | **✅ KEEP: +0.004 vs #48 (bar ≥ 0.941). Our own models = the public-stack fork (0.942); the own final-pick candidate (P-50).** Corrected blend rule: LB ≈ the members' mean + g(n), g(2) ≈ 0.0015–0.0045, g(3) ≈ 0.0045, g(5) ≈ 0.006 (entry "Submissions #49–#53") |
+| 2026-10-05 | **P-50 fork, submission #49 (`rsna-knee-fork` v11, sent 00:41, ref 56838006)**: the public 0.942 stack + the #48 trio (`v11a` + `v13r` + `v13e`) as our leg at β 0.45 | — | **0.943** | **🔁 +0.001 vs #13 / #15 (band 0.941–0.944); our best public number: rank 373 of 5,187, up from ≈ 1,381 (the 0.942 plateau is ≈ 1,000 forks wide).** The first own leg to lift the stack (β 0.10–0.20 legs read 0.000 / −0.001); 5.3 h to score. Next: C2 = the stack + B6 (entry "Submissions #49–#53") |
 
 **External reference points** (not ours — for calibrating ambition):
 
@@ -3249,7 +3250,7 @@ The 10-06 solos of P-66 are ready as well: **v47** = `v13b3`, **v48** = `v13e2`.
 
 **Verdict: ✅ the runs; 🔁 gold pair mean +0.0015 (0.03× the floor), labels split.** Solos sent after 00:00 UTC 2026-10-05.
 
-### 2026-10-05 — Submissions #49–#53 (the 10-05 five) · #50 EfficientNet-B3 `v13b3` **0.940 = our best solo** (✅ +0.005 vs `v13e`) · #51 seed twin `v13e2` **0.938**: s = 0.003, the CNN one-seed bands stand · #53 B3 swap **0.940** (🔁, = B3 alone) · **#52 all five (B6) 0.942 = the public-stack fork, from our own models (✅ +0.004 vs #48)**; a flat blend ≈ the members' mean + a gain that grows with member count · #49 ⏳
+### 2026-10-05 — Submissions #49–#53 (the 10-05 five) · #50 EfficientNet-B3 `v13b3` **0.940 = our best solo** (✅ +0.005 vs `v13e`) · #51 seed twin `v13e2` **0.938**: s = 0.003, the CNN one-seed bands stand · #53 B3 swap **0.940** (🔁, = B3 alone) · **#52 all five (B6) 0.942 = the public-stack fork, from our own models (✅ +0.004 vs #48)**; a flat blend ≈ the members' mean + a gain that grows with member count · **#49 fork + #48 trio at β 0.45 = 0.943 (🔁 +0.001; rank 373, the 0.942 plateau is ≈ 1,000 teams wide)**
 
 Sent 00:41–00:45 UTC by the `auto_submit.py` fallback run. The scheduled 00:00:30 run sent nothing (traps 20 addendum). Placeholders
 were green on 10-04 (candidates.md); rows #49–#53 are in the Submissions table. Each message carries its pre-registered read.
@@ -3257,6 +3258,7 @@ were green on 10-04 (candidates.md); rows #49–#53 are in the Submissions table
 | # | what | gold-58 | LB | scored within | pre-registered read | verdict |
 |---|---|---|---|---|---|---|
 | 50 | `v13b3` = EfficientNet-B3 ra2 @ 288, `v13h` recipe (RunPod, P-66) | 0.9222 | **0.940** | [18.5, 20.0] min | vs `v13e` 0.935: ✅ ≥ 0.939 / 🔁 0.931–0.938 / ❌ ≤ 0.930 | **✅ KEEP (+0.005) — our best solo** |
+| 49 | `rsna-knee-fork` v11: the public 0.942 stack + the #48 trio as our leg at β 0.45 | — | **0.943** | [318.1, 319.6] min | vs #13 0.942: ✅ ≥ 0.945 / 🔁 0.941–0.944 / ❌ ≤ 0.940 | 🔁 (+0.001) — our best public number, rank 373 |
 | 52 | `v11a` + `v13r` + `v13e` + `v13b3` + `v13e2`, flat rank-mean (B6) | 0.9256 | **0.942** | [48.6, 50.1] min | vs #48 0.938: ✅ ≥ 0.941 / 🔁 0.936–0.940 / ❌ ≤ 0.935 | **✅ KEEP (+0.004) — our best own, = the fork** |
 | 53 | `v11a` + `v13r` + `v13b3`, flat rank-mean (B3 swap) | 0.9254 | **0.940** | [45.6, 47.1] min | vs #48 0.938: ✅ ≥ 0.941 / 🔁 0.936–0.940 / ❌ ≤ 0.935 | 🔁 (+0.002; = `v13b3` alone) |
 | 51 | `v13e2` = `v13e` exactly at seed 43 (RunPod, P-66) | 0.9151 | **0.938** | [12.5, 14.0] min | s = \|LB − 0.935\|: ≤ 0.003 the bands stand / ≥ 0.005 widen them | **✅ measured: s = 0.003 → the bands stand** |
@@ -3381,6 +3383,23 @@ predictions for the EfficientNet-only blends:
 
 B0 and B3 sit at within-class ρ 0.888, the same as a seed pair, so these blends are priced as same-recipe. Neither is predicted to
 beat B6. **What beats B6 is most likely a new family at ≥ 0.935, not more EfficientNets.**
+
+**#49, what it says (read 06:01 UTC, scored within [318.1, 319.6] min ≈ 5.3 h).**
+1. **The fork with our #48 trio at β 0.45 reads 0.943: 🔁 by its rule** (+0.001 vs #13 / #15 0.942; ✅ needed ≥ 0.945). It is our
+   highest number on the board.
+2. **+0.001 is worth ≈ 1,000 ranks here.** The full leaderboard (06:02 UTC, 5,187 teams): 0.942 = rank 1,381, 0.943 = rank 373,
+   0.945 = rank 239, 0.950 = rank 102. About 1,000 teams sit on the forked public stack at exactly 0.942, so any own leg that adds
+   anything at all clears the plateau. The 0.946–0.947 teams (research.md 2.7.4) have own legs of ≈ 0.94–0.95 members.
+3. **Our leg at β 0.45 added +0.001 with a 0.938 leg.** The rule from the own blends (a flat blend ≈ the members' mean + a gain) says
+   the leg's level is what matters: B6 (0.942) as the leg should add more than the trio (0.938) did. That is C2.
+4. **Earlier legs at β 0.10–0.20 added 0.000 / −0.001** (#13, #14, #22, #27: Raptor-distilled CoAtNets that correlate with the
+   stack). The cross-family trio at β 0.45 is the first own leg to move the fork up. Both the weight and the leg changed, so this
+   read cannot separate them; it does not need to.
+5. **Scoring time: 5.3 h for a three-member leg** (the fork alone took up to 8 h at #17). A C2 leg has five members; the two extra
+   are B3 (20 min solo) and a B0 (14 min). Expect ≈ 6 h, inside the ≤ 9 h limit, but send C2 first in its day.
+
+**Verdict #49: 🔁 by the pre-registered rule (+0.001, band 0.941–0.944); our best public number (0.943, rank 373).** The fork +
+own leg stays the second final-pick candidate, and C2 (B6 as the leg) is the next fork build.
 
 ## Infrastructure
 
@@ -3877,7 +3896,7 @@ and public LB score, so a public/private divergence can be traced to a specific 
 | 46 | 2026-10-04 | rsna-knee-infer v42 (v41's mounts) | **P-64 follow-up, EfficientNet-B0 solo**: `INFER_MEMBERS = ["v13e"]` — EfficientNet-B0 ra on the `v13h` recipe (`rsna-knee-train` v43) (`artifacts/infer_solo_v13e.py`) | none; gold-58 SWA 0.9126 | **0.935** | **read 07:39:27 UTC → +0.004 vs `v13h` 0.931 → ✅ KEEP (bar ≥ 0.935) — our best solo (was 0.932); scored within [13.8, 15.3] min, our fastest.** sent 07:24:08 UTC, ref 56817439 |
 | 47 | 2026-10-04 | rsna-knee-infer v43 (v41's mounts) | **Two-family blend**: `INFER_MEMBERS = ["v11a", "v13h"]` — flat rank-mean, one c03 decode pass (`artifacts/infer_pair_v11a_v13h.py`) | none; gold-58 0.9170 | **0.934** | **read 07:56:24 UTC → +0.002 over the best member (`v11a` 0.932) → 🔁 (keep bar ≥ 0.936); the first blend of ours above both members; scored within [27.3, 28.8] min.** sent 07:27:35 UTC, ref 56817516 |
 | 48 | 2026-10-04 | rsna-knee-infer v44 (v41's mounts) | **Three-family blend**: `INFER_MEMBERS = ["v11a", "v13r", "v13e"]` — flat rank-mean of CoAtNet-1 + ResNet-50 + EfficientNet-B0, one c03 decode pass (`artifacts/infer_trio_v11a_v13r_v13e.py`) | none; gold-58 0.9233 | **0.938** | **read 08:40:31 UTC → +0.003 over the best member (`v13e` 0.935), +0.004 over the members' mean → 🔁 by rule (keep bar ≥ 0.939); our best own-model score; scored within [42.3, 43.8] min.** sent 07:56:41 UTC, ref 56818172 |
-| 49 | 2026-10-05 | rsna-knee-fork v11 | **C1 / P-50**: the public 0.942 stack + our #48 trio (`v11a` + `v13r` + `v13e`) as the leg at **β 0.45** (`src/build_fork.py`) | none (fork) | ⏳ | sent 00:41:45 UTC, ref 56838006, by the `auto_submit.py` fallback run (the 00:00:30 scheduled run sent nothing: traps 20 addendum). Read vs #13 0.942: ✅ ≥ 0.945 / 🔁 0.941–0.944 / ❌ ≤ 0.940 |
+| 49 | 2026-10-05 | rsna-knee-fork v11 | **C1 / P-50**: the public 0.942 stack + our #48 trio (`v11a` + `v13r` + `v13e`) as the leg at **β 0.45** (`src/build_fork.py`) | none (fork) | **0.943** | **read 06:01:18 UTC → +0.001 vs #13 0.942 → 🔁 (band 0.941–0.944); our best public number, rank 373 of 5,187 (the 0.942 plateau ≈ 1,000 teams); scored within [318.1, 319.6] min ≈ 5.3 h.** sent 00:41:45 UTC, ref 56838006, by the `auto_submit.py` fallback run (the 00:00:30 scheduled run sent nothing: traps 20 addendum) |
 | 50 | 2026-10-05 | rsna-knee-infer v47 (+ Dataset `rsna-knee-ckpt-v13b3`) | **A1 / P-66, EfficientNet-B3 solo**: `INFER_MEMBERS = ["v13b3"]`, B3 ra2 @ 288 on the `v13h` recipe, trained on RunPod (`artifacts/infer_solo_v13b3.py`) | none; gold-58 0.9222 | **0.940** | **read 01:02:27 UTC → +0.005 vs `v13e` 0.935 → ✅ KEEP (bar ≥ 0.939); our best solo, above #48; scored within [18.5, 20.0] min.** sent 00:42:30 UTC, ref 56838023. Read vs `v13e` 0.935: ✅ ≥ 0.939 / 🔁 0.931–0.938 / ❌ ≤ 0.930; a member if ≥ 0.933 |
 | 51 | 2026-10-05 | rsna-knee-infer v48 (+ Dataset `rsna-knee-ckpt-v13e2`) | **A2 / P-66, seed twin**: `INFER_MEMBERS = ["v13e2"]`, `v13e` at seed 43, RunPod (`artifacts/infer_solo_v13e2.py`) | none; gold-58 0.9151 | **0.938** | **read 00:57:11 UTC → s = 0.003 → ✅ measured, the CNN bands stand; = #48, our best solo; scored within [12.5, 14.0] min.** sent 00:43:16 UTC, ref 56838038. s = \|score − 0.935\|: s ≤ 0.003 the bands stand / s ≥ 0.005 one-seed CNN deltas need ≥ s |
 | 52 | 2026-10-05 | rsna-knee-infer v51 | **B6, five-member blend**: flat rank-mean of `v11a` + `v13r` + `v13e` + `v13b3` + `v13e2` (`artifacts/infer_B6_five.py`) | none; gold-58 0.9256 | **0.942** | **read 01:34:03 UTC → +0.004 vs #48 → ✅ KEEP (bar ≥ 0.941); our best own score, = the public-stack fork (#13 / #15); +0.002 over its best member, +0.0062 over the members' mean; scored within [48.6, 50.1] min.** sent 00:44:02 UTC, ref 56838060. Read vs #48 0.938: ✅ ≥ 0.941 / 🔁 0.936–0.940 / ❌ ≤ 0.935 |

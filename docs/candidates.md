@@ -15,7 +15,7 @@ Updated 2026-10-04 (18:20 UTC). The 10-05 five go out automatically at 00:00:30 
 
 | | LB | What |
 |---|---|---|
-| Public-stack fork | **0.942** | #13 / #15 |
+| Public-stack fork | **0.942** | #13 / #15 alone; **0.943** with our #48 trio at β 0.45 (#49, rank 373) |
 | Our best own | **0.942** | #52 = B6: flat rank-mean of `v11a` + `v13r` + `v13e` + `v13b3` + `v13e2` (= the public-stack fork). Best solo #50 `v13b3` 0.940 |
 | Solos | **0.940** / 0.938 / 0.935 / 0.934 / 0.932 / 0.931 | `v13b3` / `v13e2` / `v13e` / `v13r` / `v11a` / `v13h` |
 | CNN seed spread | s = 0.003 | #51 `v13e2` 0.938 vs `v13e` 0.935 (10-05): the one-seed bands stand (≥ 0.004). The B0 recipe's seed mean is 0.9365 |
@@ -60,8 +60,7 @@ rule, LB rounded to 0.001. Member solos: `v13b3` 0.940, `v13e2` 0.938, `v13e` 0.
 
 | # | Candidate | What it tests / contributes | Read rule | Placeholder |
 |---|---|---|---|---|
-| C1 | Public 0.942 stack + #48 as our leg at β 0.45 | Does our own model set lift the public stack, as the 0.946–0.947 teams' own legs do? The biggest single stake for the final pick. **Scores slowly (hours, #17 ≤ 8 h): send first in a day** | vs 0.942: ✅ ≥ 0.945 / 🔁 0.941–0.944 / ❌ ≤ 0.940 | `rsna-knee-fork` **v11** ✅ · sent 10-05 as #49 (ref 56838006), ⏳ |
-| C2 | Public stack + the best ensemble from B (e.g. B6) at β 0.45 | The same question with a stronger own leg | as C1 | build (`src/build_fork.py`) after C1 and B are read |
+| C2 | Public stack + **B6** (`v11a` + `v13r` + `v13e` + `v13b3` + `v13e2`) as our leg at β 0.45 | C1 (#49, the #48 trio as the leg) read **0.943** = +0.001 over the stack (🔁) and rank 373. A 0.942 leg should add more than a 0.938 one did. **Scores slowly: #49 took 5.3 h with three members; expect ≈ 6 h with five. Send first in its day** | vs #49 0.943: ✅ ≥ 0.946 / 🔁 0.942–0.945 / ❌ ≤ 0.941 | **build** (`src/build_fork.py --members v11a v13r v13e v13b3 v13e2`, β 0.45; needs the `rsna-knee-ckpt-v13b3` / `-v13e2` Datasets as sources; smoke first) |
 | — | Fork at other β | **Not planned:** it tunes a weight to the public LB | — | — |
 
 ## Order
@@ -70,10 +69,10 @@ rule, LB rounded to 0.001. Member solos: `v13b3` 0.940, `v13e2` 0.938, `v13e` 0.
   - **Sent 00:41–00:45 UTC as #49–#53** (fork v11, infer v47, v48, v51, v52; each message carries its read rule). The scheduled
     00:00:30 run sent nothing: its client held a token that had expired at 19:17 (traps 20 addendum, fixed). The fallback run
     (`artifacts/auto_submit_1005r.log`) sent all five. Per-ref watchers: `artifacts/watch_<ref>.log`. Scores ⏳.
-- **10-06:**
-  - A3, the P-62 pair: it only needs reading before E is trained;
-  - B1 and B2;
-  - one follow-up chosen from the 10-05 reads, e.g. C2 if C1 ✅, or B5.
+- **10-06 (all 10-05 reads are in):**
+  - **C2 first** (the fork + B6 leg; ≈ 6 h to score);
+  - A3, the P-62 pair (two slots): decides the target of every arm trained after it;
+  - the remaining two slots: B1 / B2 / B10 / B11 all predict under B6 (blend rule), so hold them unless a new member exists; a repeat is worth nothing.
 - **Then:** the remaining B rows, as the reads make them relevant.
 
 ## D. Training candidates (GPU)
