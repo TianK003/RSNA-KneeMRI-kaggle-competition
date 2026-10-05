@@ -63,7 +63,6 @@ result*, per unit of cost. "Depends on" lists hard blockers only. EVs are solo-L
 |---|---|---|---|---|---|---|
 | 0i | P-62 | Silence-aware teacher mix (Raptor 0.75 where the report is silent, 0.5 where it speaks) | ⏳ **session D TRAINED green 2026-10-04 (`rsna-knee-train-b` v6, 5.94 h): gold-58 SWA `v13es` 0.9107 / `v13rs` 0.9160 vs 0.9126 / 0.9111 (direction only); shipped `rsna-knee-ckpt-v13es` / `-v13rs`; solos 10-05 = `rsna-knee-infer` v49 / v50; read m vs 0.9345 (✅ ≥ 0.9390)** | 0..+0.002 — likely under the 0.004 one-seed floor | one c03 session ≈ 3.5 GPU-h + 2 solos | — |
 | 0l | P-65 | Grading-aware Claude relabel of the reports (an independent, severity-aware LLM vote) | ⏳ **full pass DONE 2026-10-04: 4,349 rows, ≈ 25 min, ≈ 6.9 M tokens; `claude_v1` / `claude_rap_v1` published in `rsna-knee-teacher-tables`; session E (`v13ec` ‖ `v13rc` on `claude_rap_v1` at mix 0.75) staged — runs on Kaggle after the 2026-10-10 reset, after session D's P-62 read; read m vs 0.9345 (✅ ≥ 0.9390)** — pilot 🔁 (Opus 0.9062 alone / 0.9397 with Raptor, bars 0.910 / 0.945 not met; Haiku 0.8639 ❌) | 0..+0.005 (literature + forum); the policy-misaligned labels are the upside | session E ≈ 6 GPU-h + 2 solos | — (Tian's go given) |
-| 0m | P-66 | Bigger CNN (`v13b3` EfficientNet-B3 @ 288) + the first CNN seed twin (`v13e2`) on RunPod | ✅ **B3 `v13b3` #50 = 0.940 (KEEP, +0.005 vs `v13e`; our best solo) · twin `v13e2` #51 = 0.938, s = 0.003 → the CNN bands stand**. Both trained 2026-10-04 on a RunPod 4090 (≈ $2.6), gold-58 `v13b3` 0.9222 / `v13e2` 0.9151 — Tian's go, critic-reviewed | B3: 0..+0.005 solo; twin: a measurement + a member | ≈ $3.3 RunPod, 0 Kaggle GPU; 2 solos | — |
 | 4 | P-50 | Final selection and publishability | 💡 decide by 2026-10-15; candidates = our best own ensemble (#48 0.938, `v11a` + `v13r` + `v13e`) and the public-stack fork with our trio at β 0.45 (`rsna-knee-fork` v11, read 2026-10-05) | decides what the private LB scores | a browser session; ≤ 1 fork check | P-40 🔁 closed (#22 / #27), the fork v11 read, Rules page |
 | 5 | P-18 | Efficiency track with the solo member | 💡 low priority — Tian 2026-10-04: score over efficiency; robustness half shipped; the natural fast candidate is `v13e` (0.935 solo, ≈ 15 min to score, 17 MB) | a separate prize; unknown until the formula is read | 0 GPU h (CLI + browser) | Efficiency formula (browser) |
 | 6 | P-47 | Teacher-mix bracket: mix 0.75 only | 💡 low — P-49 priced it on Raptor itself: matched mix 0.75 − 0.5 = −0.002 (SD 0.003) on gold | ≈ 0 (+0.000..0.002) | per-arm `TEACHER_MIX` code + ≈ 2.8 h; 1 solo | P-44 floor, an idle slot |
@@ -132,7 +131,8 @@ result*, per unit of cost. "Depends on" lists hard blockers only. EVs are solo-L
 | P-60 | "Noisy student" regularisation on the c03 CoAtNet (`v11n` / `v11n2`) | 🔁 #39 / #40 = 0.932 / 0.932 → m 0.932 vs 0.9305 (band 0.926–0.935); not adopted (1.5× training time); the first Kaggle resume worked (traps 31) | experiments.md 2026-09-30 "P-60 part 1"; 2026-10-03 "P-60 part 2" |
 | P-61 | CoAtNet learning-rate probe upward (`v11dl`: `lr_backbone` 2e-4, LLRD 0.85) | 🔁 not adopted: #44 `v11dl` 0.927 vs `v11d` 0.930 (−0.003; gold −0.005 the same way) — the CoAtNet optimiser stays at 1e-4 / 0.75 | experiments.md 2026-10-03 "Sessions A ‖ B"; 2026-10-04 "Submissions #44–#47" |
 | P-63 | Per-finding spatial reader + slot-count correction (`v11p`) | 🔁 not adopted: #41 = 0.929 vs `v11a` 0.932 (−0.003; gold 0.9185 vs 0.9204); the code stays, inert at the defaults | experiments.md 2026-10-03 "Sessions A ‖ B", "Submissions #41–#43" |
-| P-64 | Long, heavy-augmentation CNN (`v13h`: c03, CNN LR 3e-4, frozen BN, aug heavy, drop-path 0.1, 30 ep) | ✅ KEEP — the CNN recipe: #42 ResNet-34 `v13h` 0.931 vs `v13c` 0.921 (+0.010); on bigger CNNs #46 EfficientNet-B0 `v13e` 0.935 (best solo), #45 ResNet-50 `v13r` 0.934; trio `v11a` + `v13r` + `v13e` #48 0.938; gold called it flat (traps 39). Bigger CNN → P-66 | experiments.md 2026-10-03 "Submissions #41–#43"; 2026-10-04 "Session C", "Submissions #44–#47", "Submission #48" |
+| P-64 | Long, heavy-augmentation CNN (`v13h`: c03, CNN LR 3e-4, frozen BN, aug heavy, drop-path 0.1, 30 ep) | ✅ KEEP — the CNN recipe: #42 ResNet-34 `v13h` 0.931 vs `v13c` 0.921 (+0.010); on bigger CNNs #46 EfficientNet-B0 `v13e` 0.935 (best solo), #45 ResNet-50 `v13r` 0.934; trio `v11a` + `v13r` + `v13e` #48 0.938; gold called it flat (traps 39). Bigger CNN → P-66 (B3 0.940 ✅) | experiments.md 2026-10-03 "Submissions #41–#43"; 2026-10-04 "Session C", "Submissions #44–#47", "Submission #48" |
+| P-66 | Bigger CNN (`v13b3` EfficientNet-B3 @ 288) + the first CNN seed twin (`v13e2`), trained on RunPod (≈ $2.6, critic-reviewed) | ✅ KEEP — #50 `v13b3` **0.940** = our best solo (+0.005 vs `v13e` 0.935, bar 0.004; +0.0035 vs the B0 seed mean); #51 `v13e2` 0.938 → CNN seed spread s = 0.003, the one-seed bands stand. B3 = a member and a final-retrain candidate; its seed twin is candidates.md T2 | experiments.md 2026-10-04 "P-66 on RunPod", "P-66 complete"; 2026-10-05 "Submissions #49–#53" |
 
 ---
 
@@ -313,48 +313,6 @@ Cost:         pilot ≈ 2 × 30k tokens, minutes. Full pass ≈ 1.5 M input + �
 If it works:  the LLM half becomes LLM + Claude for every later member.
 If it fails:  the label line closes; image-side (recipe, families, P-62 silent-cell teacher) only.
 Depends on:   — (Tian's go for the full pass given 2026-10-04; the pass ran).
-
-### P-66 Bigger CNN (`v13b3`) + the first CNN seed twin (`v13e2`), trained on RunPod
-Status:       ✅ **2026-10-05: both read. `v13b3` #50 = 0.940 → ✅ KEEP (+0.005 vs 0.935; +0.0035 vs the B0 seed mean 0.9365) — our
-              best solo. Twin `v13e2` #51 = 0.938, s = |0.938 − 0.935| = 0.003 → the CNN bands stand.** If-works applies: B3 is a
-              member and a final-retrain candidate; T2 (B3 seed twin) meets its gate (candidates.md). Both solos were sent 10-05,
-              not 10-06 (experiments.md "Submissions #49–#53").
-              2026-10-04 16:00 UTC: **both arms trained green on RunPod pod `kqgjkh0329ieqq` (RTX 4090) and shipped:
-              `v13b3` 2.2 h, gold-58 SWA 0.9222; `v13e2` 65 min, 0.9151; vs `v13e` 0.9126 (direction only).** The pod stopped itself
-              (`AUTO_STOP` via GraphQL) and was deleted; ≈ $2.6 of the $7 cap (Tian's $10 top-up). Solos on 2026-10-06.
-              experiments.md 2026-10-04 "P-66 on RunPod", "P-66 complete".
-              Decided 2026-10-04: Tian's go for this pair over three alternatives (session E now / B3 alone / nothing). A critic
-              subagent reviewed the RunPod spend first and moved session E off it: E's expected LB gain (P-65 card: 0..+0.004)
-              is under its own ✅ bar (+0.0045); E's target is +0.006 on gold (ρ 0.981 with the current one) and three earlier
-              target gains of +0.006..0.009 on gold all failed to transfer (P-38, P-55, P-45); and E's design should wait for
-              session D's P-62 read. E stays on Kaggle after the 2026-10-10 reset.
-Hypothesis:   (B3) our CNN gap to the forum's single CNNs (≈ 0.95 vs our 0.935) is partly capacity / resolution: EfficientNet-B3
-              at its pretraining resolution (288 px; the c03 cache stores 336) on the `v13h` recipe reads ≥ 0.939 solo.
-              (twin) `v13e`'s 0.935 is reproducible: a seed-43 retrain reads within 0.004.
-Origin:       handoff 2026-10-03 / 10-04 (staged `v13b3`; the `v13e2` seed twin was proposed 10-03); forum (research.md 2.7.3:
-              CNN singles 0.94–0.954, 288 px the ceiling some report, longer training helps).
-Evidence:     P-64 ✅ (ResNet-34 0.931 → ResNet-50 0.934 / EfficientNet-B0 0.935 on the same recipe: capacity has helped so far).
-              The only seed measurement we have is one CoAtNet draw (P-44: `v09u` = `v09r` = 0.927); no CNN has a seed twin, so
-              the ±0.0045 bands of sessions D / E and the final picks rest on that single draw.
-Why RunPod:   B3 @ 288 is ≈ 2.5–3× B0's GPU time. On a Kaggle T4 that is ≈ 12–15 h (two sessions + a resume) and likely
-              out of memory at `batch_studies` 2 on 15 GB; on a 4090 ≈ 4 h. The twin is ≈ 1.3 h, the cheapest member we can make.
-Measure:      solo LB of each (`rsna-knee-infer`, `INFER_MEMBERS = ["v13b3"]` / `["v13e2"]`), sent 2026-10-06 (10-05's five
-              slots are taken).
-Read rules:   **`v13b3`** vs `v13e` 0.935: ✅ ≥ 0.939 / 🔁 0.931–0.938 / ❌ ≤ 0.930. Member candidate if ≥ 0.933.
-              **`v13e2`**: s = |`v13e2` − 0.935|. s ≤ 0.003 → the CNN bands stand. s ≥ 0.005 → one-seed CNN deltas need ≥ s,
-              and the D / E reads are re-read with ±s. 0.004 is in between: note it, change nothing. The twin is a final-ensemble
-              member whatever it reads. Its s mixes seed with platform (RunPod 8 loader workers vs Kaggle 2), which is the
-              spread any RunPod-trained member carries anyway.
-Noise floor:  one-seed delta ≥ 0.004 (P-44), until the twin re-measures it.
-Cost:         one secure RTX 4090 ($0.74/h): setup ≈ 0.5 h (c03 pull ≈ 51 GB), `v13b3` ≈ 4 h, `v13e2` ≈ 1.3 h → ≈ $4.5.
-              **Guards:** bandwidth ≥ 20 MB/s or delete (traps 45); cache on local disk, `/kaggle` → `/workspace/kaggle` on the
-              persistent volume (traps 46); Kaggle auth check before training; abort `v13b3` if an epoch takes > 12 min;
-              `AUTO_STOP=1` (the chain stops the pod when it ends); a guard-stopped arm is not shipped (traps 47); **hard cap $7.**
-If it works:  B3 ✅ → an EfficientNet-B3 member, and the final retrains (after 10-10) consider B3 for the CNN family.
-              Twin: a two-seed `v13e` member (#26 precedent: +0.003) and a measured CNN floor.
-If it fails:  B3 ❌ / 🔁 → capacity is not the CNN gap; the CNN family stays B0 / R50. The twin still ships as a member.
-Depends on:   — (runner fixes 2026-10-04: c03 manifest glob, CNN weight Datasets, `RSNA_TEACHER_MIX`, `SEQ_ARMS`, `AUTO_STOP`,
-              ship gate).
 
 ### P-51 Teacher-aware confidence weights
 Status:       💡 low (new 2026-09-27).
