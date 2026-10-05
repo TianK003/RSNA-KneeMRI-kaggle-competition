@@ -18,9 +18,9 @@ is in [docs/experiments.md](docs/experiments.md).
 | | |
 |---|---|
 | Public LB (2026-10-04) | **Top 0.963**; 10th 0.959; 106 teams ≥ 0.950; 5,117 teams. **We are rank 1,408 at 0.942** |
-| Our best | **LB 0.942** = the public-stack fork (#13 / #15). **Own models 0.938** = #48, a flat rank-mean of `v11a` (CoAtNet-1) + `v13r` (ResNet-50) + `v13e` (EfficientNet-B0), `rsna-knee-infer` v44. **Solo 0.938** = #51 `v13e2` (`v13e` at seed 43; `v13e` itself 0.935, so the CNN seed spread s = 0.003) |
+| Our best | **LB 0.942** = the public-stack fork (#13 / #15). **Own models 0.938** = #48, a flat rank-mean of `v11a` (CoAtNet-1) + `v13r` (ResNet-50) + `v13e` (EfficientNet-B0), `rsna-knee-infer` v44. **Solo 0.940** = #50 `v13b3` (EfficientNet-B3 @ 288, P-66), above our best ensemble. CNN seed spread s = 0.003 (#51 `v13e2` 0.938 vs `v13e` 0.935) |
 | Production recipe | CNNs on the `v13h` recipe: c03 input, CNN LR 3e-4 uniform, frozen BN, heavy aug, drop-path 0.1, 30 epochs, SWA of 27–29. Targets 0.5 LLM + 0.5 quantile-matched Raptor. The c03 CoAtNet `v11a` is the non-CNN family |
-| Trained, LB pending | **Session D** (P-62, Kaggle): `v13es` 0.9107 / `v13rs` 0.9160 on gold. **P-66** (RunPod 4090, ≈ $2.6, pod deleted): `v13b3` (EfficientNet-B3 @ 288) 0.9222, `v13e2` (`v13e` at seed 43) 0.9151. All four are shipped as `rsna-knee-ckpt-<arm>`. No training is running. **Scoring now (sent 10-05 00:41–00:45 UTC):** #49 fork v11 (C1), #50 `v13b3` solo, #51 `v13e2` solo (**0.938**), #52 five-member B6, #53 B3 swap |
+| Trained, LB pending | **Session D** (P-62, Kaggle): `v13es` 0.9107 / `v13rs` 0.9160 on gold. **P-66** (RunPod 4090, ≈ $2.6, pod deleted): `v13b3` (EfficientNet-B3 @ 288) 0.9222, `v13e2` (`v13e` at seed 43) 0.9151. All four are shipped as `rsna-knee-ckpt-<arm>`. No training is running. **Scoring now (sent 10-05 00:41–00:45 UTC):** #49 fork v11 (C1), #50 `v13b3` solo (**0.940**), #51 `v13e2` solo (**0.938**), #52 five-member B6, #53 B3 swap |
 | Next | **The queue: [docs/candidates.md](docs/candidates.md)** — every model / ensemble to score and every arm to train next, with what each tests and its read rule. The 10-05 five are #49–#53, scores ⏳. The 10-06 candidates (infer v45 / v46 / v49 / v50) are green. After the 10-10 GPU reset: the final members. Final picks (P-50) by 10-15; deadline 10-22 |
 | Budgets | Kaggle GPU 30 h/week: 26.67 h used, 3.33 h left until the 2026-10-10 reset. 5 submissions per UTC day. RunPod only after a justification checked by a critic subagent and Tian's go |
 
@@ -374,7 +374,7 @@ Public LB on 2026-10-04 (full CSV via `kaggle competitions leaderboard -d`):
 - **Top 0.963**; ranks 1–10 span 0.959–0.963.
 - 49 teams ≥ 0.955, 106 ≥ 0.950, 291 ≥ 0.945; 5,117 teams in total.
 - **We are at 0.942 (rank 1,408)** with the public-stack fork (#13 / #15).
-- Our own models read **0.938** (#48, three families) and **0.938** solo (#51 `v13e2`; its seed-42 twin `v13e` 0.935).
+- Our own models read **0.938** (#48, three families) and **0.940** solo (#50 `v13b3`, EfficientNet-B3; B0 seeds 0.935 / 0.938).
 - Earlier snapshots are in research.md §2.7.3–2.7.4 and experiments.md.
 
 The Efficiency Prize has its own leaderboard, published
@@ -402,7 +402,7 @@ Consensus architecture there: DINOv2 ViT-S/14 as the workhorse (with DINOv3 and 
 ResNet-50 rank-blended alongside), 2.5D one-series-per-slot with a presence mask, laterality
 normalisation, attention pooling over slices, and **LLM-read report labels as the de-facto
 standard target source**. (**Corrected 2026-10-04:** "not EfficientNet" no longer holds. The forum's best singles are CNNs,
-ResNet-34/50 and EfficientNet-B0, and so is ours: `v13e` / `v13e2`, 0.935 / 0.938.)
+ResNet-34/50 and EfficientNet-B0, and so is ours: EfficientNet-B3 `v13b3` 0.940; B0 `v13e` / `v13e2` 0.935 / 0.938.)
 
 Our own measurements of these choices are in [docs/experiments.md](docs/experiments.md).
 
