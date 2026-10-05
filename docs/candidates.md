@@ -28,8 +28,8 @@ member + 0.004.
 
 | # | Candidate | What it tests / contributes | Decides | Read rule | Placeholder | Gold-58 |
 |---|---|---|---|---|---|---|
-| A1 | `v13b3` (EfficientNet-B3 @ 288; P-66) | Does a bigger CNN at higher resolution beat B0? | Whether B3 is the CNN family for the final members (training row T2) | vs 0.935: ✅ ≥ 0.939 / 🔁 0.931–0.938 / ❌ ≤ 0.930; member if ≥ 0.933 | `rsna-knee-infer` **v47** ✅ | 0.9222 |
-| A2 | `v13e2` (`v13e`, seed 43; P-66) | The first measurement of the CNN seed noise on the LB, s = \|`v13e2` − 0.935\| | How every other CNN read is judged; whether a 2-seed member is worth it | s ≤ 0.003: the bands stand; s ≥ 0.005: one-seed CNN deltas need ≥ s | **v48** ✅ | 0.9151 |
+| A1 | `v13b3` (EfficientNet-B3 @ 288; P-66) | Does a bigger CNN at higher resolution beat B0? | Whether B3 is the CNN family for the final members (training row T2) | vs 0.935: ✅ ≥ 0.939 / 🔁 0.931–0.938 / ❌ ≤ 0.930; member if ≥ 0.933 | `rsna-knee-infer` **v47** ✅ · sent 10-05 as #50 (ref 56838023), ⏳ | 0.9222 |
+| A2 | `v13e2` (`v13e`, seed 43; P-66) | The first measurement of the CNN seed noise on the LB, s = \|`v13e2` − 0.935\| | How every other CNN read is judged; whether a 2-seed member is worth it | s ≤ 0.003: the bands stand; s ≥ 0.005: one-seed CNN deltas need ≥ s | **v48** ✅ · sent as #51 (ref 56838038), ⏳ | 0.9151 |
 | A3 | `v13es` + `v13rs` (P-62: Raptor 0.75 on report-silent cells) — **one read, two submissions** | Does weighting the image teacher on report-silent cells lift the CNNs? | Whether session E and the final members train with `TEACHER_SILENT_MIX` | mean of the two vs 0.9345: ✅ ≥ 0.9390 / 🔁 0.9300–0.9389 / ❌ ≤ 0.9299. On gold, both move less than a seed change, so 🔁 is likely | **v49** + **v50** ✅ | 0.9107 / 0.9160 |
 
 ## B. Submission candidates — ensembles of members we have
@@ -41,10 +41,10 @@ new `rsna-knee-infer` placeholder (≈ 10 GPU-min; recipe at the bottom).
 |---|---|---|---|---|
 | B1 | `v11a` + `v13h` + `v13r` + `v13e` | Does a fourth member (ResNet-34) add to the trio? | **v45** ✅ | 0.9186 |
 | B2 | `v13h` + `v13r` + `v13e` (CNN trio) | Is the CoAtNet needed? Read: ≥ 0.938 means it is not | **v46** ✅ | 0.9129 |
-| B3 | `v11a` + `v13r` + `v13b3` | B3 swapped in for B0. Same size as #48, so the difference is B3 | **v52** ✅ | 0.9254 |
+| B3 | `v11a` + `v13r` + `v13b3` | B3 swapped in for B0. Same size as #48, so the difference is B3 | **v52** ✅ · sent as #53 (ref 56838082), ⏳ | 0.9254 |
 | B4 | `v11a` + `v13r` + `v13e` + `v13b3` | Does adding B3 lift our best ensemble? | build | 0.9250 |
 | B5 | `v11a` + `v13r` + `v13e` + `v13e2` | Does a second B0 seed help inside the ensemble? | build | 0.9238 |
-| B6 | `v11a` + `v13r` + `v13e` + `v13b3` + `v13e2` | Our strongest own lineup: the candidate for our own final pick (P-50) | **v51** ✅ | 0.9256 |
+| B6 | `v11a` + `v13r` + `v13e` + `v13b3` + `v13e2` | Our strongest own lineup: the candidate for our own final pick (P-50) | **v51** ✅ · sent as #52 (ref 56838060), ⏳ | 0.9256 |
 | B7 | `v11a` + `v13b3` | The two best families alone, as a pair | build | 0.9267 |
 | B8 | all 8: `v11a`, `v13h`, `v13r`, `v13e`, `v13b3`, `v13e2`, `v13es`, `v13rs` | Does "everything" beat a curated 3–5? (Tian prefers 3–5) | build | 0.9217 |
 | B9 | `v11a` + `v13rs` + `v13es` | #48 with the P-62 members swapped in | build | 0.9224 |
@@ -53,17 +53,16 @@ new `rsna-knee-infer` placeholder (≈ 10 GPU-min; recipe at the bottom).
 
 | # | Candidate | What it tests / contributes | Read rule | Placeholder |
 |---|---|---|---|---|
-| C1 | Public 0.942 stack + #48 as our leg at β 0.45 | Does our own model set lift the public stack, as the 0.946–0.947 teams' own legs do? The biggest single stake for the final pick. **Scores slowly (hours, #17 ≤ 8 h): send first in a day** | vs 0.942: ✅ ≥ 0.945 / 🔁 0.941–0.944 / ❌ ≤ 0.940 | `rsna-knee-fork` **v11** ✅ |
+| C1 | Public 0.942 stack + #48 as our leg at β 0.45 | Does our own model set lift the public stack, as the 0.946–0.947 teams' own legs do? The biggest single stake for the final pick. **Scores slowly (hours, #17 ≤ 8 h): send first in a day** | vs 0.942: ✅ ≥ 0.945 / 🔁 0.941–0.944 / ❌ ≤ 0.940 | `rsna-knee-fork` **v11** ✅ · sent 10-05 as #49 (ref 56838006), ⏳ |
 | C2 | Public stack + the best ensemble from B (e.g. B6) at β 0.45 | The same question with a stronger own leg | as C1 | build (`src/build_fork.py`) after C1 and B are read |
 | — | Fork at other β | **Not planned:** it tunes a weight to the public LB | — | — |
 
 ## Order
 
 - **10-05, Tian's pick (= my recommendation):** C1, A1, A2, B6, B3.
-  - Sent **automatically** at 00:00:30 UTC by `src/auto_submit.py --plan artifacts/submit_plan_1005.json`, a detached process started
-    2026-10-04 18:18 UTC.
-  - Order: fork v11, infer v47, v48, v51, v52. Each message carries its read rule.
-  - Log: `artifacts/auto_submit_1005.log`. Per-ref watchers: `artifacts/watch_<ref>.log`.
+  - **Sent 00:41–00:45 UTC as #49–#53** (fork v11, infer v47, v48, v51, v52; each message carries its read rule). The scheduled
+    00:00:30 run sent nothing: its client held a token that had expired at 19:17 (traps 20 addendum, fixed). The fallback run
+    (`artifacts/auto_submit_1005r.log`) sent all five. Per-ref watchers: `artifacts/watch_<ref>.log`. Scores ⏳.
 - **10-06:**
   - A3, the P-62 pair: it only needs reading before E is trained;
   - B1 and B2;

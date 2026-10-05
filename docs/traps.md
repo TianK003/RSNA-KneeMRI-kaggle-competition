@@ -611,6 +611,17 @@ half hour or ended with a browser login before it passed. **Do:** after an expir
 a *copy* of the file refreshes independently. Also corrected: `kaggle kernels logs <slug> -f` now **streams a running kernel's
 log** (read `[teacher] partial flush: N studies complete` mid-run on 2026-09-26), so the mid-run throughput gate is CLI-readable.
 
+**Addendum 2026-10-05: a long-lived Python `KaggleApi` never refreshes, so it sends a dead token forever.** `authenticate()`
+(`kaggle_api_extended.py` 1318–1335) calls `creds.get_access_token()` once and stores the result in `config_values`, and every later
+call reuses that string. The refresh above happens only inside `authenticate()`, so it reaches a fresh CLI process, never an object
+built before the expiry. Cost: `src/auto_submit.py` authenticated at 18:18 UTC (token valid until 19:17) and slept until 00:00:30. Its
+pre-flight then got `401 Unauthorized` on all eight retries, 40 min apart in total, and it exited with nothing sent. A fresh
+`kaggle competitions submissions` at 00:41 refreshed the file (expiry → 12:41 UTC), and the fallback sent the five by 00:45. **Fix (same
+day):** `auto_submit.py` builds a new client after its wait and calls `api.authenticate()` after every API error;
+`watch_submission.py` (14 h watchers outlive a 12 h token) re-authenticates on error. Compiled and dry-run green; the in-process
+refresh after a real expiry was not re-observed. **Do:** any Python process that holds a `KaggleApi` for more than an hour must call
+`authenticate()` again before use, not just retry.
+
 ### 21. `kaggle datasets create` on Windows: two silent-looking failures
 
 Publishing the ConvNeXt weights (2026-08-29) failed twice before it worked:

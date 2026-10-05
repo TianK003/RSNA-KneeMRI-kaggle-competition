@@ -75,6 +75,10 @@ def main():
         except Exception as e:                       # token window / rate limit: retry, never die
             print(f"{utcnow():%H:%M:%S}Z  api error ({type(e).__name__}: {str(e)[:120]}) -- retrying", flush=True)
             time.sleep(a.every)
+            try:                                     # the token is fixed at authenticate(); re-run it to refresh
+                api.authenticate()
+            except Exception:
+                pass
             continue
         if sub is None:
             print(f"submission {a.ref} not found in {COMPETITION}", flush=True)

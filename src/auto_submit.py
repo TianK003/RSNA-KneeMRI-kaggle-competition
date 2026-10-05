@@ -10,8 +10,9 @@ plan waits until --at, then submits each entry in order (put the slow public-sta
 Plan file: a JSON list of {"slug": "tiankljucanin/rsna-knee-infer", "version": 47, "message": "..."}.
 
 Safety:
-- a pre-flight API call (with retries) runs before the first submit; on this laptop's OAuth credentials the first call
-  >= 30 min after expiry refreshes the token (traps 20);
+- the client re-authenticates after the wait and on every API error: KaggleApi fixes its token at authenticate() time,
+  and on this laptop's OAuth credentials only an authenticate() >= 30 min after expiry refreshes it (traps 20); a
+  pre-flight API call (with retries) runs before the first submit;
 - a submit is skipped or retried only after checking that no submission with the same description exists on the same UTC day,
   so a re-run after a partial send never re-sends, and a network error never double-spends a slot;
 - while it runs, Windows is asked not to sleep (SetThreadExecutionState); closing the lid can still force sleep.
@@ -61,6 +62,10 @@ def list_subs(api, tries=8, wait=300):
         except Exception as e:                       # token window / 429: wait and retry
             log(f"api error ({type(e).__name__}: {str(e)[:120]}) -- retry {i + 1}/{tries} in {wait} s")
             time.sleep(wait)
+            try:                                     # authenticate() is what refreshes (traps 20)
+                api.authenticate()
+            except Exception as e2:
+                log(f"  re-authenticate failed ({type(e2).__name__}: {str(e2)[:120]})")
     raise SystemExit("API unreachable after retries -- nothing submitted past this point")
 
 
@@ -136,7 +141,10 @@ def main():
             time.sleep(min(60, max(1, left)))
     # Duplicate check covers the whole UTC day, so a re-run after a partial send skips what already went out.
     since = now().replace(hour=0, minute=0, second=0, microsecond=0) + dt.timedelta(minutes=2)
-    subs = list_subs(api)                            # pre-flight: also refreshes an expired token
+    # KaggleApi fixes its token at authenticate() time and never refreshes it, so after a long wait the client
+    # from startup sends a dead token (10-05: 401 x 8 at 00:00 UTC, nothing sent). Re-authenticate here.
+    api = api_client()
+    subs = list_subs(api)                            # pre-flight
     log(f"pre-flight ok: {len(subs)} submissions listed")
 
     sent, watchers = [], []
