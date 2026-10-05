@@ -6,6 +6,63 @@ to read first after a break.
 
 ---
 
+## 2026-10-05 (12:40 → 13:20 UTC) — Tian's focus for week 1 implemented: **P-68 cross-family OOF teachers** (`v13ex`, `v11o`, `v13eo`) and **the P-67 variables** (six augmentation components, mixup, B0 @ 288, blank windows, a longer schedule; snapshots and gold-in-training for the final retrains); unit, local and Kaggle GPU smokes green; RunPod 10-07 = NO-GO (critic)
+
+Tian: "focus on these parts the most … Especially 2. [the CNN OOF teacher on report-silent cells] for sure, this should boost our model
+at least somewhat". Commits `8920034`, `a4a3545`, `3bebcbf` plus this one. The 12:40 entry's in-flight row (pid 23960) still stands.
+
+### ⏳ Still in flight as this was written (13:20 UTC)
+
+| In flight | What it is | Started | How to check | How to read it |
+|---|---|---|---|---|
+| **Auto-submitter, Windows pid 23960** | unchanged from the 12:40 entry: fork v12 → infer v55 (B13) → v56 (B11) → v53 → v54 at 2026-10-06 00:00:30 UTC | 12:31 | `tail -30 artifacts/auto_submit_1006.log` | `sent 5 / 5`; the fallback is in the 12:40 entry |
+
+### Where things stand
+
+| | Status |
+|---|---|
+| Code (all off by default, so every existing arm and checkpoint behaves as before) | `aug_extra` (lowres / thick / grid / blur / noise / sharpen at `aug_extra_p`), `mixup_p` (study-level, two-study batches), `drop_blank_frac` (an inference key), `snapshot_every`, `train_gold`; arms `v14lr` … `v14ep20` (P-67) and `v13ex` / `v11o` / `v13eo` (P-68); `cnnoof_v1` table slot; `build_distill_table.py --expect-folds / --expect-rows` |
+| Checks | `src/window_head_test.py` UNIT CHECKS PASSED (new: every component, mixup, blank windows, guards, arm diffs) · local CPU smoke with every switch on (mixup on a two-study batch, all six components at p 1) green · **Kaggle `rsna-knee-train` v46 = a SMOKE, green** (`v14mx` ‖ `v14lr`, rc 0, SWA `_best.pt`, 1.11 GiB) |
+| RunPod case | `artifacts/runpod_case_P68_1007.md`; critic: **NO-GO** (≈ 5 h ≈ $3.8, not $2.6; nothing before 10-17 needs the read; it would leave less than one B3 retrain; same-family design). Nothing was spent |
+| Committed renders | `rsna-knee-train` = **v46, a SMOKE** · `rsna-knee-infer` = v56 · `rsna-knee-fork` = v12 (do not re-push before 00:00) · `rsna-knee-train-b` = v6 REAL, never re-push as is |
+| Budgets | Kaggle ≈ 2.8 h until 10-10; RunPod ≈ $5 (kept for the week-2 B3 retrains) |
+
+### What we talked about and decided
+
+- **Tian's priorities:** the P-68 teacher first, then the P-67 augmentation loop and the four additions.
+- **P-68 redesigned after the critic:**
+  - **Cross-family pairs only.** Same-family OOF teachers read flat for us (P-55) and for Myo. So `v13ex` = B0 on Raptor + the CoAtNet
+    cross-fit OOF `xfit_v09k` (exists → 10-10 00:00), `v11o` = CoAtNet on Raptor + `cnnoof_v1` (after the floor run), and `v13eo` = the
+    same-family control.
+  - **Flat mix 0.5**, so only the image-teacher half changes; a silent mix only if A3 reads ✅.
+  - **Gold-58 is not readable for these arms:** the OOF runs trained the gold rows.
+- **Honest expectation:** P-68 is the most likely single-model lever we have, not a sure one. Forum claims +0.011, our same-family reads
+  were flat, and the realistic prior is 0..+0.004 solo.
+
+### ⏭ Next action, in order
+
+1. **10-06:** the reads and the 10-07 builds, as in the 12:40 entry.
+2. **10-10 00:00 UTC**, per candidates.md "The 10-10 plan". Every push is a real run (`FORCE_SMOKE = False`); the code is smoke-green as of
+   v46.
+   - **Session A** (`rsna-knee-train`): `PARALLEL_ARMS = ("v14p", "v14p2")`, `TEACHER_TABLES = ("raptor_teacher",)`.
+   - **Session B** (`rsna-knee-train-b`): `ARM_ONLY = "v13ex"` with `TEACHER_TABLES = ("raptor_teacher", "xfit_v09k")`. Its second T4
+     takes P-69 if the loader check passes.
+   - **After A** (≈ 04:00): build `cnnoof_v1` with the `build_distill_table.py` command in the P-68 card, read it with
+     `teacher_plausibility.py`, and publish it to `rsna-knee-teacher-tables`. Then session C = `v11o` ‖ `v14lr`.
+3. **The P-67 floor** comes from the five per-fold paired seed differences (critic), not a single pooled |Δ|. The bar is 1.5 × floor.
+
+### Open decisions for Tian
+
+- P-69 (ConvNeXt-T) needs a loader check before it can take session B's second T4. Otherwise that T4 stays idle or runs `v13eo`.
+- Unchanged: week-2 final retrains; final picks by 10-22.
+
+### Things that will bite if forgotten
+
+- `rsna-knee-train` v46 is a SMOKE render; regenerate the real one with the session-A seds.
+- A PARALLEL pair shares one `TEACHER_TABLES`. Pair arms with the same tables (the DISTILLED_ARMS guard refuses otherwise): `v13ex`
+  (Raptor + xfit) cannot share a session with a Raptor-only arm.
+- `drop_blank_frac` is an inference key. Any member trained with it predicts with it automatically. No member has it yet.
+
 ## 2026-10-05 (11:58 → 12:40 UTC) — submissions only until 10-10; **the 10-06 five swapped to the best-expected performers** (C2, B13, B11 and the two E solos; the P-62 pair moves to 10-07); per-label routing tested on gold and dropped
 
 Tian, in order: "run /update … fill in all the candidates … with their priority — we won't be training anything for today/tomorrow
