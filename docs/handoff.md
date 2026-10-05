@@ -6,6 +6,81 @@ to read first after a break.
 
 ---
 
+## 2026-10-05 (11:00 → 11:58 UTC) — **session E complete**: `v13ec` gold-58 0.9116 (with `v13ecp` 0.9063, both direction only), both shipped and backed up, pod stopped itself and was deleted (≈ $1.9); infer v54 green; **the 10-06 submitter now holds all five**; a fair test of gold epoch selection
+
+Tian, in order: "Restart the watchers, I closed discord"; "Do you know what is currently happening, how much of training has
+passed…?"; "Do we send the best performing model … or just the last model? … could potentially be losing out?". Commit `977b962`
+plus this one. **This entry supersedes the next actions of the 10:57 entry below**: the pod, v54 and the five-send plan are done.
+
+### ⏳ Still in flight as this was written (11:58 UTC)
+
+| In flight | What it is | Started | How to check | How to read it |
+|---|---|---|---|---|
+| **Auto-submitter, Windows pid 2104** (launcher; its interpreter child is pid 6748) | `src/auto_submit.py --plan artifacts/submit_plan_1006.json --at 2026-10-06T00:00:30Z`: **fork v12 → infer v53 → v49 → v50 → v54**, 20 s apart, then one `watch_submission.py` per ref. Replaced the four-send pid 11624 (stopped first; its log is `artifacts/auto_submit_1006_first4.log`). Blocks idle sleep | 11:51 | `tail -30 artifacts/auto_submit_1006.log` (+ `.err`); `Get-Process -Id 2104` | **Green** = `sent 5 / 5`, then five `watch_<ref>.log` files. **Suspicious:** `FAILED after 3 attempts`, a Traceback in `.err`, or pid 2104 gone before 00:00 (sleep, lid, reboot) → the fallback in next action 1 |
+
+Nothing else runs: every Kaggle kernel is COMPLETE, `list-pods` is empty, and the 10-05 slots are used.
+
+### Where things stand
+
+| | Status |
+|---|---|
+| Session E | ✅ `v13ecp` (0.5 Claude) gold-58 **0.9063**, `v13ec` (0.25 Claude) **0.9116**, vs the B0 seed pair 0.9126 / 0.9151, 🔁 direction only. Both in `rsna-knee-ckpt-<arm>`, local copies in `artifacts/kaggle_out/pod_<arm>/`. Pod `j4obvfotdbdudo` stopped itself at ≈ 11:37 (`stopper.sh`) and was deleted at 11:48. experiments.md 2026-10-05 "Session E … chain 1" / "chain 2" |
+| Placeholders | infer **v53** (`v13ecp`) and **v54** (`v13ec`) green: `smoke False`, the one member at its gold score, decode-once verified, `constant labels 0`. `rsna-knee-infer` mounts 44 Datasets |
+| 10-06 plan | five sends, pid 2104 (above). Read rules are in each message and in next action 2 |
+| Committed renders | `rsna-knee-infer` = **v54** (submittable) · `rsna-knee-fork` = v12 (C2; do not re-push before it is sent) · `rsna-knee-train` = v45 SMOKE · `rsna-knee-train-b` = v6 REAL, never re-push as is |
+| Budgets | Kaggle **3.07 h** left to the 10-10 reset (`kaggle quota`, 11:55); RunPod ≈ **$5** after E (billing lags: $1.26 shown for 10-05 at 11:48); 5 slots on 10-06 |
+
+### What we talked about and decided
+
+- **Watchers are back** (Tian freed memory by closing Discord; 4.4 GB free at 11:02). The pod watcher fired on `POD UNREACHABLE`, which
+  was the self-stop working, not a failure.
+- **The pod was deleted on the pasted plan's authority** after the `v13ec` Dataset was confirmed and downloaded. The last five per-epoch
+  files of `v13ec` went with it. They are not needed: the SWA checkpoint, its OOF and the full log are in the Dataset.
+- **The submitter was relaunched with five sends** instead of sending v54 by hand. Order as Tian's pasted plan named it, with `v13ec`
+  last.
+- **Tian asked whether shipping the last epochs loses performance.** We ship the SWA of epochs 27–29 by design and keep no per-epoch
+  weights, so the gold peak epoch cannot be shipped anyway. The answer, with the fair test below, is in experiments.md "chain 2".
+
+### What we figured out
+
+1. **The fair split-half test of picking the best gold epoch:** +0.007 for `v13ecp` (82 % of 1,000 half-splits positive, picked
+   epoch 14), −0.001 for `v13ec`. Mixed sign, far under the 0.05 gold floor. The question belongs to the P-67 five-fold ruler (its
+   epoch-budget arm). Saving an EMA snapshot every few epochs (≈ 18 MB each for B0) would make an earlier epoch submittable.
+2. **Baker's, MCL and Contusion fall at both Claude doses** (−0.03 to −0.05 vs the B0 seed mean; `v13e`, the same seed, has MCL 0.952
+   and Contusion 0.970). Baker's is the pilot's size-threshold loss; MCL and Contusion have no label-side explanation. Effusion recovers
+   at the half dose. Direction only; the solos decide.
+3. **The on-pod stopper works** (traps 51 addendum): the ship landed at 11:36, ssh was refused from 11:39, and `get-pod` read `EXITED` at 11:47. No local
+   process was needed.
+
+### ⏭ Next action, in order
+
+1. **After ≈ 00:05 UTC on 10-06:** `tail -30 artifacts/auto_submit_1006.log` should show `sent 5 / 5`. If it did not send: `PYTHONUTF8=1
+   .venv/Scripts/python.exe src/auto_submit.py --plan artifacts/submit_plan_1006.json` (no `--at`: sends at once, skips any message
+   already sent that UTC day). Never with pid 2104 still alive.
+2. **As each score lands, `/update`** (Submissions rows #54–#58, the Scoreboard, the card, candidates rows deleted, CLAUDE.md state):
+   - **C2** (fork v12) vs #49 0.943: ✅ ≥ 0.946 / 🔁 0.942–0.945 / ❌ ≤ 0.941. ✅ → the fork with B6 is final pick 2. It scores slowest
+     (≈ 6 h).
+   - **A3** = m(`v13es` v49, `v13rs` v50) vs 0.9345: ✅ ≥ 0.9390 / 🔁 0.9300–0.9389 / ❌ ≤ 0.9299 → the silent mix for every later arm.
+   - **E** `v13ecp` (v53) and `v13ec` (v54), each vs the B0 seed mean 0.9365: ✅ ≥ 0.9405 / 🔁 0.933–0.940 / ❌ ≤ 0.932. With the dose-0
+     seeds this is a three-dose read: ✅ at one dose = that Claude share for the week-2 retrains; both 🔁 = the label side closes and
+     the work goes image-side only; both ❌ = the Claude table stays out.
+3. **10-07 slots:** pick from candidates.md section B (blends), using the 10-06 reads. A ✅ E arm or a ✅ A3 pair joins B6 as a
+   seventh member (build per the recipe at the bottom of candidates.md).
+4. **10-10 reset — the P-67 floor run:** unchanged (the 00:40 → 09:20 entry, next action 6). Consider adding a per-epoch EMA snapshot
+   save to the proxy arms first, so the epoch-budget variant can also read earlier epochs (finding 1). That is a `/try-out`, smoke first.
+
+### Open decisions for Tian
+
+- The 10-10 week: the P-67 loop + P-69 ConvNeXt-T (approved), and whether the epoch-budget variant also saves per-epoch snapshots.
+- Week-2 (10-17) final retrains: which target (after A3 / E) and which families; final picks by 10-22 (entry / merger 10-15).
+
+### Things that will bite if forgotten
+
+- **The laptop must stay on, on mains power, with the lid open until ≈ 00:02 UTC.** The submitter blocks idle sleep only.
+- **Only pid 2104 may submit on 10-06.** The old pid 11624 is stopped; do not restart it from the 10:57 entry's commands.
+- `rsna-knee-fork` v12 is the submittable C2: do not push the fork kernel before it is sent.
+- Claude Code reaps background shells when the laptop is low on memory. Keep Chrome / Discord light while a watcher matters.
+
 ## 2026-10-05 (09:29 → 10:57 UTC) — session E chain 1 in: **`v13ecp` gold-58 0.9063 (direction only), shipped, placeholder infer v53 green**; the 10-06 submitter is running with four sends; chain 2 (`v13ec`) still training; **local watchers killed for low laptop memory**, so the pod now stops itself; safety handoff
 
 Tian: "read the handoff and continue working on the last state", with the previous session's closing plan pasted (log each E arm, build
