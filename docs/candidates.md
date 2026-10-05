@@ -9,32 +9,33 @@ How this file relates to the others:
 - **This file is only the queue.** When a candidate is read, its row is deleted here and its score goes to experiments.md
   (Submissions table + Scoreboard) through `/update`. Never keep a score in two places.
 
-Updated 2026-10-05 (12:15 UTC). All five 10-05 reads are in (#49–#53). Session E is trained and shipped. **Tian, 10-05 ≈ 12:00 UTC:
+Updated 2026-10-05 (12:35 UTC). All five 10-05 reads are in (#49–#53). Session E is trained and shipped. **Tian, 10-05 ≈ 12:00 UTC:
 no training on 10-05 or 10-06; the next days only submit work we already have.** Training (section D) resumes at the 10-10 reset.
 5 slots on every UTC day to the 10-22 deadline.
 
 ## Priority — every candidate, ranked, with its day
 
-**P1** is queued. **P2** decides the own final pick and the composition of the week-2 retrains. **P3** is contingent or explains a
+**P1** is queued (Tian, 10-05: the best-expected performers first, so we learn early which direction deserves more time). **P2**
+decides the own final pick and the composition of the week-2 retrains. **P3** is contingent or explains a
 P2 read. **P4** is useful only if slots are free. **P5** is held: the blend rule prices it under B6, or a P2 row supersedes it.
 "Build" means a `rsna-knee-infer` placeholder (≈ 5–10 GPU-min each; 3.07 h of Kaggle GPU is left until 10-10, enough for ≈ 15).
 
 | Prio | Day | Candidate | What it decides | Gate | Status |
 |---|---|---|---|---|---|
-| **P1** | 10-06 | **C2**: the public stack + B6 as our leg at β 0.45 | Fork final pick (pick 2). ≈ 6 h to score: send 1 | — | fork **v12** ✅, queued |
-| **P1** | 10-06 | **A4** `v13ecp`: 0.5 Claude dose | The Claude share of the week-2 retrains (with A5) | — | **v53** ✅, queued (send 2) |
-| **P1** | 10-06 | **A3** `v13es` + `v13rs`: the P-62 pair, two sends | The silent mix for every later arm | — | **v49** + **v50** ✅, queued (sends 3–4) |
+| **P1** | 10-06 | **C2**: the public stack + B6 as our leg at β 0.45 | Fork final pick (pick 2). ≈ 6 h to score: send 1 | — | fork **v12** ✅, queued (send 1) |
+| **P1** | 10-06 | **B13**: B6 + `v11n` + `v11n2` (three CoAtNets, four CNNs) | Does more CoAtNet weight lift B6? The own blend with the most upside | — | infer **v55** ✅, queued (send 2) |
+| **P1** | 10-06 | **B11**: `v13b3` + `v13e2` + `v13e` | The strong EfficientNet triple: strength over diversity | — | infer **v56** ✅, queued (send 3) |
+| **P1** | 10-06 | **A4** `v13ecp`: 0.5 Claude dose | The Claude share of the week-2 retrains (with A5) | — | **v53** ✅, queued (send 4) |
 | **P1** | 10-06 | **A5** `v13ec`: 0.25 Claude dose | as A4 (the dose-response read) | — | **v54** ✅, queued (send 5) |
-| **P2** | 10-07 | **B12**: B6 + every 10-06 solo that reads ≥ 0.936 | The own final pick's successor (pick 1) | ≥ 1 of the four 10-06 solos ≥ 0.936; else the slot goes to B8 | build after the 10-06 solos (≈ 01:00 UTC) |
-| **P2** | 10-07 | **B14**: B6 − `v11a` (the four CNNs) | Is the CoAtNet family needed in pick 1 and the week-2 retrains? | — | build |
-| **P2** | 10-07 | **B13**: B6 + `v11n` + `v11n2` (three CoAtNets, four CNNs) | Does more CoAtNet weight help? Read with B14 | — | build |
-| **P3** | 10-07 | **B4**: B6 − `v13e2` | B3 or a second B0 seed inside the blend? Read with B5. Decides B3 × 2 seeds (RunPod) vs B0 × 2 (Kaggle) in week 2 | — | build |
-| **P3** | 10-07 | **B9**: `v11a` + `v13rs` + `v13es` | #48 with the silent-mix members | A3 ✅ only; else the slot goes to B11 | build |
-| **P3** | 10-08 | **C3**: the public stack + the best own blend as the leg, β 0.45 | Fork pick 2 with a better leg. Send 1 of its day | C2 ≥ 0.942 **and** a 10-07 own blend ≥ 0.943 (beats B6) | build (`src/build_fork.py`) on 10-07 |
+| **P2** | 10-07 | **C3**: the public stack + the best own blend as the leg, β 0.45 | Fork pick 2 with a better leg. Send 1 of its day | C2 ≥ 0.942 **and** B13 or B11 ≥ 0.943 (beats B6); else the slot goes to B4 | build (`src/build_fork.py`) on 10-06 after both reads (C2 ≈ 06:00 UTC) |
+| **P2** | 10-07 | **A3** `v13es` + `v13rs`: the P-62 pair, two sends | The silent mix for every later arm (needed before the week-2 retrains, not sooner) | — | **v49** + **v50** ✅ (moved from 10-06 by Tian, 10-05) |
+| **P2** | 10-07 | **B12**: B6 (or B13, if it beat B6) + every 10-06 solo that reads ≥ 0.936 | The own final pick's successor (pick 1) | ≥ 1 of the two E solos ≥ 0.936; else the slot goes to B4 | build after the 10-06 solos (≈ 01:00 UTC) |
+| **P2** | 10-07 | **B14**: B6 − `v11a` (the four CNNs) | Is the CoAtNet family needed? Read with B13 | — | build |
+| **P3** | 10-08 | **B4**: B6 − `v13e2` | B3 or a second B0 seed inside the blend? Read with B5. Decides B3 × 2 seeds (RunPod) vs B0 × 2 (Kaggle) in week 2 | — | build |
 | **P3** | 10-08 | **B5**: B6 − `v13b3` | the second half of B4's read | — | build |
+| **P3** | 10-08 | **B9**: `v11a` + `v13rs` + `v13es` | #48 with the silent-mix members | A3 ✅ only | build |
 | **P3** | 10-08 | **B15**: B12 + `v11n` + `v11n2` | B12 and B13 combined | B12 and B13 both read ≥ 0.943 | build |
 | **P4** | 10-08 / 10-09 | **B8**: every member with a solo ≥ 0.930 | Count vs curation (Tian prefers 3–5) | free slot | build |
-| **P4** | 10-08 / 10-09 | **B11**: `v13b3` + `v13e2` + `v13e` | The strong EfficientNet triple | free slot | build |
 | P5 | hold | B1, B2, B7, B10 | — | B14 / B13 supersede B1 / B2; B7 / B10 predict under B6 | hold |
 | — | 10-09 | **Freeze the shortlist for P-50** | pick 1 = the best own blend, pick 2 = the best fork | — | Tian, by 10-22 |
 
@@ -58,13 +59,13 @@ member + 0.004.
 
 ## A. Submission candidates — single models
 
-All four are queued for 10-06 (pid 2104). Delete each row once its score is logged.
+A4 and A5 are queued for 10-06; A3 moved to 10-07 (Tian, 10-05). Delete each row once its score is logged.
 
 | # | Candidate | What it tests / contributes | Decides | Read rule | Placeholder | Gold-58 |
 |---|---|---|---|---|---|---|
-| A4 | `v13ecp` (P-65, session E chain 1): `v13e` on 0.5 Raptor + 0.5 Claude, no LLM-blend share | Does the Claude relabel lift the CNNs at the full dose? | The Claude share of the week-2 retrains (with A5) | vs the B0 seed mean 0.9365: ✅ ≥ 0.9405 / 🔁 0.933–0.940 / ❌ ≤ 0.932 | **v53** ✅ (10:30: `smoke False`, `v13ecp/fold0` at 0.9063, decode-once verified, `constant labels 0`); send 2 | 0.9063 |
+| A4 | `v13ecp` (P-65, session E chain 1): `v13e` on 0.5 Raptor + 0.5 Claude, no LLM-blend share | Does the Claude relabel lift the CNNs at the full dose? | The Claude share of the week-2 retrains (with A5) | vs the B0 seed mean 0.9365: ✅ ≥ 0.9405 / 🔁 0.933–0.940 / ❌ ≤ 0.932 | **v53** ✅ (10:30: `smoke False`, `v13ecp/fold0` at 0.9063, decode-once verified, `constant labels 0`); send 4 | 0.9063 |
 | A5 | `v13ec` (P-65, session E chain 2): 0.25 LLM + 0.5 Raptor + 0.25 Claude | The half dose: with A4 and the dose-0 seeds, a dose-response read | as A4 | as A4 | **v54** ✅ (11:50: `smoke False`, `v13ec/fold0` at 0.9116, decode-once verified, `constant labels 0`); send 5 | 0.9116 |
-| A3 | `v13es` + `v13rs` (P-62: Raptor 0.75 on report-silent cells) — **one read, two submissions** | Does weighting the image teacher on report-silent cells lift the CNNs? | Whether the final members train with `TEACHER_SILENT_MIX` | mean of the two vs 0.9345: ✅ ≥ 0.9390 / 🔁 0.9300–0.9389 / ❌ ≤ 0.9299. On gold, both move less than a seed change, so 🔁 is likely | **v49** + **v50** ✅; sends 3–4 | 0.9107 / 0.9160 |
+| A3 | `v13es` + `v13rs` (P-62: Raptor 0.75 on report-silent cells) — **one read, two submissions** | Does weighting the image teacher on report-silent cells lift the CNNs? | Whether the final members train with `TEACHER_SILENT_MIX` | mean of the two vs 0.9345: ✅ ≥ 0.9390 / 🔁 0.9300–0.9389 / ❌ ≤ 0.9299. On gold, both move less than a seed change, so 🔁 is likely | **v49** + **v50** ✅; 10-07 | 0.9107 / 0.9160 |
 
 ## B. Submission candidates — ensembles of members we have
 
@@ -84,13 +85,13 @@ solos: `v13b3` 0.940, `v13e2` 0.938, `v13e` 0.935, `v13r` 0.934, `v11a` / `v11n`
 |---|---|---|---|---|---|---|
 | B12 | P2 | B6 + every 10-06 solo ≥ 0.936 (of `v13es`, `v13rs`, `v13ecp`, `v13ec`) | The pick-1 successor. A qualifying member sits at or above B6's members' mean (0.9358), so it cannot lower it. Pred. ≈ B6 + 0.000–0.002; more if a solo reads ≥ 0.940 | ≥ 0.943 → the new pick 1 and the C3 leg | build on 10-06 after the solos | 0.9221 with all four |
 | B14 | P2 | B6 − `v11a` = `v13r` + `v13e` + `v13b3` + `v13e2` | The CoAtNet ablation of B6. Pred. ≈ 0.940–0.941 (mean 0.9368, CNN-only diversity) | ≥ 0.942 → the CoAtNet is not needed: week 2 drops the CoAtNet retrain. ≤ 0.940 → it stays | build | 0.9211 |
-| B13 | P2 | B6 + `v11n` + `v11n2` | Family weight: three CoAtNet votes (two `v11a`-recipe variants with heavy aug, 12 ep) against four CNNs. Pred. ≈ 0.941–0.942 (mean 0.9347, n 7) | ≥ 0.943 → more CoAtNet weight helps: week 2 adds a CoAtNet seed. Read with B14 | build | 0.9256 |
+| B13 | P1 | B6 + `v11n` + `v11n2` | Family weight: three CoAtNet votes (two `v11a`-recipe variants with heavy aug, 12 ep) against four CNNs. Pred. ≈ 0.941–0.942 (mean 0.9347, n 7) | ≥ 0.943 → more CoAtNet weight helps: week 2 adds a CoAtNet seed. Read with B14 | infer **v55** ✅ (12:29: `smoke False`, the 7 members at their gold scores, decode-once verified, `constant labels 0`); 10-06 send 2 | 0.9256 |
 | B4 | P3 | `v11a` + `v13r` + `v13e` + `v13b3` (B6 − `v13e2`) | Pred. ≈ 0.939–0.941 (mean 0.9353, n 4). With B5: does B3 or the second B0 seed carry B6? | B4 − B5 ≥ 0.002 → B3 carries it: week 2 trains B3 × 2 (RunPod). ≤ −0.002 → B0 seeds suffice | build | 0.9250 |
 | B5 | P3 | `v11a` + `v13r` + `v13e` + `v13e2` (B6 − `v13b3`) | Pred. ≈ 0.939–0.940 (mean 0.9348, n 4) | with B4 | build | 0.9238 |
 | B9 | P3 | `v11a` + `v13rs` + `v13es` | #48 with the P-62 members swapped in | A3 ✅ only; vs #48 0.938: ≥ 0.941 → the silent mix also helps inside a blend | build | 0.9224 |
 | B15 | P3 | B12 + `v11n` + `v11n2` | B12 and B13 combined | only if both read ≥ 0.943 | build | — |
 | B8 | P4 | every member with a solo ≥ 0.930: B6 + `v11n` + `v11n2` + `v13h` + `v11d`, plus the 10-06 solos ≥ 0.930 | Does "everything" beat a curated 3–5? (Tian prefers 3–5) | — | build | 0.9248 (the nine without the 10-06 arms) |
-| B11 | P4 | `v13b3` + `v13e2` + `v13e` | The strong EfficientNet triple; the robust three-member shape. Pred. ≈ 0.941–0.942 (mean 0.9377, same-recipe gain) | — | build | — |
+| B11 | P1 | `v13b3` + `v13e2` + `v13e` | The strong EfficientNet triple; the robust three-member shape. Pred. ≈ 0.941–0.942 (mean 0.9377, same-recipe gain) | — | infer **v56** ✅ (12:31: `smoke False`, the 3 members, decode-once verified, `constant labels 0`); 10-06 send 3 | 0.9196 |
 | B1 | P5 | `v11a` + `v13h` + `v13r` + `v13e` | A fourth member (ResNet-34) on the trio. Pred. ≈ 0.937–0.939: under B6 | hold | **v45** ✅ | 0.9186 |
 | B2 | P5 | `v13h` + `v13r` + `v13e` (CNN trio) | Is the CoAtNet needed? **Superseded by B14** (the same question on B6's own members) | hold | **v46** ✅ | 0.9129 |
 | B7 | P5 | `v11a` + `v13b3` | The two best families as a pair. Pred. ≈ 0.938–0.940 | hold | build | 0.9267 |
@@ -106,12 +107,12 @@ solos: `v13b3` 0.940, `v13e2` 0.938, `v13e` 0.935, `v13r` 0.934, `v11a` / `v11n`
 
 ## Order
 
-- **10-06 (queued, `auto_submit.py` pid 2104, 00:00:30 UTC):** C2 (fork v12) → A4 (v53) → A3a (v49) → A3b (v50) → A5 (v54).
-- **10-06, after the four solos read (≈ 00:20–01:00 UTC):** build B12 (if a solo qualifies), B14, B13, B4 and B9 (if A3 ✅; else B11 or
-  B8) as placeholders; write `artifacts/submit_plan_1007.json` in that order; start `auto_submit.py --at 2026-10-07T00:00:30Z` before
-  23:30 UTC, with no other submitter alive.
-- **10-07, after C2 reads (≈ 06:00 UTC) and the 10-07 blends read:** build C3 if its gate opens; then B5, B15 (if gated in), B8 / B11 for
-  `submit_plan_1008.json` (C3 first).
+- **10-06 (queued, `auto_submit.py` pid 23960, 00:00:30 UTC; the A3 entries are parked in `artifacts/submit_plan_1007_A3.json`):** C2 (fork v12) → B13 (v55) → B11 (v56) → A4 (v53) → A5 (v54). Tian, 10-05: the
+  best-expected performers first; A3 moved to 10-07.
+- **10-06, after the reads (blends and solos ≈ 00:20–01:30 UTC, C2 ≈ 06:00 UTC):** build C3 if its gate opens, B12 (if an E solo
+  qualifies) and B14; write `artifacts/submit_plan_1007.json` = C3 (else B4) → A3a (v49) → A3b (v50) → B12 (else B4) → B14;
+  start `auto_submit.py --at 2026-10-07T00:00:30Z` before 23:30 UTC, with no other submitter alive.
+- **10-07, after the 10-07 reads:** B4 / B5, B9 (if A3 ✅), B15 (if gated in), B8 for `submit_plan_1008.json`.
 - **10-09:** only rows that still decide something; otherwise leave the slots empty. Freeze the P-50 shortlist.
 - **10-10:** training resumes (section D). The submissions after that are the new arms' solos.
 

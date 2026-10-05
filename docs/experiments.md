@@ -3536,6 +3536,40 @@ three-dose read on one backbone and seed (0 / 0.25 / 0.5 Claude). Placeholder `r
 **Verdict: ✅ the run (green, shipped, backed up; E ≈ $1.9, pod deleted); 🔁 gold −0.002, a seed-level difference.** The solo is read
 2026-10-06. Epoch selection on gold: 🔁, mixed sign on the two arms, under the floor.
 
+### 2026-10-05 — Per-label model routing on gold-58, tested fairly: **−0.006 vs B6's flat rank-mean** (in-sample it looks like +0.012) · ❌ DEAD END on gold
+
+Tian asked whether an ensemble that routes each finding to the member best at it would beat the flat blend. No GPU: the gold-58
+predictions of 11 members (`v11a`, `v13r`, `v13e`, `v13b3`, `v13e2`, `v11n`, `v11n2`, `v13es`, `v13rs`, `v13ecp`, `v13ec`) plus B6 itself
+as a twelfth candidate.
+
+| label | B6 | best candidate (in-sample) |
+|---|---|---|
+| ACL | 0.974 | 0.985 `v13rs` |
+| MCL | 0.959 | 0.959 B6 |
+| Medial Meniscus | 0.968 | 0.982 `v13b3` |
+| Lateral Meniscus | 0.885 | 0.906 `v13b3` |
+| Medial OA | 0.988 | 0.989 `v11n2` |
+| Lateral OA | 0.837 | 0.857 `v13ecp` |
+| PF OA | 0.869 | 0.879 `v13ecp` |
+| Effusion | 0.961 | 0.969 `v11a` |
+| Synovitis | 0.817 | 0.826 `v13e` |
+| Baker's | 0.986 | 0.987 `v13r` |
+| Contusion | 0.966 | 0.972 `v13e2` |
+| Fracture | 0.899 | 0.942 `v11a` |
+| **macro** | **0.9256** | **0.9377** (+0.0121) |
+
+- **The fair test:** per label, pick the best candidate on a random half of the 58 studies, score the routing on the other half,
+  and compare with B6 on that half. Over 300 splits × both directions (every label with ≥ 2 positives and ≥ 2 negatives per half),
+  the routing reads **−0.0062** (sd 0.0066) and is worse than B6 in **83 %** of the 600 evaluations.
+- **Why:** the per-label gaps between members are inside the per-label SE (≈ 0.09 on 9–35 positives). The in-sample "best" member is
+  mostly the luckiest one, and the flat blend's averaging is worth more than the routing's selection.
+- **On the LB** the same idea is per-label weight tuning, which the public stack's author expects to give back (P-50, #16: its
+  LB-tuned per-label map is worth ≈ +0.002 publicly).
+
+**Verdict: ❌ DEAD END for routing chosen on gold-58** (proposals.md Dropped directions). A per-label weighting could only be chosen
+on a ruler of thousands of studies: the P-67 five-fold OOF (4,349 studies, report-label targets, valid for image-side members), with
+shrinkage toward equal weights. Even there, members of similar quality leave little for routing to gain over a flat rank-mean.
+
 ## Infrastructure
 
 ### 2026-09-27 — The "0.943 Speedy Raptors CoAtNet D4" notebook is our anchor **plus two CoAt readers**, not a faster graph; its "< 30 min" is a 3-study commit run · P-41 (threaded scan + 8 decode workers) smoke-green and byte-identical

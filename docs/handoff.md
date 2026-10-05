@@ -6,6 +6,65 @@ to read first after a break.
 
 ---
 
+## 2026-10-05 (11:58 → 12:40 UTC) — submissions only until 10-10; **the 10-06 five swapped to the best-expected performers** (C2, B13, B11 and the two E solos; the P-62 pair moves to 10-07); per-label routing tested on gold and dropped
+
+Tian, in order: "run /update … fill in all the candidates … with their priority — we won't be training anything for today/tomorrow
+and only submitting our work for the next few days"; "Which models are in for testing tomorrow and why? … best performers first";
+"Ok lets swap them as you recommended … focus on our models … is there anything else we should do … benchmarking environment … model
+routing … or is that a waste". Commits `f2438ee` plus this one. **This entry supersedes the submitter rows of the entries below.**
+
+### ⏳ Still in flight as this was written (12:40 UTC)
+
+| In flight | What it is | Started | How to check | How to read it |
+|---|---|---|---|---|
+| **Auto-submitter, Windows pid 23960** (its interpreter child is pid 15164) | `src/auto_submit.py --plan artifacts/submit_plan_1006.json --at 2026-10-06T00:00:30Z`: **fork v12 (C2) → infer v55 (B13) → v56 (B11) → v53 (`v13ecp`) → v54 (`v13ec`)**, then one watcher per ref. Replaced pid 2104 (stopped; its plan is `submit_plan_1006_before_swap.json`). The A3 pair (v49 / v50) is parked in `artifacts/submit_plan_1007_A3.json` | 12:31 | `tail -30 artifacts/auto_submit_1006.log`; `Get-Process -Id 23960` | **Green** = `sent 5 / 5`. **Suspicious:** `FAILED after 3 attempts`, a Traceback in `.err`, or pid 23960 gone before 00:00 → fallback: `PYTHONUTF8=1 .venv/Scripts/python.exe src/auto_submit.py --plan artifacts/submit_plan_1006.json` (sends at once, skips anything already sent that day) |
+
+### Where things stand
+
+| | Status |
+|---|---|
+| Placeholders | **infer v55 = B13** (B6 + `v11n` + `v11n2`, 7 members, gold 0.9256) and **v56 = B11** (`v13b3` + `v13e2` + `v13e`, gold 0.9196), both green. `rsna-knee-infer`'s committed render is v56 |
+| Queue | `docs/candidates.md`: every candidate ranked P1–P5 with its day; section D (training) paused until the 10-10 reset (Tian) |
+| Budgets | Kaggle ≈ 2.9 h left to 10-10 (two placeholders ≈ 10 min today); RunPod ≈ $5 |
+
+### What we talked about and decided
+
+- **No training on 10-05 / 10-06; submissions only until 10-10** (Tian). Every candidate got a priority and a day.
+- **"Best performers first"** (Tian): B13 and B11 do not depend on any 10-06 read, so they took the A3 pair's slots. If either beats
+  B6, the fork with that leg (C3) can go out on 10-07 instead of 10-08. A3's answer is only needed before the week-2 retrains.
+- **Single-model ideas** (Tian asked): the forum's levers are already the 10-10 plan (P-67 augmentation ablations, P-68 a CNN OOF
+  teacher on report-silent cells, P-69 ConvNeXt). Proposed on top, **not yet in the P-67 card**: B0 at 288 px (resolution vs capacity),
+  dropping blank slices, a 50-epoch arm with per-epoch snapshots, and a per-label comparison harness on P-67's five-fold OOF.
+- **Model routing** (Tian asked): measured on gold, ❌ (finding 1).
+
+### What we figured out
+
+1. **Per-label routing chosen on gold-58 loses:** in-sample +0.012 over B6, chosen on one half and scored on the other −0.006, worse
+   in 83 % of splits (experiments.md 2026-10-05 "Per-label model routing on gold-58"; proposals.md Dropped directions).
+2. **B13's runtime is fine:** 7 members ≈ 5.5 min of model time per 100 studies on a T4.
+
+### ⏭ Next action, in order
+
+1. **After ≈ 00:05 UTC 10-06:** `sent 5 / 5` in `artifacts/auto_submit_1006.log`. `/update` per score. Read rules are in each message
+   and in candidates.md.
+2. **10-06, once the reads are in** (blends and solos ≈ 00:20–01:30 UTC, C2 ≈ 06:00 UTC), per candidates.md "Order":
+   - build C3 if C2 ≥ 0.942 and B13 or B11 ≥ 0.943 (`src/build_fork.py`, the winning blend as the leg at β 0.45);
+   - build B12 (B6, or B13 if it beat B6, plus any E solo ≥ 0.936) and B14;
+   - write `artifacts/submit_plan_1007.json` = C3 (else B4) → v49 → v50 → B12 (else B4) → B14;
+   - start the 10-07 submitter before 23:30 UTC, with no other submitter alive.
+3. **10-10 reset:** the P-67 floor run (the 00:40 → 09:20 entry, next action 6). Decide first whether the extra variables above join
+   the loop.
+
+### Open decisions for Tian
+
+- Whether B0 @ 288, blank-slice removal, the 50-epoch snapshot arm and the per-label OOF harness join P-67 (the 10-10 week).
+- Unchanged: week-2 final retrains, final picks by 10-22.
+
+### Things that will bite if forgotten
+
+- **Only pid 23960 may submit on 10-06.** Do not restart 2104 or 11624 from the entries below.
+- The laptop must stay on, on mains power, with the lid open until ≈ 00:02 UTC.
+
 ## 2026-10-05 (11:00 → 11:58 UTC) — **session E complete**: `v13ec` gold-58 0.9116 (with `v13ecp` 0.9063, both direction only), both shipped and backed up, pod stopped itself and was deleted (≈ $1.9); infer v54 green; **the 10-06 submitter now holds all five**; a fair test of gold epoch selection
 
 Tian, in order: "Restart the watchers, I closed discord"; "Do you know what is currently happening, how much of training has
