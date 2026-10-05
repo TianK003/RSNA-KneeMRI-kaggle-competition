@@ -9,7 +9,17 @@ How this file relates to the others:
 - **This file is only the queue.** When a candidate is read, its row is deleted here and its score goes to experiments.md
   (Submissions table + Scoreboard) through `/update`. Never keep a score in two places.
 
-Updated 2026-10-04 (18:20 UTC). The 10-05 five go out automatically at 00:00:30 UTC (see "Order"); 5 more on every later UTC day to the 10-22 deadline.
+Updated 2026-10-05 (06:30 UTC). All five 10-05 reads are in (#49–#53). 5 slots on every UTC day to the 10-22 deadline.
+
+## Priority (Tian, 2026-10-05: gather the research first, then build; nothing is built yet)
+
+| Prio | Candidate | Why it is next | Status |
+|---|---|---|---|
+| **1** | **C2** — the public stack + B6 as our leg at β 0.45 (section C) | The fork with the 0.938 trio read 0.943 (#49, rank 373); a 0.942 leg should add more. The highest-stake single read left for the final picks. ≈ 6 h to score: first send of its day | **not built** — build + smoke on Tian's go, after the 10-05 research read (forum re-read, literature, RSNA 2025) |
+| **2** | **A3** — the P-62 pair, `v13es` + `v13rs` (section A) | Decides the target of every arm trained after it (silent mix or flat). Placeholders green | ready to send (two slots) |
+| **3** | **T2 (+ T1 on the same pod)** — B3 at seed 43 on A3's winning target, optionally session E (section D) | Critic-vetted 10-05: de-biases the one 0.940 B3 draw, adds a RunPod-only final member; E settles the Claude-label question for ≈ $2 more. ≈ $4 of the ≈ $7 | case written; waits for A3, then Tian's go |
+| **4** | **New families on the `v13h` recipe** (Kaggle after 10-10; section D, T5 / T6) | The blend rule says a sixth family at ≥ 0.935 lifts B6 more than another EfficientNet seed | pick the families from the 10-05 research |
+| — | B1 / B2 / B4 / B5 / B7 / B10 / B11 | All predicted under B6 by the blend rule | hold |
 
 ## Baselines every read is compared against
 
