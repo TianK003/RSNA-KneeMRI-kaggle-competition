@@ -236,6 +236,10 @@ V09R_KW = {"backbone": "timm:coatnet_rmlp_1_rw_224", "img_size": 224, "lr_backbo
            "batch_studies": 2, "grad_accum": 2, "aug": "light"}
 XFIT = {**PROD, "train_all": False}
 C03_KW = {"cache_slot_slices": (24, 24, 24, 14, 8, 8), "crop_mm": 150.0, "train_windows": 34}
+# P-67 proxy (2026-10-05): the v13e recipe at a third of the training windows and 12 epochs, five folds, not train_all.
+PROXY = {**PROD, **V09R_KW, **C03_KW, "backbone": "timm:efficientnet_b0", "lr_backbone": 3e-4, "llrd_decay": 1.0,
+         "freeze_bn": True, "aug": "heavy", "drop_path": 0.1, "epochs": 12, "swa_last": 3, "ckpt_policy": "last",
+         "train_windows": 12, "train_all": False, "folds": (0, 1, 2, 3, 4)}
 ARMS = [
     # 2026-09-23 (S2): the CoAtNet production member carries the S1 knobs -- two studies per BatchNorm batch (P-32,
     # `v09b` 0.8690) and light train-time augmentation (P-33, `v09c` 0.8730), both read against `v09h` 0.8683 on fold 0.
@@ -395,6 +399,12 @@ SHIPPED_ARMS = [
     # spread behind every +-0.0045 read band, and is a final-ensemble member whatever it reads.
     ("v13e2", {**PROD, **V09R_KW, **C03_KW, "backbone": "timm:efficientnet_b0", "lr_backbone": 3e-4, "llrd_decay": 1.0,
                "freeze_bn": True, "aug": "heavy", "drop_path": 0.1, "epochs": 30, "seed": 43}),
+    # 2026-10-05 (P-67, approved by Tian): the fast-proxy 5-fold CV ruler. The v13e recipe (B0 @ 224 on c03) with
+    # train_windows 12 (vs 34) and 12 epochs (SWA 9-11), NOT train_all: five folds -> a pooled OOF vs the LLM targets, the
+    # ruler for IMAGE-SIDE ablations only (traps 39: never for a target change). v14p / v14p2 = seeds 42 / 43 = the ruler's
+    # own floor; every later ablation is one more v14* arm that changes ONE key of PROXY. ~45 min per fold on a T4.
+    ("v14p", {**PROXY}),
+    ("v14p2", {**PROXY, "seed": 43}),
 ]
 ARM_V10C = ("v10c", {**C02, "backbone": "timm:coatnet_rmlp_2_rw_384", "img_size": 384,
                      "lr_backbone": 1e-4, "eval_windows": 42, "grad_checkpoint": True})
@@ -527,7 +537,8 @@ DISTILLED_ARMS = {"v09s": ("selfdistill_v1",), "v09t": ("selfdistill_v1",),
                   "v13r": ("raptor_teacher",), "v13e": ("raptor_teacher",),
                   "v13es": ("raptor_teacher",), "v13rs": ("raptor_teacher",),
                   "v13ec": ("claude_rap_v1",), "v13rc": ("claude_rap_v1",), "v13b3": ("raptor_teacher",),
-                  "v13e2": ("raptor_teacher",), "v13ecp": ("raptor_teacher", "claude_v1")}
+                  "v13e2": ("raptor_teacher",), "v13ecp": ("raptor_teacher", "claude_v1"),
+                  "v14p": ("raptor_teacher",), "v14p2": ("raptor_teacher",)}
 # 2026-09-28 (traps 40's second gap): the mix a distilled arm must train with; every other distilled arm trains at 0.5.
 DISTILLED_MIX = {"v09o": 0.75, "v09o2": 0.75, "v13ec": 0.75, "v13rc": 0.75, "v13ecp": 1.0}
 # P-62: the silent-cell mix an arm must train with; every arm not listed trains without one (TEACHER_SILENT_MIX = None).

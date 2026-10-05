@@ -64,7 +64,7 @@ result*, per unit of cost. "Depends on" lists hard blockers only. EVs are solo-L
 
 | rank | id | title | status | expected value | cost | depends on |
 |---|---|---|---|---|---|---|
-| 0n | P-67 | Fast-proxy 5-fold CV ruler + single-variable recipe ablation loop | ✅ **approved by Tian 2026-10-05 ("go with the loop"): the 10-10 quota week; proxy arm + smoke built before the reset** (research.md 2.7.6 / 2.7.7 / 2.10) | + 0.003–0.005 per production member if ≥ half transfers → B6 ≈ 0.945–0.947 | ≈ 16 proxy variants per 30-h Kaggle week, or ≈ $0.6 each on a 4090; + 1 transfer arm | a measured pooled-OOF floor (2 seeds) |
+| 0n | P-67 | Fast-proxy 5-fold CV ruler + single-variable recipe ablation loop | 🔧 **implemented, effect pending: `v14p` / `v14p2` in src, Kaggle smoke v45 green (10-05); the 5-fold floor run starts at the 10-10 reset** — approved by Tian (research.md 2.7.6 / 2.7.7 / 2.10) | + 0.003–0.005 per production member if ≥ half transfers → B6 ≈ 0.945–0.947 | ≈ 16 proxy variants per 30-h Kaggle week, or ≈ $0.6 each on a 4090; + 1 transfer arm | a measured pooled-OOF floor (2 seeds) |
 | 0o | P-68 | Different-family (CNN OOF) image teacher at ≥ 0.5 on report-silent cells | 💡 proposed 2026-10-05 | 0..+ 0.004 solo (forum claims + 0.011; same-family was flat for us) | OOF free from P-67's best proxy, or ≈ $4 / 15 session-h; + 1 arm | the P-62 read; P-67 |
 | 0p | P-69 | Sixth family for B6: ConvNeXt-T on the `v13h` recipe | ✅ approved with the loop 2026-10-05 (the week-1 family arm); loader check first | B6 + 0.002–0.003 (cross-family rule) | 1 Kaggle arm ≈ 6 h + a loader check | the 10-10 quota |
 | 0i | P-62 | Silence-aware teacher mix (Raptor 0.75 where the report is silent, 0.5 where it speaks) | ⏳ **session D TRAINED green 2026-10-04 (`rsna-knee-train-b` v6, 5.94 h): gold-58 SWA `v13es` 0.9107 / `v13rs` 0.9160 vs 0.9126 / 0.9111 (direction only); shipped `rsna-knee-ckpt-v13es` / `-v13rs`; solos 10-05 = `rsna-knee-infer` v49 / v50; read m vs 0.9345 (✅ ≥ 0.9390)** | 0..+0.002 — likely under the 0.004 one-seed floor | one c03 session ≈ 3.5 GPU-h + 2 solos | — |
@@ -80,8 +80,11 @@ result*, per unit of cost. "Depends on" lists hard blockers only. EVs are solo-L
 ## Cards
 
 ### P-67 Fast-proxy 5-fold CV ruler + single-variable recipe ablation loop
-Status:       ✅ **approved by Tian 2026-10-05 ("go with the loop"): the 10-10 quota week.** Before the reset:
-              the proxy arm dict, `FIVE_FOLD` plumbing and a smoke (Kaggle, minutes). Research.md 2.7.6 / 2.7.7 / 2.10.
+Status:       🔧 **implemented, effect pending (2026-10-05, 09:12 UTC): `PROXY` preset + arms `v14p` / `v14p2` (seeds 42 / 43) in
+              `src/kaggle_pipeline.py`; Kaggle smoke `rsna-knee-train` v45 green (PARALLEL pair, cache mounted, teacher table loaded,
+              `_best.pt` + `_oof.csv` per child).** Approved by Tian ("go with the loop"): the real 5-fold floor run goes out at the
+              10-10 reset — `sed PARALLEL_ARMS = ("v14p", "v14p2")`, `TEACHER_TABLES = ("raptor_teacher",)`, `FORCE_SMOKE = False`
+              (≈ 3.75 h session, both T4s). Research.md 2.7.6 / 2.7.7 / 2.10.
 Hypothesis:   a cheap CNN (ResNet-34 or EfficientNet-B0 @ 224 on c03 with the windows subsampled, 10–12 epochs, 5 folds) gives a
               pooled report-label OOF whose seed floor is ≈ 0.003–0.004 macro, and ablating one training variable at a time against
               it finds ≥ +0.005 on the proxy, of which ≥ half transfers to the 30-epoch production members.
