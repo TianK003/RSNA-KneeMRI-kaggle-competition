@@ -15,7 +15,7 @@ Updated 2026-10-05 (06:30 UTC). All five 10-05 reads are in (#49–#53). 5 slots
 
 | Prio | Candidate | Why it is next | Status |
 |---|---|---|---|
-| **1** | **C2** — the public stack + B6 as our leg at β 0.45 (section C) | The fork with the 0.938 trio read 0.943 (#49, rank 373); a 0.942 leg should add more. The highest-stake single read left for the final picks. ≈ 6 h to score: first send of its day | **not built** — build + smoke on Tian's go, after the 10-05 research read (forum re-read, literature, RSNA 2025) |
+| **1** | **C2** — the public stack + B6 as our leg at β 0.45 (section C) | The fork with the 0.938 trio read 0.943 (#49, rank 373); a 0.942 leg should add more. The highest-stake single read left for the final picks. ≈ 6 h to score: first send of its day | **built: fork v12, placeholder green** (Tian's go 10-05 after the research read); sends 10-06 00:00:30 UTC via `auto_submit.py` |
 | **2** | **A3** — the P-62 pair, `v13es` + `v13rs` (section A) | Decides the target of every arm trained after it (silent mix or flat). Placeholders green | ready to send (two slots) |
 | **3** | **T2 (+ T1 on the same pod)** — B3 at seed 43 on A3's winning target, optionally session E (section D) | Critic-vetted 10-05: de-biases the one 0.940 B3 draw, adds a RunPod-only final member; E settles the Claude-label question for ≈ $2 more. ≈ $4 of the ≈ $7 | case written; waits for A3, then Tian's go |
 | **4** | **New families on the `v13h` recipe** (Kaggle after 10-10; section D, T5 / T6) | The blend rule says a sixth family at ≥ 0.935 lifts B6 more than another EfficientNet seed | pick the families from the 10-05 research |
@@ -70,7 +70,7 @@ rule, LB rounded to 0.001. Member solos: `v13b3` 0.940, `v13e2` 0.938, `v13e` 0.
 
 | # | Candidate | What it tests / contributes | Read rule | Placeholder |
 |---|---|---|---|---|
-| C2 | Public stack + **B6** (`v11a` + `v13r` + `v13e` + `v13b3` + `v13e2`) as our leg at β 0.45 | C1 (#49, the #48 trio as the leg) read **0.943** = +0.001 over the stack (🔁) and rank 373. A 0.942 leg should add more than a 0.938 one did. **Scores slowly: #49 took 5.3 h with three members; expect ≈ 6 h with five. Send first in its day** | vs #49 0.943: ✅ ≥ 0.946 / 🔁 0.942–0.945 / ❌ ≤ 0.941 | **build** (`src/build_fork.py --members v11a v13r v13e v13b3 v13e2`, β 0.45; needs the `rsna-knee-ckpt-v13b3` / `-v13e2` Datasets as sources; smoke first) |
+| C2 | Public stack + **B6** (`v11a` + `v13r` + `v13e` + `v13b3` + `v13e2`) as our leg at β 0.45 | C1 (#49, the #48 trio as the leg) read **0.943** = +0.001 over the stack (🔁) and rank 373. A 0.942 leg should add more than a 0.938 one did. **Scores slowly: #49 took 5.3 h with three members; expect ≈ 6 h with five. Send first in its day** | vs #49 0.943: ✅ ≥ 0.946 / 🔁 0.942–0.945 / ❌ ≤ 0.941 | `rsna-knee-fork` **v12** ✅ (built 10-05, placeholder green 08:56 UTC: status `beta0.45`, our arm rc 0 in 69 s, 5 members in one decode-once pass, verified, constant labels 0). First entry of `artifacts/submit_plan_1006.json` |
 | — | Fork at other β | **Not planned:** it tunes a weight to the public LB | — | — |
 
 ## Order
