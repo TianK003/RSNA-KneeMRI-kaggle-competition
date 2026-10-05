@@ -17,7 +17,8 @@ Updated 2026-10-04 (18:20 UTC). The 10-05 five go out automatically at 00:00:30 
 |---|---|---|
 | Public-stack fork | **0.942** | #13 / #15 |
 | Our best ensemble | **0.938** | #48: flat rank-mean of `v11a` (CoAtNet-1) + `v13r` (ResNet-50) + `v13e` (EfficientNet-B0) |
-| Solos | 0.935 / 0.934 / 0.932 / 0.931 | `v13e` / `v13r` / `v11a` / `v13h` |
+| Solos | 0.938 / 0.935 / 0.934 / 0.932 / 0.931 | `v13e2` / `v13e` / `v13r` / `v11a` / `v13h` |
+| CNN seed spread | s = 0.003 | #51 `v13e2` 0.938 vs `v13e` 0.935 (10-05): the one-seed bands stand (≥ 0.004). The B0 recipe's seed mean is 0.9365 |
 
 **Floors.** A one-seed solo delta needs ≥ 0.004 (P-44). A two-arm mean uses ±0.0045. A blend counts only if it reads ≥ its best
 member + 0.004.
@@ -29,7 +30,6 @@ member + 0.004.
 | # | Candidate | What it tests / contributes | Decides | Read rule | Placeholder | Gold-58 |
 |---|---|---|---|---|---|---|
 | A1 | `v13b3` (EfficientNet-B3 @ 288; P-66) | Does a bigger CNN at higher resolution beat B0? | Whether B3 is the CNN family for the final members (training row T2) | vs 0.935: ✅ ≥ 0.939 / 🔁 0.931–0.938 / ❌ ≤ 0.930; member if ≥ 0.933 | `rsna-knee-infer` **v47** ✅ · sent 10-05 as #50 (ref 56838023), ⏳ | 0.9222 |
-| A2 | `v13e2` (`v13e`, seed 43; P-66) | The first measurement of the CNN seed noise on the LB, s = \|`v13e2` − 0.935\| | How every other CNN read is judged; whether a 2-seed member is worth it | s ≤ 0.003: the bands stand; s ≥ 0.005: one-seed CNN deltas need ≥ s | **v48** ✅ · sent as #51 (ref 56838038), ⏳ | 0.9151 |
 | A3 | `v13es` + `v13rs` (P-62: Raptor 0.75 on report-silent cells) — **one read, two submissions** | Does weighting the image teacher on report-silent cells lift the CNNs? | Whether session E and the final members train with `TEACHER_SILENT_MIX` | mean of the two vs 0.9345: ✅ ≥ 0.9390 / 🔁 0.9300–0.9389 / ❌ ≤ 0.9299. On gold, both move less than a seed change, so 🔁 is likely | **v49** + **v50** ✅ | 0.9107 / 0.9160 |
 
 ## B. Submission candidates — ensembles of members we have
@@ -83,7 +83,7 @@ RunPod works at any time:
 |---|---|---|---|---|---|
 | T1 | Session E: `v13ec` ‖ `v13rc` (`claude_rap_v1` at mix 0.75) | Does the Claude relabel improve the CNNs? Read: their mean vs 0.9345 | A3, so E knows whether to add the silent mix | RunPod ≈ 2.6 h ≈ $2, or Kaggle ≈ 6 h after 10-10 | P-65 (the critic rated its expected gain under its own bar) |
 | T2 | B3 at seed 43 (arm to add) | A second B3 seed: a 2-seed B3 member for the final ensemble | A1 ✅ (or B3 / B6 ✅) | ≈ 2.4 h ≈ $1.8 | P-66 → P-50 |
-| T3 | `v13r` at seed 43 (arm to add) | A 2-seed ResNet-50 member | A2 + B5 showing that seed averaging pays | ≈ 1.8 h ≈ $1.3 | P-50 |
+| T3 | `v13r` at seed 43 (arm to add) | A 2-seed ResNet-50 member | B5 showing that seed averaging pays (A2 read 10-05: s = 0.003) | ≈ 1.8 h ≈ $1.3 | P-50 |
 | T4 | B3 on the winning target (silent mix and/or Claude) | The best target on the best backbone | A3 / T1 ✅ | ≈ 2.4 h ≈ $1.8 | P-62 / P-65 |
 | T5 | A bigger or new CNN on the `v13h` recipe (e.g. EfficientNet-B4, ConvNeXt-T) | Does more capacity keep paying? | A1 ✅ by a clear margin | ≈ 3–4 h + a weight Dataset + smoke | new card first |
 | T6 | Final members (Kaggle, after 10-10) | Retrains of the chosen recipes and seeds for the two final picks | the reads above | Kaggle quota | P-50 |

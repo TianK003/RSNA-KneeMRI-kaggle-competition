@@ -115,7 +115,7 @@ agreement with the teacher, not truth. A one-seed LB delta needs ≥ 0.004 (P-44
 | 2026-10-04 | **Session C (`rsna-knee-train` v43, 5.87 h)**: the `v13h` recipe (c03, CNN LR 3e-4 uniform, frozen BN, heavy aug, drop-path 0.1, 30 ep, Raptor 0.5) on ResNet-50 `v13r` ‖ EfficientNet-B0 `v13e` | gold-58 SWA **0.9111 / 0.9126** (`v13h` 0.9001) | **0.934 / 0.935** (#45 / #46) | **✅ `v13e` KEEP: 0.935 = our best solo (+0.004 vs `v13h`); 🔁 `v13r` +0.003** — blend `v11a` + `v13h` #47 0.934 (🔁 +0.002 over its best member); `v11dl` #44 0.927 (P-61 closed) (entries "Session C", "Submissions #44–#47") |
 | 2026-10-04 | **Cross-family blends (flat rank-mean, `rsna-knee-infer` v43 / v44)**: `v11a` + `v13h` (#47) · `v11a` + `v13r` + `v13e` (#48) | gold-58 0.9170 / 0.9233 | **0.934 / 0.938** | **🔁 by rule (+0.002 / +0.003 over the best member, bars 0.936 / 0.939) — but both above every member, unlike four flat same-family blends; 0.938 = our best own-model score** (entry "Submission #48") |
 | 2026-10-04 | **P-66 `v13b3` (RunPod RTX 4090, 2.2 h, ≈ $1.8)**: the `v13h` recipe on EfficientNet-B3 @ 288 (c03, Raptor 0.5, 30 ep, SWA 27–29) | gold-58 SWA **0.9222** (`v13e` 0.9126; 6 up / 5 down; menisci, ACL, Fracture up) | ⏳ (solo 10-06) | **✅ run green; 🔁 direction only (+0.0096, floor 0.05)** — read vs `v13e` 0.935: ✅ ≥ 0.939 / 🔁 0.931–0.938 / ❌ ≤ 0.930; seed twin `v13e2` training on the same pod (entry "P-66 on RunPod") |
-| 2026-10-04 | **P-66 `v13e2` (RunPod RTX 4090, 65 min)**: `v13e` exactly at seed 43, the first CNN seed twin | gold-58 SWA **0.9151** (`v13e` 0.9126; within-class ρ 0.888, the same as B3 ~ B0) | ⏳ (solo 10-06) | **✅ run green; 🔁 seed-level gold difference (+0.0025)** — read s = \|`v13e2` − 0.935\|: ≤ 0.003 the CNN bands stand / ≥ 0.005 widen them; a final-ensemble member either way (entry "P-66 complete") |
+| 2026-10-04 | **P-66 `v13e2` (RunPod RTX 4090, 65 min)**: `v13e` exactly at seed 43, the first CNN seed twin | gold-58 SWA **0.9151** (`v13e` 0.9126; within-class ρ 0.888, the same as B3 ~ B0) | **0.938** (#51, 10-05) | **✅ s = 0.003 → the CNN one-seed bands stand; our best solo, = #48** (entry "Submissions #49–#53"). Was: ✅ run green; 🔁 seed-level gold difference (+0.0025) — read s = \|`v13e2` − 0.935\|: ≤ 0.003 the CNN bands stand / ≥ 0.005 widen them; a final-ensemble member either way (entry "P-66 complete") |
 | 2026-10-04 | **Session D (`rsna-knee-train-b` v6, 5.94 h), P-62 on the CNNs**: `v13es` / `v13rs` = `v13e` / `v13r` + Raptor 0.75 on report-silent cells | gold-58 SWA **0.9107 / 0.9160** (flat 0.9126 / 0.9111; pair mean +0.0015; ρ to the flat parents 0.932 / 0.948, closer than a seed twin's 0.888) | ⏳ (solos 10-05, `rsna-knee-infer` v49 / v50) | **✅ runs green; 🔁 direction only** — read m(`v13es`, `v13rs`) vs 0.9345: ✅ ≥ 0.9390 / 🔁 0.9300–0.9389 / ❌ ≤ 0.9299 (entry "Session D") |
 
 **External reference points** (not ours — for calibrating ambition):
@@ -3247,6 +3247,33 @@ The 10-06 solos of P-66 are ready as well: **v47** = `v13b3`, **v48** = `v13e2`.
 
 **Verdict: ✅ the runs; 🔁 gold pair mean +0.0015 (0.03× the floor), labels split.** Solos sent after 00:00 UTC 2026-10-05.
 
+### 2026-10-05 — Submissions #49–#53 (the 10-05 five) · #51 seed twin `v13e2` **0.938**: s = 0.003, the CNN one-seed bands stand, and one model ties our best ensemble · #49 / #50 / #52 / #53 ⏳
+
+Sent 00:41–00:45 UTC by the `auto_submit.py` fallback run. The scheduled 00:00:30 run sent nothing (traps 20 addendum). Placeholders
+were green on 10-04 (candidates.md); rows #49–#53 are in the Submissions table. Each message carries its pre-registered read.
+
+| # | what | gold-58 | LB | scored within | pre-registered read | verdict |
+|---|---|---|---|---|---|---|
+| 51 | `v13e2` = `v13e` exactly at seed 43 (RunPod, P-66) | 0.9151 | **0.938** | [12.5, 14.0] min | s = \|LB − 0.935\|: ≤ 0.003 the bands stand / ≥ 0.005 widen them | **✅ measured: s = 0.003 → the bands stand** |
+
+**#51, what it says.**
+1. **The CNN seed spread on the LB is 0.003.** That is one pair, and the twin also changed platform (RunPod, 8 loader workers vs
+   Kaggle's 2). It is under the 0.004 one-seed bar (P-44), so the bands stand. P-44's bar now rests on a CNN pair as well as one
+   CoAtNet draw.
+2. **0.003 is also the size of every gain we read on 10-04:** `v13r` +0.003 over `v13h` (#45), and #48 +0.003 over its best member.
+   One reseed moved a solo as far as adding two families did.
+3. **The B0 recipe is worth ≈ 0.9365 (the mean of two seeds), not 0.935.** Single-seed solos are draws.
+4. **One 17 MB model ties our best ensemble (#48 0.938).** So #48's gain over its best member cannot be told apart from seed luck.
+   - B6 (#52) holds both B0 seeds.
+   - B5 (#48 + `v13e2`) is the clean test of a second seed inside the ensemble.
+5. **Gold-58 agreed this time:** `v13e2` +0.0025 over `v13e` there. That is the same direction, but gold is not a judge of member
+   order (traps 39).
+6. **For #50 (`v13b3`) the pre-registered bar stays at 0.935.** A B3 read under 0.938 is no better than a B0 reseed, so it is also
+   read against the B0 seed mean, 0.9365.
+
+**Verdict #51: ✅ measurement.** s = 0.003, so the CNN one-seed bands stand (≥ 0.004, P-44). `v13e2` = our best solo (0.938, tied
+with #48) and a final-ensemble member.
+
 ## Infrastructure
 
 ### 2026-09-27 — The "0.943 Speedy Raptors CoAtNet D4" notebook is our anchor **plus two CoAt readers**, not a faster graph; its "< 30 min" is a 3-study commit run · P-41 (threaded scan + 8 decode workers) smoke-green and byte-identical
@@ -3744,6 +3771,6 @@ and public LB score, so a public/private divergence can be traced to a specific 
 | 48 | 2026-10-04 | rsna-knee-infer v44 (v41's mounts) | **Three-family blend**: `INFER_MEMBERS = ["v11a", "v13r", "v13e"]` — flat rank-mean of CoAtNet-1 + ResNet-50 + EfficientNet-B0, one c03 decode pass (`artifacts/infer_trio_v11a_v13r_v13e.py`) | none; gold-58 0.9233 | **0.938** | **read 08:40:31 UTC → +0.003 over the best member (`v13e` 0.935), +0.004 over the members' mean → 🔁 by rule (keep bar ≥ 0.939); our best own-model score; scored within [42.3, 43.8] min.** sent 07:56:41 UTC, ref 56818172 |
 | 49 | 2026-10-05 | rsna-knee-fork v11 | **C1 / P-50**: the public 0.942 stack + our #48 trio (`v11a` + `v13r` + `v13e`) as the leg at **β 0.45** (`src/build_fork.py`) | none (fork) | ⏳ | sent 00:41:45 UTC, ref 56838006, by the `auto_submit.py` fallback run (the 00:00:30 scheduled run sent nothing: traps 20 addendum). Read vs #13 0.942: ✅ ≥ 0.945 / 🔁 0.941–0.944 / ❌ ≤ 0.940 |
 | 50 | 2026-10-05 | rsna-knee-infer v47 (+ Dataset `rsna-knee-ckpt-v13b3`) | **A1 / P-66, EfficientNet-B3 solo**: `INFER_MEMBERS = ["v13b3"]`, B3 ra2 @ 288 on the `v13h` recipe, trained on RunPod (`artifacts/infer_solo_v13b3.py`) | none; gold-58 0.9222 | ⏳ | sent 00:42:30 UTC, ref 56838023. Read vs `v13e` 0.935: ✅ ≥ 0.939 / 🔁 0.931–0.938 / ❌ ≤ 0.930; a member if ≥ 0.933 |
-| 51 | 2026-10-05 | rsna-knee-infer v48 (+ Dataset `rsna-knee-ckpt-v13e2`) | **A2 / P-66, seed twin**: `INFER_MEMBERS = ["v13e2"]`, `v13e` at seed 43, RunPod (`artifacts/infer_solo_v13e2.py`) | none; gold-58 0.9151 | ⏳ | sent 00:43:16 UTC, ref 56838038. s = \|score − 0.935\|: s ≤ 0.003 the bands stand / s ≥ 0.005 one-seed CNN deltas need ≥ s |
+| 51 | 2026-10-05 | rsna-knee-infer v48 (+ Dataset `rsna-knee-ckpt-v13e2`) | **A2 / P-66, seed twin**: `INFER_MEMBERS = ["v13e2"]`, `v13e` at seed 43, RunPod (`artifacts/infer_solo_v13e2.py`) | none; gold-58 0.9151 | **0.938** | **read 00:57:11 UTC → s = 0.003 → ✅ measured, the CNN bands stand; = #48, our best solo; scored within [12.5, 14.0] min.** sent 00:43:16 UTC, ref 56838038. s = \|score − 0.935\|: s ≤ 0.003 the bands stand / s ≥ 0.005 one-seed CNN deltas need ≥ s |
 | 52 | 2026-10-05 | rsna-knee-infer v51 | **B6, five-member blend**: flat rank-mean of `v11a` + `v13r` + `v13e` + `v13b3` + `v13e2` (`artifacts/infer_B6_five.py`) | none; gold-58 0.9256 | ⏳ | sent 00:44:02 UTC, ref 56838060. Read vs #48 0.938: ✅ ≥ 0.941 / 🔁 0.936–0.940 / ❌ ≤ 0.935 |
 | 53 | 2026-10-05 | rsna-knee-infer v52 | **B3, the B3 swap**: flat rank-mean of `v11a` + `v13r` + `v13b3` (B3 replaces B0 in #48) (`artifacts/infer_B3_swap.py`) | none; gold-58 0.9254 | ⏳ | sent 00:44:48 UTC, ref 56838082. Read vs #48 0.938: ✅ ≥ 0.941 / 🔁 0.936–0.940 / ❌ ≤ 0.935 |
