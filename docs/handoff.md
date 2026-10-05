@@ -6,6 +6,111 @@ to read first after a break.
 
 ---
 
+## 2026-10-05 (00:40 → 09:20 UTC) — the 10-05 five read (**fork + trio 0.943 = rank 373; B3 solo 0.940; our own five-member B6 0.942 = the public stack**); research day (forum re-read, literature, RSNA 2025); **the ablation loop P-67 approved and smoke-green; C2 built (fork v12); session E RUNNING on RunPod**; proposals.md = live cards only; safety handoff while the pod runs
+
+Tian, in order: "read the handoff and tell me your overnight job"; "Yes, do that [the waiter] … in the morning I want a report";
+"summarise … what did we learn … which labels … 18 days … be tactical"; "do the re-read … literature … RSNA 2025 1st place …
+ultrathink … add C2 to candidates with a priority … which Claude model"; "Go with the loop, build C2 for tomorrow, drop all past
+things that worked from proposals, drop resolution > 288 etc. with the why, push, propose training today (Claude labels + Raptor, one
+slot tomorrow)"; "Go E, push it and save the results. Then run /handoff". Commits `acf6715` … `e40749f` (21 today).
+
+### ⏳ Still in flight as this was written (09:20 UTC)
+
+| In flight | What it is | Started | How to check | How to read it |
+|---|---|---|---|---|
+| **RunPod pod `j4obvfotdbdudo`** (RTX 4090, US-NC-1, $0.74/h, created 09:09 UTC, Tian's go "Go E") | **Session E** as a two-dose test: `/workspace/pod_job_E.sh` → `/workspace/job_E.log`; chain 1 = `v13ecp` (0.5 Raptor + 0.5 Claude, no LLM share; training since 09:13), then chain 2 = `v13ec` (0.25 LLM + 0.5 Raptor + 0.25 Claude). Each chain ships `rsna-knee-ckpt-<arm>` (best.pt + OOF + log) with a 45-min token-window retry. **AUTO_STOP is OFF** (the pod has no `RUNPOD_API_KEY`) → the pod must be stopped and deleted by hand | 09:10 | `ssh -i ~/.ssh/id_ed25519 -p 47761 root@103.196.86.187 'tail -20 /workspace/job_E.log; grep "fold 0 epoch" /kaggle/working/v13ecp.log \| tail -3'` · `kaggle datasets files tiankljucanin/rsna-knee-ckpt-v13ecp` · MCP `get-pod j4obvfotdbdudo` / `list-billing` | **Green:** `chain 1 rc=0` ≈ 10:25 UTC, `chain 2 rc=0` ≈ 11:40, both Datasets list `<arm>_fold0_best.pt`. Expected ≈ 2.2 min/epoch (B0: 65 min / 30 ep on 10-04). **Suspicious:** > 5 min/epoch (the volume is FUSE, `/dev/shm` only 29 GB) → consider stopping; `!!` lines; a `_last.pt` without `_best.pt` = guard-stopped, do NOT ship (traps 47). After both ships: local backup, `pod-action stop`, `delete-pod`, then the placeholders (next action 3) |
+| This chat's pod watcher (`b1r4n1jq5`) | SSH poll every 5 min; wakes the chat on the first finished epoch, a chain result or an error | 09:12 | — | if the chat is gone, the SSH check above is the watcher |
+| Kaggle OAuth token | refreshed at 09:08 by setting `access_token_expiration` to the past and making one call (traps 20: the CLI refreshes only "after" expiry) → valid to **21:08 UTC**; the pod holds a copy | 09:08 | `access_token_expiration` in `~/.kaggle/credentials.json` | the pod's ships at ≈ 10:25 / 11:40 are inside the window |
+
+### Where things stand
+
+| | Status |
+|---|---|
+| 10-05 reads (all five) | **#49** fork + #48 trio at β 0.45 **0.943** (🔁 +0.001 over the stack; **rank 373 of 5,187** — the 0.942 plateau is ≈ 1,000 forks wide) · **#50** `v13b3` **0.940** ✅ our best solo · **#51** `v13e2` 0.938 → CNN seed spread s = 0.003 · **#52** B6 (all five own members) **0.942** ✅ = the stack, the own final-pick candidate · **#53** B3 swap 0.940 🔁 (= B3 alone). Entry: experiments.md "Submissions #49–#53" (+ two CORRECTED notes on the blend rule) |
+| 10-06 submissions | `artifacts/submit_plan_1006.json` = fork **v12** (C2: stack + B6 leg β 0.45; placeholder green 08:56: `beta0.45`, rc 0, 5 members, decode-once verified) → infer v49 (`v13es`) → v50 (`v13rs`). **E's solos get added once their placeholders are green**, then the submitter is started for 00:00:30 UTC (next action 4) |
+| The loop (P-67) | ✅ approved by Tian; `PROXY` preset + `v14p` / `v14p2` (B0 @ 224, 12 windows, 12 ep, five folds, not train_all) in src; Kaggle smoke `rsna-knee-train` **v45 green** (PARALLEL pair, `_best.pt` + `_oof.csv` per child); the real 5-fold floor run at the 10-10 reset (next action 6). P-69 ConvNeXt-T approved with it |
+| Docs | research.md **2.7.6** (forum re-read), **2.7.7** (literature + RSNA 2025 verbatim write-ups, §2.2 corrected), **2.10** (synthesis); proposals.md **live cards only** + **Dropped directions with the why**; the 59 closed cards = the index at the end of experiments.md; candidates.md priority table + section D around the 10-10 decision (T5 dropped); traps 20 addendum; the `/update` routing follows |
+| Committed renders | `rsna-knee-fork` = **v12 (C2, submittable)** · `rsna-knee-infer` = v52 · `rsna-knee-train` = **v45 = a SMOKE render of the proxy pair** · `rsna-knee-train-b` = v6 REAL — never re-push as is |
+| Budgets | Kaggle ≈ 2.9 h left until 10-10 (today: fork placeholder + proxy smoke ≈ 0.4 h), then 30 h (10-10) + 30 h (10-17), two T4s per session; RunPod ≈ $7 → ≈ $4.8 after E; 5 slots × 17 days |
+| Claude labels (Tian asked) | both passes = **Opus 5.5 Claude Code subagents** (44 batches × 100 reports; effort not set); the API labeler (`data/llm_labels/rsna-knee-llm-labels/api_labeler.py`, `claude-opus-5`, effort low) was never the path. Pilot: Opus 0.9062 vs the LLM blend 0.8948 on gold; Haiku worse on 11/12 |
+
+### What we talked about and decided
+
+- **Overnight:** the scheduled submitter got 401 × 8 at 00:00 UTC — `KaggleApi` fixes its token at `authenticate()` and never refreshes
+  (traps 20 addendum) — the fallback sent all five at 00:41; both scripts now re-authenticate. One commit (`acf6715`) went out with a
+  `Claude-Session` trailer by mistake; left as is per the 10-03 rule.
+- **The report and the direction (Tian's "be tactical"):** the gap to the 0.95 singles is not architecture (forum: R50-class CNNs at
+  224–288) but (i) a training recipe found by ablation against a trusted 5-fold report-label CV and (ii) different-source
+  pseudo-labels weighted on report-silent cells. **Tian: "go with the loop"** → P-67 (ruler + one-variable ablations) is the 10-10 week,
+  P-69 (ConvNeXt-T) rides along, final retrains in the 10-17 week. Dropped, with reasons in proposals.md: B4-class capacity, > 288 px,
+  3D, MIL, foundation / radiology backbones, same-recipe seeds as a score lever, external data, VLM image labelling, LB-tuned weights.
+- **C2** was built only after the research read (Tian: "don't waste time building something we won't use").
+- **Session E today, not after A3:** Tian wants the Claude-label test in a 10-06 slot. Design changed from the registered B0 + R50 pair
+  at one dose to **B0 at two Claude doses** (`v13ecp` pure 0.5 / 0.5, new arm; `v13ec` 0.25), seed 42, so with `v13e` / `v13e2` (dose 0)
+  it is a dose-response read on one backbone; each solo vs the B0 seed mean 0.9365 (✅ ≥ 0.9405 / 🔁 0.933–0.940 / ❌ ≤ 0.932). The
+  critic's "wait for A3" was overridden knowingly; a flat-silent-cell E stays comparable to its twins.
+- **T2 (B3 seed 43)** is folded into the week-2 retrain (the retrain on the winning recipe is the second draw); the critic's case is in
+  candidates.md.
+- **proposals.md** restructured on Tian's instruction: live cards only; closed cards moved; dropped directions must be answered by a new
+  reason before a card on them is written.
+
+### What we figured out
+
+1. **The blend rule** (10 flat blends): LB ≈ the members' mean solo LB + 0.004–0.006 across families (0.006 at five members), only
+   + 0.001–0.003 within one recipe. B6 = 0.936 + 0.006. New families pay, seeds don't (experiments.md "Submissions #49–#53").
+2. **CNN seed spread 0.003** (#51): the one-seed bands stand; most 10-04 gains were seed-sized.
+3. **+0.001 over the public stack = ≈ 1,000 ranks** (#49: 0.942 = rank 1,381, 0.943 = rank 373).
+4. **Forum (2.7.6):** every ≥ 0.949 single is ResNet-50-class / CoAtNet at 224–288; their edge = own soft labels + OOF / multi-source
+   teachers > 0.5 on silent cells + a 5-fold CV ruler at 0.003 (= our P-02 floor / √5) + hundreds of runs; nobody above 288, no 3D / MIL.
+5. **Literature + RSNA 2025 (2.7.7):** ImageNet timm init = SSL / radiology init at ≤ 288; soft targets + distillation are mainstream;
+   different-pretrained-model ensembles beat seeds; CV-weighted blends held private rank, LB-tuned fell; of the 2025 winner's
+   ingredients only heavy aug (low-resolution simulation) and a rerun fallback (P-70) transfer. §2.2's attributions were wrong (fixed).
+6. **KaggleApi** never refreshes in-process (traps 20 addendum); an early refresh = set the expiry to the past and call once.
+
+### ⏭ Next action, in order
+
+1. **Chain 1 ends ≈ 10:25 UTC:** `kaggle datasets files tiankljucanin/rsna-knee-ckpt-v13ecp` must list `v13ecp_fold0_best.pt`; gold-58
+   SWA from the pod: `ssh … 'grep -E "SWA of|_best.pt = " /kaggle/working/v13ecp.log'` (direction only). `/update`: experiments.md
+   entry "Session E on RunPod" (Scoreboard row ⏳ LB), P-65 status.
+2. **Chain 2 ends ≈ 11:40:** the same for `v13ec`. Then the local backup — `kaggle datasets download -d tiankljucanin/rsna-knee-ckpt-v13ecp
+   -p artifacts/kaggle_out/pod_v13ecp --unzip` (and `-v13ec`) — then MCP `pod-action j4obvfotdbdudo stop`, `delete-pod j4obvfotdbdudo`,
+   `list-pods` empty, `list-billing` for the cost (expect ≈ $2.2).
+3. **Placeholders (≈ 10 GPU-min each):** `sed -e 's/^FORCE_SMOKE = True/FORCE_SMOKE = False/' -e 's/^MODE = "auto"/MODE = "infer"/'
+   -e 's/^INFER_MEMBERS = \[.*\]/INFER_MEMBERS = ["v13ecp"]/' src/kaggle_pipeline.py > artifacts/infer_solo_v13ecp.py`; add
+   `tiankljucanin/rsna-knee-ckpt-v13ecp` to `kaggle/rsna-knee-infer/kernel-metadata.json` `dataset_sources`; `nbgen` → push → **v53**;
+   green = `"smoke": "False"`, `infer members (1): v13ecp/fold0`, `decode-once verified`, `constant labels 0`. Same for `v13ec` → **v54**.
+4. **Append both to `artifacts/submit_plan_1006.json`** (message = "E / P-65 v13ecp solo: v13e recipe on 0.5 Raptor + 0.5 Claude (Opus 5.5
+   relabel), gold-58 <x>; vs B0 seed mean 0.9365: >=0.9405 keep / 0.933-0.940 inconclusive / <=0.932 harmful"; v13ec likewise with
+   "0.25 LLM + 0.5 Raptor + 0.25 Claude"), order: fork v12, v53, v49, v50, v54. Before 23:30 UTC, with no other submitter alive
+   (`tasklist | findstr python.exe`): `$env:PYTHONUTF8="1"; Start-Process .venv\Scripts\python.exe -ArgumentList 'src\auto_submit.py',
+   '--plan','artifacts\submit_plan_1006.json','--at','2026-10-06T00:00:30Z' -RedirectStandardOutput artifacts\auto_submit_1006.log
+   -RedirectStandardError artifacts\auto_submit_1006.err -WindowStyle Hidden`; check the log says `plan … 5 submissions`. Laptop on mains,
+   lid open.
+5. **10-06 reads → `/update` per score** (rows #54–#58): C2 vs #49 0.943 (✅ ≥ 0.946 / 🔁 0.942–0.945 / ❌ ≤ 0.941) → if ✅ the fork with B6 is
+   final pick 2; A3 = m(`v13es`, `v13rs`) vs 0.9345 (✅ ≥ 0.9390 / 🔁 0.9300–0.9389 / ❌ ≤ 0.9299) → the silent mix for every later arm;
+   E doses vs 0.9365 → the Claude share for the week-2 retrains (a ✅ at 0.5 and not at 0.25 = dose matters; both 🔁 = the label side
+   closes, image side only).
+6. **10-10 reset — the P-67 floor run:** `sed -e 's/^PARALLEL_ARMS = ()/PARALLEL_ARMS = ("v14p", "v14p2")/' -e 's/^TEACHER_TABLES = ()/
+   TEACHER_TABLES = ("raptor_teacher",)/' -e 's/^FORCE_SMOKE = True/FORCE_SMOKE = False/' src/kaggle_pipeline.py >
+   artifacts/train_p67_floor.py`; `grep -E '^(FORCE_SMOKE|PARALLEL_ARMS|TEACHER_TABLES) = '`; `nbgen` → `kaggle/rsna-knee-train`; push
+   (≈ 3.75 h, both T4s). Read: `src/fold_oof_summary.py` on both pooled OOFs → floor = |Δ macro|; the ablation bar = 1.5 × floor. Then one
+   variable per 5-fold pair in the P-67 card's order, P-69 ConvNeXt-T in the same week (loader check first).
+
+### Open decisions for Tian
+
+- Which E dose takes the 10-06 slot if only one may (default `v13ecp`, the maximum contrast); the other = the fifth slot or 10-07.
+- If the FUSE volume makes an epoch > 5 min: stop E and rerun on a pod with local NVMe, or let it run (≈ 2× the cost)?
+- Week-2 (10-17) final retrains: which target (after A3 / E) and which families; final picks by 10-22 (entry / merger 10-15).
+
+### Things that will bite if forgotten
+
+- **The pod has no AUTO_STOP.** Billing runs ($0.74/h) until `pod-action stop` / `delete-pod`. Do it after both ships + local backups.
+- The pod's Kaggle token copy expires 21:08 UTC; a ship after that falls into the 30-min dead window (traps 20) — the chain retries 45 min.
+- `rsna-knee-train` v45 is a SMOKE render; re-pushing it as is trains nothing real. `rsna-knee-fork` v12 is the submittable C2: do not
+  push the fork kernel again before 00:00 UTC (the plan names v12).
+- Never start a second `auto_submit.py` for the same UTC day; the plan's version numbers must be the green placeholders.
+- `MODE="auto"` flips to inference when any old `_best.pt` sits in `artifacts/` — force `MODE = "train"` for a local smoke.
+
 ## 2026-10-04 (16:35 → 18:30 UTC) — the 10-05 lineup is picked (C1 / A1 / A2 / B6 / B3) and **sends itself at 00:00:30 UTC**; `docs/candidates.md` is the new queue; safety handoff before the night
 
 Tian, in order:
