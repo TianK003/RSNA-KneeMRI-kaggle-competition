@@ -405,6 +405,24 @@ SHIPPED_ARMS = [
     # own floor; every later ablation is one more v14* arm that changes ONE key of PROXY. ~45 min per fold on a T4.
     ("v14p", {**PROXY}),
     ("v14p2", {**PROXY, "seed": 43}),
+    # 2026-10-05 (P-67 variables; Tian: "focus on these"): each arm = PROXY + ONE change, seed 42, read against the
+    # v14p / v14p2 floor on the pooled 5-fold OOF. Augmentation components (aug_extra, after the heavy stack, p 0.3
+    # each), study-level mixup, B0 @ 288 (resolution vs capacity), blank-window dropping, and a longer schedule
+    # (20 proxy epochs ~ 50 production epochs; its per-epoch pooled OOF is the epoch curve).
+    *[(f"v14{tag}", {**PROXY, "aug_extra": (comp,)})
+      for tag, comp in (("lr", "lowres"), ("th", "thick"), ("gd", "grid"), ("bl", "blur"), ("ns", "noise"),
+                        ("sh", "sharpen"))],
+    ("v14mx", {**PROXY, "mixup_p": 0.5}),
+    ("v14r288", {**PROXY, "img_size": 288}),
+    ("v14db", {**PROXY, "drop_blank_frac": 0.3}),
+    ("v14ep20", {**PROXY, "epochs": 20}),
+    # 2026-10-05 (P-68, Tian: "especially this one"): the v13e production recipe on a DIFFERENT-FAMILY teacher -- the
+    # CNN proxy's own 5-fold OOF (`cnnoof_v1` = src/build_distill_table.py --per-fold-rank over the v14p + v14p2 OOFs),
+    # averaged with Raptor (a CoAtNet) and mixed 0.5 on addressed cells and 0.8 on report-silent cells (Archit 735304:
+    # "> 50 % model on the silent cells, only because the predictions were properly out of fold"). The silent mix is
+    # revisited after the A3 / P-62 read (10-07).
+    ("v13eo", {**PROD, **V09R_KW, **C03_KW, "backbone": "timm:efficientnet_b0", "lr_backbone": 3e-4, "llrd_decay": 1.0,
+               "freeze_bn": True, "aug": "heavy", "drop_path": 0.1, "epochs": 30}),
 ]
 ARM_V10C = ("v10c", {**C02, "backbone": "timm:coatnet_rmlp_2_rw_384", "img_size": 384,
                      "lr_backbone": 1e-4, "eval_windows": 42, "grad_checkpoint": True})
@@ -514,6 +532,9 @@ TEACHER_PATHS = {
     # i.e. v13e's target with only the LLM half changed. Only need to be mounted when listed.
     "claude_v1": ["/kaggle/input/rsna-knee-teacher-tables/claude_v1.csv", "artifacts/teacher/claude_v1.csv"],
     "claude_rap_v1": ["/kaggle/input/rsna-knee-teacher-tables/claude_rap_v1.csv", "artifacts/teacher/claude_rap_v1.csv"],
+    # P-68 (2026-10-05): the CNN-family OOF teacher -- src/build_distill_table.py --per-fold-rank over the v14p + v14p2
+    # five-fold OOFs (the P-67 floor run). Does not exist until that run is in; only needs to be mounted when listed.
+    "cnnoof_v1": ["/kaggle/input/rsna-knee-teacher-tables/cnnoof_v1.csv", "artifacts/teacher/cnnoof_v1.csv"],
 }
 # P-38: a distilled arm (`v09s` = the fold-0 probe, `v09t` = the production member) is what its name says only when its
 # targets are distilled, and the arm dict cannot carry TEACHER_TABLES (targets are built once per session) -- never train
@@ -538,11 +559,14 @@ DISTILLED_ARMS = {"v09s": ("selfdistill_v1",), "v09t": ("selfdistill_v1",),
                   "v13es": ("raptor_teacher",), "v13rs": ("raptor_teacher",),
                   "v13ec": ("claude_rap_v1",), "v13rc": ("claude_rap_v1",), "v13b3": ("raptor_teacher",),
                   "v13e2": ("raptor_teacher",), "v13ecp": ("raptor_teacher", "claude_v1"),
-                  "v14p": ("raptor_teacher",), "v14p2": ("raptor_teacher",)}
+                  "v14p": ("raptor_teacher",), "v14p2": ("raptor_teacher",),
+                  **{a: ("raptor_teacher",) for a in ("v14lr", "v14th", "v14gd", "v14bl", "v14ns", "v14sh", "v14mx",
+                                                      "v14r288", "v14db", "v14ep20")},
+                  "v13eo": ("raptor_teacher", "cnnoof_v1")}
 # 2026-09-28 (traps 40's second gap): the mix a distilled arm must train with; every other distilled arm trains at 0.5.
 DISTILLED_MIX = {"v09o": 0.75, "v09o2": 0.75, "v13ec": 0.75, "v13rc": 0.75, "v13ecp": 1.0}
 # P-62: the silent-cell mix an arm must train with; every arm not listed trains without one (TEACHER_SILENT_MIX = None).
-DISTILLED_SILENT_MIX = {"v11s": 0.75, "v11s2": 0.75, "v13es": 0.75, "v13rs": 0.75}
+DISTILLED_SILENT_MIX = {"v11s": 0.75, "v11s2": 0.75, "v13es": 0.75, "v13rs": 0.75, "v13eo": 0.8}
 if TEACHER_SILENT_MIX is not None and not TEACHER_TABLES:
     raise SystemExit("TEACHER_SILENT_MIX is set without TEACHER_TABLES -- there is no teacher to re-weight")
 # Every arm this session can train: the filters, and the sequential loop's list itself (a run with no filter).
@@ -587,6 +611,10 @@ def default_infer_workers():
         return 0
     n = len(os.sched_getaffinity(0)) if hasattr(os, "sched_getaffinity") else (os.cpu_count() or 2)
     return max(2, min(8, 2 * n))
+
+
+# P-67 (2026-10-05): the optional augmentation components of `Config.aug_extra`, applied in this order (augment_extra).
+AUG_EXTRA = ("lowres", "thick", "grid", "blur", "noise", "sharpen")
 
 
 @dataclass
@@ -659,6 +687,19 @@ class Config:
     # shift +-8 %, gamma 0.7-1.4, contrast 0.8-1.25 about the window mean, gain 0.85-1.15, and at p 0.3 one cutout
     # rectangle (each side 20-50 % of the window) set to 0; still no flips. Its own function: "light" is untouched.
     aug: str = "none"
+    # P-67 (2026-10-05): optional components AFTER the light / heavy stack, for one-at-a-time ablation on the proxy
+    # (augment_extra; any subset of AUG_EXTRA = lowres, thick, grid, blur, noise, sharpen), each per window at
+    # `aug_extra_p`. Training-only like `aug`: never an INFER_MEMBER_KEY. () = today's path, draws nothing.
+    aug_extra: tuple = ()
+    aug_extra_p: float = 0.3
+    # P-67: study-level mixup inside a window batch (batch_studies >= 2), at probability `mixup_p` per batch; lambda ~
+    # Beta(mixup_alpha, mixup_alpha), folded to >= 0.5 (mixup_studies). Training-only. 0 = off, draws nothing.
+    mixup_p: float = 0.0
+    mixup_alpha: float = 0.4
+    # P-67 (Myo 743148: "drops low quality and no info slices"): drop a window whose centre slice's mean intensity is
+    # below drop_blank_frac x the median centre-slice mean of its slot, keeping >= 2 per slot (drop_blank_windows).
+    # Training AND inference: an INFER_MEMBER_KEY, so the member sees the same windows at both. 0 = off.
+    drop_blank_frac: float = 0.0
     # Slice-offset TTA for fixed-window members (P-12): the K centres are shifted by each offset
     # (clipped to the stack), one forward per offset, probabilities pooled per label.
     # tta_pool "mean" = average; "focal" = the 0.936 notebook's rule: max over views for
@@ -757,6 +798,12 @@ class Config:
     # rsna-knee-infer globs. Requires ckpt_policy="last": "best_oof" would pick the epoch on
     # gold-58 (Hanley-McNeil SE ~0.04 macro), which stays banned.
     train_all: bool = False
+    # P-48 / P-67 (2026-10-05; Tucker trains on the 58 too): with train_all, the gold rows ALSO train (their gold labels
+    # at gold_weight). The gold-58 validation is then in-sample: a smoke check, not a read. Final retrains only.
+    train_gold: bool = False
+    # P-67 (2026-10-05): > 0 also saves the EMA weights every N completed epochs as {version}_fold{k}_ep{e}_ema.pt, in
+    # the `_best.pt` format, so an earlier epoch can be shipped and submitted (copy it to a new version's _best.pt).
+    snapshot_every: int = 0
     # > 0: keep the EMA state_dict of the last N COMPLETED epochs in host RAM (persisted in _last.pt,
     # so a resumed session averages the same N) and write their element-wise mean as _best.pt;
     # the final-epoch EMA is kept as `_lastema.pt` for the A/B. 0 = plain ckpt_policy.
@@ -785,6 +832,26 @@ class Config:
         if self.aug != "none" and self.window_mode != "random":
             raise SystemExit("aug runs inside forward_windows only: set window_mode='random' (a fixed-window arm "
                              "would otherwise claim an augmentation that never runs)")
+        self.aug_extra = tuple(self.aug_extra or ())
+        bad = [a for a in self.aug_extra if a not in AUG_EXTRA]
+        if bad:
+            raise SystemExit(f"unknown aug_extra component(s) {bad} (any of {AUG_EXTRA})")
+        if (self.aug_extra or self.mixup_p > 0 or self.drop_blank_frac > 0) and self.window_mode != "random":
+            raise SystemExit("aug_extra / mixup_p / drop_blank_frac are wired into the window path only: set "
+                             "window_mode='random'")
+        if not 0.0 <= self.aug_extra_p <= 1.0 or not 0.0 <= self.mixup_p <= 1.0:
+            raise SystemExit("aug_extra_p and mixup_p are probabilities in [0, 1]")
+        if self.mixup_p > 0 and (self.batch_studies < 2 or self.cache_scheme != "c02"):
+            raise SystemExit("mixup_p blends the studies of one batch: needs batch_studies >= 2 and the flat c02 cache")
+        if not 0.0 <= self.drop_blank_frac < 1.0:
+            raise SystemExit("drop_blank_frac must be in [0, 1)")
+        if self.drop_blank_frac > 0 and self.cache_scheme != "c02":
+            raise SystemExit("drop_blank_frac needs the flat c02 / c03 cache layout")
+        if self.train_gold and not self.train_all:
+            raise SystemExit("train_gold adds the gold rows to a train_all arm (a k-fold arm already trains on the "
+                             "gold rows of its other folds)")
+        if self.snapshot_every < 0:
+            raise SystemExit("snapshot_every must be >= 0")
         if self.batch_studies > 1 and self.window_mode == "random" and self.cache_scheme != "c02":
             raise SystemExit("batch_studies > 1 in window mode needs the flat c02 cache (no c01 window member exists)")
         if self.smoke:
@@ -1964,6 +2031,8 @@ class KneeStudyDataset(Dataset):
                 # resizes on the GPU (60 float windows per study would otherwise cross the
                 # DataLoader shared-memory boundary at ~80-100 MB each).
                 centres, slot_id = valid_windows(mask_np, self.cfg)
+                if getattr(self.cfg, "drop_blank_frac", 0.0) > 0:       # P-67: train AND eval / infer
+                    centres, slot_id = drop_blank_windows(arr, centres, slot_id, self.cfg, self.cfg.drop_blank_frac)
                 if self.train:
                     centres, slot_id = sample_train_windows(centres, slot_id, self.cfg.train_windows)
                 else:
@@ -2304,6 +2373,122 @@ def augment_heavy(x, p=0.9, cutout_p=0.3):
     return out
 
 
+def gauss_blur(xs, sigma, radius=3):
+    """Separable Gaussian blur of (N, C, H, W) floats with one sigma per window (N,) in pixels, reflect-padded; the
+    same kernel for a window's C channels. Used by augment_extra (blur, sharpen)."""
+    n, c, h, w = xs.shape
+    t = torch.arange(-radius, radius + 1, device=xs.device, dtype=xs.dtype)
+    k = torch.exp(-(t.view(1, -1) ** 2) / (2.0 * sigma.view(-1, 1).to(xs.dtype).clamp_min(1e-3) ** 2))
+    k = (k / k.sum(1, keepdim=True)).repeat_interleave(c, 0)            # (N * C, 2r + 1)
+    g = xs.reshape(1, n * c, h, w)
+    g = F.conv2d(F.pad(g, (radius, radius, 0, 0), mode="reflect"), k.view(n * c, 1, 1, -1), groups=n * c)
+    g = F.conv2d(F.pad(g, (0, 0, radius, radius), mode="reflect"), k.view(n * c, 1, -1, 1), groups=n * c)
+    return g.view(n, c, h, w)
+
+
+def augment_extra(x, extras, p=0.3):
+    """P-67 (2026-10-05): optional augmentation components after the light / heavy stack, added one at a time on the
+    fast proxy (Tucker 740610: "ablate through the standard image augmentation stacks"; the RSNA 2025 aneurysm winner's
+    list, research.md 2.7.7). x (W, C, H, W) floats in [0, 1]; returns the same dtype and shape. Each component in
+    `extras` picks its own windows with probability p, in the fixed order of AUG_EXTRA:
+      lowres  -- in-plane down-sample to U(0.35, 0.75) of the size and back up (bilinear; one factor per call):
+                 low-resolution / thick-slice acquisition simulation;
+      thick   -- through-plane: the window's three channels are neighbouring slices [c-1, c, c+1]; each is blended
+                 with its neighbours at weight a ~ U(0.15, 0.33) -- a thicker-slice simulation along the stack;
+      grid    -- grid distortion: a smooth random displacement field from a 4 x 4 control grid, up to 4 % of the window;
+      blur    -- Gaussian blur, sigma U(0.4, 1.2) px;
+      noise   -- additive Gaussian noise, sigma U(0.01, 0.05) on the [0, 1] scale;
+      sharpen -- unsharp mask x + a (x - blur_1px(x)), a ~ U(0.3, 1.0).
+    Results are clamped to [0, 1]. No flips (P-05). Draws torch's global RNG only for the listed components, so
+    extras=() returns x without drawing anything."""
+    n_win = x.shape[0]
+    if n_win == 0 or p <= 0 or not extras:
+        return x
+    dev = x.device
+    out = x.clone()
+    with torch.autocast(device_type="cuda" if dev.type == "cuda" else "cpu", enabled=False):
+        for name in AUG_EXTRA:
+            if name not in extras:
+                continue
+            pick = torch.rand(n_win, device=dev) < p
+            if not bool(pick.any()):
+                continue
+            n = int(pick.sum())
+            xs = out[pick].float()
+            H, Wd = xs.shape[-2], xs.shape[-1]
+            if name == "lowres":
+                f = 0.35 + float(torch.rand(())) * 0.40
+                small = F.interpolate(xs, size=(max(8, int(round(H * f))), max(8, int(round(Wd * f)))),
+                                      mode="bilinear", align_corners=False, antialias=True)
+                xs = F.interpolate(small, size=(H, Wd), mode="bilinear", align_corners=False)
+            elif name == "thick":
+                if xs.shape[1] != 3:
+                    raise SystemExit("aug_extra 'thick' needs triplet windows (3 neighbouring slices per window)")
+                a = (0.15 + torch.rand(n, 1, 1, device=dev) * 0.18)
+                s0, s1, s2 = xs[:, 0], xs[:, 1], xs[:, 2]
+                xs = torch.stack([(1 - a) * s0 + a * s1, (1 - 2 * a) * s1 + a * (s0 + s2), (1 - a) * s2 + a * s1], 1)
+            elif name == "grid":
+                d = (torch.rand(n, 2, 4, 4, device=dev) * 2 - 1) * 0.08          # normalised coords span 2: 0.08 = 4 %
+                d = F.interpolate(d, size=(H, Wd), mode="bicubic", align_corners=True).permute(0, 2, 3, 1)
+                eye = torch.tensor([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]], device=dev).unsqueeze(0).expand(n, -1, -1)
+                base = F.affine_grid(eye, [n, xs.shape[1], H, Wd], align_corners=False)
+                xs = F.grid_sample(xs, base + d, mode="bilinear", padding_mode="zeros", align_corners=False)
+            elif name == "blur":
+                xs = gauss_blur(xs, 0.4 + torch.rand(n, device=dev) * 0.8)
+            elif name == "noise":
+                xs = xs + torch.randn_like(xs) * (0.01 + torch.rand(n, 1, 1, 1, device=dev) * 0.04)
+            elif name == "sharpen":
+                amt = 0.3 + torch.rand(n, 1, 1, 1, device=dev) * 0.7
+                xs = xs + amt * (xs - gauss_blur(xs, torch.ones(n, device=dev)))
+            out[pick] = xs.clamp(0.0, 1.0).to(out.dtype)
+    return out
+
+
+def mixup_studies(b, alpha, device):
+    """P-67 (2026-10-05): study-level mixup for one window batch of B >= 2 studies (collate_windows). Each study's uint8
+    cache array is blended voxel for voxel with the next study's (a roll by one). The flat c02 / c03 layout puts the
+    same slot and slice position at the same rows, and laterality is already normalised, so the blend is anatomically
+    aligned up to patient size. The windows gathered are the first study's (its centres / slot_id); y / yt / w mix
+    with the same lambda ~ Beta(alpha, alpha), folded to >= 0.5 so the study whose windows are read dominates. One
+    lambda per batch, from numpy's global RNG (seed_all). Returns a new dict; `arr` comes back on `device`."""
+    lam = float(np.random.beta(alpha, alpha))
+    lam = max(lam, 1.0 - lam)
+    arr = b["arr"].to(device)
+    perm = torch.roll(torch.arange(arr.shape[0], device=arr.device), 1)
+    out = dict(b)
+    out["arr"] = (lam * arr.float() + (1.0 - lam) * arr[perm].float()).round_().clamp_(0, 255).to(torch.uint8)
+    for k in ("y", "yt", "w"):
+        if k in b:
+            v = b[k]
+            out[k] = lam * v + (1.0 - lam) * v[perm.to(v.device)]
+    return out
+
+
+def drop_blank_windows(arr, centres, slot_id, cfg, frac):
+    """P-67 (2026-10-05; Myo 743148 "drops low quality and no info slices"): remove the windows whose centre slice is
+    near-empty -- mean intensity below `frac` x the median centre-slice mean of the same slot -- keeping at least the
+    two brightest windows of every slot. arr is the flat c02 / c03 uint8 study array (T, P, P); centres / slot_id as
+    valid_windows returns them. Applied in training AND evaluation / inference (drop_blank_frac is an
+    INFER_MEMBER_KEY), so a member sees the same window population at both."""
+    if frac <= 0 or len(centres) == 0:
+        return centres, slot_id
+    if arr.ndim != 3:
+        raise SystemExit("drop_blank_frac needs the flat c02 / c03 cache layout (T, P, P)")
+    _, _, slot_slices, _ = cache_geom(cfg)
+    starts, _ = slot_offsets(slot_slices)
+    rows = np.asarray(starts, dtype=np.int64)[slot_id] + centres
+    means = np.asarray(arr[rows], dtype=np.float32).reshape(len(rows), -1).mean(1)
+    keep = np.zeros(len(rows), dtype=bool)
+    for si in np.unique(slot_id):
+        ix = np.flatnonzero(slot_id == si)
+        m = means[ix]
+        ok = m >= frac * float(np.median(m))
+        if ok.sum() < min(2, len(m)):
+            ok[np.argsort(-m)[:min(2, len(m))]] = True
+        keep[ix[ok]] = True
+    return centres[keep], slot_id[keep]
+
+
 def timm_stage_names(enc):
     """Top-level feature stages of a timm encoder, in depth order: CoAtNet/ConvNeXt `stages.<s>`, ResNet `layer1..4`."""
     if hasattr(enc, "stages"):
@@ -2354,12 +2539,14 @@ class KneeNet(nn.Module):
     def __init__(self, backbone_dir: str, n_labels=len(LABELS), dropout=0.1,
                  head_type="concat", slot_dropout=0.0, backbone="dinov2", in_chans=3,
                  slot_embed=True, grad_checkpoint=False, img_size=224, aug="none", drop_path=0.0,
-                 spatial_reader=False, slot_count_norm=False):
+                 spatial_reader=False, slot_count_norm=False, aug_extra=(), aug_extra_p=0.3):
         super().__init__()
         self.backbone = backbone
         self.in_chans = in_chans
         self.img_size = img_size
         self.aug = aug                    # P-33: train-time only, applied inside forward_windows
+        self.aug_extra = tuple(aug_extra or ())   # P-67: train-time only, after `aug`
+        self.aug_extra_p = float(aug_extra_p)
         if backbone == "convnext_tiny":
             from transformers import ConvNextModel
             self.enc = ConvNextModel.from_pretrained(backbone_dir)
@@ -2457,6 +2644,8 @@ class KneeNet(nn.Module):
                               align_corners=False)
         if self.training and self.aug != "none":            # P-33: draws nothing when aug == "none"
             x = augment_heavy(x) if self.aug == "heavy" else augment_light(x)
+        if self.training and self.aug_extra:                # P-67: draws nothing when aug_extra == ()
+            x = augment_extra(x, self.aug_extra, self.aug_extra_p)
         x = (x - IMAGENET_MEAN.to(x.device)) / IMAGENET_STD.to(x.device)
         if self.training and torch.rand(()) < 0.5:
             x = x + torch.randn_like(x) * 0.01              # the Dataset's noise aug, moved here
@@ -2505,7 +2694,9 @@ def build_model(c, device):
                 aug=str(g("aug", "none")),          # old checkpoints predate the field -> "none"
                 drop_path=float(g("drop_path", 0.0)),
                 spatial_reader=bool(g("spatial_reader", False)),        # P-63; older checkpoints -> False
-                slot_count_norm=bool(g("slot_count_norm", False)))
+                slot_count_norm=bool(g("slot_count_norm", False)),
+                aug_extra=tuple(g("aug_extra", ()) or ()),              # P-67; training-only, older -> ()
+                aug_extra_p=float(g("aug_extra_p", 0.3)))
     return m.to(device)
 
 
@@ -2643,6 +2834,8 @@ def split_studies(targets, fold, cfg):
     if getattr(cfg, "train_all", False):
         tr = targets.loc[targets.is_gold == 0, "StudyInstanceUID"].tolist()
         va = targets.loc[targets.is_gold == 1, "StudyInstanceUID"].tolist()
+        if getattr(cfg, "train_gold", False):
+            tr = tr + va                 # P-48 / P-67: the gold rows train too -> the gold validation is in-sample
     else:
         tr = targets.loc[targets.fold != fold, "StudyInstanceUID"].tolist()
         va = targets.loc[targets.fold == fold, "StudyInstanceUID"].tolist()
@@ -2679,7 +2872,9 @@ def make_loaders(manifest, targets, image_root, cfg, fold):
     tr_ds = KneeStudyDataset(manifest, targets, image_root, cfg, True, tr_studies)
     va_ds = KneeStudyDataset(manifest, targets, image_root, cfg, False, va_studies)
     print(f"  fold {fold}: train {len(tr_ds)} / val {len(va_ds)} studies"
-          + (" [train_all: val = gold rows]" if cfg.train_all else ""))
+          + (" [train_all: val = gold rows]" if cfg.train_all else "")
+          + (" [train_gold: the gold rows ALSO train -> this validation is IN-SAMPLE, not a read]"
+             if getattr(cfg, "train_gold", False) else ""))
     nw = 0 if cfg.smoke else cfg.num_workers
     # Window-mode items travel through collate_windows (P-32) at any batch size; evaluation is always ONE
     # study per batch, so the OOF path is bit-identical whatever batch_studies the arm trains with.
@@ -2947,6 +3142,8 @@ def train_fold(fold, manifest, targets, image_root, cfg, device):
         guard_hit = False
         opt.zero_grad(set_to_none=True)
         for i, b in enumerate(tr_loader):
+            if cfg.mixup_p > 0 and "arr" in b and b["arr"].shape[0] > 1 and float(torch.rand(())) < cfg.mixup_p:
+                b = mixup_studies(b, cfg.mixup_alpha, device)          # P-67: study-level mixup, training only
             with torch.amp.autocast("cuda", enabled=use_amp):
                 logits = forward_batch(model, b, device, cfg)
                 y_train = b["yt"] if "yt" in b else b["y"]           # teacher-mixed targets train; y stays the OOF target
@@ -3035,6 +3232,13 @@ def train_fold(fold, manifest, targets, image_root, cfg, device):
         if oof is not None:
             oof.insert(1, "epoch", epoch)
             oof.to_csv(oof_path.replace("_oof.csv", f"_ep{epoch}_oof.csv"), index=False)
+        if (cfg.snapshot_every > 0 and ema is not None and not guard_hit
+                and ((epoch + 1) % cfg.snapshot_every == 0 or epoch == cfg.epochs - 1)):
+            # P-67: an earlier epoch, submittable -- the `_best.pt` format under its own name (never globbed as best)
+            snap = os.path.join(WORK, f"{cfg.version}_fold{fold}_ep{epoch}_ema.pt")
+            torch.save({"model": ema.module.state_dict(), "score": score, "epoch": epoch, "ema": True,
+                        "config": asdict(cfg)}, snap)
+            print(f"    snapshot: {os.path.basename(snap)} (EMA after epoch {epoch})")
         if take:
             torch.save({"model": eval_model.state_dict(), "score": score, "epoch": epoch,
                         "ema": ema is not None, "config": asdict(cfg)}, ckpt_best)
@@ -3170,7 +3374,8 @@ INFER_CACHE_KEYS = ("use_cache", "cache_scheme", "cache_px", "cache_n_slices", "
 INFER_MEMBER_KEYS = ("slices_per_slot", "triplet_gap", "img_size", "stack_mode", "lat_undo",
                      "window_mode", "eval_windows", "tta_offsets", "tta_pool", "head_type",
                      "backbone", "slot_embed", "dropout", "slot_dropout",
-                     "spatial_reader", "slot_count_norm")       # P-63: model structure, from the checkpoint
+                     "spatial_reader", "slot_count_norm",       # P-63: model structure, from the checkpoint
+                     "drop_blank_frac")                         # P-67: the window population, train = infer
 
 
 def _norm_val(v):

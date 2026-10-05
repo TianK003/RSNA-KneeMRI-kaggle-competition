@@ -248,6 +248,11 @@ kaggle kernels push -p kaggle/rsna-knee-train
 Window-mode arms may train several studies per step (`batch_studies`, P-32: one encoder pass over all their windows,
 the BatchNorm batch; loss normalised per study; evaluation and inference stay at one study) and augment on the GPU
 (`aug="light"`, P-33: affine + gamma/gain, no flips; never at inference). `src/window_head_test.py` checks both.
+**P-67 / P-68 switches (2026-10-05), all off by default:** `aug_extra` (any of lowres / thick / grid / blur / noise / sharpen, each at
+`aug_extra_p`, after the heavy stack, training only), `mixup_p` (study-level mixup of a two-study batch, training only), `drop_blank_frac`
+(drops near-empty windows in training **and** inference: an inference key), `snapshot_every` (EMA snapshots `_ep{e}_ema.pt`, submittable),
+`train_gold` (a `train_all` arm also trains on the 58 gold rows). The arms are `v14lr` … `v14ep20` (P-67) and `v13eo` (P-68, on the
+`cnnoof_v1` table built from the P-67 floor run's OOFs).
 The fork builder's `--anchor-preset parent` builds the flat-0.60 hedge (submission #16).
 
 The legacy **5-fold** run is a sed'd copy into the second kernel:

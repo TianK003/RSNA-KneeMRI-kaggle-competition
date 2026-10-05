@@ -697,6 +697,103 @@ def main():
     check(diff == {"seed"} and cx.seed == 43 and cp.seed == 42 and da["v13e2"] == ("raptor_teacher",),
           f"v13e2 = v13e at seed 43 ({sorted(diff)})")
 
+    print("\n== P-67 additions (2026-10-05): augment_extra, mixup_studies, drop_blank_windows, train_gold, guards")
+    torch.manual_seed(0)
+    xa = torch.rand(48, 3, 64, 64) * 0.8 + 0.1
+    st = torch.get_rng_state()
+    check(torch.equal(K["augment_extra"](xa, ()), xa) and torch.equal(torch.get_rng_state(), st),
+          "augment_extra extras=() is the identity and draws nothing (today's path bit for bit)")
+    check(torch.equal(K["augment_extra"](xa, ("blur",), p=0.0), xa), "augment_extra p=0 is the identity")
+    for comp in K["AUG_EXTRA"]:
+        torch.manual_seed(1)
+        y = K["augment_extra"](xa, (comp,), p=1.0)
+        check(y.shape == xa.shape and y.dtype == xa.dtype and torch.isfinite(y).all()
+              and float(y.min()) >= 0.0 and float(y.max()) <= 1.0 and (y != xa).float().mean() > 0.3,
+              f"augment_extra '{comp}': same shape / dtype, finite, in [0, 1], changes the windows "
+              f"(changed {(y != xa).float().mean():.2f})")
+        check(K["augment_extra"](xa.half(), (comp,), p=1.0).dtype == torch.float16,
+              f"augment_extra '{comp}' keeps a half input half")
+    flat = torch.rand(16, 1, 32, 32).expand(-1, 3, -1, -1).contiguous()
+    check(torch.allclose(K["augment_extra"](flat, ("thick",), p=1.0), flat, atol=1e-6),
+          "augment_extra 'thick' leaves a window whose three slices are equal unchanged (a pure through-plane blend)")
+    const = torch.full((16, 3, 32, 32), 0.5)
+    check(torch.allclose(K["augment_extra"](const, ("blur",), p=1.0), const, atol=1e-5)
+          and torch.allclose(K["augment_extra"](const, ("sharpen",), p=1.0), const, atol=1e-5),
+          "augment_extra blur / sharpen leave a constant window unchanged (normalised, reflect-padded kernel)")
+    for bad, why in ((dict(aug_extra=("flip",), window_mode="random", head_type="window_attn", cache_scheme="c02",
+                           backbone="timm:coatnet_rmlp_1_rw_224"), "an unknown aug_extra component"),
+                     (dict(aug_extra=("blur",)), "aug_extra on a fixed-window arm"),
+                     (dict(mixup_p=0.5, window_mode="random", head_type="window_attn", cache_scheme="c02",
+                           backbone="timm:coatnet_rmlp_1_rw_224", batch_studies=1), "mixup with batch_studies 1"),
+                     (dict(train_gold=True), "train_gold without train_all"),
+                     (dict(drop_blank_frac=0.3), "drop_blank_frac on a fixed-window arm"),
+                     (dict(snapshot_every=-1), "a negative snapshot_every")):
+        try:
+            Config(**bad)
+            check(False, f"Config refuses {why}")
+        except SystemExit:
+            check(True, f"Config refuses {why}")
+    # mixup_studies: two studies, constant arrays 100 / 200, distinct targets
+    bm = {"arr": torch.stack([torch.full((10, 8, 8), 100, dtype=torch.uint8), torch.full((10, 8, 8), 200, dtype=torch.uint8)]),
+          "y": torch.tensor([[1.0] * 12, [0.0] * 12]), "yt": torch.tensor([[0.8] * 12, [0.2] * 12]),
+          "w": torch.tensor([[1.0] * 12, [0.5] * 12]), "mask": torch.ones(2, 6),
+          "centres": torch.tensor([1, 2, 1]), "slot_id": torch.tensor([0, 0, 0]), "study_ix": torch.tensor([0, 0, 1]),
+          "pos": torch.tensor([0, 1, 0]), "study": ["a", "b"]}
+    np.random.seed(0)
+    mo = K["mixup_studies"](bm, 0.4, torch.device("cpu"))
+    lam = float(mo["y"][0, 0])
+    a0, a1 = float(mo["arr"][0].float().mean()), float(mo["arr"][1].float().mean())
+    check(0.5 <= lam <= 1.0 and abs(a0 - (lam * 100 + (1 - lam) * 200)) <= 0.6
+          and abs(a1 - (lam * 200 + (1 - lam) * 100)) <= 0.6 and mo["arr"].dtype == torch.uint8
+          and abs(float(mo["yt"][0, 0]) - (lam * 0.8 + (1 - lam) * 0.2)) < 1e-6
+          and abs(float(mo["w"][1, 0]) - (lam * 0.5 + (1 - lam) * 1.0)) < 1e-6
+          and torch.equal(mo["centres"], bm["centres"]) and torch.equal(bm["arr"][0], torch.full((10, 8, 8), 100, dtype=torch.uint8)),
+          f"mixup_studies: arrays, y / yt / w blend with one lambda >= 0.5 ({lam:.3f}), windows unchanged, input untouched")
+    # drop_blank_windows on the c03 geometry: slot 0 has dark edge slices
+    c03 = Config(cache_scheme="c02", cache_slot_slices=(24, 24, 24, 14, 8, 8), crop_mm=150.0, window_mode="random",
+                 head_type="window_attn", backbone="timm:coatnet_rmlp_1_rw_224")
+    T = sum(c03.cache_slot_slices)
+    arr = np.full((T, 16, 16), 120, dtype=np.uint8)
+    arr[0:4] = 3                                    # slot 0, slices 0-3: near-empty
+    arr[24:48] = 0                                  # slot 1: uniformly dark -> the relative rule keeps it whole
+    mask = np.ones(6, np.float32)
+    cs, ss = K["valid_windows"](mask, c03)
+    c2, s2 = K["drop_blank_windows"](arr, cs, ss, c03, 0.3)
+    kept0 = set(c2[s2 == 0].tolist())
+    check(kept0 == set(range(4, 23)) and int((s2 == 1).sum()) == 22
+          and all(int((s2 == k).sum()) == int((ss == k).sum()) for k in (2, 3, 4, 5)),
+          f"drop_blank_windows: drops slot 0's dark centres 1-3 (relative to the slot median), leaves uniform slots whole "
+          f"({len(cs)} -> {len(c2)} windows)")
+    c0, s0 = K["drop_blank_windows"](arr, cs, ss, c03, 0.0)
+    check(np.array_equal(c0, cs) and np.array_equal(s0, ss), "drop_blank_windows frac 0 is the identity")
+    import ast, re
+    src_txt = open(os.path.join("src", "kaggle_pipeline.py"), encoding="utf-8").read()
+    imk = ast.literal_eval(re.search(r"^INFER_MEMBER_KEYS = (\(.*?\))", src_txt, re.S | re.M).group(1))
+    check("drop_blank_frac" in imk and "aug_extra" not in imk and "mixup_p" not in imk,
+          "drop_blank_frac is an INFER_MEMBER_KEY (train = infer); aug_extra / mixup_p stay training-only")
+    tg_cfg = Config(train_all=True, ckpt_policy="last", train_gold=True)
+    trg, vag = K["split_studies"](fake, 0, tg_cfg)
+    tr_all, va_all = K["split_studies"](fake, 0, cfg_all)
+    check(set(vag) == set(va_all) and set(trg) == set(tr_all) | set(va_all) and len(trg) == len(tr_all) + len(va_all),
+          "train_gold: the train set is every non-gold row PLUS the gold rows; validation stays the gold rows")
+    # the P-67 variable arms: each = v14p + exactly ONE change, pinned to raptor_teacher; v13eo = v13e on two tables
+    base = Config(smoke=False, **arms["v14p"])
+    want = {"v14lr": {"aug_extra"}, "v14th": {"aug_extra"}, "v14gd": {"aug_extra"}, "v14bl": {"aug_extra"},
+            "v14ns": {"aug_extra"}, "v14sh": {"aug_extra"}, "v14mx": {"mixup_p"}, "v14r288": {"img_size"},
+            "v14db": {"drop_blank_frac"}, "v14ep20": {"epochs"}}
+    for a, keys in want.items():
+        ca = Config(smoke=False, **arms[a])
+        diff = {k for k in K["asdict"](ca) if getattr(ca, k) != getattr(base, k)} - {"version"}
+        check(diff == keys and da[a] == ("raptor_teacher",) and a not in K["DISTILLED_SILENT_MIX"],
+              f"{a} = v14p + {sorted(keys)} only, on raptor_teacher ({sorted(diff)})")
+    check(len({Config(smoke=False, **arms[a]).aug_extra for a in ("v14lr", "v14th", "v14gd", "v14bl", "v14ns", "v14sh")})
+          == 6, "the six aug_extra arms test six different single components")
+    ceo, ce = Config(smoke=False, **arms["v13eo"]), Config(smoke=False, **arms["v13e"])
+    diff = {k for k in K["asdict"](ceo) if getattr(ceo, k) != getattr(ce, k)} - {"version"}
+    check(diff == set() and da["v13eo"] == ("raptor_teacher", "cnnoof_v1") and K["DISTILLED_SILENT_MIX"]["v13eo"] == 0.8
+          and "v13eo" not in dm and "cnnoof_v1" in K["TEACHER_PATHS"],
+          f"v13eo = v13e (recipe identical) on raptor_teacher + cnnoof_v1, mix 0.5, silent 0.8 ({sorted(diff)})")
+
     print("\n" + ("UNIT CHECKS PASSED" if not fails else f"UNIT CHECKS FAILED ({len(fails)}):\n  - " + "\n  - ".join(fails)))
     sys.exit(1 if fails else 0)
 
