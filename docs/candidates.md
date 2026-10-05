@@ -16,7 +16,7 @@ Updated 2026-10-04 (18:20 UTC). The 10-05 five go out automatically at 00:00:30 
 | | LB | What |
 |---|---|---|
 | Public-stack fork | **0.942** | #13 / #15 |
-| Our best ensemble | **0.938** | #48: flat rank-mean of `v11a` (CoAtNet-1) + `v13r` (ResNet-50) + `v13e` (EfficientNet-B0) |
+| Our best own | **0.940** | #50 `v13b3` solo = #53 B3 swap (`v11a` + `v13r` + `v13b3`). Previous best ensemble: #48 0.938 (`v11a` + `v13r` + `v13e`) |
 | Solos | **0.940** / 0.938 / 0.935 / 0.934 / 0.932 / 0.931 | `v13b3` / `v13e2` / `v13e` / `v13r` / `v11a` / `v13h` |
 | CNN seed spread | s = 0.003 | #51 `v13e2` 0.938 vs `v13e` 0.935 (10-05): the one-seed bands stand (≥ 0.004). The B0 recipe's seed mean is 0.9365 |
 
@@ -36,17 +36,23 @@ member + 0.004.
 Every row here is read against #48 0.938: ✅ ≥ 0.941 / 🔁 0.936–0.940 / ❌ ≤ 0.935, unless the row says otherwise. "Build" means a
 new `rsna-knee-infer` placeholder (≈ 10 GPU-min; recipe at the bottom).
 
+**Blend rule (10-05, n = 7, experiments.md "Submissions #49–#53"):** a flat rank-mean reads ≈ its members' mean solo LB + 0.002–0.005
+(pairs +0.0015–0.0045, triples +0.0043–0.0047). It beats its best member only when the members are within ≈ 0.004 of each other.
+Since B3 solo reads 0.940, every row with `v11a` (0.932), `v13h` (0.931) or `v13r` (0.934) predicts *under* B3 alone. "Pred."
+below is that rule's range. Member solos: `v13b3` 0.940, `v13e2` 0.938, `v13e` 0.935, `v13r` 0.934, `v11a` 0.932, `v13h` 0.931.
+
 | # | Members | What it tests / contributes | Placeholder | Gold-58 |
 |---|---|---|---|---|
-| B1 | `v11a` + `v13h` + `v13r` + `v13e` | Does a fourth member (ResNet-34) add to the trio? | **v45** ✅ | 0.9186 |
-| B2 | `v13h` + `v13r` + `v13e` (CNN trio) | Is the CoAtNet needed? Read: ≥ 0.938 means it is not | **v46** ✅ | 0.9129 |
-| B3 | `v11a` + `v13r` + `v13b3` | B3 swapped in for B0. Same size as #48, so the difference is B3 | **v52** ✅ · sent as #53 (ref 56838082), ⏳ | 0.9254 |
-| B4 | `v11a` + `v13r` + `v13e` + `v13b3` | Does adding B3 lift our best ensemble? | build | 0.9250 |
-| B5 | `v11a` + `v13r` + `v13e` + `v13e2` | Does a second B0 seed help inside the ensemble? | build | 0.9238 |
+| B1 | `v11a` + `v13h` + `v13r` + `v13e` | Does a fourth member (ResNet-34) add to the trio? Pred. ≈ 0.935–0.938 (mean 0.933): **low value now** | **v45** ✅ | 0.9186 |
+| B2 | `v13h` + `v13r` + `v13e` (CNN trio) | Is the CoAtNet needed? Read: ≥ 0.938 means it is not. Pred. ≈ 0.935–0.938 (mean 0.9333): **low value now** | **v46** ✅ | 0.9129 |
+| B4 | `v11a` + `v13r` + `v13e` + `v13b3` | Does adding B3 lift our best ensemble? Pred. ≈ 0.937–0.940 (mean 0.9353) | build | 0.9250 |
+| B5 | `v11a` + `v13r` + `v13e` + `v13e2` | Does a second B0 seed help inside the ensemble? Pred. ≈ 0.937–0.939 (mean 0.9348) | build | 0.9238 |
 | B6 | `v11a` + `v13r` + `v13e` + `v13b3` + `v13e2` | Our strongest own lineup: the candidate for our own final pick (P-50) | **v51** ✅ · sent as #52 (ref 56838060), ⏳ | 0.9256 |
-| B7 | `v11a` + `v13b3` | The two best families alone, as a pair | build | 0.9267 |
+| B7 | `v11a` + `v13b3` | The two best families alone, as a pair. Pred. ≈ 0.938–0.940 (mean 0.936) | build | 0.9267 |
 | B8 | all 8: `v11a`, `v13h`, `v13r`, `v13e`, `v13b3`, `v13e2`, `v13es`, `v13rs` | Does "everything" beat a curated 3–5? (Tian prefers 3–5) | build | 0.9217 |
 | B9 | `v11a` + `v13rs` + `v13es` | #48 with the P-62 members swapped in | build | 0.9224 |
+| B10 | `v13b3` + `v13e2` | **The strongest pair (new 10-05).** The blend rule's best bet: two members within 0.002. Pred. ≈ 0.941–0.944 (mean 0.939). Read vs `v13b3` 0.940: ✅ ≥ 0.944 / 🔁 0.937–0.943 / ❌ ≤ 0.936 | build | — |
+| B11 | `v13b3` + `v13e2` + `v13e` | **The strong EfficientNet triple (new 10-05).** B10 + the seed-42 B0; three members, the more robust shape for the private split. Pred. ≈ 0.940–0.942 (mean 0.9377). Read as B10 | build | — |
 
 ## C. Submission candidates — the public stack plus our models (P-50)
 
