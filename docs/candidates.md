@@ -9,13 +9,13 @@ How this file relates to the others:
 - **This file is only the queue.** When a candidate is read, its row is deleted here and its score goes to experiments.md
   (Submissions table + Scoreboard) through `/update`. Never keep a score in two places.
 
-Updated 2026-10-05 (10:40 UTC). All five 10-05 reads are in (#49–#53). Session E chain 1 (`v13ecp`) is trained and shipped; chain 2 (`v13ec`) is training. 5 slots on every UTC day to the 10-22 deadline.
+Updated 2026-10-05 (10:30 UTC). All five 10-05 reads are in (#49–#53). Session E chain 1 (`v13ecp`) is trained and shipped; chain 2 (`v13ec`) is training. 5 slots on every UTC day to the 10-22 deadline.
 
 ## Priority (Tian, 2026-10-05: gather the research first, then build; nothing is built yet)
 
 | Prio | Candidate | Why it is next | Status |
 |---|---|---|---|
-| **1** | **C2** — the public stack + B6 as our leg at β 0.45 (section C) | The fork with the 0.938 trio read 0.943 (#49, rank 373); a 0.942 leg should add more. The highest-stake single read left for the final picks. ≈ 6 h to score: first send of its day | **built: fork v12, placeholder green** (Tian's go 10-05 after the research read); sends 10-06 00:00:30 UTC via `auto_submit.py` |
+| **1** | **C2** — the public stack + B6 as our leg at β 0.45 (section C) | The fork with the 0.938 trio read 0.943 (#49, rank 373); a 0.942 leg should add more. The highest-stake single read left for the final picks. ≈ 6 h to score: first send of its day | **built: fork v12, placeholder green** (Tian's go 10-05 after the research read); sends 10-06 00:00:30 UTC via `auto_submit.py` (pid 11624, started 10:55 UTC: fork v12 → v53 → v49 → v50) |
 | **2** | **A3** — the P-62 pair, `v13es` + `v13rs` (section A) | Decides the target of every arm trained after it (silent mix or flat). Placeholders green | ready to send (two slots) |
 | **3** | **T2** — B3 at seed 43 on A3's winning target (section D). T1 (session E) went ahead on its own on 10-05 | Critic-vetted 10-05: de-biases the one 0.940 B3 draw, adds a RunPod-only final member. ≈ $1.9 of the ≈ $4.8 left after E | case written; waits for A3, then Tian's go |
 | **4** | **New families on the `v13h` recipe** (Kaggle after 10-10; section D, T5 / T6) | The blend rule says a sixth family at ≥ 0.935 lifts B6 more than another EfficientNet seed | pick the families from the 10-05 research |
@@ -39,8 +39,8 @@ member + 0.004.
 
 | # | Candidate | What it tests / contributes | Decides | Read rule | Placeholder | Gold-58 |
 |---|---|---|---|---|---|---|
-| A4 | `v13ecp` (P-65, session E chain 1): `v13e` on 0.5 Raptor + 0.5 Claude, no LLM-blend share | Does the Claude relabel lift the CNNs at the full dose? | The Claude share of the week-2 retrains (with A5) | vs the B0 seed mean 0.9365: ✅ ≥ 0.9405 / 🔁 0.933–0.940 / ❌ ≤ 0.932 | **v53** ⏳ (pushed 10:28) | 0.9063 |
-| A5 | `v13ec` (P-65, session E chain 2): 0.25 LLM + 0.5 Raptor + 0.25 Claude | The half dose: with A4 and the dose-0 seeds, a dose-response read | as A4 | as A4 | after chain 2 (≈ 11:40) | training |
+| A4 | `v13ecp` (P-65, session E chain 1): `v13e` on 0.5 Raptor + 0.5 Claude, no LLM-blend share | Does the Claude relabel lift the CNNs at the full dose? | The Claude share of the week-2 retrains (with A5) | vs the B0 seed mean 0.9365: ✅ ≥ 0.9405 / 🔁 0.933–0.940 / ❌ ≤ 0.932 | **v53** ✅ (10:30: `smoke False`, `v13ecp/fold0` at 0.9063, decode-once verified, `constant labels 0`); in `submit_plan_1006.json` as send 2 | 0.9063 |
+| A5 | `v13ec` (P-65, session E chain 2): 0.25 LLM + 0.5 Raptor + 0.25 Claude | The half dose: with A4 and the dose-0 seeds, a dose-response read | as A4 | as A4 | to build after chain 2 ships (≈ 11:40): infer **v54**, then send it **by hand** on 10-06 (the running submitter holds four) | training |
 | A3 | `v13es` + `v13rs` (P-62: Raptor 0.75 on report-silent cells) — **one read, two submissions** | Does weighting the image teacher on report-silent cells lift the CNNs? | Whether session E and the final members train with `TEACHER_SILENT_MIX` | mean of the two vs 0.9345: ✅ ≥ 0.9390 / 🔁 0.9300–0.9389 / ❌ ≤ 0.9299. On gold, both move less than a seed change, so 🔁 is likely | **v49** + **v50** ✅ | 0.9107 / 0.9160 |
 
 ## B. Submission candidates — ensembles of members we have

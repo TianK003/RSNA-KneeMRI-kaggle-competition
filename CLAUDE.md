@@ -10,7 +10,7 @@ by **macro ROC-AUC** (unweighted mean of 12 per-label AUCs).
 
 Competition: https://www.kaggle.com/competitions/rsna-knee-abnormality-detection
 
-## Current state (2026-10-05, 10:40 UTC)
+## Current state (2026-10-05, 10:30 UTC)
 
 One block, kept current by `/update`. Session history is in [docs/handoff.md](docs/handoff.md); every number, with its verdict,
 is in [docs/experiments.md](docs/experiments.md).

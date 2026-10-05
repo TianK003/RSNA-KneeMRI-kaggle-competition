@@ -988,6 +988,12 @@ mutation (`self_stop` in `scripts/runpod_chain.sh`; runpodctl stays as the fallb
 variables. To kill a chain by hand without triggering the self-stop, use SIGKILL (`pkill -9 -f "[r]unpod_chain.sh <arm>"`):
 an EXIT trap does not run on SIGKILL.
 
+**Addendum 2026-10-05 (session E):** it bit again. The setup command tested `${RUNPOD_API_KEY:-}` in the ssh shell, found it empty and
+launched the job with `AUTO_STOP=0`, so the pod had no self-stop and depended on a local watcher. The key was in `/proc/1/environ` all
+along. The local watchers were then killed by Claude Code when the laptop ran low on memory. The fix that run used: a separate
+`/workspace/stopper.sh` on the pod, started with `setsid nohup`, that sources the key from PID 1, waits for the job's final line or a
+deadline, then calls `podStop`. **Do:** test the key through `/proc/1/environ`, never the ssh env, and launch with `AUTO_STOP=1`.
+
 ### 52. The c03 cache's manifests are named `manifest_shard<k>_c02.csv`, not `_c03` — a scheme-named glob finds 0 blobs (Tier 3, 2026-10-04)
 
 c03 is the c02 scheme with denser slot budgets (cache version `c02_p336_b24-24-24-14-8-8_band2-98_crop150_lat20`). `cache_pipeline.py`
