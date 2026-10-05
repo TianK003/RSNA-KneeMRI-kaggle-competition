@@ -382,6 +382,12 @@ SHIPPED_ARMS = [
                "freeze_bn": True, "aug": "heavy", "drop_path": 0.1, "epochs": 30}),
     ("v13rc", {**PROD, **V09R_KW, **C03_KW, "backbone": "timm:resnet50", "lr_backbone": 3e-4, "llrd_decay": 1.0,
                "freeze_bn": True, "aug": "heavy", "drop_path": 0.1, "epochs": 30}),
+    # 2026-10-05 (P-65 step 2, the second Claude dose): v13e on 0.5 Raptor + 0.5 Claude with NO LLM-blend share --
+    # TEACHER_TABLES = ("raptor_teacher", "claude_v1") at TEACHER_MIX 1.0 (the quantile-matched tables are averaged, so the
+    # training target is their mean on the LLM scale). With v13ec (0.25 Claude) and v13e / v13e2 (0 Claude) this is a
+    # three-dose read of the Claude labels on one backbone.
+    ("v13ecp", {**PROD, **V09R_KW, **C03_KW, "backbone": "timm:efficientnet_b0", "lr_backbone": 3e-4, "llrd_decay": 1.0,
+                "freeze_bn": True, "aug": "heavy", "drop_path": 0.1, "epochs": 30}),
     # 2026-10-04 (staged): the v13h recipe on EfficientNet-B3 at its pretraining resolution (288 px; the c03 cache stores 336).
     ("v13b3", {**PROD, **V09R_KW, **C03_KW, "backbone": "timm:efficientnet_b3", "img_size": 288, "lr_backbone": 3e-4,
                "llrd_decay": 1.0, "freeze_bn": True, "aug": "heavy", "drop_path": 0.1, "epochs": 30}),
@@ -521,9 +527,9 @@ DISTILLED_ARMS = {"v09s": ("selfdistill_v1",), "v09t": ("selfdistill_v1",),
                   "v13r": ("raptor_teacher",), "v13e": ("raptor_teacher",),
                   "v13es": ("raptor_teacher",), "v13rs": ("raptor_teacher",),
                   "v13ec": ("claude_rap_v1",), "v13rc": ("claude_rap_v1",), "v13b3": ("raptor_teacher",),
-                  "v13e2": ("raptor_teacher",)}
+                  "v13e2": ("raptor_teacher",), "v13ecp": ("raptor_teacher", "claude_v1")}
 # 2026-09-28 (traps 40's second gap): the mix a distilled arm must train with; every other distilled arm trains at 0.5.
-DISTILLED_MIX = {"v09o": 0.75, "v09o2": 0.75, "v13ec": 0.75, "v13rc": 0.75}
+DISTILLED_MIX = {"v09o": 0.75, "v09o2": 0.75, "v13ec": 0.75, "v13rc": 0.75, "v13ecp": 1.0}
 # P-62: the silent-cell mix an arm must train with; every arm not listed trains without one (TEACHER_SILENT_MIX = None).
 DISTILLED_SILENT_MIX = {"v11s": 0.75, "v11s2": 0.75, "v13es": 0.75, "v13rs": 0.75}
 if TEACHER_SILENT_MIX is not None and not TEACHER_TABLES:
