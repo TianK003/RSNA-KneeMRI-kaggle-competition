@@ -31,7 +31,7 @@ of Kaggle GPU is left until 10-10, enough for ≈ 15).
 | **P1** | 10-07 | **B14**: B6 − `v11a` (the four CNNs) | Is the CoAtNet family needed at all? B13 (#55 0.940) already said more CoAtNet weight does not help | — | infer **v57** ✅; queued (send 5) |
 | **P1** | 10-07 | **B4**: B6 − `v13e2` | With B5: does B3 or the second B0 seed carry B6? Decides B3 × 2 seeds (RunPod) vs B0 × 2 (Kaggle) in week 2. Takes C3's slot (its gate closed on 10-06) | — | infer **v58** ✅; queued (send 1) |
 | **P1** | 10-07 | **B5**: B6 − `v13b3` | the second half of B4's read. Takes B12's slot (no E solo reached 0.936) | — | infer **v59** ✅; queued (send 4) |
-| **P2 → P4 (recommended 10-06 evening, pending Tian)** | 10-08 | **B16**: B6 + the public ConvNeXt-T reader (goodpjw2008, Apache-2.0); ≈ +0.0005 LB by the gold-58 model | A sixth family without training; the families, not the member count, carry the blend gain (10-06). Tian's 10-06 focus | the external-member hook (P-71) | needs code (P-71), then a placeholder |
+| **P2 → P4 (recommended 10-06 evening; Tian decides later)** | 10-08 | **B16**: B6 + the public ConvNeXt-T reader (goodpjw2008, Apache-2.0); ≈ +0.0005 LB by the gold-58 model | A sixth family without training; the families, not the member count, carry the blend gain (10-06). Tian's 10-06 focus | the external-member hook (P-71) | needs code (P-71), then a placeholder |
 | **P2** | 10-08 | **B12**: B6 + every A3 solo that reads ≥ 0.936 | The own final pick's successor (pick 1) | ≥ 1 of `v13es` / `v13rs` ≥ 0.936 (the E solos read 0.935 / 0.932, so neither joins) | build after the 10-07 solos |
 | **P2** | 10-08 | **C3**: the public stack + the best own blend as the leg, β 0.45 | Fork pick 2 with a better leg | an own blend ≥ 0.943 (B12 or B16). **Not open after 10-06** (B13 0.940, B11 0.941) | build with `src/build_fork.py` only if gated in; send 1 of its day |
 | **P3** | 10-08 | **B9**: `v11a` + `v13rs` + `v13es` | #48 with the silent-mix members | A3 ✅ only | build |
@@ -90,7 +90,7 @@ and lost 0.002 to B6. A member that is under the blend's mean *and* of a family 
 | B4 | P1 | `v11a` + `v13r` + `v13e` + `v13b3` (B6 − `v13e2`) | Pred. ≈ 0.939–0.941 (mean 0.9353, n 4). With B5: does B3 or the second B0 seed carry B6? | B4 − B5 ≥ 0.002 → B3 carries it: week 2 trains B3 × 2 (RunPod). ≤ −0.002 → B0 seeds suffice | infer **v58** ✅; 10-07 send 1 | 0.9250 |
 | B5 | P1 | `v11a` + `v13r` + `v13e` + `v13e2` (B6 − `v13b3`) | Pred. ≈ 0.939–0.940 (mean 0.9348, n 4) | with B4 | infer **v59** ✅; 10-07 send 4 | 0.9238 |
 | B9 | P3 | `v11a` + `v13rs` + `v13es` | #48 with the P-62 members swapped in | A3 ✅ only; vs #48 0.938: ≥ 0.941 → the silent mix also helps inside a blend | build | 0.9224 |
-| B16 | P2 | B6 + the public 2.5D ConvNeXt-T reader (`goodpjw2008/rsna-knee-2-5d-convnext-reader`, 3 checkpoints, 0.929 solo) | A sixth family at no training cost; shares neither our input (c03) nor our targets (Raptor). Pred. ≈ 0.941–0.943 (mean of six 0.9347 + a cross-family gain; more if its independence is worth more than our families' ρ ≈ 0.83–0.89) | ≥ 0.943 → a final-pick member and the C3 leg; also a reason to drop P-69's own training arm | **needs code (P-71)**: run the reader's `infer.py` on `test_series` in a subprocess and rank it in as one member; ≈ 20 min extra scoring; licence Apache-2.0 (read 10-06) | — (no gold predictions) |
+| B16 | P2 | B6 + the public 2.5D ConvNeXt-T reader (`goodpjw2008/rsna-knee-2-5d-convnext-reader`, 3 checkpoints, 0.929 solo) | A sixth family at no training cost; shares neither our input (c03) nor our targets (Raptor). Pred. ≈ 0.941–0.943 (mean of six 0.9347 + a cross-family gain; more if its independence is worth more than our families' ρ ≈ 0.83–0.89) | ≥ 0.943 → a final-pick member and the C3 leg (P-69, our own ConvNeXt training, was dropped by Tian on 10-06) | **needs code (P-71)**: run the reader's `infer.py` on `test_series` in a subprocess and rank it in as one member; ≈ 20 min extra scoring; licence Apache-2.0 (read 10-06) | — (no gold predictions) |
 | B15 | P5 | B12 + `v11n` + `v11n2` | B12 and B13 combined | **closed 10-06**: B13 read 0.940 (< 0.943) | — | — |
 | B8 | P5 | every member with a solo ≥ 0.930: B6 + `v11n` + `v11n2` + `v13h` + `v11d`, plus the new solos ≥ 0.930 | Does "everything" beat a curated 3–5? (Tian prefers 3–5) | **held 10-06**: B13 (B6 + two same-family members) lost 0.002, and B8 adds four such members | — | 0.9248 (the nine without the 10-06 arms) |
 | B1 | P5 | `v11a` + `v13h` + `v13r` + `v13e` | A fourth member (ResNet-34) on the trio. Pred. ≈ 0.937–0.939: under B6 | hold | **v45** ✅ | 0.9186 |
@@ -128,8 +128,8 @@ one pipeline: fork deltas of one tick are noise (experiments.md 2026-10-06 "The 
 placeholders only.
 
 **What the 10-06 reads settled for week 2:** the targets stay 0.5 LLM + 0.5 Raptor (P-65 ❌: no Claude share), ± the P-62 silent
-weight (A3, 10-07); no second CoAtNet seed (B13); B14 / B4 / B5 (10-07) settle the CoAtNet retrain and B3 × 2 vs B0 × 2. A new
-family (P-69, or the public reader as B16) is the predicted lever.
+weight (A3, 10-07), unless the P-68 pair below reads ✅; no second CoAtNet seed (B13); B14 / B4 / B5 (10-07) settle the CoAtNet retrain
+and B3 × 2 vs B0 × 2.
 
 **Budget (2026-10-06, 10:40 UTC).** Kaggle: **2.84 h** left until 10-10 (`kaggle quota`), then 30 h on 10-10 and 30 h on 10-17; the quota
 counts *session* hours and every session has two T4s (`PARALLEL_ARMS`), so ≈ 60 T4-GPU-h per week. RunPod: **≈ $5** ≈ 6.5 h on a 4090
@@ -137,46 +137,46 @@ counts *session* hours and every session has two T4s (`PARALLEL_ARMS`), so ≈ 6
 T4 (B0 / R50 / R34), B0 ≈ 71 min and B3 @ 288 ≈ 2.2 h on a 4090; B3 @ 288 is RunPod-only (12–15 h and a memory risk on a T4).
 Deadline 10-22; final picks can be changed until then (10-15 is the entry / merger deadline).
 
-**Focus (Tian, 2026-10-06): single-model strength and new family members for the blend; labels de-emphasised.** This replaces the
-10-05 order (the P-68 teacher first). Label-side arms (P-68) run only on an otherwise idle GPU slot. **RunPod on 10-07 was priced and
-rejected** by the critic (≈ $3.8, no decision unlocked before the 10-17 retrains); everything runs on Kaggle.
+**Tian's decisions, 2026-10-06 evening** (after research.md 2.7.8: a fourth family ≈ +0.0008 LB on B6; no forum read shows ConvNeXt
+helping beyond one tick; the forum's biggest single-model jumps came from different-source pseudo-labels):
+- **Run the pseudo-label pair:** P-68 `v13ex` ‖ `v13ex2`, one session at the 10-10 reset.
+- **No ConvNeXt training** (P-69 dropped; proposals.md Dropped directions).
+- **Everything else is decided later:** NFNet (P-72, recommended drop), B16 (P-71, recommended demote), P-73, P-74. None of them is
+  scheduled.
+- The P-67 loop stands as approved on 10-05.
+
+**RunPod on 10-07 was priced and rejected** by the critic (≈ $3.8, no decision unlocked before the 10-17 retrains); everything runs on
+Kaggle.
 
 **Before 10-10 (no training; placeholders and smokes only, 2.84 GPU-h left):**
-- P-71 / B16: the external-member hook for the public ConvNeXt-T reader, a placeholder, a 10-08 send.
-- P-69 / P-72: the weight Datasets (`timm-convnext-tiny`, `timm-eca-nfnet-l0`), CPU loader checks, one PARALLEL Kaggle smoke of both
-  arms (≈ 0.1 h), so session B starts at 00:00 on 10-10 without a code change.
-- P-74 (a): `channels_last` on the CNN encoders, checked in the same smoke (s/study, equal outputs).
-- P-73: the token-mixer head as `v14tx`, unit-checked, ready for the proxy loop.
+- **`v13ex2`:** add it to ARMS as `v13ex` + `"seed": 43`, and to DISTILLED_ARMS with `("raptor_teacher", "xfit_v09k")`. Add a
+  `window_head_test.py` check like `v13e2`'s (the only diff vs `v13ex` is the seed). Then a local CPU smoke, and one Kaggle smoke of
+  `PARALLEL_ARMS = ("v13ex", "v13ex2")` with `TEACHER_TABLES = ("raptor_teacher", "xfit_v09k")` (≈ 0.05 h): both children read both
+  tables, `reseeded 43`, SWA `_best.pt`.
+- Pending Tian, optional: P-73 (`v14tx`), P-74 (a) `channels_last`, the P-71 hook for B16.
 
-**⚠ Pending Tian (research.md 2.7.8, 10-06 evening): recommended to put the week into the families we have.** A fourth family is
-worth ≈ +0.0008 LB at our level (gold-58 model), and no forum read shows ConvNeXt helping beyond one tick. If Tian agrees:
-- **session B** = ConvNeXt-T with its own recipe (in22k / in12k weights, `lr_backbone` 1e-4 + LLRD 0.8, drop path 0.2, ≈ 20
-  epochs; killed below 0.933) ‖ the first proxy variable (`v14lr`). Both are Raptor-only, so they can share the session;
-- **NFNet (P-72) dropped**, and B16 demoted;
-- if Tian gives targets one session, a `v13ex` ‖ `v13ex2` seed pair (P-68) in its own session.
-Until then the plan below stands.
-
-**The 10-10 plan (revised 2026-10-06; two Kaggle sessions at a time, two T4s each; ≈ 30 session-h this week):**
-1. **00:00, session A:** the P-67 floor pair `v14p` ‖ `v14p2` (≈ 3.75 h) → the ruler's floor (from the per-fold paired
-   differences), the B0 proxy OOF that P-72's Δ_div needs, and the `cnnoof_v1` table.
-2. **00:00, session B: two new families as production arms:** P-69 ConvNeXt-T ‖ P-72 `eca_nfnet_l0` (fallback `regnety_040`),
-   ≈ 6 h. Each solo is read on 10-10 / 10-11 (a member if ≥ 0.933), then B6 + the qualifying ones.
+**The 10-10 plan (revised 2026-10-06 evening; two Kaggle sessions at a time, two T4s each; ≈ 30 session-h this week):**
+1. **00:00, session A** (`rsna-knee-train`): the P-67 floor pair `v14p` ‖ `v14p2` (≈ 3.75 h, Raptor only). It gives the ruler's floor
+   (from the per-fold paired differences), the B0 proxy OOF, and the `cnnoof_v1` table.
+2. **00:00, session B** (`rsna-knee-train-b`): **the P-68 pseudo-label pair `v13ex` ‖ `v13ex2`** (≈ 6 h; tables Raptor + `xfit_v09k`,
+   so it cannot share a session with a Raptor-only arm). Read the two solos on 10-10 / 10-11: mean vs the B0 seed mean 0.9365, ✅ ≥ 0.9410 /
+   🔁 0.9320–0.9409 / ❌ ≤ 0.9319. If ✅, the final members train on the mix and `v11o` (the CoAtNet student on `cnnoof_v1`) is next.
 3. **≈ 04:00, session C (after A):** the first two single-model variables, `v14lr` (lowres) ‖ `v14gd` (grid).
-4. **Then, two proxy variants per session in the evidence order:** `v14mx`, `v14r288`, `v14tx` (P-73), `v14ep20`, `v14prog`
-   (P-74 b), `v14bl` / `v14ns` / `v14sh`, `v14th`, `v14db`. A variant that clears 1.5 × the floor gets ONE production transfer arm
-   before the week-2 retrains.
-5. **Label-side, idle slots only:** `v13ex` (P-68). A silent mix only if A3 reads ✅ on 10-07.
+4. **Then, two proxy variants per session in the evidence order:** `v14mx`, `v14r288`, `v14ep20`, `v14bl` / `v14ns` / `v14sh`, `v14th`,
+   `v14db`; plus `v14tx` / `v14prog` if Tian approves P-73 / P-74. A variant that clears 1.5 × the floor gets ONE production
+   transfer arm before the week-2 retrains.
+5. **The silent mix:** only if A3 reads ✅ on 10-07 (then pinned per arm, `DISTILLED_SILENT_MIX`).
 
 | # | Arm(s) | What it tests / adds | Gate | Est. cost | Card |
 |---|---|---|---|---|---|
-| **T8** | **P-69** ConvNeXt-T on the `v13h` recipe | a sixth family for B6 (+ 0.002–0.003 by the blend rule) | 10-10 quota; weight Dataset + loader check + smoke before | 1 arm ≈ 6 h (session B) | P-69 |
-| **T10** | **P-72** a seventh family: `eca_nfnet_l0` (fallback `regnety_040`) on the `v13h` recipe | a family that is neither ResNet, EfficientNet, CoAtNet nor ConvNeXt; a member if ≥ 0.933 | as T8 | 1 arm ≈ 6 h (session B) | P-72 |
-| **T7** | **P-67 loop**: proxy baseline × 2 seeds (the floor), then one variable per 5-fold run: `v14lr` / `v14th` / `v14gd` / `v14bl` / `v14ns` / `v14sh` (augmentation components), `v14mx` (mixup), `v14r288` (B0 @ 288), `v14tx` (P-73 token mixer), `v14prog` (P-74 progressive resize), `v14db` (blank windows), `v14ep20` (longer schedule); later drop-path / EMA, slot layout | the single-model recipe, judged on a pooled 5-fold report-label OOF; the forum's 0.95 teams' method. The epoch-budget variant answers the epoch-selection question too | the 10-10 reset | ≈ 5 variants per 9-h session, ≈ 16 per week; or $0.6 each on a 4090 | P-67, P-73, P-74 |
-| T9 | **P-68** (demoted 10-06, label-side): `v13ex` (B0 on Raptor + `xfit_v09k`); `v11o` / `v13eo` paused | the forum's multi-source pseudo-label gain, cross-family form | an otherwise idle GPU slot | ≈ 6 T4-h per arm | P-68 |
-| T6 | Final members (week of 10-17): B3 × 2 seeds (RunPod, or Kaggle if P-74 b works), B0 × 2, R50, the T8 / T10 families that read ≥ 0.933, one CoAtNet unless B14 drops it (B13: no second CoAtNet seed) — all on the winning stack and target (0.5 LLM + 0.5 Raptor ± the silent weight; no Claude, P-65 ❌) | the two final picks (B6-successor; the fork leg) | T7 / T8 / T10 reads; A3; B14 / B4 / B5 | ≈ 30 Kaggle session-h + ≈ $4 RunPod for the B3s | P-50 |
+| **T9** | **P-68** pseudo-label pair `v13ex` ‖ `v13ex2` (B0, seeds 42 / 43, on 0.5 LLM + 0.25 Raptor + 0.25 CoAtNet cross-fit OOF `xfit_v09k`); `v11o` / `v13eo` after the floor run, only if the pair reads ✅ | the forum's largest single-model lever (different-source pseudo-labels, Raymond / SpeedSci +0.011), the one target change we have not tested | **approved by Tian 10-06 evening**; `v13ex2` to add + a smoke | ≈ 6 h, one session | P-68 |
+| **T7** | **P-67 loop**: proxy baseline × 2 seeds (the floor), then one variable per 5-fold run: `v14lr` / `v14th` / `v14gd` / `v14bl` / `v14ns` / `v14sh` (augmentation components), `v14mx` (mixup), `v14r288` (B0 @ 288), `v14db` (blank windows), `v14ep20` (longer schedule); `v14tx` / `v14prog` if P-73 / P-74 are approved; later drop-path / EMA, slot layout | the single-model recipe, judged on a pooled 5-fold report-label OOF; the forum's 0.95 teams' method. The epoch-budget variant answers the epoch-selection question too | the 10-10 reset | ≈ 5 variants per 9-h session, ≈ 16 per week; or $0.6 each on a 4090 | P-67 |
+| ~~T8~~ | ~~P-69 ConvNeXt-T~~ | **dropped by Tian 10-06 evening** (research.md 2.7.8) | — | — | Dropped directions |
+| T10 | P-72 a seventh family (`eca_nfnet_l0`) | **pending Tian** (recommended drop: no read on this task, in1k only) | — | 1 arm ≈ 6 h | P-72 |
+| T6 | Final members (week of 10-17): B3 × 2 seeds (RunPod, or Kaggle if P-74 b works), B0 × 2, R50, one CoAtNet unless B14 drops it (B13: no second CoAtNet seed) — all on the winning recipe and target (0.5 LLM + 0.5 Raptor ± the silent weight, or the P-68 mix if it reads ✅; no Claude, P-65 ❌) | the two final picks (B6-successor; the fork leg) | T7 / T9 reads; A3; B14 / B4 / B5 | ≈ 30 Kaggle session-h + ≈ $4 RunPod for the B3s | P-50 |
 | T2 | B3 at seed 43 **now** | de-biases the single 0.940 draw; the critic's case is written | **paused** with the rest of D; folded into T6 (the final B3 retrain on the winning recipe *is* the second draw) | ≈ $1.9 | P-50 |
 | T3 / T4 | R50 seed 2; B3 on the winning target | — | = T6 | — | P-50 |
-| ~~T5~~ | a bigger CNN (B4 @ 288 / 336) | **dropped 10-05:** the forum's ≥ 0.949 singles are R50-class at 224–288, "bigger is null", no gain above 288; the critic priced B4 @ 336 at ≈ 25 GB VRAM and ≈ $3.7 | — | — | → P-69 (a new family instead) |
+| ~~T5~~ | a bigger CNN (B4 @ 288 / 336) | **dropped 10-05:** the forum's ≥ 0.949 singles are R50-class at 224–288, "bigger is null", no gain above 288; the critic priced B4 @ 336 at ≈ 25 GB VRAM and ≈ $3.7 | — | — | (a new family instead was P-69, itself dropped 10-06) |
 
 **Dropped directions (research.md 2.10, item 5):** resolution > 288, B4-class capacity, 3D, MIL / bags, DINOv3 / RadImageNet / medical
 foundation backbones, fork β or blend-weight tuning, geometric TTA, co-teaching, external datasets, multimodal-LLM image labelling.
