@@ -62,18 +62,27 @@ result*, per unit of cost. "Depends on" lists hard blockers only. EVs are solo-L
 
 ### Live cards, ranked by expected value per cost
 
+**Focus (Tian, 2026-10-06): single-model strength and new family members for the blend; labels are de-emphasised.** The 10-06
+reads back it: every target change except Raptor read flat or worse (P-65 closed), and the blend gain grows with the number of
+families (B13 / B11). Label-side cards (P-68, P-47, P-51) run only on an otherwise idle slot; P-62 is trained and only
+waits for its 10-07 read. The 10-06 brainstorm added P-71 … P-74; the ideas it set aside are rows in Dropped directions.
+
 | rank | id | title | status | expected value | cost | depends on |
 |---|---|---|---|---|---|---|
-| 0m | P-68 | Different-family OOF image teacher (cross-family pairs; silent-cell weight only if A3 ✅) | 🔧 **implemented 2026-10-05, effect pending; Tian's top priority ("especially this"); redesigned after the critic the same day**: `v13ex` (B0 student on Raptor + `xfit_v09k`, the CoAtNet cross-fit OOF; trainable at the 10-10 reset), `v11o` (CoAtNet student on Raptor + `cnnoof_v1`, the B0 floor pair's OOF; after the floor run), `v13eo` (B0 on `cnnoof_v1`, the same-family control), all at the flat mix 0.5; RunPod on 10-07 = NO-GO (critic: ≈ $3.8, no decision unlocked before 10-17) | 0..+ 0.004 solo (forum claims + 0.011; same-family read flat for us) | the P-67 floor run + 1–2 Kaggle arms (≈ 6 T4-h each) | A3 (10-07) for any silent mix; the P-67 floor run for `cnnoof_v1` |
-| 0n | P-67 | Fast-proxy 5-fold CV ruler + single-variable recipe ablation loop | 🔧 **implemented, effect pending: the floor pair `v14p` / `v14p2` and, since 10-05 (Tian: "focus on these"), ten one-variable arms `v14lr` / `v14th` / `v14gd` / `v14bl` / `v14ns` / `v14sh` (augmentation components), `v14mx` (mixup), `v14r288` (B0 @ 288), `v14db` (blank windows), `v14ep20` (longer schedule); unit checks, a local CPU smoke and a Kaggle GPU smoke (v46) green; the floor run starts at the 10-10 reset** — approved by Tian (research.md 2.7.6 / 2.7.7 / 2.10) | + 0.003–0.005 per production member if ≥ half transfers → B6 ≈ 0.945–0.947 | ≈ 16 proxy variants per 30-h Kaggle week, or ≈ $0.6 each on a 4090; + 1 transfer arm | a measured pooled-OOF floor (2 seeds) |
-| 0p | P-69 | Sixth family for B6: ConvNeXt-T on the `v13h` recipe | ✅ approved with the loop 2026-10-05 (the week-1 family arm); loader check first | B6 + 0.002–0.003 (cross-family rule) | 1 Kaggle arm ≈ 6 h + a loader check | the 10-10 quota |
-| 0i | P-62 | Silence-aware teacher mix (Raptor 0.75 where the report is silent, 0.5 where it speaks) | ⏳ **session D TRAINED green 2026-10-04 (`rsna-knee-train-b` v6, 5.94 h): gold-58 SWA `v13es` 0.9107 / `v13rs` 0.9160 vs 0.9126 / 0.9111 (direction only); shipped `rsna-knee-ckpt-v13es` / `-v13rs`; solos **10-07** = `rsna-knee-infer` v49 / v50 (moved twice by Tian); read m vs 0.9345 (✅ ≥ 0.9390)** | 0..+0.002 — likely under the 0.004 one-seed floor | one c03 session ≈ 3.5 GPU-h + 2 solos | — |
-| 4 | P-50 | Final selection and publishability | 💡 decide by 2026-10-15; **own candidate = B6 #52 0.942** (`v11a` + `v13r` + `v13e` + `v13b3` + `v13e2`; B13 #55 0.940 and B11 #56 0.941 did not beat it, 10-06); **fork candidate = C2 #54 0.944** (the public 0.942 stack + B6 at β 0.45, `rsna-knee-fork` v12; 🔁 +0.001 vs #49, rank 337; level with the public 0.944 notebook); C3 closed (no own blend ≥ 0.943); the shortlist sends to 10-09 (B4 / B5 / B14, B12 if an A3 solo qualifies) are candidates.md's priority table | decides what the private LB scores | a browser session | the Rules page |
-| 5 | P-18 | Efficiency track with the solo member | 💡 low priority — Tian 2026-10-04: score over efficiency; robustness half shipped; the natural fast candidate is `v13e` (0.935 solo, ≈ 15 min to score, 17 MB) | a separate prize; unknown until the formula is read | 0 GPU h (CLI + browser) | Efficiency formula (browser) |
-| 6 | P-47 | Teacher-mix bracket: mix 0.75 only | 💡 low — P-49 priced it on Raptor itself: matched mix 0.75 − 0.5 = −0.002 (SD 0.003) on gold | ≈ 0 (+0.000..0.002) | per-arm `TEACHER_MIX` code + ≈ 2.8 h; 1 solo | P-44 floor, an idle slot |
-| 8 | P-48 | Final-member polish: gold-58 as training rows + seed averaging | 💡 contested, parked | +0.001..0.002, unreadable by construction | part of the final retrain | P-50 decision |
-| 9 | P-51 | Teacher-aware confidence weights | 💡 low | 0..+0.002 | ≈ 20 lines + 2.8 h; 1 solo | P-44 floor |
+| 1 | P-69 | Sixth family for B6: ConvNeXt-T on the `v13h` recipe | ✅ approved 2026-10-05; **the first GPU arm of the 10-10 week (Tian 10-06: single models and a new family first)**; before 10-10: weight Dataset + loader check + a Kaggle smoke | B6 + 0.002–0.003 (cross-family rule; 10-06: the blend gain comes from new families) | 1 Kaggle arm ≈ 6 h + a loader check | the 10-10 quota |
+| 2 | P-71 | An independently trained public reader as a blend member (B16: goodpjw2008's 2.5D ConvNeXt-T, Apache-2.0) | 💡 new 2026-10-06; inference only, so it can be read before the 10-10 reset | B16 ≈ 0.941–0.943 vs B6 0.942; upside if its independence beats our families' (gold ρ 0.83–0.89) | ≈ 60 lines + 1 placeholder (≈ 0.2 GPU-h) + 1 send; ≈ 20 min more scoring | — |
+| 3 | P-72 | A seventh family on the `v13h` recipe (`eca_nfnet_l0` by default) + a family-diversity ruler on the proxy OOF (Δ_div) | 💡 new 2026-10-06 | B6 + 0.001–0.003 if member-grade (≥ 0.933 solo); the ruler ranks families on 4,349 studies, not LB slots | weight Dataset + loader check; 1 Kaggle arm ≈ 6 h; ≈ 1 proxy per screened family | the 10-10 quota; the P-67 floor for Δ_div |
+| 4 | P-67 | Fast-proxy 5-fold CV ruler + single-variable recipe ablation loop | 🔧 **implemented, effect pending: the floor pair `v14p` / `v14p2` and, since 10-05 (Tian: "focus on these"), ten one-variable arms `v14lr` / `v14th` / `v14gd` / `v14bl` / `v14ns` / `v14sh` (augmentation components), `v14mx` (mixup), `v14r288` (B0 @ 288), `v14db` (blank windows), `v14ep20` (longer schedule); unit checks, a local CPU smoke and a Kaggle GPU smoke (v46) green; the floor run starts at the 10-10 reset** — approved by Tian (research.md 2.7.6 / 2.7.7 / 2.10) | + 0.003–0.005 per production member if ≥ half transfers → B6 ≈ 0.945–0.947 | ≈ 16 proxy variants per 30-h Kaggle week, or ≈ $0.6 each on a 4090; + 1 transfer arm | a measured pooled-OOF floor (2 seeds) |
+| 5 | P-73 | Study-level token mixer before the per-label attention head | 💡 new 2026-10-06; a P-67 proxy variable (`v14tx`) | 0..+0.004 per member if it transfers | ≈ 40 lines + a unit check + 1 proxy | the P-67 floor |
+| 6 | P-74 | CNN throughput on a T4: `channels_last`, and B3 @ 288 by progressive resizing | 💡 new 2026-10-06, infrastructure | + 8–35 % arms per week; B3 seeds on Kaggle instead of RunPod | ≈ 10 + 20 lines; smoke timings; 1 proxy (`v14prog`) | — |
+| 7 | P-50 | Final selection and publishability | 💡 decide by 2026-10-15; **own candidate = B6 #52 0.942** (`v11a` + `v13r` + `v13e` + `v13b3` + `v13e2`; B13 #55 0.940 and B11 #56 0.941 did not beat it, 10-06); **fork candidate = C2 #54 0.944** (the public 0.942 stack + B6 at β 0.45, `rsna-knee-fork` v12; 🔁 +0.001 vs #49, rank 337; level with the public 0.944 notebook); C3 closed (no own blend ≥ 0.943); the shortlist sends to 10-09 (B4 / B5 / B14, B12 if an A3 solo qualifies) are candidates.md's priority table | decides what the private LB scores | a browser session | the Rules page |
+| 8 | P-62 | Silence-aware teacher mix (Raptor 0.75 where the report is silent, 0.5 where it speaks) | ⏳ **session D TRAINED green 2026-10-04 (`rsna-knee-train-b` v6, 5.94 h): gold-58 SWA `v13es` 0.9107 / `v13rs` 0.9160 vs 0.9126 / 0.9111 (direction only); shipped `rsna-knee-ckpt-v13es` / `-v13rs`; solos **10-07** = `rsna-knee-infer` v49 / v50 (moved twice by Tian); read m vs 0.9345 (✅ ≥ 0.9390)** | 0..+0.002 — likely under the 0.004 one-seed floor | one c03 session ≈ 3.5 GPU-h + 2 solos | — |
+| 9 | P-68 | Different-family OOF image teacher (cross-family pairs; silent-cell weight only if A3 ✅) | 🔧 **DEMOTED 2026-10-06 (Tian: "don't focus on labels that much"): label-side, so only on an otherwise idle GPU slot; `v13ex` first.** Was: implemented 2026-10-05, effect pending; Tian's top priority ("especially this"); redesigned after the critic the same day**: `v13ex` (B0 student on Raptor + `xfit_v09k`, the CoAtNet cross-fit OOF; trainable at the 10-10 reset), `v11o` (CoAtNet student on Raptor + `cnnoof_v1`, the B0 floor pair's OOF; after the floor run), `v13eo` (B0 on `cnnoof_v1`, the same-family control), all at the flat mix 0.5; RunPod on 10-07 = NO-GO (critic: ≈ $3.8, no decision unlocked before 10-17) | 0..+ 0.004 solo (forum claims + 0.011; same-family read flat for us) | the P-67 floor run + 1–2 Kaggle arms (≈ 6 T4-h each) | A3 (10-07) for any silent mix; the P-67 floor run for `cnnoof_v1` |
 | 10 | P-70 | Per-study prediction fallback at the hidden rerun (train prior instead of a crash) | 💡 low, infra, proposed 2026-10-05 | robustness of both final picks | ≈ 20 lines + 1 smoke | — |
+| 11 | P-18 | Efficiency track with the solo member | 💡 low priority — Tian 2026-10-04: score over efficiency; robustness half shipped; the natural fast candidate is `v13e` (0.935 solo, ≈ 15 min to score, 17 MB) | a separate prize; unknown until the formula is read | 0 GPU h (CLI + browser) | Efficiency formula (browser) |
+| 12 | P-47 | Teacher-mix bracket: mix 0.75 only | 💡 low, label-side (parked by the 10-06 focus) — P-49 priced it on Raptor itself: matched mix 0.75 − 0.5 = −0.002 (SD 0.003) on gold | ≈ 0 (+0.000..0.002) | per-arm `TEACHER_MIX` code + ≈ 2.8 h; 1 solo | P-44 floor, an idle slot |
+| 13 | P-48 | Final-member polish: gold-58 as training rows + seed averaging | 💡 contested, parked | +0.001..0.002, unreadable by construction | part of the final retrain | P-50 decision |
+| 14 | P-51 | Teacher-aware confidence weights | 💡 low, label-side (parked by the 10-06 focus) | 0..+0.002 | ≈ 20 lines + 2.8 h; 1 solo | P-44 floor |
 
 ## Cards
 
@@ -125,7 +134,10 @@ If it fails:  nothing clears 1.5 × the floor, or the proxy's wins do not transf
 Depends on:   Tian's go on the 10-10 week; the P-62 read does not block it (image-side only).
 
 ### P-68 Different-family image teacher on the report-silent cells (a CNN OOF table at ≥ 0.5)
-Status:       🔧 **implemented 2026-10-05, effect pending — Tian's top priority ("especially this one"); REDESIGNED the same day
+Status:       🔧 **DEMOTED 2026-10-06 (Tian: "don't focus on labels that much", single models and a new family first).** It is a
+              target change, and every target change except Raptor has read flat or worse on the LB (P-38, P-45, P-55, P-65). It runs
+              only on an otherwise idle GPU slot, `v13ex` first; `v11o` / `v13eo` are paused. Was:
+              🔧 **implemented 2026-10-05, effect pending — Tian's top priority ("especially this one"); REDESIGNED the same day
               after the critic subagent** (artifacts/runpod_case_P68_1007.md + its review):
               - **Cross-family pairs only.** Same-family OOF teachers read flat for us (P-55: CoAtNet OOF into CoAtNet students)
                 and for Myo; Archit's own-model setup is the one counter-example. So: `v13ex` = the `v13e` B0 student on
@@ -166,7 +178,11 @@ Depends on:   the P-62 read (A3, 10-07: the silent-cell weight); P-67 for the fr
               live target-side card.
 
 ### P-69 A sixth family for B6: ConvNeXt-T on the `v13h` recipe
-Status:       ✅ approved with the loop 2026-10-05: the week-1 family arm, in the same session as the first proxy runs.
+Status:       ✅ approved with the loop 2026-10-05. **2026-10-06 (Tian: single models and a new family first): the first GPU arm of
+              the 10-10 week**, 00:00 session B beside P-72's seventh family. Before 10-10 (no training GPU needed): the weight Dataset
+              and the loader check, then a Kaggle smoke. The HF-format `convnext-tiny-224-hf` needs a loader path. Uploading timm's
+              `convnext_tiny.in12k_ft_in1k` safetensors (≈ 84 % ImageNet, Apache-2.0) as `timm-convnext-tiny` uses the existing
+              `timm:<arch>` loader instead.
 Hypothesis:   a ConvNeXt-T member at ≥ 0.935 lifts B6 by + 0.002–0.003 (the cross-family blend rule at six members), against + 0.001
               for another EfficientNet seed.
 Origin:       experiments.md 2026-10-05 (blend rule); literature 2.7.7(c): ensembles of different pretrained models beat seed
@@ -184,6 +200,93 @@ Noise floor:  blend + 0.004 over B6; solo ≥ 0.004.
 Cost:         one Kaggle arm ≈ 6 h on one T4 (pairs with another arm in the same session) + the loader check + a smoke.
 If it works:  a member and part of the fork leg. If it fails: the families stay at three.
 Depends on:   the 10-10 quota.
+
+### P-71 An independently trained public reader as a blend member (B16 first)
+Status:       💡 new 2026-10-06 (brainstorm; Tian: single models and a new family for the blend). Inference only, so it can be read
+              before the 10-10 reset.
+Hypothesis:   the public 2.5D ConvNeXt-T reader (goodpjw2008, 0.929 solo with 3 folds) added to B6 as a sixth member lifts the flat
+              rank-mean, because it shares neither our input (c03 windows at 150 mm) nor our targets (Raptor 0.5): B16 = B6 + reader ≥ B6.
+Origin:       experiments.md 2026-10-06 "The public frontier moved"; the 10-06 blend refinement (new families pay, extra same-family
+              members under the mean cost).
+Evidence:     the reader lifts the 0.943 community stack to 0.944 at 15–30 % (45 % → 0.942). Its input: 0.4 mm/px, a 154 mm field of
+              view, 256 px, 12 three-slice windows per series, a 2-layer study transformer, per-finding attention pooling. Its training:
+              5 folds grouped by report text, soft BCE on the mean of four public label tables, no image teacher. The Dataset
+              `goodpjw2008/rsna-knee-2-5d-convnext-reader` is **Apache-2.0** (read 10-06): three fold checkpoints (123 MB each),
+              `preprocess.py` / `knee.py` / `infer.py`, offline pylibjpeg wheels. Against: a 0.929 member sits under B6's mean (0.9358),
+              and the blend rule prices B16 at ≈ 0.941–0.943.
+Measure:      (0, optional, direction only) the reader over the 58 gold studies in a Kaggle kernel → its within-class ρ to B6's members
+              (our families sit at 0.83–0.89 to each other); ρ ≤ 0.80 would make it more independent than any family we have.
+              (1) B16's solo LB vs B6 0.942: ✅ ≥ 0.946 / 🔁 0.939–0.945 / ❌ ≤ 0.938; ≥ 0.943 → pick 1 and the C3 leg.
+Noise floor:  the blend bands above (LB rounded to 0.001).
+Cost:         ≈ 60 lines in `src/kaggle_pipeline.py`: an external-member hook that runs the reader's `infer.py` in a subprocess on
+              `test_series` after our members have freed the GPU, reads its CSV, checks rows and columns, and ranks it in as one
+              member (its three folds averaged inside that vote). Mount the Dataset in `rsna-knee-infer`; one placeholder (≈ 0.2 GPU-h);
+              ≈ 20 min more scoring on the hidden test.
+If it works:  B16 replaces B6 as pick 1 and becomes the C3 leg. Pick 1 then holds one public model, still not part of the stack.
+If it fails:  the reader stays out; P-69 (our own ConvNeXt-T, on our input and targets) is unaffected.
+Depends on:   — (licence read 10-06; Rules 2.6.b: a public Dataset is usable).
+
+### P-72 A seventh family on the `v13h` recipe, and a family-diversity ruler on the proxy OOF
+Status:       💡 new 2026-10-06 (brainstorm).
+Hypothesis:   a family that is none of ResNet, EfficientNet, CoAtNet or ConvNeXt reaches member grade (≥ 0.933 solo) on the `v13h`
+              recipe and adds to B6 as the other families did (+ 0.001–0.003 at six or seven members). Default: `eca_nfnet_l0` (NFNet:
+              no BatchNorm, scaled weight standardisation; ≈ 24 M parameters, ImageNet ≈ 82.6 %, the size of our ResNet-50).
+              Fallback: `regnety_040` (BatchNorm, ResNet-like dynamics, so likely closer to `v13r`).
+Origin:       the 10-06 refinement (the blend gain grows with the number of families); literature 2.7.7 (c): different pretrained models
+              beat seeds; Dread 0.941 → 0.944 with a second family.
+Evidence:     our three families sit at gold within-class ρ 0.83–0.89; same-recipe pairs at 0.88–0.95. No read of NFNet or RegNet on this
+              task anywhere we have looked. Set aside for this slot: EfficientNetV2 / MobileNetV4 (the EfficientNet family again), MaxViT
+              (CoAtNet's), SE-ResNeXt-50 (ResNet's), Swin / ViTs (DINOv2-S read 0.918 solo; no ViT ≥ 0.94 on the forum), DenseNet-121
+              (ImageNet ≈ 74 %, likely under the member bar).
+Measure:      (1) the production arm's solo LB: a member if ≥ 0.933; then B6 + it vs B6 (the section-B bands).
+              (2) the ruler, on the P-67 proxy: **Δ_div** = pooled OOF of rank-mean(B0 proxy, family proxy) − pooled OOF of
+              rank-mean(B0 proxy seed 42, B0 proxy seed 43). Both are pairs, so Δ_div separates diversity from "two models beat one".
+              Same targets and an image-side change, so the OOF is a valid ruler (traps 39 bars only target changes). It ranks candidate
+              families on 4,349 studies instead of LB slots, and it mirrors the LB rule (cross-family + 0.0025–0.0045 vs same-recipe
+              + 0.001–0.003 for pairs).
+Noise floor:  solo: the member bar 0.933 and the one-seed band (≥ 0.004 vs a parent). Δ_div: the P-67 per-fold paired floor.
+Cost:         a weight Dataset (`timm-eca-nfnet-l0`; timm weights, Apache-2.0) + a CPU loader check (the `window_head_test.py` pattern)
+              + a Kaggle smoke; frozen BN is a no-op on an NFNet (check the smoke's loss falls at LR 3e-4); one production arm ≈ 6 T4-h.
+              A family proxy costs ≈ 1–2 × the B0 proxy (≈ 3.3 T4-h); time it in the smoke before screening more than one.
+If it works:  a seventh member in the final retrains and the fork leg; Δ_div becomes the gate for any further family.
+If it fails:  below 0.933 → the families stay at four (with P-69); the screen, if run, names the next candidate.
+Depends on:   the 10-10 quota; the P-67 floor run for Δ_div.
+
+### P-73 Study-level token mixer before the per-label attention head
+Status:       💡 new 2026-10-06 (brainstorm); a P-67 proxy variable (`v14tx`) once the floor is measured.
+Hypothesis:   letting the window tokens of a study exchange information before the per-label attention pooling (2 transformer layers
+              over all windows, with slot-type and slice-position embeddings) lifts a single model by ≥ 1.5 × the proxy floor.
+Origin:       the public ConvNeXt-T reader (0.929 on report labels only, 3 folds) uses exactly this head; the RSNA 2025 aneurysm 1st
+              place's ablation: without its location transformer 0.896 vs 0.902 (−0.006; research.md 2.7.7 (e)).
+Evidence:     our `window_attn` head pools each finding independently over windows; no window sees the other planes, so cross-plane
+              evidence (an ACL tear visible sagittally and coronally) meets only in the final weighted sum. Against: Tucker reaches the
+              0.94s with "no attention, simple pooling"; 4,349 studies may be too few for a mixer; Ziad's −0.014 (mean vs attention)
+              is about pooling, not mixing.
+Measure:      P-67 proxy pooled OOF, `v14tx` vs the floor pair; gold reported, not read.
+Noise floor:  1.5 × the P-67 floor.
+Cost:         ≈ 40 lines (`head_type="window_tx"`: project features to 256, `nn.TransformerEncoder` 2 layers × 4 heads, dropout 0.1,
+              slot + position embeddings, then the existing per-label attention) + a unit check in `window_head_test.py` + one proxy
+              (≈ 3.3 T4-h).
+If it works:  one production transfer arm (B0 or B3), then the final retrains.
+If it fails:  the head stays; P-67's pooling variable (window-attn vs GAP / max) covers the other direction.
+Depends on:   the P-67 floor run.
+
+### P-74 CNN throughput on a T4: `channels_last`, and B3 @ 288 by progressive resizing
+Status:       💡 new 2026-10-06 (brainstorm), infrastructure.
+Hypothesis:   (a) `channels_last` memory format on the CNN encoders under AMP speeds a 30-epoch arm by 8–35 % with predictions equal up to
+              fp16 noise; (b) training B3 at 224 for epochs 0–23 and at 288 for 24–29 (SWA 27–29 at 288) brings a B3 arm under ≈ 8 T4-h
+              (now 12–15 h, so RunPod-only) at the same solo LB.
+Origin:       research.md 2.8 (the PyTorch memory-format tutorial: 8–35 % for cuDNN conv nets); progressive resizing (fast.ai;
+              EfficientNetV2's progressive learning).
+Evidence:     a 30-ep CNN arm takes ≈ 5.9 h on a T4, and `src/kaggle_pipeline.py` sets no `channels_last` (grep, 10-06). B3 @ 288 is our
+              best single (0.940), and the final plan needs two B3 seeds (≈ $4 of RunPod).
+Measure:      (a) s/study in two Kaggle smokes of the same arm with and without; inference equal to ≤ 1e-3 on the 3 test studies.
+              (b) a proxy variable `v14prog` (B0 224 → 288) vs `v14r288` on the P-67 ruler before any B3 arm.
+Noise floor:  (a) ≈ 5 % timing noise between runs (measure twice); (b) 1.5 × the P-67 floor.
+Cost:         (a) ≈ 10 lines + one smoke; (b) ≈ 20 lines (a per-epoch `img_size`) + one proxy.
+If it works:  (a) ≈ one more arm per week; (b) B3 seeds train on Kaggle, and the RunPod money stays for emergencies.
+If it fails:  (a) stays off; (b) B3 stays on RunPod.
+Depends on:   — ((b) needs the P-67 floor).
 
 ### P-70 Per-study prediction fallback at the hidden rerun (train prior instead of a crash)
 Status:       💡 low, infrastructure; proposed 2026-10-05.
@@ -346,10 +449,14 @@ Depends on:   P-39 (the mixed target), P-44 (the floor).
 
 Merged from brainstorm.md, research.md §5 and the 2026-10-05 research (forum re-read 2.7.6; literature + RSNA 2025 2.7.7;
 synthesis 2.10). One line each: the direction, why it is closed (forum / literature / our own reads), the source. **A new card on
-any of these must answer its row with a new reason.** The 2026-10-05 rows are first.
+any of these must answer its row with a new reason.** The 2026-10-06 brainstorm rows are first, then the 2026-10-05 rows.
 
 | Direction | Why it is closed | Source |
 |---|---|---|
+| **Distilling B6 (or any ensemble) into one student** (10-06 brainstorm) | a target change, and Tian de-emphasised labels on 10-06; every student-of-our-own-models read flat (P-38 #19, P-55 #34–#36), and the public reader's author saw the same: OOF self-distillation lifted the single model 0.922 → 0.927 but lowered the 5-fold ensemble 0.930 → 0.929. A student is also at seed distance from its teachers, so it adds nothing to the blend that holds them | experiments.md 2026-09-24 "Submission #19", 2026-09-30 "Submissions #34–#38", 2026-10-06 "The public frontier moved" |
+| **"New families" that share a family with a member we have**: EfficientNetV2 / MobileNetV4 (EfficientNet), MaxViT (CoAtNet), SE-ResNeXt-50 / ResNet-101 (ResNet); also Swin / plain ViTs as members (10-06 brainstorm) | 10-06: extra members of a family already in the blend cost (B13 #55 0.940 vs B6 0.942); the family slots go to ConvNeXt-T (P-69) and a non-BN CNN (P-72). ViTs: DINOv2-S read 0.918 solo (#21) and nobody ≥ 0.94 on the forum uses one | experiments.md 2026-10-06 "Submissions #54–#58"; research.md 2.7.6 |
+| **Snapshot or checkpoint ensembles inside one run as a score lever** (10-06 brainstorm) | at best a same-recipe gain (+0.001–0.003, the 10-05 rule), smaller than a seed's; `snapshot_every` stays as the tool for epoch selection (P-67 `v14ep20`), not as members | experiments.md 2026-10-05 "Submissions #49–#53" |
+| **A new input geometry before 10-22** (Dread's 140 mm / 80-slice cache) (10-06 brainstorm) | needs four new CPU cache kernels (≈ 50 GB) and fresh arms for every member; Dread's curve (0.917 → 0.932) was on CoAtNet-384, and Ziad's attention pipeline went negative at higher density; c03 is already at or above the forum's density (research.md 2.7.6 C). Slot-layout changes *inside* c03 remain P-67 variable (6) | research.md 2.7.6 |
 | **EfficientNet-B4-class or larger CNNs; any resolution above 288 for capacity** | every ≥ 0.949 single on the forum is ResNet-50-class, a small ResNet / EffNet or a CoAtNet at 224–288 ("bigger is null": 735154, 738096); our own ladder R34 0.931 → R50 0.934 → B0 0.935 / 0.938 → B3 @ 288 0.940 ended at +0.0035 over the B0 seed mean (under the 0.004 bar); B4 @ 336 ≈ 25 GB VRAM and ≈ $3.7 (critic 10-05); a single bigger model only replicates an ensemble's gain [2202.06985] | research.md 2.7.6 / 2.7.7 (c), experiments.md 2026-10-05, candidates.md (T5 dropped) |
 | **MIL / bag-of-slices / all-slice transformers** | forum: Tom @392 bag-of-32 0.915, Pand ConvNeXt-T MIL 0.935, nobody ≥ 0.94; coverage saturates (Ziad flat after ≈ 31 windows); 2025 3rd place: "MIL and LSTMs did not help" | research.md 2.7.6 / 2.7.7 |
 | **DINOv3 / RadImageNet / BiomedCLIP / medical foundation backbones as members** | at ≤ 288 px ImageNet timm init ≥ any SSL or radiology init: DINOv2 weaker on clinical MRI [2402.07595], DINOv3 frozen at parity [2509.06467], RadiologyNET ≈ ImageNet [s41598-025-05009-w]; RadImageNet's licence is unclear (CLAUDE.md); the only large pretraining effect found anywhere is in-task dense pretraining (2025 1st) which needs labels we lack | research.md 2.7.7 (d) |
