@@ -6,6 +6,115 @@ to read first after a break.
 
 ---
 
+## 2026-10-06 (10:50 → 13:10 UTC) — research verdict: **improve the families we have, not new ones** (a 4th family ≈ +0.0008 LB; no ConvNeXt gain beyond one tick anywhere); Tian: **run the pseudo-label pair `v13ex` ‖ `v13ex2`, no ConvNeXt training**, the rest later
+
+Tian, in order: "review the others work and figure out if convxnet actually helped or not, should we focus more on improving existing
+families or introducing new ones (could be risky spending so much time on this) … do proper research - based on literature and
+experience of others in the competition (reread the discussion_735304.xml)". Then: "Run /handoff now with the most importance given to
+the last statements … Specifically i want a run of pseudo-labels + no convnext training (i will decide other things later)". Commits
+`cb5fbd1`, `7283a82` plus this one. **This entry supersedes the 10-10 plan and the P-68 / P-69 / P-72 lines of the entry below.**
+
+### ⏳ Still in flight as this was written (13:10 UTC)
+
+| In flight | What it is | Started | How to check | How to read it |
+|---|---|---|---|---|
+| **Auto-submitter, Windows pid 25032** (child pid 15732) | unchanged from the entry below: B4 (infer v58) → A3a (v49) → A3b (v50) → B5 (v59) → B14 (v57) at 2026-10-07 00:00:30 UTC; log says `waiting … (11.0 h)` at 13:00 | 10:27 | `Get-Content artifacts/auto_submit_1007.log -Tail 30`; `Get-Process -Id 25032` | **Green** = `sent 5 / 5` after 00:00. **The laptop was on battery at 13:07 UTC** (traps 53): on AC, lid open, or nothing is sent. The fallback command and the read rules are in the entry below. Read the scores from `kaggle competitions submissions`, not the SUMMARY |
+
+### Where things stand
+
+| | Status |
+|---|---|
+| Research | **research.md 2.7.8** (forum harvest `artifacts/forum_1006/`, 111 topics; `discussion_735304.xml` re-read; a literature + Kaggle write-up survey; our gold-58 analysis `src/blend_diversity_gold.py`, experiments.md 2026-10-06 "Gold-58: what a blend gains by pair type") |
+| Decisions (Tian) | **P-68 approved, rank 1:** the pseudo-label pair `v13ex` ‖ `v13ex2` at the 10-10 reset. **P-69 dropped** (no ConvNeXt training; proposals.md Dropped directions). Pending: P-72 NFNet (recommended drop), P-71 / B16 (recommended demote), P-73, P-74 |
+| Code | `v13ex` exists (ARMS + DISTILLED_ARMS: Raptor + `xfit_v09k`, flat mix 0.5). **`v13ex2` does not exist yet** |
+| Committed renders | unchanged: `rsna-knee-infer` = v59 (B5) · `rsna-knee-train` = v46, a SMOKE · `rsna-knee-train-b` = v6 REAL, never re-push as is · `rsna-knee-fork` = v12 |
+| Budgets | Kaggle 2.84 h until 10-10 (27.16 h used); RunPod ≈ $5 |
+
+### What we talked about and decided
+
+- **The question:** did ConvNeXt help anyone, and should the remaining 16 days go to new families or to the ones we have?
+- **The recommendation (research.md 2.7.8, "What follows"):**
+  - The main effort goes to improving the families we have: the P-67 single-variable loop (augmentation, longer schedule, B0 at 288 px),
+    the study-level head (P-73), and the speed work (P-74). The loop is built and smoke-green, so it costs no new engineering.
+  - At most one ConvNeXt-T hedge, with its own recipe: in22k / 12k weights, LR 1e-4 + layer decay 0.8, ≈ 20 epochs, killed below 0.933.
+  - Drop NFNet (P-72): no read on this task. Demote B16 (P-71): ≈ +0.0005, and third-party code at the hidden rerun.
+  - One disagreement with the morning's "labels de-emphasised" call: the forum's biggest single-model jumps came from different-source
+    pseudo-labels, which is P-68.
+- **Tian decided:** run the pseudo-label pair; **no ConvNeXt training**, so not even the hedge; everything else later. This reverses
+  the morning's session B (ConvNeXt ‖ NFNet) and the morning's demotion of P-68.
+- **Why a seed pair:** `v13ex` / `v13ex2` sit at the seeds of `v13e` / `v13e2`, so each arm has a same-seed control and the pair mean
+  gets the two-arm band (± 0.0045), not the one-seed bar. Its tables (Raptor + `xfit_v09k`) cannot share a session with Raptor-only
+  arms, so it takes a whole session.
+
+### What we figured out
+
+1. **Our own numbers** (experiments.md 2026-10-06 "Gold-58: what a blend gains by pair type"; research.md 2.7.8 C).
+   - Each extra family added less: +0.0015 for the second, +0.0012 for the third (12 LB blends).
+   - On gold-58, cross-family pairs gain +0.0053 over their members' mean and same-recipe pairs +0.0025; r(ρ, gain) = −0.89.
+   - A fitted model (R² 0.80) puts a 4th family of average quality at ≈ **+0.0008 LB**, one point; 0.005 weaker, ≈ 0. Every member
+     +0.003 better lifts the blend ≈ +0.003.
+   - What moved us before was per-model work: Raptor labels +0.009, the heavy-aug CNN recipe +0.010, B3 @ 288 +0.005, the denser
+     input +0.0035.
+2. **The forum.**
+   - The strong teams' best singles (0.949–0.954) are ResNet / EfficientNet at 224–288 px, or CoAtNet with better labels. Scott,
+     team #6: "I've really only ever spent time on efficientnet and resnet."
+   - Single-model work gave measured jumps of +0.009 to +0.015; extra families gave small or no gains.
+   - Our best single (0.940) trails theirs by 0.010–0.014, more than any blend effect.
+3. **ConvNeXt specifically: no read clears one tick.**
+   - The public reader adds +0.001 at 30 %, its own rerun spread (0.944 / 0.944 / 0.943), and costs 0.001 at 45 %.
+   - Dread's 0.941 → 0.944 is confounded with more eval windows and two weeks of retraining.
+   - Its solos span 0.929–0.939, always under the same owner's other family. Our `v06c` (August) overfit early and gave +0.004 in a
+     0.896 blend.
+4. **The literature and past Kaggle winners.**
+   - Ensembles show diminishing returns (≈ 1/n). Architecture alone is a weak decorrelator; different pretraining data is stronger.
+   - In winners' write-ups, recipe steps gave +0.01–0.03 each and added architectures +0.006–0.015. The RSNA 2025 aneurysm 4th place's
+     family ensemble added nothing on the private LB.
+   - ConvNeXt wins medical competitions only with its own recipe (low LR + layer decay, fewer epochs). Our CNN recipe (3e-4 uniform,
+     30 epochs) is what the literature warns against.
+5. **The one untested lever with the most outside evidence is P-68:** pseudo-labels from image teachers of a *different family*,
+   out of fold (Raymond +0.011, SpeedSci +0.011, Archit). Our four target changes that failed were all same-family, report-side or
+   self-distillation.
+
+### ⏭ Next action, in order
+
+1. **Tonight, before 00:00 UTC:** the laptop on AC with the lid open (battery at 13:07), and `Get-Process -Id 25032` alive.
+2. **10-07 ≈ 00:05 UTC:** `sent 5 / 5`, then `/update` with the read rules in the entry below (B4 / B5, the A3 pair, B14).
+3. **Before 10-10: add `v13ex2`** (`/try-out`; a src edit + a smoke, no real run).
+   - In `src/kaggle_pipeline.py` ARMS, after `v13ex`: `("v13ex2", {**PROD, **V09R_KW, **C03_KW, "backbone": "timm:efficientnet_b0",
+     "lr_backbone": 3e-4, "llrd_decay": 1.0, "freeze_bn": True, "aug": "heavy", "drop_path": 0.1, "epochs": 30, "seed": 43}),`
+   - In DISTILLED_ARMS: `"v13ex2": ("raptor_teacher", "xfit_v09k")`. It is not in DISTILLED_MIX, so it trains at 0.5 like `v13ex`.
+   - In `src/window_head_test.py`, a check like `v13e2`'s: the only key that differs from `v13ex` is `seed`, and it is 43.
+   - Run `python src/window_head_test.py`, then a local CPU smoke.
+   - Kaggle smoke on `rsna-knee-train-b`: `PARALLEL_ARMS = ("v13ex", "v13ex2")`, `TEACHER_TABLES = ("raptor_teacher", "xfit_v09k")`,
+     `FORCE_SMOKE = True`. **Green** = both children log the two teacher tables (4,349 studies each) and `reseeded 43` for `v13ex2`,
+     write a SWA `_best.pt`, and exit rc 0.
+4. **10-10 00:00 UTC**, both real (`FORCE_SMOKE = False`; grep the built `.py` for `PARALLEL_ARMS` / `TEACHER_TABLES` / `FORCE_SMOKE`
+   before each push):
+   - **session A** (`rsna-knee-train`): `("v14p", "v14p2")` on `("raptor_teacher",)`, the P-67 floor;
+   - **session B** (`rsna-knee-train-b`): `("v13ex", "v13ex2")` on `("raptor_teacher", "xfit_v09k")`, ≈ 6 h.
+5. **The pair's read** (two infer placeholders, then two sends): mean(`v13ex`, `v13ex2`) vs the B0 seed mean 0.9365, ✅ ≥ 0.9410 /
+   🔁 0.9320–0.9409 / ❌ ≤ 0.9319. Also compare each arm with its same-seed parent (`v13e` 0.935, `v13e2` 0.938).
+   - ✅ → the week-2 members train on this mix, and `v11o` (the CoAtNet student on `cnnoof_v1`, built from session A's OOFs) is next.
+   - ❌ → the target side closes for good.
+6. **After session A (≈ 04:00):** session C = `v14lr` ‖ `v14gd`, then the proxy loop in candidates.md section D's order.
+
+### Open decisions for Tian
+
+- **NFNet (P-72):** recommended drop.
+- **B16, the public ConvNeXt reader (P-71):** recommended demote. It is inference only, so it is not covered by "no ConvNeXt training".
+- **P-73 (token mixer) and P-74 (`channels_last`, B3 progressive resizing)** as proxy variables: approve or not.
+- Tonight's power state (traps 53).
+- Unchanged: the week-2 composition after the 10-07 and 10-10 reads; final picks by 10-22.
+
+### Things that will bite if forgotten
+
+- The laptop was on battery at 13:07 UTC with the submitter waiting for 00:00 (traps 53).
+- `v13ex` / `v13ex2` cannot be read on gold-58, not even for direction: the `xfit_v09k` OOF table came from k-fold runs that trained
+  the gold rows. The LB solos are the only read.
+- `v13ex2` must be in DISTILLED_ARMS with exactly `("raptor_teacher", "xfit_v09k")`; the guard refuses any other build (traps 40).
+- The committed `rsna-knee-train` render is v46, a SMOKE, and `rsna-knee-train-b` is v6, a REAL session-D run. Regenerate both from
+  `src/` with the seds before any push.
+
 ## 2026-10-06 (09:20 → 10:50 UTC) — the 10-06 reads: **fork + B6 = 0.944** (best public, rank 337, the new fork pick), B13 0.940 / B11 0.941 (B6 stays pick 1), **the Claude relabel closed** (0.935 / 0.932); the public plateau is now 0.943; **Tian: single models and new families, not labels** → brainstorm cards P-71 … P-74; 10-07 set up (B4, the A3 pair, B5, B14)
 
 Tian, in order: "Pull the results and run /update, then make sure all the results are marked and give me a report on what we
