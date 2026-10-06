@@ -48,6 +48,7 @@
         "tiankljucanin/rsna-knee-ckpt-v13r",
         "tiankljucanin/rsna-knee-ckpt-v13e",
         "tiankljucanin/timm-efficientnet-b3-ra2",
+        "tiankljucanin/timm-convnext-tiny-in12k",
         "tiankljucanin/rsna-knee-ckpt-v13b3",
         "tiankljucanin/rsna-knee-ckpt-v13e2",
         "tiankljucanin/rsna-knee-ckpt-v13es",

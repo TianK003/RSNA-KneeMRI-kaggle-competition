@@ -21,6 +21,11 @@
 # when the arms do not fit one GPU together, or to bound the spend arm by arm.
 # AUTO_STOP=1: `runpodctl stop pod $RUNPOD_POD_ID` when the job ends, success or failure -- GPU billing stops even if nobody is
 # watching (the volume is kept; delete the pod by hand after the ship is confirmed).
+# 2026-10-06 (P-69, critic): with SEQ_ARMS=1 each arm SHIPS AS SOON AS IT FINISHES, so a stop during the next arm cannot lose
+# it (it used to ship every arm at the end). SHIP_TRIES / SHIP_WAIT_S (default 10 x 300 s) bound the ship retries.
+# MAX_POD_H > 0 (with SEQ_ARMS=1): start the next arm only if (now - POD_T0) + (the last arm's training time x 1.05) + 0.1 h
+# <= MAX_POD_H; otherwise the remaining arms are skipped (logged, not a failure). POD_T0 = the pod's creation time in epoch
+# seconds (default: when this job started). Pair it with scripts/runpod_stopper.sh, the hard deadline on the pod itself.
 # Before the chain: `mkdir -p /workspace/kaggle && ln -sfn /workspace/kaggle /kaggle` so /kaggle/working (every _last.pt)
 # lives on the persistent volume and survives a stop (traps 46); put CACHE_ROOT on fast local storage, never on MooseFS.
 set -euo pipefail
@@ -38,7 +43,8 @@ CACHE2=("$CACHE_PREFIX-a" "$CACHE_PREFIX-b" "$CACHE_PREFIX-c" "$CACHE_PREFIX-d")
 LABELS=(pilkwang/rsna-knee-llm-labels stevenleehans/rsna-knee-llm-report-labels lixin73/rsna-knee-llm-report-labels-sol56
         tiankljucanin/rsna-knee-teacher-tables)
 WEIGHTS=(timm-coatnet-rmlp-1-rw-224 timm-coatnet-rmlp-2-rw-384 convnext-tiny-224-hf
-         timm-resnet50-a1 timm-efficientnet-b0-ra timm-efficientnet-b3-ra2)   # the CNN line (P-64 / P-66)
+         timm-resnet50-a1 timm-efficientnet-b0-ra timm-efficientnet-b3-ra2   # the CNN line (P-64 / P-66)
+         timm-convnext-tiny-in12k)                                           # P-69 v15c (2026-10-06)
 # The scheme suffix in the manifest names (manifest_shard<k>_<scheme>.csv). It is c02 for the c03 cache too: c03 is the c02
 # scheme with denser slot budgets (cache version c02_p336_b24-24-24-14-8-8_..., written by the same code path). Verified on
 # the pod 2026-10-04 -- a "_c03" glob found 0 blobs.
@@ -162,41 +168,65 @@ du -sh "${CACHE2[@]/#/$CACHE_ROOT/}"
 log "kaggle auth check (the ship at the end needs it too)"
 retry kaggle datasets files "$OWNER/rsna-knee-teacher-tables" > /dev/null
 
+# Ship only a finished member: a guard-stopped run also leaves a _best.pt (a mid-schedule EMA under ckpt_policy="last",
+# traps 47). A ship can land inside the Kaggle token's 30-min post-expiry window (traps 20): retry SHIP_TRIES x SHIP_WAIT_S.
+SHIP_TRIES="${SHIP_TRIES:-10}"
+SHIP_WAIT_S="${SHIP_WAIT_S:-300}"
+shipped=0
+skipped=0
+ship_arm() {
+  local ARM="$1" L="$WORK/train_$1.log" t
+  ls -la "$WORK" | grep "$ARM" || true
+  if [ -f "$WORK/${ARM}_fold0_best.pt" ] && grep -q "SWA of last" "$L" && ! grep -q "stopping: runtime guard" "$L"; then
+    for t in $(seq 1 "$SHIP_TRIES"); do
+      log "SHIP $ARM (try $t of $SHIP_TRIES)"
+      if bash "$REPO/scripts/runpod_bootstrap.sh" ship "$ARM"; then shipped=$((shipped + 1)); log "SHIPPED $ARM"; return 0; fi
+      [ "$t" -lt "$SHIP_TRIES" ] && sleep "$SHIP_WAIT_S"
+    done
+    echo "!! $ARM: the ship failed $SHIP_TRIES times"
+  else
+    echo "!! $ARM not finished (no _best.pt, no 'SWA of last', or a runtime-guard stop) -- not shipping (tail of its log:)"
+    tail -20 "$WORK/job_train_$ARM.log" || true
+  fi
+  return 1
+}
+
+POD_T0="${POD_T0:-$(date +%s)}"
+MAX_POD_S=$(awk "BEGIN { print int(${MAX_POD_H:-0} * 3600) }")
 tpids=()
 n_gpu=$(nvidia-smi -L | wc -l)
 [ "$n_gpu" -ge 1 ] || n_gpu=1
+last_train_s=0
 set +e
 for i in "${!ARMS[@]}"; do
   ARM="${ARMS[$i]}"
   gpu=$(( i % n_gpu ))                               # more arms than GPUs share one (a 1 x 5090 pod runs both)
   [ "${SEQ_ARMS:-0}" = 1 ] && gpu=0
+  if [ "${SEQ_ARMS:-0}" = 1 ] && [ "$MAX_POD_S" -gt 0 ] && [ "$last_train_s" -gt 0 ]; then
+    proj=$(( $(date +%s) - POD_T0 + last_train_s * 105 / 100 + 360 ))
+    if [ "$proj" -gt "$MAX_POD_S" ]; then
+      log "SKIP ${ARMS[*]:$i}: projected pod time $((proj / 60)) min > MAX_POD_H ${MAX_POD_H} h (last arm trained $((last_train_s / 60)) min)"
+      skipped=$(( ${#ARMS[@]} - i ))
+      break
+    fi
+    log "next arm fits: projected pod time $((proj / 60)) min <= MAX_POD_H ${MAX_POD_H} h"
+  fi
   log "TRAIN $ARM on GPU $gpu (TEACHER_TABLES ${RSNA_TEACHER_TABLES:-()}, MIX ${RSNA_TEACHER_MIX:-0.5}) -> $WORK/job_train_$ARM.log"
   if [ "${SEQ_ARMS:-0}" = 1 ]; then
+    t_arm=$(date +%s)
     CUDA_VISIBLE_DEVICES=$gpu bash "$REPO/scripts/runpod_bootstrap.sh" train "$ARM" > "$WORK/job_train_$ARM.log" 2>&1
     log "TRAIN $ARM ended rc=$?"
+    last_train_s=$(( $(date +%s) - t_arm ))
+    ship_arm "$ARM"                                  # at once: a stop during the next arm cannot lose this one
   else
     ( CUDA_VISIBLE_DEVICES=$gpu bash "$REPO/scripts/runpod_bootstrap.sh" train "$ARM" > "$WORK/job_train_$ARM.log" 2>&1 ) &
     tpids+=($!)
   fi
 done
 for p in "${tpids[@]}"; do wait "$p"; done
+if [ "${SEQ_ARMS:-0}" != 1 ]; then
+  for ARM in "${ARMS[@]}"; do ship_arm "$ARM"; done
+fi
 set -e
-# Ship only a finished member: a guard-stopped run also leaves a _best.pt (a mid-schedule EMA under ckpt_policy="last",
-# traps 47). A ship can land inside the Kaggle token's 30-min post-expiry window (traps 20): retry for ~45 min.
-shipped=0
-for ARM in "${ARMS[@]}"; do
-  ls -la "$WORK" | grep "$ARM" || true
-  L="$WORK/train_$ARM.log"
-  if [ -f "$WORK/${ARM}_fold0_best.pt" ] && grep -q "SWA of last" "$L" && ! grep -q "stopping: runtime guard" "$L"; then
-    for t in 1 2 3 4 5 6 7 8 9 10; do
-      log "SHIP $ARM (try $t)"
-      if bash "$REPO/scripts/runpod_bootstrap.sh" ship "$ARM"; then shipped=$((shipped + 1)); break; fi
-      sleep 300
-    done
-  else
-    echo "!! $ARM not finished (no _best.pt, no 'SWA of last', or a runtime-guard stop) -- not shipping (tail of its log:)"
-    tail -20 "$WORK/job_train_$ARM.log" || true
-  fi
-done
-log "job done: shipped $shipped / ${#ARMS[@]}"
-[ "$shipped" -eq "${#ARMS[@]}" ] || exit 4
+log "job done: shipped $shipped / ${#ARMS[@]} (skipped by MAX_POD_H: $skipped)"
+[ $(( shipped + skipped )) -eq "${#ARMS[@]}" ] || exit 4

@@ -106,7 +106,8 @@ def main():
                     ("timm:coatnet_rmlp_1_rw_224", 224), ("timm:coatnet_rmlp_1_rw_224", 320),   # P-43 v09x
                     ("timm:coatnet_rmlp_2_rw_384", 384), ("timm:resnet34", 224),           # P-57 v13a
                     ("timm:resnet50", 224), ("timm:efficientnet_b0", 224),                  # P-64 follow-ups
-                    ("timm:efficientnet_b3", 288)):                                        # v13b3 (staged 10-04)
+                    ("timm:efficientnet_b3", 288),                                         # v13b3 (staged 10-04)
+                    ("timm:convnext_tiny", 288)):                                          # P-69 v15c (10-06)
         try:
             K["resolve_backbone_dir"](bb)
         except SystemExit as e:
@@ -135,6 +136,18 @@ def main():
         if bb == "timm:resnet34":
             # P-57: the stem and layer1..4 are decayed per stage, not all lumped into the top LR
             check(len(lrs) >= 6, f"{bb}: {len(lrs)} distinct LRs (stem + 4 layers + head)")
+        if bb == "timm:convnext_tiny":
+            # P-69: the timm ConvNeXt (not the HF `convnext_tiny` of v06c) -- no BatchNorm, 768 features, and the per-stage
+            # decay the v15c recipe relies on: stem, stages 0-3, the final head.norm, then the attention head
+            n_bn = sum(isinstance(m, torch.nn.modules.batchnorm._BatchNorm) for m in model.enc.modules())
+            check(n_bn == 0 and model.dim == 768 and len(lrs) == 7,
+                  f"{bb}: {n_bn} BatchNorm modules, dim {model.dim}, {len(lrs)} distinct LRs (stem + 4 stages + norm + head)")
+            cfg15 = Config(cache_scheme="c02", backbone=bb, img_size=img, head_type="window_attn", window_mode="random",
+                           lr_backbone=1e-4, llrd_decay=0.9)
+            lrs15 = sorted({round(g["lr"], 12) for g in K["param_groups"](model, cfg15)})
+            want = sorted(round(1e-4 * 0.9 ** e, 12) for e in range(6)) + [1e-3]
+            check(all(abs(a - b) < 1e-12 for a, b in zip(lrs15, want)) and len(lrs15) == len(want),
+                  f"{bb}: v15c LRs {['%.2e' % l for l in lrs15]} = 1e-4 x 0.9^(0..5) + head 1e-3")
 
     print("\n== P-63 spatial reader + slot-count correction")
     torch.manual_seed(0)
@@ -633,7 +646,7 @@ def main():
           "v11n / v11n2 = v11a (c03) + drop_path 0.1 + aug heavy + 12 epochs, seeds 42 / 43")
     check(all(da[a] == ("raptor_teacher",) and a not in dm for a in ("v13b", "v13c", "v11n", "v11n2")),
           "the four new arms train on Raptor at mix 0.5")
-    for bb in ("timm:resnet34", "timm:coatnet_rmlp_1_rw_224"):
+    for bb in ("timm:resnet34", "timm:coatnet_rmlp_1_rw_224", "timm:convnext_tiny"):
         try:
             bdir = K["resolve_backbone_dir"](bb)
         except SystemExit as e:
@@ -696,6 +709,21 @@ def main():
     diff = {k for k in K["asdict"](cx) if getattr(cx, k) != getattr(cp, k)} - {"version"}
     check(diff == {"seed"} and cx.seed == 43 and cp.seed == 42 and da["v13e2"] == ("raptor_teacher",),
           f"v13e2 = v13e at seed 43 ({sorted(diff)})")
+    # 2026-10-06 (P-69 re-opened): ConvNeXt-T with its own optimiser keys; the data-side keys stay v13e's
+    cx, cp = Config(smoke=False, **arms["v15c"]), Config(smoke=False, **arms["v13e"])
+    diff = {k for k in K["asdict"](cx) if getattr(cx, k) != getattr(cp, k)} - {"version"}
+    check(diff == {"backbone", "img_size", "lr_backbone", "llrd_decay", "freeze_bn", "epochs"}
+          and cx.backbone == "timm:convnext_tiny" and cx.img_size == 288 and cx.lr_backbone == 1e-4
+          and cx.llrd_decay == 0.9 and not cx.freeze_bn and cx.epochs == 20 and cx.swa_last == 3
+          and cx.drop_path == 0.1 and cx.aug == "heavy" and cx.weight_decay == 0.02 and cx.train_all
+          and K["cache_version_for"](cx) == K["cache_version_for"](cp) and da["v15c"] == ("raptor_teacher",)
+          and "v15c" not in dm and "v15c" not in K["DISTILLED_SILENT_MIX"],
+          f"v15c = v13e with the ConvNeXt-T optimiser keys only, Raptor 0.5 flat ({sorted(diff)})")
+    cx2 = Config(smoke=False, **arms["v15c2"])
+    diff = {k for k in K["asdict"](cx2) if getattr(cx2, k) != getattr(cx, k)} - {"version"}
+    check(diff == {"seed"} and cx2.seed == 43 and cx.seed == 42 and da["v15c2"] == ("raptor_teacher",)
+          and "v15c2" not in dm and "v15c2" not in K["DISTILLED_SILENT_MIX"],
+          f"v15c2 = v15c at seed 43 ({sorted(diff)})")
 
     print("\n== P-67 additions (2026-10-05): augment_extra, mixup_studies, drop_blank_windows, train_gold, guards")
     torch.manual_seed(0)

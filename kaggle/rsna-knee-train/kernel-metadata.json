@@ -20,7 +20,8 @@
         "tiankljucanin/timm-resnet34-a1",
         "tiankljucanin/timm-resnet50-a1",
         "tiankljucanin/timm-efficientnet-b0-ra",
-        "tiankljucanin/timm-efficientnet-b3-ra2"
+        "tiankljucanin/timm-efficientnet-b3-ra2",
+        "tiankljucanin/timm-convnext-tiny-in12k"
     ],
     "kernel_sources": [
         "tiankljucanin/rsna-knee-cache3-a",

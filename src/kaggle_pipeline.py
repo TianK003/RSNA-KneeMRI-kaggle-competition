@@ -430,6 +430,15 @@ SHIPPED_ARMS = [
     ("v11o", {**PROD, **V09R_KW, **C03_KW}),
     ("v13eo", {**PROD, **V09R_KW, **C03_KW, "backbone": "timm:efficientnet_b0", "lr_backbone": 3e-4, "llrd_decay": 1.0,
                "freeze_bn": True, "aug": "heavy", "drop_path": 0.1, "epochs": 30}),
+    # 2026-10-06 (P-69 re-opened, Tian; plan critic-checked): ConvNeXt-T with ITS OWN optimiser (traps 46) -- timm
+    # convnext_tiny.in12k_ft_in1k at 288 px (Tian), encoder LR 1e-4 at the top with per-stage layer decay 0.9 (stem 5.9e-5 ..
+    # final norm 1e-4; official ConvNeXt-T ADE20K config), 20 epochs (SWA 17-19). The data-side settings stay the B6 members'
+    # (heavy aug, drop path 0.1, weight decay 0.02, 2 studies x accum 2, Raptor 0.5), so the read isolates the family. No
+    # freeze_bn: ConvNeXt has no BatchNorm. `v15c2` = the seed twin, trained only if the 10-07 B4/B5 reads free the RunPod money.
+    ("v15c", {**PROD, **V09R_KW, **C03_KW, "backbone": "timm:convnext_tiny", "img_size": 288, "lr_backbone": 1e-4,
+              "llrd_decay": 0.9, "aug": "heavy", "drop_path": 0.1, "epochs": 20}),
+    ("v15c2", {**PROD, **V09R_KW, **C03_KW, "backbone": "timm:convnext_tiny", "img_size": 288, "lr_backbone": 1e-4,
+               "llrd_decay": 0.9, "aug": "heavy", "drop_path": 0.1, "epochs": 20, "seed": 43}),
 ]
 ARM_V10C = ("v10c", {**C02, "backbone": "timm:coatnet_rmlp_2_rw_384", "img_size": 384,
                      "lr_backbone": 1e-4, "eval_windows": 42, "grad_checkpoint": True})
@@ -570,7 +579,8 @@ DISTILLED_ARMS = {"v09s": ("selfdistill_v1",), "v09t": ("selfdistill_v1",),
                   **{a: ("raptor_teacher",) for a in ("v14lr", "v14th", "v14gd", "v14bl", "v14ns", "v14sh", "v14mx",
                                                       "v14r288", "v14db", "v14ep20")},
                   "v13ex": ("raptor_teacher", "xfit_v09k"), "v11o": ("raptor_teacher", "cnnoof_v1"),
-                  "v13eo": ("raptor_teacher", "cnnoof_v1")}
+                  "v13eo": ("raptor_teacher", "cnnoof_v1"),
+                  "v15c": ("raptor_teacher",), "v15c2": ("raptor_teacher",)}
 # 2026-09-28 (traps 40's second gap): the mix a distilled arm must train with; every other distilled arm trains at 0.5.
 DISTILLED_MIX = {"v09o": 0.75, "v09o2": 0.75, "v13ec": 0.75, "v13rc": 0.75, "v13ecp": 1.0}
 # P-62: the silent-cell mix an arm must train with; every arm not listed trains without one (TEACHER_SILENT_MIX = None).
@@ -1004,6 +1014,14 @@ BACKBONES = {
         "/kaggle/input/timm-efficientnet-b3-ra2",
         "models/efficientnet_b3_ra2",
     ], "tiankljucanin/timm-efficientnet-b3-ra2 as a Dataset input"),
+    # 2026-10-06 (P-69 re-opened, Tian): timm convnext_tiny.in12k_ft_in1k (ImageNet-12k -> 1k, 84.2 %, Apache-2.0). Its own
+    # directory names on purpose: models/convnext_tiny and /kaggle/input/convnext-tiny-224-hf hold the old HF-format weights
+    # of `v06c` (key "convnext_tiny"), which resolve_dir would accept and the strict timm load would then reject.
+    "timm:convnext_tiny": ([
+        "/kaggle/input/datasets/tiankljucanin/timm-convnext-tiny-in12k",
+        "/kaggle/input/timm-convnext-tiny-in12k",
+        "models/convnext_tiny_in12k",
+    ], "tiankljucanin/timm-convnext-tiny-in12k as a Dataset input"),
 }
 
 
@@ -2534,7 +2552,7 @@ def load_timm_backbone(arch, backbone_dir, grad_checkpoint=False, img_size=None,
         raise SystemExit(f"timm {arch}: weights do not match the architecture -- missing "
                          f"{res.missing_keys[:5]} ({len(res.missing_keys)}), unexpected "
                          f"{bad_unexpected[:5]} ({len(bad_unexpected)})")
-    print(f"  timm {arch}: loaded {len(sd)} tensors from {backbone_dir} (dropped head "
+    print(f"  timm {timm.__version__} {arch}: loaded {len(sd)} tensors from {backbone_dir} (dropped head "
           f"{len(head_keys)} '{cls}'); num_features {enc.num_features}, {len(timm_stage_names(enc))} stages, "
           f"img_size {kw.get('img_size', 'any' if not sized else 'default')}, grad_checkpoint={grad_checkpoint}, "
           f"drop_path_rate {kw.get('drop_path_rate', 0.0)}")
@@ -3148,6 +3166,8 @@ def train_fold(fold, manifest, targets, image_root, cfg, device):
         t_epoch = time.time()
         n_studies = 0
         guard_hit = False
+        n_opt = n_fin = n_clip = n_skip = 0      # P-69: optimiser health per epoch (printed after the epoch)
+        gn_sum = 0.0
         opt.zero_grad(set_to_none=True)
         for i, b in enumerate(tr_loader):
             if cfg.mixup_p > 0 and "arr" in b and b["arr"].shape[0] > 1 and float(torch.rand(())) < cfg.mixup_p:
@@ -3159,9 +3179,19 @@ def train_fold(fold, manifest, targets, image_root, cfg, device):
             scaler.scale(loss / cfg.grad_accum).backward()
             if (i + 1) % cfg.grad_accum == 0:
                 scaler.unscale_(opt)
-                nn.utils.clip_grad_norm_(model.parameters(), cfg.max_grad_norm)
+                gnorm = float(nn.utils.clip_grad_norm_(model.parameters(), cfg.max_grad_norm))
+                scale_before = scaler.get_scale()
                 scaler.step(opt)
                 scaler.update()
+                # P-69 (2026-10-06): the pre-clip gradient norm, how often the clip binds, and the steps GradScaler
+                # skipped on inf / NaN gradients -- the early warnings for a too-high LR or an fp16 overflow. Print only:
+                # the update itself is unchanged.
+                n_opt += 1
+                if math.isfinite(gnorm):
+                    n_fin += 1
+                    gn_sum += gnorm
+                    n_clip += int(gnorm > cfg.max_grad_norm)
+                n_skip += int(scaler.get_scale() < scale_before)
                 opt.zero_grad(set_to_none=True)
                 sched.step()
                 if ema is not None:
@@ -3209,6 +3239,10 @@ def train_fold(fold, manifest, targets, image_root, cfg, device):
               + ("(held-out eval deferred to the SWA pass: eval_final_only)" if skip_eval else f"{metrics}"))
         print(f"    train {train_secs/60:.1f} min ({train_secs/max(n_studies,1):.2f} s/study), "
               f"val {(time.time()-t_eval)/60:.1f} min")
+        if n_opt:
+            print(f"    optimiser: {n_opt} steps, pre-clip grad norm mean {gn_sum / max(n_fin, 1):.3f}, clipped "
+                  f"{n_clip / max(n_fin, 1):.0%} at {cfg.max_grad_norm}, GradScaler scale {scaler.get_scale():.0f}, "
+                  f"skipped {n_skip}")
         if per_label:
             print_per_label(per_label)
         if metrics.get("pred_std", 1.0) < 0.01:

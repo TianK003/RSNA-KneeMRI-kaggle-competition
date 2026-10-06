@@ -6,6 +6,111 @@ to read first after a break.
 
 ---
 
+## 2026-10-06 (13:10 → 14:40 UTC) — Tian re-opens ConvNeXt (P-69): **one ConvNeXt-T arm with its own recipe, RunPod, cap $2.5, 288 px** · plan approved and HALF IMPLEMENTED (weights Dataset, arms, unit checks, local smoke, RunPod scripts) · single-model + pseudo-label research → cards P-75 … P-79 · stopped mid-way for context, NOTHING pushed to Kaggle, NOTHING committed before this entry
+
+Tian, in order: "I changed my mind on convxnet - we should try to make one training and testing it … research … what works best
+for this net and change all the training parameters … write the plan"; "also perform research on improving single-model
+performance (pseudo-labels, different pretraining and augmentation …) … check all candidates … so we dont duplicate"; "Dont forget
+to research pseudo-labels as well … give me a brief overview"; then approved the plan; then: "write the /handoff … DO NOT CONTINUE
+WORKING ON THIS". **This entry supersedes the "no ConvNeXt training" line of the 13:10 entry below.**
+
+**THE PLAN (approved by Tian, read it first):** `docs/superpowers/plans/2026-10-06-p69-convnext-plan.md` (a copy of
+`C:\Users\Tian\.claude\plans\i-want-you-to-vectorized-peacock.md`). It holds the recipe table with evidence, the cost and hard-stop
+rules, the critic's verdict, the under-fit tripwires, the 11 implementation steps, the pre-registered read rules, the pseudo-label
+overview and the research cards. **The research reports behind it** (agents' full text, sources tagged): `artifacts/research_1006/`
+— `convnext_recipe_research.md`, `single_model_and_pseudolabel_research.md` (incl. "PSEUDO-LABELS (deep dive)" and the forum
+extraction), `code_audit_convnext.md`. The critic's report could not be saved; its changes are folded into the plan ("Critic check").
+
+### ⏳ Still in flight as this was written (14:40 UTC)
+
+| In flight | What it is | Started | How to check | How to read it |
+|---|---|---|---|---|
+| **Auto-submitter, Windows pid 25032** | unchanged from the 13:10 entry: B4 (v58) → A3a (v49) → A3b (v50) → B5 (v59) → B14 (v57) at 2026-10-07 00:00:30 UTC | 10:27 | `Get-Content artifacts/auto_submit_1007.log -Tail 30`; `Get-Process -Id 25032` | Green = `sent 5 / 5` after 00:00. **The laptop was on battery (39 %) at 14:38 UTC** (traps 53): AC power, lid open, or nothing is sent. Fallback and read rules in the 13:10 and 10:50 entries |
+| Kaggle Dataset `tiankljucanin/timm-convnext-tiny-in12k` (private) | the ConvNeXt weights, uploaded 14:25 | 14:25 | `kaggle datasets files tiankljucanin/timm-convnext-tiny-in12k` | listed `config.json` 662 B + `model.safetensors` 114,374,272 B at 14:26 = done |
+
+### Where things stand (plan steps 1–11)
+
+| Step | Status |
+|---|---|
+| 1 Docs | ⏳ PARTLY. **Done (uncommitted until this entry's commit):** proposals.md — P-69 re-opened (index rank 2 + full card body after P-68, Dropped-directions row struck), cards **P-75 … P-79** (index rows 8–12 + bodies before P-70), the "10-06 night" decision block. **Not done:** the amendments to P-62 / P-67 / P-68 / P-73 (text is in the plan's "Amendments" list); research.md **2.7.9** (write it from `artifacts/research_1006/`); candidates.md (T8 back as a RunPod arm, a `v15c` solo row in A, a **B17** row in B, the 10-08 order); CLAUDE.md state block |
+| 2 Weights Dataset | ✅ `models/convnext_tiny_in12k/` + `artifacts/ship_convnext_tiny_in12k/`; config mean / std = ImageNet's; Dataset `timm-convnext-tiny-in12k` live |
+| 3 `src/kaggle_pipeline.py` | ✅ `BACKBONES["timm:convnext_tiny"]` (own dir names), arms `v15c` / `v15c2` in `SHIPPED_ARMS` + `DISTILLED_ARMS` (Raptor, flat 0.5), timm version in the loader line, per-epoch `optimiser:` line (pre-clip grad norm, clip %, GradScaler scale, skipped steps). **Not done:** `INFER_VOTE_GROUPS` (only needed if the seed pair runs) |
+| 4 `src/window_head_test.py` | ✅ ConvNeXt in the backbone + drop-path loops, v15c LR check (1e-4 × 0.9^0..5 + head 1e-3), `v15c` / `v15c2` arm diffs. **`UNIT CHECKS PASSED`** (`artifacts/window_head_test_p69.log`) |
+| 5 Mounts | ✅ the weights Dataset in `rsna-knee-train`, `-train-b`, `-infer` metadata and in `WEIGHTS` of `scripts/runpod_chain.sh`. After the run: `rsna-knee-ckpt-v15c` into infer (traps 22) |
+| 6 RunPod scripts | ✅ new `scripts/runpod_stopper.sh` (podStop on the job's last line, a deadline, or `/workspace/STOP_NOW`; key from `/proc/1/environ`); `runpod_chain.sh`: ship-per-arm under `SEQ_ARMS=1`, `SHIP_TRIES` / `SHIP_WAIT_S`, `MAX_POD_H` + `POD_T0` skip rule. `bash -n` ok; the ship / skip / retry / exit-4 logic tested with stubbed train + ship (4 cases green, scratchpad). **Never run on a real pod yet** |
+| 7 Local checks | ✅ local CPU smoke (`artifacts/train_v15c_localsmoke.py`, `MODE="train"` per traps 30) rc 0: `timm 1.0.28 convnext_tiny: loaded 180 tensors`, `backbone LR range 5.90e-05 .. 1.00e-04 over 4 blocks (decay 0.9)`, img 288, `-> v15c_fold0_best.pt = SWA`, decode-once verified, `constant labels 0`. Log `artifacts/local_p69/smoke.log`. The `!! prediction spread` line is the 1-study local cache (the P-62 local smoke had it too). **The new `optimiser:` line did not print locally** (1 batch < accum 2) — the Kaggle smoke must show it |
+| 8 Kaggle smoke | ❌ not pushed |
+| 9 RunPod run | ❌ not started (after the 10-07 sends + B4 / B5 reads, ≈ 01:00 UTC) |
+| 10–11 Placeholders, sends | ❌ (10-07 day / 10-08 00:00) |
+| Committed renders | unchanged: `rsna-knee-infer` = v59 (B5) · `rsna-knee-train` = v46 SMOKE · `rsna-knee-train-b` = v6 REAL, never re-push as is · `rsna-knee-fork` = v12 |
+| Budgets | Kaggle 2.84 h until 10-10; RunPod ≈ $5 (nothing spent this session) |
+
+### What we talked about and decided
+
+- **Tian's decisions (10-06 night):** P-69 re-opened as ONE arm; RunPod up to $2.5; **288 px** (the critic preferred 224 for cost);
+  a second 288 seed (`v15c2`) only if B4 − B5 ≤ −0.002 on 10-07 AND the first arm's measured time keeps both under $2.5;
+  single-model research → **cards only, Tian picks later**. Approving the plan = Tian's go for one pod under the cap (critic run).
+- **The recipe** (`v15c`): timm `convnext_tiny.in12k_ft_in1k`, 288 px, `lr_backbone` 1e-4 with per-stage `llrd_decay` 0.9,
+  20 epochs (SWA 17–19), no `freeze_bn`; everything data-side = `v13e` (heavy aug, drop path 0.1, weight decay 0.02, 2 × 2, Raptor
+  0.5). The critic overturned my first draft's weight decay 0.05 (it also shrinks the 1e-3 head) and drop path 0.2.
+- **Rejected:** ConvNeXt V2 (CC-BY-NC, slower), `channels_last` for it (+0.7 %), timm per-block decay, head-init × 0.001, label
+  smoothing, mixup here, Nano / Small.
+- **Pseudo-labels overview** for Tian is in the plan ("Pseudo-labels in brief"): ours = Li 2017 distillation with noisy labels
+  (0.5 LLM + 0.5 Raptor); it helps only with teachers whose errors differ from the labels'; traps listed there.
+
+### What we figured out
+
+1. **timm ConvNeXt-T loads through our existing loader unchanged** (180 tensors, 0 missing / 0 unexpected, 27.8 M params, no BN),
+   and `param_groups` already decays it per stage. The only trap: the old HF `convnext_tiny` dirs would be found first by
+   `resolve_dir` → the new key uses its own dir names.
+2. **Our "SWA" averages three near-identical points** (cosine to 0, EMA snapshots at ≤ 3 % of peak LR) — why it reads ≈ 0; card P-77.
+3. **Cost at 288:** one arm ≈ $1.4 ($1.2–1.7), pair ≈ $2.3 ($2.1–3.1) — the critic's two-point fit of our 4090 epochs to timm's
+   training throughput (ConvNeXt-T ≈ ResNet-50).
+
+### ⏭ Next action, in order (the plan's steps; do not re-derive)
+
+1. **Tonight before 00:00 UTC:** laptop on AC, lid open, `Get-Process -Id 25032` alive.
+2. **Commit check:** this entry's commit holds the code + proposals.md; `git status` should then show only `discussion.py` /
+   `discussion_735304.xml` (pre-existing, not ours).
+3. **Finish step 1 docs** (no GPU): research.md 2.7.9 from `artifacts/research_1006/`; the P-62 / P-67 / P-68 / P-73 amendments;
+   candidates.md (T8, `v15c` solo row, B17 row: read rules = the plan's "Read rules"); CLAUDE.md state. `/update` conventions.
+4. **Kaggle smoke (step 8), ≈ 0.1 GPU-h:**
+   ```bash
+   sed -e 's/^ARM_ONLY = ""/ARM_ONLY = "v15c"/' -e 's/^TEACHER_TABLES = ()/TEACHER_TABLES = ("raptor_teacher",)/' src/kaggle_pipeline.py > artifacts/train_v15c_smoke.py
+   grep -E '^(FORCE_SMOKE|MODE|ARM_ONLY|TEACHER_TABLES) = ' artifacts/train_v15c_smoke.py   # FORCE_SMOKE = True
+   python src/nbgen.py artifacts/train_v15c_smoke.py kaggle/rsna-knee-train/rsna-knee-train.ipynb
+   kaggle kernels push -p kaggle/rsna-knee-train
+   ```
+   Green = the plan's Verification bullet "Kaggle smoke": the timm version printed, `loaded 180 tensors`, `5.90e-05 .. 1.00e-04`,
+   `teacher table raptor_teacher: 4349`, peak GPU memory, a finite loss, the `optimiser:` line, `= SWA`, inference at img 288.
+5. **10-07 ≈ 00:05:** `sent 5 / 5`; read B4 / B5 (rules in the 10:50 entry). **B4 − B5 ≤ −0.002 → run the pair**, else one arm.
+6. **The pod (step 9), ≈ 01:00 UTC** — memory "RunPod pod self-service" recipe; before launch the plan's hard-stop checklist
+   (bandwidth ≥ 20 MB/s, fresh Kaggle credential, key from `/proc/1/environ`, balance). Start the stopper first:
+   `setsid nohup bash scripts/runpod_stopper.sh /workspace/job_v15c.log $(( POD_T0 + 12060 )) > /workspace/stopper.log 2>&1 < /dev/null &`
+   then `CACHE_ROOT=… CACHE_PREFIX=rsna-knee-cache3 RSNA_TEACHER_TABLES='("raptor_teacher",)' AUTO_STOP=1 SEQ_ARMS=1 SHIP_TRIES=3
+   SHIP_WAIT_S=120 MAX_POD_H=3.35 POD_T0=<pod creation epoch> nohup bash scripts/runpod_chain.sh v15c [v15c2] > /workspace/job_v15c.log 2>&1 &`.
+   Watch the epoch-0 gate (elapsed + 20 × ETA × 1.1 + 0.2 h > 3.0 h → kill + podStop) and the tripwires (plan table). Back up each
+   shipped arm locally; delete the pod after `kaggle datasets files` confirms.
+7. **If the pair ran:** implement `INFER_VOTE_GROUPS` (plan step 3) before building B17, so ConvNeXt is one vote.
+8. **Placeholders + 10-08 sends:** solo(s) and B17 = B6 + ConvNeXt; read by the plan's "Read rules" (solo vs 0.9358; B17 vs B6 0.942,
+   ≥ 0.943 → pick 1 + C3 gate).
+9. **10-10:** unchanged — session A floor pair, session B `v13ex` ‖ `v13ex2` (`v13ex2` still to add + smoke, 13:10 entry).
+
+### Open decisions for Tian
+
+- Which research cards to run (P-75 … P-79, plus the P-67 mixup α ≈ 2 arm) — "Tian picks later".
+- The Kaggle fallback if RunPod fails at 288 (≈ 6.5–10 T4-h, two sessions with a resume) — Tian's call at that point.
+- Unchanged: NFNet (P-72), B16 (P-71), P-73, P-74; tonight's power state.
+
+### Things that will bite if forgotten
+
+- **Laptop on battery at 14:38 UTC** with the 10-07 submitter waiting (traps 53).
+- The local smoke needs `MODE="train"` sed'd in (traps 30): `MODE="auto"` resolves to infer locally and aborts.
+- The new weights live in `models/convnext_tiny_in12k`, NOT `models/convnext_tiny` (HF format, `v06c`) — never point the timm key there.
+- `v15c` must train with `TEACHER_TABLES = ("raptor_teacher",)` (DISTILLED_ARMS guard). The pod must start AFTER the 10-07 sends
+  (the submitter shares the Kaggle API rate limit, traps 48).
+- `rsna-knee-infer` metadata now mounts the ConvNeXt weights (45 Datasets); the next infer placeholder build picks it up harmlessly.
+
 ## 2026-10-06 (10:50 → 13:10 UTC) — research verdict: **improve the families we have, not new ones** (a 4th family ≈ +0.0008 LB; no ConvNeXt gain beyond one tick anywhere); Tian: **run the pseudo-label pair `v13ex` ‖ `v13ex2`, no ConvNeXt training**, the rest later
 
 Tian, in order: "review the others work and figure out if convxnet actually helped or not, should we focus more on improving existing
