@@ -1030,3 +1030,27 @@ summary alone would think two submissions were still running.
   after a fork send means a watcher died.
 - To check whether the machine slept: `Get-WinEvent -FilterHashtable @{LogName='System'; ProviderName='Microsoft-Windows-Power-Troubleshooter'}`
   prints each sleep / wake pair with its wake source.
+
+### 54. The two training slots run different Kaggle images, and a GPU session can end `ERROR` with an empty log that a re-push fixes (Tier 3, 2026-10-06)
+
+Each kernel keeps the Docker image pinned when it was created (`kaggle kernels pull -m` shows its `docker_image`; our
+`kernel-metadata.json` files set no `docker_image_pinning_type`, so pushes keep the pin). On 10-06:
+- `rsna-knee-train` (created in August) runs `python@sha256:37c64f7d…`: **Python 3.12, timm 1.0.26**.
+- `rsna-knee-train-b` (created 10-03) runs `python@sha256:2757e0c7…`: **Python 3.13, timm 1.0.29**.
+- Local and RunPod run timm 1.0.28.
+
+So "the same code in both slots" is not the same library stack. No difference has bitten yet (every arm loads strictly, and the
+P-69 smoke loaded the ConvNeXt weights on 1.0.26), but a library-dependent behaviour can differ between the two slots of one
+experiment.
+
+The same day `rsna-knee-train-b` v7 (the `v13ex` ‖ `v13ex2` smoke) sat in RUNNING for ≈ 10 min and then ended `ERROR`.
+`kaggle kernels output` returned a 2-byte log and no output files, the API's `failureMessage` was empty, and the GPU quota was
+barely charged. A Python error would have left a traceback and the input-layout lines. The identical re-push (v8) ran green in
+6 min.
+
+**Do:**
+- An `ERROR` with an empty log and no files is a session-level failure, not our code: re-push once, unchanged, before
+  debugging the source.
+- To compare a slot's stack, read the Python path in its log (`/usr/local/lib/python3.1x`) or the `timm 1.0.x` loader line.
+- Pin an image only if a version difference ever matters: `"docker_image_pinning_type": "latest"` (or `"original"`) in
+  `kernel-metadata.json`, an option the CLI's push supports.

@@ -10,7 +10,7 @@ by **macro ROC-AUC** (unweighted mean of 12 per-label AUCs).
 
 Competition: https://www.kaggle.com/competitions/rsna-knee-abnormality-detection
 
-## Current state (2026-10-06, 09:40 UTC)
+## Current state (2026-10-06, 15:15 UTC)
 
 One block, kept current by `/update`. Session history is in [docs/handoff.md](docs/handoff.md); every number, with its verdict,
 is in [docs/experiments.md](docs/experiments.md).
@@ -21,8 +21,8 @@ is in [docs/experiments.md](docs/experiments.md).
 | Our best | **LB 0.944** = #54 (C2), the public 0.942 stack + B6 at β 0.45 (`rsna-knee-fork` v12; 🔁 +0.001 over #49) = **final pick 2**, level with the best public notebook. **Own models 0.942** = #52 (B6), a flat rank-mean of `v11a` + `v13r` + `v13e` + `v13b3` + `v13e2` (`rsna-knee-infer` v51) = **final pick 1**; B13 (+ two CoAtNet votes, #55) 0.940 and B11 (the EfficientNet triple, #56) 0.941 did not beat it. **Solo 0.940** = #50 `v13b3` (EfficientNet-B3 @ 288). Blend rule: a flat rank-mean ≈ its members' mean + a gain that grows with the number of *families* (≈ +0.003 for one, ≈ +0.005–0.006 for three); a member under the mean from a family already present costs (experiments.md 10-05, 10-06). CNN seed spread s = 0.003 |
 | Production recipe | CNNs on the `v13h` recipe: c03 input, CNN LR 3e-4 uniform, frozen BN, heavy aug, drop-path 0.1, 30 epochs, SWA of 27–29. Targets 0.5 LLM + 0.5 quantile-matched Raptor: the only target change that ever transferred. The Claude relabel (P-65) read no lift on 10-06 and is closed, like D4, self-distillation and the same-family OOF student. The c03 CoAtNet `v11a` is the non-CNN family |
 | Trained, LB pending | **Session D** (P-62, Kaggle): `v13es` 0.9107 / `v13rs` 0.9160 on gold, placeholders infer v49 / v50, the 10-07 sends. Every other trained arm has its solo read. **10-06 reads, all in:** #54 C2 **0.944** (🔁), #55 B13 **0.940** (🔁), #56 B11 **0.941** (🔁), #57 `v13ecp` (0.5 Claude) **0.935** (🔁), #58 `v13ec` (0.25 Claude) **0.932** (❌) → P-65 and P-46 closed |
-| Next | **The queue: [docs/candidates.md](docs/candidates.md)** (every candidate ranked with its day). **Research 10-06 evening (research.md 2.7.8): improve the families we have, not new ones.** A fourth family is worth ≈ +0.0008 LB on B6 (gold-58 model, `src/blend_diversity_gold.py`); no forum read shows ConvNeXt helping beyond one tick; per-member levers moved us +0.0035–0.010 each. **Tian's decisions (10-06 evening): run the pseudo-label pair P-68 `v13ex` ‖ `v13ex2`; NO ConvNeXt training (P-69 dropped); everything else later** (NFNet P-72 and B16 P-71 recommended drop / demote; P-73, P-74 open). **10-07 is set up:** B4 (infer v58) → A3a (v49) → A3b (v50) → B5 (v59) → B14 (v57), `auto_submit.py` pid 25032 at 00:00:30 UTC; the laptop must be on AC with the lid open (traps 53). **Before 10-10:** add `v13ex2` (seed 43) to ARMS + DISTILLED_ARMS, check, smoke the pair. **10-10:** session A = the P-67 floor pair, session B = `v13ex` ‖ `v13ex2`, then the proxy loop (candidates.md section D). Final picks by 10-22 (entry / merger deadline 10-15) |
-| Budgets | Kaggle GPU 30 h/week of *session* time, two T4s per session (≈ 60 GPU-h): 27.16 h used, 2.84 h left until the 2026-10-10 reset (`kaggle quota`, 10-06 10:40 UTC, after the three placeholders), then a second reset 10-17. 5 submissions per UTC day (16 days × 5 left, 10-07 to 10-22). RunPod ≈ $5 (≈ 6.5 h on a 4090), only after a justification checked by a critic subagent and Tian's go |
+| Next | **The queue: [docs/candidates.md](docs/candidates.md)** (every candidate ranked with its day). **Tian's decisions (10-06 night; they supersede the evening's "no ConvNeXt"): ONE ConvNeXt-T arm with its own recipe, P-69 `v15c`** (timm `convnext_tiny.in12k_ft_in1k` @ 288, LR 1e-4 + per-stage decay 0.9, 20 epochs, the B6 data side; plan `docs/superpowers/plans/2026-10-06-p69-convnext-plan.md`, evidence research.md 2.7.9) on one RunPod 4090 under a $2.5 cap, after the 10-07 sends and the B4 / B5 reads; a seed twin `v15c2` only if B4 − B5 ≤ −0.002. Kaggle smoke v47 green. Read 10-08: A6 (solo) and B17 (B6 + it). **The pseudo-label pair P-68 `v13ex` ‖ `v13ex2`** runs at the 10-10 reset. Single-model cards P-75 … P-79: Tian picks later. Background (research.md 2.7.8): improve the families we have first; a fourth family is worth ≈ +0.0008 LB on B6. **10-07 is set up:** B4 (infer v58) → A3a (v49) → A3b (v50) → B5 (v59) → B14 (v57), `auto_submit.py` pid 25032 at 00:00:30 UTC; the laptop must be on AC with the lid open (traps 53). **10-10:** session A = the P-67 floor pair, session B = `v13ex` ‖ `v13ex2`, then the proxy loop (candidates.md section D). Final picks by 10-22 (entry / merger deadline 10-15) |
+| Budgets | Kaggle GPU 30 h/week of *session* time, two T4s per session (≈ 60 GPU-h): 27.25 h used, 2.75 h left until the 2026-10-10 reset (`kaggle quota`, 10-06 15:10 UTC, after the P-69 and P-68 smokes), then a second reset 10-17. 5 submissions per UTC day (16 days × 5 left, 10-07 to 10-22). RunPod ≈ $5 (≈ 6.5 h on a 4090), only after a justification checked by a critic subagent and Tian's go |
 
 ## 📚 Documentation map — read the relevant one before acting
 
@@ -112,7 +112,8 @@ src/fold_oof_summary.py  per-fold and pooled OOF summary of a k-fold version (no
 src/blend_diversity_gold.py  gold-58: blend gain by pair type (same recipe / sibling / cross-family) + a fitted marginal-family model (research.md 2.7.8)
 src/kaggle_log.py       print a Kaggle kernel log (the CLI's JSON) as plain lines, optionally filtered
 scripts/runpod_bootstrap.sh  off-Kaggle runner: setup | train <arm> | ship <arm>   (requirements-gpu.txt)
-scripts/runpod_chain.sh      one unattended pod job: inputs, 4 parallel cache pulls (CACHE_PREFIX c02 / c03), blob verify, teacher-table check, train (SEQ_ARMS), ship, AUTO_STOP
+scripts/runpod_chain.sh      one unattended pod job: inputs, 4 parallel cache pulls (CACHE_PREFIX c02 / c03), blob verify, teacher-table check, train (SEQ_ARMS; ships each arm as it ends), ship, AUTO_STOP; MAX_POD_H skips an arm that would overrun
+scripts/runpod_stopper.sh    on-pod bill cap: podStop on the job's last line, at a deadline, or on /workspace/STOP_NOW (key from /proc/1/environ)
 scripts/harvest_forum.py     harvest the competition forum through the API (global topic search) -> artifacts/forum/
 notebook_score_0.942.ipynb  the public "DINOsaur V5" inference graph (public LB 0.942, trains nothing) -- input of build_fork.py
 kaggle/rsna-knee-train/     training slot 1 (PARALLEL_ARMS / ARM_ONLY builds sed'd from src); mounts c03 + the CNN weights
@@ -295,7 +296,8 @@ one its config names. Arms are one edit: `("v08w", {**C02, "backbone": "dinov2",
 `window_mode="random"` + `head_type="window_attn"` is the P-25 member (Dataset ships uint8 + window
 indices; the model gathers/resizes on the GPU). `backbone="timm:<arch>"` loads `<dir>/model.safetensors`
 offline (Datasets `timm-coatnet-rmlp-1-rw-224`, `-2-rw-384`, `timm-resnet50-a1`, `timm-efficientnet-b0-ra`,
-`timm-efficientnet-b3-ra2`). **Inference** groups members by
+`timm-efficientnet-b3-ra2`, `timm-convnext-tiny-in12k`; each kernel keeps the Kaggle image pinned at its creation, so `rsna-knee-train`
+runs timm 1.0.26 / Python 3.12 and `rsna-knee-train-b` timm 1.0.29 / Python 3.13, traps 54; local and RunPod 1.0.28). **Inference** groups members by
 `INFER_CACHE_KEYS` (one decode-once pass per cache geometry) and applies `INFER_MEMBER_KEYS` per member;
 `INFER_OVERRIDES = {version: {member keys}}` gives old members TTA (`tta_offsets`, `tta_pool`) or an
 `eval_windows` cap. **`MODE="oof_eval"`** scores each `INFER_MEMBERS` fold-0 checkpoint on its held-out
@@ -512,7 +514,8 @@ gitignored for that reason.
 4.0, data "by request"; an earlier version of this file said CC-BY-NC-SA-4.0, which could not
 be verified). Treat as restrictive until radimagenet.com's Terms & Conditions and the
 competition's winner-licence clause are read in a browser. DINOv2 is Apache-2.0; timm
-ConvNeXt weights are licence-clean and are the first choice for a CNN ensemble member.
+ConvNeXt **V1** weights are Apache-2.0 (`convnext_tiny.in12k_ft_in1k` is P-69's); ConvNeXt **V2** weights are CC-BY-NC-4.0 (timm
+`convnext.py`, the HF cards), so they are excluded.
 
 ## Timeline
 

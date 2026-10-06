@@ -427,6 +427,10 @@ SHIPPED_ARMS = [
     # Gold-58 of all three is NOT readable: both OOF tables come from k-fold runs that trained the gold rows at weight 8.
     ("v13ex", {**PROD, **V09R_KW, **C03_KW, "backbone": "timm:efficientnet_b0", "lr_backbone": 3e-4, "llrd_decay": 1.0,
                "freeze_bn": True, "aug": "heavy", "drop_path": 0.1, "epochs": 30}),
+    # 2026-10-06 (P-68 approved, Tian: "a run of pseudo-labels"): v13ex at seed 43 = the seed of v13e2, so each arm of the
+    # v13ex || v13ex2 pair has a same-seed control and the pair mean gets the two-arm band (+-0.0045).
+    ("v13ex2", {**PROD, **V09R_KW, **C03_KW, "backbone": "timm:efficientnet_b0", "lr_backbone": 3e-4, "llrd_decay": 1.0,
+                "freeze_bn": True, "aug": "heavy", "drop_path": 0.1, "epochs": 30, "seed": 43}),
     ("v11o", {**PROD, **V09R_KW, **C03_KW}),
     ("v13eo", {**PROD, **V09R_KW, **C03_KW, "backbone": "timm:efficientnet_b0", "lr_backbone": 3e-4, "llrd_decay": 1.0,
                "freeze_bn": True, "aug": "heavy", "drop_path": 0.1, "epochs": 30}),
@@ -578,7 +582,8 @@ DISTILLED_ARMS = {"v09s": ("selfdistill_v1",), "v09t": ("selfdistill_v1",),
                   "v14p": ("raptor_teacher",), "v14p2": ("raptor_teacher",),
                   **{a: ("raptor_teacher",) for a in ("v14lr", "v14th", "v14gd", "v14bl", "v14ns", "v14sh", "v14mx",
                                                       "v14r288", "v14db", "v14ep20")},
-                  "v13ex": ("raptor_teacher", "xfit_v09k"), "v11o": ("raptor_teacher", "cnnoof_v1"),
+                  "v13ex": ("raptor_teacher", "xfit_v09k"), "v13ex2": ("raptor_teacher", "xfit_v09k"),
+                  "v11o": ("raptor_teacher", "cnnoof_v1"),
                   "v13eo": ("raptor_teacher", "cnnoof_v1"),
                   "v15c": ("raptor_teacher",), "v15c2": ("raptor_teacher",)}
 # 2026-09-28 (traps 40's second gap): the mix a distilled arm must train with; every other distilled arm trains at 0.5.

@@ -823,6 +823,15 @@ def main():
         check(diff == set() and da[a] == tables and a not in dm and a not in K["DISTILLED_SILENT_MIX"]
               and all(t in K["TEACHER_PATHS"] for t in tables),
               f"{a} = {parent} (recipe identical) on {' + '.join(tables)}, flat mix 0.5, no silent mix ({sorted(diff)})")
+    # 2026-10-06 (P-68 approved): the pair's second arm = v13ex at seed 43 (the seed of v13e2, its same-seed control)
+    cx2, cx = Config(smoke=False, **arms["v13ex2"]), Config(smoke=False, **arms["v13ex"])
+    diff = {k for k in K["asdict"](cx2) if getattr(cx2, k) != getattr(cx, k)} - {"version"}
+    ce2 = Config(smoke=False, **arms["v13e2"])
+    diff_e2 = {k for k in K["asdict"](cx2) if getattr(cx2, k) != getattr(ce2, k)} - {"version"}
+    check(diff == {"seed"} and cx2.seed == 43 and cx.seed == 42 and not diff_e2
+          and da["v13ex2"] == ("raptor_teacher", "xfit_v09k") == da["v13ex"]
+          and "v13ex2" not in dm and "v13ex2" not in K["DISTILLED_SILENT_MIX"],
+          f"v13ex2 = v13ex at seed 43 = v13e2's recipe, on raptor_teacher + xfit_v09k, flat 0.5 ({sorted(diff)})")
 
     print("\n" + ("UNIT CHECKS PASSED" if not fails else f"UNIT CHECKS FAILED ({len(fails)}):\n  - " + "\n  - ".join(fails)))
     sys.exit(1 if fails else 0)

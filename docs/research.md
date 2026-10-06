@@ -745,7 +745,8 @@ diversity bet, not a strength bet.**
 2. **At most one new-family arm, as a hedge, with its own recipe.**
    - ConvNeXt-T pretrained on ImageNet-22k or 12k: pretraining data our in1k members do not share, the strongest decorrelator in
      2110.12899.
-   - `lr_backbone` 1e-4 with LLRD 0.8 (not 3e-4 uniform), drop path 0.2, ≈ 20 epochs with SWA of the last 3.
+   - `lr_backbone` 1e-4 with LLRD 0.8 (not 3e-4 uniform), drop path 0.2, ≈ 20 epochs with SWA of the last 3. *(Refined in
+     2.7.9 A7 for `v15c`: per-stage decay 0.9 and drop path 0.1; the critic rejected drop path 0.2 and weight decay 0.05.)*
    - Beside the floor run, as one GPU of one session.
    - Kill rule: solo < 0.933 → the family is dropped for good. A second seed only if B6 + it reads ≥ 0.943.
 3. **Drop the NFNet arm (P-72).** There is no read on this task anywhere; it is in1k-pretrained and carries the same recipe risk.
@@ -756,6 +757,167 @@ diversity bet, not a strength bet.**
    +0.011, Archit) came from pseudo-labels by *different-source* image teachers. That is P-68, the one target change we have not
    tested, and the one Tian de-emphasised on 10-06. If one session goes to targets, it should be a `v13ex` seed pair: its tables
    cannot share a session with Raptor-only arms.
+
+#### 2.7.9 A ConvNeXt-T recipe of its own, single-model levers, and pseudo-labels in depth (2026-10-06 night)
+
+**Why.** Tian (10-06 night) re-opened ConvNeXt: "we should try to make one training and testing it … research … what works best for
+this net and change all the training parameters". He also asked for research on improving a single model ("pseudo-labels, different
+pretraining and augmentation …"), checked against every candidate so nothing is duplicated, with pseudo-labels explained in brief.
+Three subagent reports, kept in full in `artifacts/research_1006/`:
+- `convnext_recipe_research.md`: the official repos, the timm cards and benchmark CSVs, Kaggle medical write-ups;
+- `single_model_and_pseudolabel_research.md`: the levers, a pseudo-label deep dive, and all 111 forum topics plus
+  `discussion_735304.xml`;
+- `code_audit_convnext.md`: our loader, optimiser, schedule and scripts, checked against timm 1.0.28.
+
+A critic subagent checked the resulting plan (GO-WITH-CHANGES; `docs/superpowers/plans/2026-10-06-p69-convnext-plan.md`, "Critic
+check"). Tags: [READ] = primary source read; [READ-2] = a secondary summary of a write-up; [SNIPPET] = search text only.
+
+**A. ConvNeXt-T: how it is fine-tuned, and what we adopted (proposals.md P-69)**
+1. **The official recipes [READ]** (2201.03545, Tables 5–6; the official repo's configs):
+   - ImageNet 22k → 1k fine-tune: AdamW 5e-5 at batch 512, layer decay 0.8 over 12 groups, weight decay 1e-8, 30 epochs, no
+     warm-up, drop path 0.0 for T, head init × 0.001, no EMA. On Tiny (depths 3 / 3 / 9 / 3) that grouping leaves a 4.8× LR jump
+     between stages 2 and 3.
+   - Downstream, Tiny: COCO AdamW 1e-4, weight decay 0.05, layer-wise decay 0.95, drop path 0.4. ADE20K AdamW 1e-4, weight decay
+     0.05, **per-stage decay 0.9** (stem ≈ 0.48 … head 1.0), drop path 0.4, a 1,500-iteration warm-up.
+   - ConvNeXt V2 (2301.00808): Tiny with layer decay 0.9; **weights CC-BY-NC-4.0**, 1.7–2.4× slower inference than V1. Excluded.
+2. **Weights [READ, HF cards]:** `convnext_tiny.in12k_ft_in1k` 84.19 % (timm test size 288) vs `fb_in22k_ft_in1k` 82.90 % and
+   `fb_in1k` 82.07 %, all Apache-2.0. ImageNet-12k is pretraining data our in1k members never saw: the stronger decorrelator of
+   2.7.8 B3. Whether ImageNet accuracy transfers to medical targets is contested: r = 0.96 on natural images (Kornblith 2019), no
+   relation on CheXpert (CheXtransfer 2021).
+3. **Medical Kaggle uses:**
+   - RSNA mammography 2023 1st [READ, code]: ConvNeXt-S 22k, SGD 3e-3 then 1e-3, drop path 0.2, EMA 0.9998, heavy augmentation. A
+     reproduction with the same recipe reads ConvNeXt-S 0.943 vs EfficientNetV2-S 0.923 (2505.18725).
+   - Lumbar 2024 1st: ConvNeXt-S or EfficientNetV2-S + MIL, no hyper-parameters [READ-2]. 4th: ConvNeXt kept for keypoints only.
+   - Abdominal trauma 2023 2nd: MaxViT best, `convnextv2_tiny` "also great" at lr 4e-5 [READ].
+   - ISIC 2024 3rd: `convnextv2_nano` at 1e-4; "didn't work: layerwise learning rate decay" [READ-2].
+4. **The documented collapse is an LR artefact.** Jeevan & Sethi 2024 (2406.05612) [READ] ran one AdamW 1e-3 protocol for every
+   model and got ConvNeXt-T 90.8 vs ResNet-50 98.8 on BreakHis. 1e-3 is 20× the official fine-tune LR.
+5. **Speed [READ, timm CSVs].** ConvNeXt-T trains at ResNet-50's speed in NCHW on a 3090 (813 vs 826 img/s), and at 1.57× its time
+   on a Turing 2080 Ti in FP32 (InceptionNeXt). `channels_last` gives ConvNeXt +0.7 %, ResNet-50 +47 %. 288 px costs ≈ 1.64× of
+   224. No T4 numbers exist.
+6. **Code facts (`code_audit_convnext.md`, checked against timm 1.0.28):**
+   - our loader takes the timm weights as they are: `head.fc` dropped, `head.norm` kept and applied after pooling, 0 missing and
+     0 unexpected keys, 180 tensors;
+   - `param_groups` already decays per stage, so 1e-4 at 0.9 gives stem 5.9e-5, stages 6.6 / 7.3 / 8.1 / 9.0e-5, final norm 1e-4;
+   - timm's own per-block `layer_decay` 0.9 would put the stem at ≈ 0.135 of the top LR, a different scale for the same number;
+   - autocast runs `layer_norm` in fp32, and no ConvNeXt NaN issue turned up in either repo. There is no BatchNorm, so `freeze_bn`
+     does nothing;
+   - **one trap:** the old HF `convnext-tiny-224-hf` folders pass `resolve_dir` and then fail the strict timm load. Hence the new
+     `BACKBONES` key has its own directory names.
+7. **Adopted for `v15c`** (P-69 holds the full table):
+   - optimiser keys of its own: 1e-4 with per-stage decay 0.9, 20 epochs, the in12k weights, 288 px (Tian's choice; the critic
+     preferred 224 for cost);
+   - the data side kept at the B6 members' values, so the read isolates the family. The critic overturned weight decay 0.05
+     (`param_groups` would also shrink the 1e-3 attention head) and drop path 0.2 (a ConvNeXt-Small value).
+   - **Not adopted:** head init × 0.001, label smoothing (our targets are already soft), mixup, V2, Nano / Small, `channels_last`.
+
+**B. Single-model levers: five new cards, and evidence on the planned ones**
+1. **New cards (proposals.md P-75 … P-79; none measured on this task; Tian picks later):**
+
+| Card | Lever | Strongest evidence | Expected |
+|---|---|---|---|
+| P-75 | Noisy-Student JFT weights `tf_efficientnet_b0 / b3.ns_jft_in1k` | +0.98 / +1.75 ImageNet top-1 over ours, Apache-2.0; SIIM-ISIC 2020 1st used `_ns` weights for 15 of 18 models [READ]; at small scale in-domain medical gains are tiny (Mustafa 2021: CheXpert 76.5 / 76.8 / 76.6) | 0 … +0.003, plus diversity |
+| P-76 | CNN LR 3e-4 → 6e-4 | our only CNN LR move went up and helped (P-59, confounded with epochs); dissimilar domains want larger LRs (Li 2020, 2002.11770) | 0 … +0.004, can be negative |
+| P-77 | A real SWA tail | our "SWA" averages 3 EMA snapshots taken at ≤ 3 % of the peak LR; Izmailov 2018: a decaying average "does not perform very differently" | 0 … +0.003 |
+| P-78 | SAM (ρ 0.05) | CIFAR-10 at 40 % label noise 68.8 → 93.4 (Foret 2021); medical ResNet-50 80.2 → 84.0 at 2.13× the time (PMC12121992) | 0 … +0.004 |
+| P-79 | Bias-field augmentation | intensity changes were BigAug's strongest transforms for unseen MRI (1906.03347); our stack has only global gain / gamma / contrast | 0 … +0.002 |
+
+2. **On the planned P-67 arms:**
+   - **Sharpen** is the best-supported image-quality arm: BigAug's single best transform (unseen prostate 64.4 → 77.4 Dice, source
+     +1.0).
+   - **Blur and low-resolution** cost the source domain there (prostate 89.6 → 86.1), so expect ≤ 0 in-domain.
+   - **Mixup** is well supported for noisy multi-label medical data (ChestX-ray14 74.2 → 76.7 at α 3, 2102.08148). But `v14mx`'s α 0.4
+     folded to λ ≥ 0.5 leaves ≈ 48 % of the mixed batches at λ ≥ 0.9, so a second arm at α ≈ 2 is worth adding.
+   - **B0 @ 288:** FixRes's +1.4 comes from RandomResizedCrop's size mismatch, which our fixed-mm crops do not have. Expect +0.001 …
+     +0.003.
+   - **Longer schedule:** 0 … +0.003 (Will 25 → 50 epochs +0.004; Berat 60 epochs +0.001).
+3. **Low priority, not carded:**
+   - DICOM sex as a head input: a site shortcut risk; a header-only model reads 0.65 on random folds, 0.60 scanner-grouped.
+   - ELR (2007.00151), and target sharpening (a target change, so an LB-only read).
+4. **Not recommended:**
+   - RandAugment / TrivialAugment / AutoAugment / AugMix: on an MRI classifier 61.7 % → 51–55 % (2301.02181).
+   - The AUC-margin loss (P-17 closed it, and it needs hard labels).
+   - Auxiliary report heads ("hurts … no matter how much I played with its weight", Rasoul 740162).
+   - Online distillation from Raptor: one CoAtNet-2 @ 384 forward per training step is unaffordable.
+   - MRI-physics artefacts: no classification evidence.
+
+**C. Pseudo-labels in depth**
+1. **What ours are.** Ours are "distillation with noisy labels" (Li 2017, 1703.02391): target = λ · noisy label + (1 − λ) · an
+   independent teacher's probability, at λ = 0.5. The LLM labels are themselves a train-only teacher with privileged information (the
+   report; generalised distillation, 1511.03643). It is not semi-supervised pseudo-labelling (Lee 2013), because every study has a
+   label, and not Noisy-Student iteration.
+   - Raptor is in-sample for its own labels (Dread trained it on the full set), yet it works: its labels, architecture and input
+     differ from ours.
+   - `xfit_v09k` (P-68) is a Kaggle-style out-of-fold teacher from another family.
+2. **Practice:**
+   - Teachers are out of fold; in-fold predictions "parrot the labels back" (Archit, 735304).
+   - Soft targets beat hard ones on noisy data: FHZ982 +0.014 on gold over 3 / 3 seeds (734105); CheXFusion 0.330 vs 0.336 mAP;
+     Archit's rounding hurt. Temperature ≤ 1; 5–10 hurts (Li 2017).
+   - Thresholds discard information when every row already has a label; a mixing weight is the alternative. 0.5 / 0.5 is the forum
+     default (Raymond, Archit, Myo, Nicolai).
+   - The student should be at least the teacher's size and trained with noise: Noisy Student 85.1 → 84.3 without augmentation,
+     stochastic depth and dropout.
+   - Rounds give diminishing gains (Noisy Student 87.6 → 88.1 → 88.4); nobody on this forum reports a second round.
+3. **Traps:**
+   - an in-sample teacher; fold-overlap leakage (gold-58 is unreadable once a teacher trained the gold rows);
+   - judging the student by agreement with its teacher: P-38 gained +0.011 on the OOF and −0.001 on the LB;
+   - confirmation bias (Arazo 2020): keep the label in the mix ("replacing came out worse than mixing", Archit);
+   - same-source teachers add nothing: Li's bootstrap row 50.6 vs 50.7 mAP, our P-38 / P-55, Myo, Nicolai, Tom Aindow, and
+     goodpjw2008's ensemble 0.930 → 0.929;
+   - scale mismatch: Menon 2021 (monotone warps of the teacher make the student's AUC worse); per-label quantile matching handles it,
+     and MUTTAHIR's raw 50 / 50 mean (0.9105) beat a rank mean (0.9077);
+   - diversity loss: the P-55 seed twins went to ρ 0.946 from 0.916;
+   - rare labels collapse (CReST); per-label matching keeps prevalence;
+   - gold gains that do not transfer: P-55 +0.006 on gold, −0.002 on the LB.
+4. **Why a student can beat its teacher, and when it cannot.**
+   - If the label's and the teacher's errors are independent, the mix has a lower risk than either (Li's Proposition 1). Measured
+     there: +2.4 to +4.0 mAP, close to the clean-label bound.
+   - Soft targets also act as an informed label smoothing (Yuan 2020).
+   - A teacher of another architecture passes on "different views" (Allen-Zhu & Li 2020; DeiT: a convnet teacher beat a
+     transformer teacher, 84.2 vs 83.1).
+   - It fails when the teacher's errors match the label's, when the teacher is mis-calibrated, when the student is judged on
+     agreement, or when the teacher's knowledge is outside what the student sees.
+   - Every image teacher here also learned from report labels. Its new knowledge is how findings look on report-silent studies,
+     which is why the gain sits in the silent cells.
+5. **New forum clues:**
+   - colum2131 (745949, 10-05), gold Effusion / Synovitis AUC: an LLM on the reports alone 0.835 / 0.799; a multimodal LLM given
+     the report and the MRI ≈ 0.91–0.92 / 0.84–0.86 (a dropped direction for us); an image model trained on those soft labels
+     **0.986 / 0.859**, better than its own labels ("the noise largely averages out"). On gold, 11 of 36 report-silent Synovitis
+     cells and 10 of 26 "effusion absent / normal" reports were positive.
+   - MUTTAHIR (742926): a fixed 50 / 50 blend beat weights tuned on gold.
+   - Raymond (743148) on teacher choice, single or ensemble: "both works … depends on … whether if you have disagreeing models".
+   - Nikita (743374): Claude labels read the same AUC as mm3's, with better calibration.
+   - Abdullah (738339): sharpening near-0.5 rule-based targets moved gold 0.653 → 0.725.
+   - Christoffer (746060): tables "refined with nested teacher models", no number.
+   - Lutfiya (744056): asks whether distilling public weights is eligible; unanswered.
+6. **For P-68 and P-62:**
+   - Keep P-68's design: soft, out of fold, the label kept, a cross-family teacher, read on the LB only. Raptor and `xfit_v09k` are
+     both CoAtNets, so their errors may correlate.
+   - If the pair reads ✅, the follow-up student should be B3, at least as large as the teacher. A second round should switch family
+     (`v11o`).
+   - Silence is informative for some labels and not for others. Among stevenleehans' silent cells (733932) the gold positive share is
+     Synovitis 0.34, PF OA 0.21, Baker's 0.03, Medial OA 0.00. Blanket imputation scored 0.8805 on gold vs 0.8873 targeted. So a
+     per-label silent weight beats one global 0.75 if A3 reads ✅.
+   - A realistic gain is ≤ +0.004; the forum's +0.011 came from weaker starting points.
+
+**D. Other forum numbers new to this file** (all 111 topics re-read; ConvNeXt recipes: none anywhere):
+- Berat (737597), B0 fold 0: EMA +0.003, mixup α 0.2 +0.002, 60 epochs +0.001, ASL −0.139; nine adjacent centre slices vs spread
+  +0.018.
+- Shivansh (740164): ResNet-34 with no augmentation 0.910.
+- Ziad (737696): reversed slice order 0.8873 vs 0.8943; `coatnet_rmlp_2` run at 256 from its 384 checkpoint −0.029.
+- Tucker (740610): "change nothing but the init"; a "low prior" that DINO inits match a standard ImageNet init.
+- starkhushi (737566): RadImageNet Synovitis 0.78 vs 0.62–0.72 with ImageNet weights.
+- Adel Zebiche (745091): DINOv2 ViT-S 0.934, RadImageNet R50 0.928. Nikita (743374): CoAtNet-2 @ 384 from an ImageNet init 0.937,
+  16 epochs ≈ 3.7 h on a 4090.
+- Cody (743148): B0 to 0.94+ with 5 folds + TTA on 0.88-gold labels. Sanjib (743148): 24 → 32 cached slices was worth more than
+  label work.
+- stevenleehans (735154): "a checkpoint carries its own preprocessing contract" (the reason P-75 avoids the AdvProp weights, which
+  expect 0.5 / 0.5 normalisation).
+
+**What follows (the plan, approved by Tian 10-06 night):** one ConvNeXt-T arm `v15c` on RunPod under a $2.5 cap (P-69; a seed twin
+only if the 10-07 reads free the money); P-75 … P-79 as cards for Tian to pick from; amendments to P-62 (a per-label silent weight),
+P-67 (sharpen first; a mixup arm at α ≈ 2), P-68 (a B3 student next) and P-73 (AnyMC3D ranks learnable-query attention, our head's
+type, above a transformer: 0.962 vs 0.950).
 
 ### 2.8 Data-pipeline engineering
 
