@@ -3718,6 +3718,44 @@ Read at 09:25 UTC from the full leaderboard CSV (`kaggle competitions leaderboar
 
 **Verdict: ✅ a read (no GPU, no submission).** Fork reads carry about one tick of noise; the fork pick stays C2 (#54).
 
+### 2026-10-06 — Gold-58: what a blend gains by pair type — cross-family pairs **+0.0053** over their members' mean, same-recipe pairs **+0.0025**, r(ρ, gain) = −0.89; a fitted model puts a fourth family on B6 at **≈ +0.0008 LB** · 🔁 direction only (gold), it corroborates the LB blend rule
+
+Tian asked whether ConvNeXt helped anyone and whether to spend the remaining time on new families or on the ones we have
+(research.md 2.7.8 holds the forum and literature halves). This is our own half. No GPU: `src/blend_diversity_gold.py` reads the 58
+gold predictions (SWA) of 15 members (CoAtNet `v11a` / `v11b` / `v11n` / `v11n2` / `v11d` / `v11p`; ResNet `v13h` / `v13r` /
+`v13rs`; EfficientNet `v13e` / `v13e2` / `v13b3` / `v13es` / `v13ecp` / `v13ec`). For every pair it scores the flat rank-mean
+against the pair's mean macro-AUC.
+
+| pair type | pairs | mean Spearman ρ | gain over the pair's mean | SD |
+|---|---|---|---|---|
+| cross-family | 72 | 0.922 | **+0.0053** | 0.0012 |
+| same family, other architecture (B0 / B3, R34 / R50) | 7 | 0.944 | +0.0035 | 0.0007 |
+| same recipe (seed twins, target or regularisation variants) | 26 | 0.955 | **+0.0025** | 0.0009 |
+
+- **Correlation drives the gain:** r(ρ, gain) = −0.89 over all 105 pairs. The same ordering as the LB (same recipe +0.001–0.003,
+  cross-family +0.004–0.006, entries "Submissions #49–#53" and "#54–#58"). Gold's gains are ≈ 1.5× the LB's (B6: +0.0093 on gold
+  vs +0.0062 on the LB).
+- **A model, fitted on 1,500 random subsets of 2–7 members:** gain over the members' mean ≈ −0.0057 + 0.118·(1 − ρ̄) +
+  0.0037·ln(n), R² 0.80. It reads B6's own gain at +0.0079 (observed +0.0093).
+- **The marginal value of a sixth member X added to B6**, on gold, by X's solo quality relative to B6's members' mean (0.9163) and
+  X's ρ to the five:
+
+  | X's solo vs B6's mean | ρ 0.955 (a seed) | ρ 0.944 (a sibling) | ρ 0.922 (a new family) | ρ 0.90 |
+  |---|---|---|---|---|
+  | −0.010 | −0.0018 | −0.0014 | −0.0005 | +0.0004 |
+  | −0.005 | −0.0010 | −0.0005 | +0.0003 | +0.0012 |
+  | ± 0 | −0.0001 | +0.0003 | **+0.0012** | +0.0020 |
+  | +0.005 | +0.0007 | +0.0011 | +0.0020 | +0.0029 |
+
+  A new family of average quality adds +0.0012 on gold, ≈ **+0.0008 on the LB** (× 0.67): one tick. Raising every member by +0.003
+  raises the blend by ≈ +0.003.
+- **The LB says the same by family count** (12 flat blends with solo-read members): gain over the mean +0.0024 with one family,
+  +0.0039 with two, +0.0051 with three. Each extra family added ≈ +0.0012–0.0015, and the slope is falling.
+
+**Verdict: 🔁 direction only (gold-58, traps 39), but it agrees with the LB in every ordering.** At our level a fourth family is worth
+≈ 0–2 LB ticks; per-member quality moves the blend one for one. The recommendation built on it is research.md 2.7.8 (improve the
+families we have; at most one hedged ConvNeXt-T arm; drop NFNet; demote B16), pending Tian.
+
 ## Infrastructure
 
 ### 2026-09-27 — The "0.943 Speedy Raptors CoAtNet D4" notebook is our anchor **plus two CoAt readers**, not a faster graph; its "< 30 min" is a 3-study commit run · P-41 (threaded scan + 8 decode workers) smoke-green and byte-identical

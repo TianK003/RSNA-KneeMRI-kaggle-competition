@@ -31,7 +31,7 @@ of Kaggle GPU is left until 10-10, enough for ≈ 15).
 | **P1** | 10-07 | **B14**: B6 − `v11a` (the four CNNs) | Is the CoAtNet family needed at all? B13 (#55 0.940) already said more CoAtNet weight does not help | — | infer **v57** ✅; queued (send 5) |
 | **P1** | 10-07 | **B4**: B6 − `v13e2` | With B5: does B3 or the second B0 seed carry B6? Decides B3 × 2 seeds (RunPod) vs B0 × 2 (Kaggle) in week 2. Takes C3's slot (its gate closed on 10-06) | — | infer **v58** ✅; queued (send 1) |
 | **P1** | 10-07 | **B5**: B6 − `v13b3` | the second half of B4's read. Takes B12's slot (no E solo reached 0.936) | — | infer **v59** ✅; queued (send 4) |
-| **P2** | 10-08 | **B16**: B6 + the public ConvNeXt-T reader (goodpjw2008, Apache-2.0) | A sixth family without training; the families, not the member count, carry the blend gain (10-06). Tian's 10-06 focus | the external-member hook (P-71) | needs code (P-71), then a placeholder |
+| **P2 → P4 (recommended 10-06 evening, pending Tian)** | 10-08 | **B16**: B6 + the public ConvNeXt-T reader (goodpjw2008, Apache-2.0); ≈ +0.0005 LB by the gold-58 model | A sixth family without training; the families, not the member count, carry the blend gain (10-06). Tian's 10-06 focus | the external-member hook (P-71) | needs code (P-71), then a placeholder |
 | **P2** | 10-08 | **B12**: B6 + every A3 solo that reads ≥ 0.936 | The own final pick's successor (pick 1) | ≥ 1 of `v13es` / `v13rs` ≥ 0.936 (the E solos read 0.935 / 0.932, so neither joins) | build after the 10-07 solos |
 | **P2** | 10-08 | **C3**: the public stack + the best own blend as the leg, β 0.45 | Fork pick 2 with a better leg | an own blend ≥ 0.943 (B12 or B16). **Not open after 10-06** (B13 0.940, B11 0.941) | build with `src/build_fork.py` only if gated in; send 1 of its day |
 | **P3** | 10-08 | **B9**: `v11a` + `v13rs` + `v13es` | #48 with the silent-mix members | A3 ✅ only | build |
@@ -147,6 +147,14 @@ rejected** by the critic (≈ $3.8, no decision unlocked before the 10-17 retrai
   arms (≈ 0.1 h), so session B starts at 00:00 on 10-10 without a code change.
 - P-74 (a): `channels_last` on the CNN encoders, checked in the same smoke (s/study, equal outputs).
 - P-73: the token-mixer head as `v14tx`, unit-checked, ready for the proxy loop.
+
+**⚠ Pending Tian (research.md 2.7.8, 10-06 evening): recommended to put the week into the families we have.** A fourth family is
+worth ≈ +0.0008 LB at our level (gold-58 model), and no forum read shows ConvNeXt helping beyond one tick. If Tian agrees:
+- **session B** = ConvNeXt-T with its own recipe (in22k / in12k weights, `lr_backbone` 1e-4 + LLRD 0.8, drop path 0.2, ≈ 20
+  epochs; killed below 0.933) ‖ the first proxy variable (`v14lr`). Both are Raptor-only, so they can share the session;
+- **NFNet (P-72) dropped**, and B16 demoted;
+- if Tian gives targets one session, a `v13ex` ‖ `v13ex2` seed pair (P-68) in its own session.
+Until then the plan below stands.
 
 **The 10-10 plan (revised 2026-10-06; two Kaggle sessions at a time, two T4s each; ≈ 30 session-h this week):**
 1. **00:00, session A:** the P-67 floor pair `v14p` ‖ `v14p2` (≈ 3.75 h) → the ruler's floor (from the per-fold paired

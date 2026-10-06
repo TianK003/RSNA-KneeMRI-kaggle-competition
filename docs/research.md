@@ -652,6 +652,111 @@ MIC-DKFZ, 8 Konni, 9 Tom.
 | From-scratch 3D on whole volumes | NO | failed for them too without tight ROIs |
 | Budget datapoint: the winner's whole pipeline ≈ 26 GPU-h on one 4090 | YES | our $7 ≈ 9 such hours; Kaggle ≈ 60 T4-GPU-h per week |
 
+#### 2.7.8 New families vs improving the ones we have, and did ConvNeXt help anyone? (2026-10-06)
+
+**Why.** Tian (10-06): "figure out if convxnet actually helped or not, should we focus more on improving existing families or
+introducing new ones (could be risky spending so much time on this)". Three sources, kept apart:
+- **the forum:** a fresh harvest `artifacts/forum_1006/` (111 topics, 4 new; queries added for convnext / backbone / blend /
+  diversity), plus `discussion_735304.xml` re-read in full;
+- **the literature and past Kaggle write-ups:** a subagent; [READ] = primary source read;
+- **our own reads:** LB blends, and a gold-58 analysis (`src/blend_diversity_gold.py`; experiments.md 2026-10-06 "Gold-58: what a
+  blend gains by pair type").
+
+**A. Did ConvNeXt help anyone in this competition? No read clears one LB tick.**
+
+| Who (topic, date) | ConvNeXt read | Next to | Effect in a blend |
+|---|---|---|---|
+| goodpjw2008, public notebook (10-04) | 2.5D ConvNeXt-T, 3 folds, **0.929** | the 0.943 community stack | 15 % / 30 % → 0.944, **45 % → 0.942**. The same pipeline re-scored 0.944 / 0.944 / 0.943, so **+0.001 = its own rerun spread** |
+| XuKong Ji (740375, 09-09) | ConvNeXt-T, 5-fold 0.938, one fold 0.939 | — | — (the best ConvNeXt solo on the forum) |
+| ringbearer (744511, 10-01) | 0.937 | his CoAtNet 0.943, CoAtNet variant 0.940, ResNet 0.933 | 5 models / 4 families → 0.948; ConvNeXt's share not given |
+| KalyanG17 (744511 / 745091, 09-30 / 10-02) | ConvNeXt-T 0.930 | his CoAtNet @ 384 0.935 | "my models never gave the public stack anything" |
+| Pand (745091, 10-02) | ConvNeXt-T MIL, 5-fold, 0.935 (gold 0.919) | — | the post was edited since; its later 0.940 cannot be attributed |
+| Dread (740375 / 742050 / 737696) | CoAtNet 0.941 → 0.944, "paired with a ConvNeXt now" | — | **confounded**: 48 → 72 eval windows "moved the board" in the same period, plus two weeks / 40 models of retraining |
+| Christoffer Thimsen (746060, 10-05) | a CoAtNet + ConvNeXt MIL team at 0.940 | — | no per-model numbers |
+| SpeedSci (735304, 09-05) | label versions rank differently on ConvNeXt than on DINOv2 | — | direction only |
+| **ours, `v06c` (08-30)** | ConvNeXt-T on c01: fold-0 OOF 0.8562, parity with our DINOv2 heads then; peaked at epoch 3 of 8, then decayed (LR 1e-4, LLRD 0.75) | ρ 0.83 to the base blend (head-like) | LB 0.896 → 0.900 (+0.004, 🔁) in a weak blend |
+| the 0.936 public notebook's gold panel (read 08-30) | ConvNeXt-B / L ≈ 0.875 on gold | CoAtNet 0.9025 | — |
+
+Every owner who reports ConvNeXt next to another family has it lower (−0.005 to −0.006). Its solos span 0.929–0.939, at or under
+our members' mean (0.936). **Verdict: no evidence that ConvNeXt helped anyone beyond one LB tick. At best it is a member-grade
+diversity bet, not a strength bet.**
+
+**B. Family diversity vs improving one family.**
+1. **Forum, own multi-family blends:** +0.004–0.007 over the best member (SpeedSci 0.947 → 0.949; ringbearer +0.005; Charles
+   Savas +0.004 for one external arm at ρ 0.83). These are whole-ensemble gains from one to three or four families, not the margin of
+   a fourth. Four negative reports: Less ("fusion is ineffective"), Lê (+0.001 after two weeks of blend tuning), KalyanG17,
+   zhenglei.
+2. **Forum, single-model work:** about eight measured jumps of +0.009 to +0.015.
+   - Tucker 0.934 → 0.943 "with some tweaks, still @224"; Raymond 0.938 → 0.949 (labels / teachers); SpeedSci 0.931 → 0.942
+     (labels); Yann +0.015 (labels), then longer training + regularisation; kmn 0.930 → 0.940.
+   - The ≥ 0.949 singles are ResNet-50 / small ResNet / EfficientNet at 224–288, or CoAtNet with better targets (CoolinLai,
+     Scott, Tucker, Archit, Raymond).
+   - Scott (team #6): "I've really only ever spent time on efficentnet and resnet … I want to see how much I can get out of them."
+     Archit: "Bigger models weren't helping either."
+   - The one new family that reached the top tier is a Qwen-3.5-2B VLM (NguyenThanhNhan, 0.950), out of our reach.
+3. **Literature [READ]:**
+   - Errors decorrelate in this order: reinit < hyper-parameters < architecture < objective < pretraining data (Gontijo-Lopes
+     2022, arXiv 2110.12899). Architecture alone is the weaker kind; different pretraining data is the stronger.
+   - Low-data transfer: different pretraining beats seeds overall (VTAB-1k 76.8 vs 74.9), but on the Specialised (medical-like)
+     group seeds read 85.9 vs 85.8 for different pretraining (Mustafa 2020, 2010.06866).
+   - Ensemble loss ≈ c + b·n^a with a → −1 (Lobacheva 2020, 2007.08483): a sixth like-for-like member is worth a small fraction
+     of the second.
+   - A search for architecturally diverse members did not beat duplicating one architecture (Kondratyuk 2020, 2005.00570).
+   - Hyper-parameter / recipe ensembles add 10–35 % on top of the seed-ensemble gain (Wenzel 2020, 2006.13570; model soups
+     2203.05482).
+4. **Kaggle write-ups [READ]:** recipe and pipeline steps give +0.01–0.03 each; architecture ensembles give +0.006–0.015, often
+   with nothing on private.
+   - RSNA 2025 aneurysm 4th (CoaT): + rotation +0.025 CV, + 2.5D +0.03, + soft pseudo-distillation +0.03, + a MaxViT / CoaT
+     ensemble +0.006 CV and **0.00 private**. 6th: seven recipe items ≈ +0.01 CV each; the 3-model ensemble +0.015 CV.
+   - RSNA 2023 abdominal 1st: an auxiliary segmentation loss gave +0.01–0.03 per model, about the ensemble's whole gain.
+   - SIIM-ISIC 2020 1st: 18 models, 16 of them one family; the ensemble gained +0.008 private over the best single, and "the
+     bigger the ensemble, the more stable the LB". That robustness is the real case for ensembles, and B6 already banks it.
+   - RSNA mammography 1st / 2nd (ConvNeXt-S best) and lumbar 1st (ConvNeXt-S + EfficientNetV2-S): ConvNeXt is a strong medical
+     backbone *with its own recipe*. No write-up isolates "adding ConvNeXt gave +X".
+5. **ConvNeXt's fine-tuning recipe:**
+   - The paper (2201.03545) fine-tunes at AdamW 5e-5 (batch 512) with layer decay 0.7–0.8, head init 0.001, drop path 0.1 for T.
+   - Successful medical uses: AdamW 1.5e-4 (mammography 2nd), or SGD with warm-up and EMA (mammography 1st). Lumbar 1st trained
+     ConvNeXt 7 epochs vs 14 for EfficientNetV2 ("long epochs" did not work).
+   - One documented collapse on medical data under a shared high uniform LR: AdamW 1e-3, ConvNeXt-T 90.8 vs ResNet-50 98.8 on
+     BreakHis (Jeevan & Sethi 2024, 2406.05612).
+   - The public reader: 1e-4 encoder / 5e-4 head, 14 epochs, gradient clip 3, EMA 0.998.
+   - Our `v13h` recipe (3e-4 uniform, 30 epochs) is the configuration the literature flags. Frozen BN is a no-op under LayerNorm.
+
+**C. Our own numbers.**
+1. **LB, 12 flat blends with solo-read members:** the gain over the members' mean by family count is +0.0024 for one family (5
+   blends), +0.0039 for two (3), +0.0051 for three (4). The second family added +0.0015, the third +0.0012. By that slope a fourth
+   adds ≈ +0.001, before the effect of its own quality on the mean.
+2. **Gold-58, 105 pairs of 15 members** (rank-mean pair minus the pair's mean macro-AUC):
+   - cross-family +0.0053 (72 pairs, mean ρ 0.922); same family, other architecture +0.0035 (7 pairs, ρ 0.944); same recipe +0.0025
+     (26 pairs, ρ 0.955). r(ρ, gain) = −0.89.
+   - A fit over 1,500 random subsets: gain ≈ −0.0057 + 0.118·(1 − ρ̄) + 0.0037·ln(n), R² 0.80.
+   - It puts B6 + a new family at average member quality and ρ 0.922 at +0.0012 on gold, ≈ **+0.0008 on the LB** (B6's gain is
+     0.67× as large on the LB as on gold). 0.005 under average: +0.0002. Average quality and ρ 0.90: +0.0020 gold ≈ +0.0013 LB.
+   - Raising every member by +0.003 raises the blend by ≈ +0.003, since the members' mean moves one for one.
+3. **What has moved us:** Raptor targets +0.009 (#20), the P-64 recipe +0.010 (#42), B3 @ 288 +0.005 (#50), c03 input +0.0035
+   (#30 / #31). The families added at the 0.93 level gave +0.002–0.004 as whole-blend gains (#47, #48, #52), and two same-family
+   extras gave −0.002 (#55).
+
+**What follows (recommendation, 2026-10-06; Tian decides).**
+1. **Improve the families we have first.** Every source puts the per-member levers (recipe, resolution, targets) at several times a
+   fourth family's +0.000–0.002 at our level. The gap between our best single (0.940) and the forum's (0.949–0.954) is 0.010–0.014,
+   larger than any blend effect. The P-67 loop is implemented and smoke-green, so its extra engineering cost is ≈ 0. A recipe win
+   transfers to every member, a new family included.
+2. **At most one new-family arm, as a hedge, with its own recipe.**
+   - ConvNeXt-T pretrained on ImageNet-22k or 12k: pretraining data our in1k members do not share, the strongest decorrelator in
+     2110.12899.
+   - `lr_backbone` 1e-4 with LLRD 0.8 (not 3e-4 uniform), drop path 0.2, ≈ 20 epochs with SWA of the last 3.
+   - Beside the floor run, as one GPU of one session.
+   - Kill rule: solo < 0.933 → the family is dropped for good. A second seed only if B6 + it reads ≥ 0.943.
+3. **Drop the NFNet arm (P-72).** There is no read on this task anywhere; it is in1k-pretrained and carries the same recipe risk.
+   The Δ_div ruler stays available for later.
+4. **Demote B16 (P-71).** A 0.929 member is worth ≈ +0.0005 by the model. It adds a third-party code path at the hidden rerun and
+   20 min of scoring, and makes pick 1 partly not ours.
+5. **One disagreement to surface, not settled here.** The forum's largest measured single-model jumps (Raymond +0.011, SpeedSci
+   +0.011, Archit) came from pseudo-labels by *different-source* image teachers. That is P-68, the one target change we have not
+   tested, and the one Tian de-emphasised on 10-06. If one session goes to targets, it should be a `v13ex` seed pair: its tables
+   cannot share a session with Raptor-only arms.
+
 ### 2.8 Data-pipeline engineering
 
 **What we learned**
