@@ -6,6 +6,110 @@ to read first after a break.
 
 ---
 
+## 2026-10-06 (09:20 → 10:50 UTC) — the 10-06 reads: **fork + B6 = 0.944** (best public, rank 337, the new fork pick), B13 0.940 / B11 0.941 (B6 stays pick 1), **the Claude relabel closed** (0.935 / 0.932); the public plateau is now 0.943; **Tian: single models and new families, not labels** → brainstorm cards P-71 … P-74; 10-07 set up (B4, the A3 pair, B5, B14)
+
+Tian, in order: "Pull the results and run /update, then make sure all the results are marked and give me a report on what we
+learned"; "Yes, go ahead. Make sure we dont focus on labels that much but single models and a new family member for a blend.
+Brainstorm what else we could do, update the docs and then push changes to github and run /handoff". Commits `1605c94`, `b372152`
+plus this one. **This entry supersedes the submitter rows and the 10-10 plan of the entries below.**
+
+### ⏳ Still in flight as this was written (10:50 UTC)
+
+| In flight | What it is | Started | How to check | How to read it |
+|---|---|---|---|---|
+| **Auto-submitter, Windows pid 25032** (interpreter child pid 15732) | `src/auto_submit.py --plan artifacts/submit_plan_1007.json --at 2026-10-07T00:00:30Z`: **B4 (infer v58) → A3a (v49) → A3b (v50) → B5 (v59) → B14 (v57)**, 20 s apart, then one watcher per ref. Dry run green (API ok) | 10:27 | `Get-Content artifacts/auto_submit_1007.log -Tail 30` (+ `.err`); `Get-Process -Id 25032` | **Green** = `sent 5 / 5` just after 00:00 UTC. **Suspicious:** pid gone before 00:00, `FAILED after 3 attempts`, a Traceback in `.err`, or no line after 00:00 (the laptop slept: lid or battery, traps 53) → fallback `$env:PYTHONUTF8="1"; .venv/Scripts/python.exe src/auto_submit.py --plan artifacts/submit_plan_1007.json` (sends at once, skips anything already sent that day). **Read the scores from `kaggle competitions submissions`, never from the SUMMARY** (two watchers died silently on 10-06) |
+
+### Where things stand
+
+| | Status |
+|---|---|
+| Submissions | #54–#58 read and logged (experiments.md "Submissions #54–#58"): C2 **0.944** 🔁, B13 0.940 🔁, B11 0.941 🔁, `v13ecp` 0.935 🔁, `v13ec` 0.932 ❌. 58 sent in total; 5 / day to 10-22 |
+| Final picks (P-50) | pick 1 = **B6** #52 0.942 (infer v51); pick 2 = **C2** #54 0.944 (`rsna-knee-fork` v12), replacing #49 (v11) |
+| Placeholders | infer **v57 = B14**, **v58 = B4**, **v59 = B5**, all green (`smoke False`, the right members, decode-once verified, `constant labels 0`; logs in `artifacts/kaggle_out/infer_v57` … `v59`). Built from HEAD's pipeline: the diff vs the v56 build is the P-67 / P-68 switches, all off for every member |
+| Docs | P-65 and P-46 closed (experiments.md closed-cards index); six stale ⏳ marks on the Scoreboard resolved; proposals.md re-ranked for the 10-06 focus with new cards **P-71 … P-74** and P-68 demoted; candidates.md: the 10-07 queue, B16 at P2, section D's 10-10 plan rewritten; traps 53; CLAUDE.md state + "Where the field is" (10-06) |
+| Committed renders | `rsna-knee-infer` = **v59 (B5)** (re-pushing it as is starts a B5 placeholder) · `rsna-knee-train` = v46, a SMOKE · `rsna-knee-fork` = v12 · `rsna-knee-train-b` = v6 REAL, never re-push as is |
+| Budgets | Kaggle **2.84 h** until 10-10 (27.16 h used); RunPod ≈ $5 |
+| Laptop | **on battery at 10:30 UTC.** The lid action is hidden in this power scheme (`powercfg /q SCHEME_CURRENT SUB_BUTTONS LIDACTION` prints no value). Nothing was changed |
+
+### What we talked about and decided
+
+- **Tian's focus from 10-06: single-model strength and new family members for the blend; labels de-emphasised.**
+  - proposals.md: P-69, P-71, P-72, P-67, P-73 and P-74 rank first; P-68 / P-47 / P-51 (label-side) run on idle slots only.
+  - The 10-10 session B is now two new-family production arms, ConvNeXt-T ‖ `eca_nfnet_l0`. It replaces `v13ex` ‖ ConvNeXt-T.
+- **10-07 = the pre-registered fallbacks.** C3's gate stayed closed (no own blend ≥ 0.943), and no E solo reached 0.936 for B12. So B4 and
+  B5 took those slots, beside the A3 pair and B14. No fork on 10-07.
+- **The brainstorm.** New cards:
+  - P-71: the public ConvNeXt-T reader as B16, no training;
+  - P-72: a seventh family plus Δ_div, a proxy-OOF diversity ruler that compares a cross-family pair with a seed pair;
+  - P-73: a study-level token mixer before the per-label attention;
+  - P-74: `channels_last`, and B3 @ 288 by progressive resizing.
+
+  Set aside, as rows in Dropped directions: distilling B6 into one student; "new families" that share a family with a member we have
+  (EfficientNetV2, MobileNetV4, MaxViT, SE-ResNeXt, ViTs); snapshot ensembles as a score lever; a new cache geometry before 10-22.
+  Considered, not queued: family-balanced blend weights. They would down-weight the strongest members, and nothing we have read
+  supports that.
+- **Not done:** the laptop's power settings were left to Tian.
+
+### What we figured out
+
+1. **The Claude relabel adds nothing.** The pair reads −0.003 vs the B0 seed mean, and the dose order is not monotone. Every target change
+   except Raptor has now read flat or worse, so the label line is closed (experiments.md "Submissions #54–#58").
+2. **The blend gain grows with the number of families, not members.** B11 (one family) gained +0.0033 over its members' mean, the
+   same-recipe value. B13 added two same-family members under the mean and lost 0.002 to B6. This is why Tian's "new family" focus is
+   the right lever.
+3. **One tick on the fork is noise, and the public baseline moved.** Our 0.942 anchor + B6 = 0.944. But the community stack now reads
+   0.943 alone (984 teams), and a public notebook gets 0.944 with a ConvNeXt-T leg. That author saw 0.944 / 0.944 / 0.943 from one
+   pipeline (experiments.md "The public frontier moved").
+4. **That public ConvNeXt-T reader is usable:** Apache-2.0, three fold checkpoints and its inference code in one Dataset. B16 needs code,
+   no training.
+5. **The 10-06 sends went out only because the laptop was woken by hand.** The lid had slept it from 18:50 to 00:02 UTC (wake source:
+   power button). Two watchers also died silently (traps 53).
+
+### ⏭ Next action, in order
+
+1. **Tonight, before 00:00 UTC:** the laptop on AC with the lid open, and `Get-Process -Id 25032` alive. The lid-action change in
+   traps 53 is Tian's call.
+2. **10-07 ≈ 00:05 UTC:** `sent 5 / 5` in `artifacts/auto_submit_1007.log`; the reads land ≈ 00:20–01:00. Then `/update`, by the rules in
+   each message:
+   - **B4 and B5** vs B6 0.942: ✅ ≥ 0.946 / 🔁 0.939–0.945 / ❌ ≤ 0.938. If B4 − B5 ≥ 0.002, B3 carries B6 and week 2 trains B3 × 2;
+     if ≤ −0.002, B0 seeds suffice.
+   - **A3:** mean(`v13es`, `v13rs`) vs 0.9345: ✅ ≥ 0.9390 / 🔁 0.9300–0.9389 / ❌ ≤ 0.9299.
+   - **B14:** ≥ 0.942 → drop the CoAtNet retrain; ≤ 0.940 → keep it.
+   - **B12** only if an A3 solo reads ≥ 0.936.
+3. **10-07, code only: P-71 / B16.**
+   - Add an external-member hook to `src/kaggle_pipeline.py`, ≈ 60 lines. It runs the reader's `infer.py` in a subprocess on
+     `test_series` after our members free the GPU, checks the CSV's rows and columns, and ranks it in as one member.
+   - Add `goodpjw2008/rsna-knee-2-5d-convnext-reader` to `kaggle/rsna-knee-infer/kernel-metadata.json`.
+   - Run a local check, then the B16 placeholder (B6 + the reader), and send it on 10-08.
+   - Read vs B6: ✅ ≥ 0.946 / 🔁 0.939–0.945 / ❌ ≤ 0.938. ≥ 0.943 → pick 1 and the C3 leg.
+4. **10-07 / 10-08: the two new-family arms (P-69, P-72).**
+   - Weight Datasets: `timm-convnext-tiny` (timm `convnext_tiny.in12k_ft_in1k`) and `timm-eca-nfnet-l0`.
+   - Two arms on the `v13h` recipe with `backbone="timm:<arch>"`, a CPU loader check (the `window_head_test.py` pattern), and
+     `channels_last` (P-74 a).
+   - One PARALLEL Kaggle smoke of both arms (≈ 0.1 h). Green = the loss falls, `_best.pt` is written, s/study is logged.
+5. **10-08 / 10-09:** P-73, `head_type="window_tx"` plus a unit check, ready as `v14tx`.
+6. **10-10 00:00 UTC:**
+   - session A, `rsna-knee-train`: `PARALLEL_ARMS = ("v14p", "v14p2")`, `TEACHER_TABLES = ("raptor_teacher",)`;
+   - session B, `rsna-knee-train-b`: `PARALLEL_ARMS` = (the ConvNeXt-T arm, the NFNet arm) on the same Raptor table, so they can
+     share a session;
+   - `FORCE_SMOKE = False` on both, after step 4's smoke. Then the proxy loop in candidates.md section D's order.
+
+### Open decisions for Tian
+
+- Tonight's power state: lid open on AC, or set the lid action on AC to "do nothing" (traps 53).
+- **P-72's family:** the default is `eca_nfnet_l0`, the fallback `regnety_040`.
+- **B16 changes pick 1's nature:** the own pick would hold one public model, though not one from the stack. Acceptable? (P-50)
+- Unchanged: the week-2 retrain composition after the 10-07 reads; final picks by 10-22.
+
+### Things that will bite if forgotten
+
+- The 10-07 sends need the laptop awake at 00:00 UTC (traps 53); it was on battery when this was written.
+- On 10-06 (B4), `kaggle kernels push` failed with `Connection aborted … RemoteDisconnected` and created **no** version. Traps 36 is
+  the opposite case, a version created despite an error. Check `kaggle kernels list --mine --search rsna-knee-infer` (lastRunTime)
+  before re-pushing.
+- One `git push` failed on a transient DNS error ("Could not resolve host"). A retry a minute later worked.
+- A PARALLEL pair shares one `TEACHER_TABLES`; the two new-family arms must use the same table.
+
 ## 2026-10-05 (12:40 → 13:20 UTC) — Tian's focus for week 1 implemented: **P-68 cross-family OOF teachers** (`v13ex`, `v11o`, `v13eo`) and **the P-67 variables** (six augmentation components, mixup, B0 @ 288, blank windows, a longer schedule; snapshots and gold-in-training for the final retrains); unit, local and Kaggle GPU smokes green; RunPod 10-07 = NO-GO (critic)
 
 Tian: "focus on these parts the most … Especially 2. [the CNN OOF teacher on report-silent cells] for sure, this should boost our model
