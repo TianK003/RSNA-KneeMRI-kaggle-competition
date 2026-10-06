@@ -67,12 +67,10 @@ result*, per unit of cost. "Depends on" lists hard blockers only. EVs are solo-L
 | 0m | P-68 | Different-family OOF image teacher (cross-family pairs; silent-cell weight only if A3 ✅) | 🔧 **implemented 2026-10-05, effect pending; Tian's top priority ("especially this"); redesigned after the critic the same day**: `v13ex` (B0 student on Raptor + `xfit_v09k`, the CoAtNet cross-fit OOF; trainable at the 10-10 reset), `v11o` (CoAtNet student on Raptor + `cnnoof_v1`, the B0 floor pair's OOF; after the floor run), `v13eo` (B0 on `cnnoof_v1`, the same-family control), all at the flat mix 0.5; RunPod on 10-07 = NO-GO (critic: ≈ $3.8, no decision unlocked before 10-17) | 0..+ 0.004 solo (forum claims + 0.011; same-family read flat for us) | the P-67 floor run + 1–2 Kaggle arms (≈ 6 T4-h each) | A3 (10-07) for any silent mix; the P-67 floor run for `cnnoof_v1` |
 | 0n | P-67 | Fast-proxy 5-fold CV ruler + single-variable recipe ablation loop | 🔧 **implemented, effect pending: the floor pair `v14p` / `v14p2` and, since 10-05 (Tian: "focus on these"), ten one-variable arms `v14lr` / `v14th` / `v14gd` / `v14bl` / `v14ns` / `v14sh` (augmentation components), `v14mx` (mixup), `v14r288` (B0 @ 288), `v14db` (blank windows), `v14ep20` (longer schedule); unit checks, a local CPU smoke and a Kaggle GPU smoke (v46) green; the floor run starts at the 10-10 reset** — approved by Tian (research.md 2.7.6 / 2.7.7 / 2.10) | + 0.003–0.005 per production member if ≥ half transfers → B6 ≈ 0.945–0.947 | ≈ 16 proxy variants per 30-h Kaggle week, or ≈ $0.6 each on a 4090; + 1 transfer arm | a measured pooled-OOF floor (2 seeds) |
 | 0p | P-69 | Sixth family for B6: ConvNeXt-T on the `v13h` recipe | ✅ approved with the loop 2026-10-05 (the week-1 family arm); loader check first | B6 + 0.002–0.003 (cross-family rule) | 1 Kaggle arm ≈ 6 h + a loader check | the 10-10 quota |
-| 0i | P-62 | Silence-aware teacher mix (Raptor 0.75 where the report is silent, 0.5 where it speaks) | ⏳ **session D TRAINED green 2026-10-04 (`rsna-knee-train-b` v6, 5.94 h): gold-58 SWA `v13es` 0.9107 / `v13rs` 0.9160 vs 0.9126 / 0.9111 (direction only); shipped `rsna-knee-ckpt-v13es` / `-v13rs`; solos 10-05 = `rsna-knee-infer` v49 / v50; read m vs 0.9345 (✅ ≥ 0.9390)** | 0..+0.002 — likely under the 0.004 one-seed floor | one c03 session ≈ 3.5 GPU-h + 2 solos | — |
-| 0l | P-65 | Grading-aware Claude relabel of the reports (an independent, severity-aware LLM vote) | ⏳ **session E trained on RunPod (Tian's go): `v13ecp` (0.5 Claude) gold-58 0.9063, `v13ec` (0.25 Claude) 0.9116 (🔁 direction only); infer v53 / v54; B0, seed 42; both solos 10-06 vs the B0 seed mean 0.9365** — ⏳ **full pass DONE 2026-10-04: 4,349 rows, ≈ 25 min, ≈ 6.9 M tokens; `claude_v1` / `claude_rap_v1` published in `rsna-knee-teacher-tables`; session E (`v13ec` ‖ `v13rc` on `claude_rap_v1` at mix 0.75) staged — runs on Kaggle after the 2026-10-10 reset, after session D's P-62 read; read m vs 0.9345 (✅ ≥ 0.9390)** — pilot 🔁 (Opus 0.9062 alone / 0.9397 with Raptor, bars 0.910 / 0.945 not met; Haiku 0.8639 ❌) | 0..+0.005 (literature + forum); the policy-misaligned labels are the upside | session E ≈ 6 GPU-h + 2 solos | — (Tian's go given) |
-| 4 | P-50 | Final selection and publishability | 💡 decide by 2026-10-15; **own candidate = B6 #52 0.942** (`v11a` + `v13r` + `v13e` + `v13b3` + `v13e2`, = the public-stack fork, replaces #48 0.938); fork candidate = the public stack with our trio at β 0.45 (**#49 0.943**, 🔁 +0.001, rank 373; `rsna-knee-fork` v11), C2 (B6 as the leg) queued 10-06; the shortlist sends to 10-09 (B12 / B13 / B14, C3) are candidates.md's priority table | decides what the private LB scores | a browser session; ≤ 1 fork check | P-40 🔁 closed (#22 / #27), the fork v11 read, Rules page |
+| 0i | P-62 | Silence-aware teacher mix (Raptor 0.75 where the report is silent, 0.5 where it speaks) | ⏳ **session D TRAINED green 2026-10-04 (`rsna-knee-train-b` v6, 5.94 h): gold-58 SWA `v13es` 0.9107 / `v13rs` 0.9160 vs 0.9126 / 0.9111 (direction only); shipped `rsna-knee-ckpt-v13es` / `-v13rs`; solos **10-07** = `rsna-knee-infer` v49 / v50 (moved twice by Tian); read m vs 0.9345 (✅ ≥ 0.9390)** | 0..+0.002 — likely under the 0.004 one-seed floor | one c03 session ≈ 3.5 GPU-h + 2 solos | — |
+| 4 | P-50 | Final selection and publishability | 💡 decide by 2026-10-15; **own candidate = B6 #52 0.942** (`v11a` + `v13r` + `v13e` + `v13b3` + `v13e2`; B13 #55 0.940 and B11 #56 0.941 did not beat it, 10-06); **fork candidate = C2 #54 0.944** (the public 0.942 stack + B6 at β 0.45, `rsna-knee-fork` v12; 🔁 +0.001 vs #49, rank 337; level with the public 0.944 notebook); C3 closed (no own blend ≥ 0.943); the shortlist sends to 10-09 (B4 / B5 / B14, B12 if an A3 solo qualifies) are candidates.md's priority table | decides what the private LB scores | a browser session | the Rules page |
 | 5 | P-18 | Efficiency track with the solo member | 💡 low priority — Tian 2026-10-04: score over efficiency; robustness half shipped; the natural fast candidate is `v13e` (0.935 solo, ≈ 15 min to score, 17 MB) | a separate prize; unknown until the formula is read | 0 GPU h (CLI + browser) | Efficiency formula (browser) |
 | 6 | P-47 | Teacher-mix bracket: mix 0.75 only | 💡 low — P-49 priced it on Raptor itself: matched mix 0.75 − 0.5 = −0.002 (SD 0.003) on gold | ≈ 0 (+0.000..0.002) | per-arm `TEACHER_MIX` code + ≈ 2.8 h; 1 solo | P-44 floor, an idle slot |
-| 7 | P-46 | Upgrade the LLM half of the targets (absorbs P-16, P-30) | 💡 low — step 2 (re-label) superseded by P-65; step 1 (dread as a 4th vote) left | 0..+0.002 (dread vote) | ≈ 2.8 h per arm + 1 solo | P-65 session E's read |
 | 8 | P-48 | Final-member polish: gold-58 as training rows + seed averaging | 💡 contested, parked | +0.001..0.002, unreadable by construction | part of the final retrain | P-50 decision |
 | 9 | P-51 | Teacher-aware confidence weights | 💡 low | 0..+0.002 | ≈ 20 lines + 2.8 h; 1 solo | P-44 floor |
 | 10 | P-70 | Per-study prediction fallback at the hidden rerun (train prior instead of a crash) | 💡 low, infra, proposed 2026-10-05 | robustness of both final picks | ≈ 20 lines + 1 smoke | — |
@@ -164,7 +162,8 @@ Noise floor:  ≥ 0.004 one-seed.
 Cost:         the OOF table is free from P-67's best proxy 5-fold (a ≈ 0.92-level teacher), or ≈ 5.5 4090-h ≈ $4 / ≈ 15 Kaggle
               session-h for a 30-epoch B0 cross-fit (a ≈ 0.935-level teacher); then one production arm ≈ 6 h.
 If it works:  all final retrains train on it. If it fails: the label side is closed; Raptor 0.5 (± the P-62 silent weight) stays.
-Depends on:   the P-62 read (A3, 10-06: the silent-cell weight); P-67 for the free OOF.
+Depends on:   the P-62 read (A3, 10-07: the silent-cell weight); P-67 for the free OOF. Since 10-06 (P-65 ❌) this is the only
+              live target-side card.
 
 ### P-69 A sixth family for B6: ConvNeXt-T on the `v13h` recipe
 Status:       ✅ approved with the loop 2026-10-05: the week-1 family arm, in the same session as the first proxy runs.
@@ -174,7 +173,12 @@ Origin:       experiments.md 2026-10-05 (blend rule); literature 2.7.7(c): ensem
               ensembles; Dread 0.941 → 0.944 with a ConvNeXt added.
 Evidence:     `v06c` ConvNeXt-T was a weak early member (c01, DINOv2-era recipe: OOF 0.8562, blend + 0.004) and has never run on the
               `v13h` recipe; the weight Dataset `convnext-tiny-224-hf` (Apache-2.0) exists. Needs a loader check (HF-format weights
-              vs `backbone="timm:convnext_tiny"`; `src/window_head_test.py`).
+              vs `backbone="timm:convnext_tiny"`; `src/window_head_test.py`). **10-06:** a public 2.5D ConvNeXt-T reader (goodpjw2008;
+              own preprocessing at 256 px, mean of four public label tables, no image teacher) reads **0.929** solo (3 folds) and
+              lifts the 0.943 public stack to 0.944 at 15–30 % (experiments.md 2026-10-06 "The public frontier moved"). So the family
+              reaches the member bar without Raptor; mounting that reader as-is is candidates.md B16.
+              **10-06 blend reads:** B13 (two more CoAtNet votes) lost 0.002 vs B6 and B11 (EfficientNets only) 0.001: the gain
+              comes from new families, which raises this card's value.
 Measure:      solo LB (a member if ≥ 0.933) and B6 + ConvNeXt vs B6 0.942 (✅ ≥ 0.946 / 🔁 0.939–0.945).
 Noise floor:  blend + 0.004 over B6; solo ≥ 0.004.
 Cost:         one Kaggle arm ≈ 6 h on one T4 (pairs with another arm in the same session) + the loader check + a smoke.
@@ -194,7 +198,13 @@ Noise floor:  n/a (robustness).
 Cost:         ≈ 20 lines + one smoke. Depends on: nothing.
 
 ### P-50 Final selection and publishability
-Status:       💡 new 2026-09-27; decide by the 2026-10-15 entry deadline. **2026-10-05: the own candidate is B6 = #52 0.942**
+Status:       💡 new 2026-09-27; decide by the 2026-10-15 entry deadline. **2026-10-06: pick 1 = B6 #52 0.942** (B13 #55 0.940
+              and B11 #56 0.941 did not beat it); **pick 2 = C2 #54 0.944** (the public 0.942 stack + B6 at β 0.45, `rsna-knee-fork`
+              v12, rank 337 of 5,293), replacing #49 (v11). C3 is closed until an own blend reads ≥ 0.943. Caveats from the 10-06
+              public read (experiments.md "The public frontier moved"): the community stack now reads 0.943 alone, a public fork
+              with a ConvNeXt-T leg 0.944, and that author measured the stack's run-to-run spread at one tick, so #49 vs #54 is
+              weak evidence; pick 2 rests on construction (flat β, our best own blend as the leg).
+              **2026-10-05: the own candidate is B6 = #52 0.942**
               (`v11a` + `v13r` + `v13e` + `v13b3` + `v13e2`, flat rank-mean), equal to the public-stack fork and replacing #48. The
               fork candidate #49 (the stack + that trio at β 0.45) read **0.943** (🔁 +0.001; rank 373 of 5,187: the 0.942
               plateau is ≈ 1,000 forks wide). Next: C2 = the stack + B6 at β 0.45 (experiments.md "Submissions #49–#53"), queued for 10-06. **2026-10-05 (Tian): submissions
@@ -213,8 +223,9 @@ Evidence:     #13 = #15 = 0.942 (β 0.10 left the score unchanged — the same t
               give back (experiments.md 2026-09-23 "Submission #16"; 2026-09-22 night "The public frontier re-read"). Our
               Raptor-distilled leg read flat at β 0.10–0.20 (P-40: it correlates with the stack); the trio is a cross-family leg,
               and cross-family blends have read above every member (#47 0.934, #48 0.938).
-Decision:     never pick #13 and #15 together. Pick 1: our best own ensemble (#48 0.938, or an own blend that beats it on the
-              solo LB by 10-15). Pick 2: the public-stack fork with our trio at β 0.45 (`rsna-knee-fork` v11).
+Decision:     never pick #13 and #15 together. Pick 1: our best own ensemble (B6 #52 since 10-05, or an own blend that beats it
+              on the solo LB by 10-15). Pick 2: the public-stack fork with our best own blend as the leg at β 0.45 (C2,
+              `rsna-knee-fork` v12, since 10-06; was v11 with the #48 trio).
 Measure:      none for the private LB; one public read of the v11 fork vs #13 0.942: ✅ ≥ 0.945 / 🔁 0.941–0.944 / ❌ ≤ 0.940
               (handoff 2026-10-04). Rules to read in a browser: which assets must be
               public for a winning submission (checkpoints) — **never publish `rsna-knee-teacher-tables`** (keyed by
@@ -225,7 +236,7 @@ Cost:         a browser session; 1 fork submission (built: `rsna-knee-fork` v11;
 If it works:  both picks are set before 2026-10-22.
 If it fails:  the v11 fork reads ❌ → pick 2 falls back to an anchor fork already scored (#13 0.942 or the #16 flat hedge
               0.940) — Tian's call.
-Depends on:   the v11 fork read (2026-10-05), the Rules page (*Open questions*), P-48 (the final-member decision).
+Depends on:   the Rules page (*Open questions*), P-48 (the final-member decision). The fork reads are in (#49 0.943, #54 0.944).
 
 ### P-18 Efficiency track with the solo member
 Status:       💡 untested. The submission-robustness half shipped long ago (`MODE="infer"`, loud failure instead of a
@@ -267,29 +278,6 @@ Cost:         needs code: a per-arm `TEACHER_MIX` (today module-level; targets a
 If it works:  Raptor-heavier targets become the production mix; mix 1.0 is read next.
 If it fails:  0.5 stays. Expected ≈ 0 — run only if a GPU slot is idle and P-44 has set the floor.
 Depends on:   P-44 (the floor), an idle slot.
-
-### P-46 Upgrade the LLM half of the targets (absorbs P-16 and P-30)
-Status:       💡 low (new 2026-09-27). **2026-10-04: step 2 (the re-label) is superseded by P-65** — host rule 2.6.b permits
-              hosted LLMs, and the grading-aware Claude relabel of all 4,349 reports is done (`claude_v1`); its session E reads
-              the "better LLM half" hypothesis with a stronger vote than either step here. Step 1 (dread as a 4th vote; the table
-              has no gold rows, so it cannot be priced on gold) is the only untested part left, and it waits for E: if the Claude
-              vote does not move the LB, the LLM half is not binding and step 1 closes with it.
-Hypothesis:   a better LLM half — a 4th vote (step 1) or an open-weights re-label (step 2) — lifts the Raptor-distilled member solo.
-Origin:       P-30 (the dread table died only for lack of a judge — the solo LB is one now); P-16 (re-label inside Kaggle).
-Evidence:     the dread table (`dreaddevelopment/rsna-knee-labels`, CC0, 4,349 rows, no gold rows) is ρ 0.817 with our blend ("a
-              4th LLM reading"); the three sources are ≈ 1.5 effective votes (φ 0.88). Whether Raptor's Synovitis gain is
-              dread-driven is disputed: at a raw 0.5 cut Raptor sides with dread on 78–80 % of Synovitis disagreements, at the
-              LLM's positive rate 52 %, rank vs rank 50 % (A: an operating-point artefact); a rank-based test within
-              disagreements gives AUC 0.71 on Synovitis and 0.50–0.74 on every label (C: Raptor leans to dread on all labels).
-              Step 2: a 14B open model reached 0.881 gold vs our blend's 0.8948.
-Measure:      step 1: the production recipe (`v09r` when written; `v13e` 0.935 now) with dread as a 4th vote in the LLM blend
-              (`build_targets.py --sources`), solo vs that recipe's read;
-              step 2: → P-65.
-Noise floor:  the P-44 floor; gold-58 direction only.
-Cost:         ≈ 2.8 h per arm + 1 solo.
-If it works:  the LLM half changes for every later member.
-If it fails:  the LLM half is not binding; the image half is.
-Depends on:   P-65 session E's read (after the 2026-10-10 reset), P-44 (the floor).
 
 ### P-48 Final-member polish: gold-58 as training rows + seed averaging
 Status:       💡 CONTESTED, parked; decide at P-50. **2026-10-05: the switch exists** — `train_gold=True` on a `train_all` arm
@@ -335,56 +323,10 @@ Noise floor:  **✅ ≥ 0.9390 / 🔁 0.9300–0.9389 / ❌ ≤ 0.9299** (band �
               re-measured the CNN seed spread behind this band: s = 0.003 on 10-05 (#51), so the band stands.
 Cost:         session D ≈ 6 GPU-h (session C, the same two arms flat: 5.87 h) + 2 solos.
 If it works:  the final members (P-50) and session E consider the silent mix; E needs `DISTILLED_SILENT_MIX` entries for its arms.
-If it fails:  the target is not binding at this resolution. The label side rests on P-65 (session E, after 10-10).
+If it fails:  the target is not binding at this resolution. P-65 (the Claude relabel) closed ❌ on 2026-10-06, so the label side
+              then rests on P-68 (cross-family OOF image teachers) alone.
 Depends on:   — (session D trained green 2026-10-04, gold-58 `v13es` 0.9107 / `v13rs` 0.9160, experiments.md "Session D";
               solos 2026-10-05 = `rsna-knee-infer` v49 / v50).
-
-### P-65 Grading-aware Claude relabel of the reports (a genuinely independent LLM vote)
-Status:       ⏳ **2026-10-05: session E TRAINED — `v13ecp` (0.5 Claude) gold-58 SWA 0.9063, `v13ec` (0.25 Claude) 0.9116, vs the
-              B0 seed pair 0.9126 / 0.9151 (🔁 direction only); both shipped, pod deleted (≈ $1.9); placeholders infer v53 / v54;
-              solos 10-06 vs the B0 seed mean 0.9365** (experiments.md 2026-10-05 "Session E on RunPod, chain 1" and "chain 2").
-              ⏳ **session E RUNNING on RunPod pod `j4obvfotdbdudo` (RTX 4090, $0.74/h) since 2026-10-05 09:10 UTC, on Tian's go ("Go E")
-              — as a two-dose design on one backbone instead of the B0 + R50 pair:** `v13ecp` (new arm: 0.5 Raptor + 0.5 Claude,
-              no LLM-blend share; `TEACHER_TABLES = ("raptor_teacher", "claude_v1")` at mix 1.0) then `v13ec` (the registered
-              0.25 LLM + 0.5 Raptor + 0.25 Claude). Read each solo vs the B0 seed mean 0.9365 (`v13e` 0.935 / `v13e2` 0.938):
-              ✅ ≥ 0.9405 / 🔁 0.933–0.940 / ❌ ≤ 0.932; `v13ecp` takes a 10-06 slot, `v13ec` the fifth slot or 10-07. The
-              earlier plan — session E staged (Kaggle, after the 2026-10-10 reset); read m(`v13ec`, `v13rc`) vs m(`v13e`, `v13r`) = 0.9345:
-              ✅ ≥ 0.9390 / 🔁 0.9300–0.9389 / ❌ ≤ 0.9299 (experiments.md 2026-10-04 "P-65 full pass"; two arms, so this replaces
-              the one-arm read in Measure (2)).
-              🔁 2026-10-04: pilot read — Opus 0.9062 alone (LLM blend 0.8948), 0.9397 with Raptor (0.9324): under both
-              pre-registered bars; Haiku 0.8639 ❌. Fracture (acute only) 0.815 → 0.924 and PF OA 0.903 → 0.967 gain; Effusion
-              −0.030 / Baker's −0.092 lose (size thresholds collapse the ranking). experiments.md 2026-10-04 "P-65 gold-58 BLIND
-              pilot". **Full pass DONE 2026-10-04 (Tian's go): 4,349 / 4,349, ≈ 25 min, ≈ 6.9 M tokens; `claude_v1` + composite
-              `claude_rap_v1` published; session E (`v13ec` ‖ `v13rc`, TEACHER_TABLES ("claude_rap_v1",) at mix 0.75 ≈ 0.25 LLM
-              + 0.25 Claude + 0.5 Raptor) staged, `artifacts/train_sE_real.py`; GPU after 2026-10-10 (or a RunPod top-up).** **2026-10-04:
-              the RunPod top-up went to P-66 instead (critic-reviewed, Tian's choice); E runs on Kaggle after 10-10, after session D's
-              P-62 read decides whether E also gets `TEACHER_SILENT_MIX`.**
-              Expected LB 0..+0.004.
-Hypothesis:   our LLM half is ≈ 1.5 effective votes (hans_v4 ~ sol56 agree 99.45 % at 0.5; label audit §3) and ignores the
-              host's severity thresholds; a grading-aware graded relabel (moderate/large effusion and Baker's, high-grade ACL,
-              acute MCL / fracture, ≥ 1 cm > 50 % cartilage loss for OA, `pos` / `sub` / `neg` / `unk` + calibrated p) lifts
-              the labels exactly where the image models already beat them on gold (Effusion 0.880, Fracture 0.815,
-              Contusion 0.861, Medial OA 0.931) and adds a second real vote.
-Origin:       the host's 2.6.b rule update (hosted LLMs permitted); Tian 2026-10-04 ("you could be labelling them yourself?");
-              literature: frontier models beat cheap ones on severity grading (GPT-4o 98 % vs mini 69 % on knee OA severity;
-              artifacts/research_1004/literature.md); host grading rules (topic 733343).
-Evidence:     against: extraction is near its ceiling (forum 743148: 22 of 33 gold positives an LLM misses are never named);
-              Tucker / Yann / tennogh: better extraction did not move the LB; P-46: a 14B open model read 0.881 gold. For:
-              SpeedSci (GPT + Claude + Gemini vote + teachers) 0.931 → 0.942 on DINOv2; Yann +0.015 from combining label sets.
-Measure:      (1) pilot, target level on gold-58, read ONCE: AUC of p per label vs the LLM blend (0.8948) and the rank mix
-              0.5 Claude + 0.5 Raptor vs 0.5 LLM + 0.5 Raptor (0.9324). **Pre-registered:** promising = Claude alone ≥ 0.910 OR
-              the Raptor mix ≥ 0.945, with the gain on the policy-misaligned labels (not scattered); flat = within ± 0.01
-              (D4 +0.006 and xfit +0.008 did not transfer, Raptor +0.017 did). (2) if promising: label all 4,407 (≈ 1.5 M
-              input tokens), build `claude_v1` as a label source, then ONE arm (`v13e` recipe, targets = rank-blend of LLM +
-              Claude, then 0.5 with Raptor) solo vs `v13e` 0.935.
-Noise floor:  gold-58 SE ≈ 0.03–0.09 per label; one-seed LB floor 0.004 (P-44).
-Cost:         pilot ≈ 2 × 30k tokens, minutes. Full pass ≈ 1.5 M input + ≈ 0.4 M output tokens in parallel subagents
-              (≈ 1–2 h wall) — at API prices ≈ $6–8 (Haiku, batch) to ≈ $25–70 (Opus) per pass, under "minimal cost". Then
-              ≈ 3 GPU-h (one EfficientNet arm) + 1 solo. Measured: the full pass took ≈ 25 min wall and ≈ 6.9 M subagent tokens;
-              session E is two arms, ≈ 6 GPU-h + 2 solos.
-If it works:  the LLM half becomes LLM + Claude for every later member.
-If it fails:  the label line closes; image-side (recipe, families, P-62 silent-cell teacher) only.
-Depends on:   — (Tian's go for the full pass given 2026-10-04; the pass ran).
 
 ### P-51 Teacher-aware confidence weights
 Status:       💡 low (new 2026-09-27).
@@ -411,7 +353,7 @@ any of these must answer its row with a new reason.** The 2026-10-05 rows are fi
 | **EfficientNet-B4-class or larger CNNs; any resolution above 288 for capacity** | every ≥ 0.949 single on the forum is ResNet-50-class, a small ResNet / EffNet or a CoAtNet at 224–288 ("bigger is null": 735154, 738096); our own ladder R34 0.931 → R50 0.934 → B0 0.935 / 0.938 → B3 @ 288 0.940 ended at +0.0035 over the B0 seed mean (under the 0.004 bar); B4 @ 336 ≈ 25 GB VRAM and ≈ $3.7 (critic 10-05); a single bigger model only replicates an ensemble's gain [2202.06985] | research.md 2.7.6 / 2.7.7 (c), experiments.md 2026-10-05, candidates.md (T5 dropped) |
 | **MIL / bag-of-slices / all-slice transformers** | forum: Tom @392 bag-of-32 0.915, Pand ConvNeXt-T MIL 0.935, nobody ≥ 0.94; coverage saturates (Ziad flat after ≈ 31 windows); 2025 3rd place: "MIL and LSTMs did not help" | research.md 2.7.6 / 2.7.7 |
 | **DINOv3 / RadImageNet / BiomedCLIP / medical foundation backbones as members** | at ≤ 288 px ImageNet timm init ≥ any SSL or radiology init: DINOv2 weaker on clinical MRI [2402.07595], DINOv3 frozen at parity [2509.06467], RadiologyNET ≈ ImageNet [s41598-025-05009-w]; RadImageNet's licence is unclear (CLAUDE.md); the only large pretraining effect found anywhere is in-task dense pretraining (2025 1st) which needs labels we lack | research.md 2.7.7 (d) |
-| **More seeds of the same recipe as a *score* lever** | blend rule 10-05: same-recipe members add +0.001–0.003, cross-family +0.004–0.006 (#26 / #29 / #32 / #36 vs #47 / #48 / #52 / #53); seeds are for the final members' robustness (P-50), not for the LB | experiments.md 2026-10-05 "Submissions #49–#53" |
+| **More seeds of the same recipe as a *score* lever** | blend rule 10-05: same-recipe members add +0.001–0.003, cross-family +0.004–0.006 (#26 / #29 / #32 / #36 vs #47 / #48 / #52 / #53); seeds are for the final members' robustness (P-50), not for the LB. **10-06:** two more CoAtNet-recipe votes on B6 lost 0.002 (B13 #55 0.940), the EfficientNet-only triple 0.001 (B11 #56 0.941): extra members of a family already in the blend do not pay | experiments.md 2026-10-05 "Submissions #49–#53"; 2026-10-06 "Submissions #54–#58" |
 | **External datasets** (OAI, MRNet, fastMRI+, SKM-TEA, KneeCoT) | KneeCoT banned; OAI needs institutional sign-off ("a no", 741819); the one forum user who tried external data: "not really" (743416); none carries our 12 labels; the licence fit is a winners' problem | CLAUDE.md Rules, research.md 2.7.6 |
 | **Multimodal-LLM / VLM labelling of the images** (hengck23 745861, Deotte) | we never download the images in bulk (570 GB, hard constraint 2), inference has no internet, 18 days; OmerZalman: 80–90 % correct on 800 studies | research.md 2.7.6, CLAUDE.md |
 | **Gold-58 as a member or recipe judge** | it inverted the LB direction several times for us (traps 39) and for SpeedSci / Lê / Raymond on the forum; direction only. The ruler for image-side changes is the pooled 5-fold report-label OOF (P-67) | traps 39, research.md 2.7.6 (B) |
@@ -441,16 +383,16 @@ any of these must answer its row with a new reason.** The 2026-10-05 rows are fi
 | Decoding DICOM in the DataLoader each epoch; float32 caches; `.npz` + mmap; GPU decode at ≤ 512 px | 100× slower; 29.6 GB; mmap ignored; ~1–2.5× | [hida1211], [NumPy #5976], [nvImageCodec] |
 | `pip install` at scoring time | internet off | [pydicom plugin table] |
 | bf16 on T4; channels_last for ViT; `torch.compile` by default | no bf16 tensor cores; cuDNN-only; compile > gain (SDPA is the cheap win — P-08) | [PyTorch memory_format], critic 27 |
-| More *report-label* LLM sources beyond P-46's one test (dread as a 4th vote), Dawid–Skene, Snorkel, CARE, learned source weights | n_eff ≈ 2.2 in literature, **~1.5 here** (φ 0.88); our 0.002 spread. Image-grounded tables are the demonstrated lever (P-39); the LLM half is P-46. Exception on a new reason: P-65's grading-aware Claude vote (the host's severity thresholds) | [2605.29800], [BoxWRENCH], experiments.md, label_audit.md |
+| More *report-label* LLM sources beyond P-46's one test (dread as a 4th vote), Dawid–Skene, Snorkel, CARE, learned source weights | n_eff ≈ 2.2 in literature, **~1.5 here** (φ 0.88); our 0.002 spread. Image-grounded tables are the demonstrated lever (P-39). **10-06: the one exception ran and failed** — P-65's grading-aware Claude relabel read #57 0.935 / #58 0.932 vs the B0 seed mean 0.9365 (no lift at either dose), and P-46 step 1 (dread as a 4th vote) closed with it by its own rule. No report-side target change is open; a new card here needs a reason that is not "a better or different reader of the reports" | [2605.29800], [BoxWRENCH], experiments.md, label_audit.md |
 | Co-teaching / DivideMix / DISC; focal / ASL / GradNorm / PCGrad | minority collapse; ≤ 0.01 over BCE ; **10-05 literature:** no medical multi-label win over soft targets (BoMD 89.7 vs co-teaching 80.1) | [LNMBench], [RAL], [Xin et al.], research.md 2.7.7 (b) |
 | Calibrated priors with a 50% floor for zero-support states | OOF collapsed to base rate | [JunhaoLiXD V02] |
 | Translate-then-extract; sub-3B extractors; 70B on 2×T4 | precision loss; F1 0.74; ~40 GB weights | [2602.21374] |
-| ~~Hosted LLM APIs for report text~~ — **SUPERSEDED 2026-10-04 by host rule 2.6.b** (hosted LLMs permitted at minimal cost); it ran as P-65 | was: plausible Rule 4.b violation; open-weights parity | CLAUDE.md "Rules", [Radiology 2025] |
+| ~~Hosted LLM APIs for report text~~ — **SUPERSEDED 2026-10-04 by host rule 2.6.b** (hosted LLMs permitted at minimal cost); it ran as P-65, ❌ on the LB 2026-10-06 (the row above) | was: plausible Rule 4.b violation; open-weights parity | CLAUDE.md "Rules", [Radiology 2025] |
 | In-domain SSL continued pretraining as a first priority | in-domain ViT still below ImageNet AlexNet on MRNet | [SB-SSL] |
 | Auxiliary report-reconstruction head | same weak supervision as the targets; nothing new to learn | brainstorm.md #10 (speculative, unranked) |
 | Judging a target-source change on fold-0 OOF vs the LLM teacher | rewards agreement with the teacher, not truth: P-38's fold-0 +0.0109 read −0.001 in production (#19) | traps 39, experiments.md 2026-09-24 "Submission #19" |
 | A weighted `v09r` 0.75 / `v08r` 0.25 solo | a sub-floor bet that `v08r` pays for its weakness; the flat pair already read 0.927 = `v09r` (P-42) | handoff 2026-09-27 |
-| Re-anchoring the fork on "Speedy Raptors 0.943" | it is our anchor + two serial CoAt readers; ≤ +0.001 by its own claim (0.2× the floor), more serial rerun work | experiments.md Infrastructure 2026-09-27 |
+| Re-anchoring the fork on "Speedy Raptors 0.943" | it is our anchor + two serial CoAt readers; ≤ +0.001 by its own claim (0.2× the floor), more serial rerun work. **10-06, still closed:** that stack is now the public plateau (984 teams at 0.943, skarin's reproduction), and the stack + a 0.929 ConvNeXt-T leg reads 0.944 = our 0.942 anchor + B6 (#54); the stack's own run-to-run spread is one tick | experiments.md Infrastructure 2026-09-27; 2026-10-06 "The public frontier moved" |
 | Members below ≈ 0.90 solo into the fork | #12–#14: our arm moved 0.942 by 0.000 to −0.003; even a 0.918 solo member read −0.001 (#17) — at β 0.10 the fork cannot read member quality | experiments.md 2026-09-22 "P-27 read-out", 2026-09-23 "Submission #17 read 0.941" |
 | A CoAtNet-2 @384 production arm on Kaggle T4 | 9–15 GPU-h per arm, a 2-session resume, batch 2 OOMs; P-43 tests resolution at 320 on CoAtNet-1 instead | reviewer D (2026-09-27 audit), P-43 |
 | Treating gold deltas < 0.05 or LB < 0.005 as real | noise floor | CLAUDE.md |

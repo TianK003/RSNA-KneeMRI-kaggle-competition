@@ -1003,3 +1003,30 @@ and auto-stopped the pod. It was killed with SIGKILL (traps 51), fixed (`CACHE_S
 relaunched. The cache on disk was kept: a re-pull skips existing files (traps 38), and the check then read 71 blobs, 0 bad, 4,407
 studies. ≈ 12 min lost. **Do:** the "c03" in our docs is a cache *name* (kernel slugs `rsna-knee-cache3-*`, `C03_KW`). On disk
 everything is `c02_*`. Before a chain launch, check the blob verifier against a cache that is already on disk, if one is.
+
+### 53. The overnight submitter needs the laptop awake at 00:00 UTC — closing the lid sleeps it despite `SetThreadExecutionState`, and on 10-06 the sends left only because someone woke it by hand; two of five watchers also ended silently, so the summary called scored submissions PENDING (Tier 2: a lost day of five slots, 2026-10-06)
+
+`src/auto_submit.py` asks Windows not to sleep (`SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED)`), and its docstring warns
+that the lid still wins. The System event log (`Get-WinEvent`, providers `Microsoft-Windows-Kernel-Power` id 42 and
+`Microsoft-Windows-Power-Troubleshooter`) shows what happened on the night of 10-05 → 10-06:
+- 18:50:26 UTC: "The system is entering sleep. Sleep Reason: Button or Lid". The submitter was waiting for 00:00:30.
+- 00:02:32 UTC: "returned from a low power state … Wake Source: Power Button", i.e. by hand. The submitter's clock was past its
+  target, so it sent at once: the five went out at 00:03–00:06, 2.5 min late. Without that wake nothing would have been sent until
+  someone opened the laptop, and a fork sent late in the day may not score before the next UTC midnight (5–8 h).
+- 00:44:39 UTC: the submitter printed its SUMMARY and exited; 2 s later the machine went back to sleep ("Application API").
+
+**The watchers.** The submitter waits for one `watch_submission.py` child per send, then prints the summary. The watchers of #54 (the
+fork) and #55 (B13) logged their first poll (`PENDING 0.4 min after sending`) and then nothing: no second poll, no traceback, no
+"api error" line, although every other path in the script prints. Both had exited by 00:44, when the summary read them PENDING. Both
+had scored by 09:25 (0.944 / 0.940). The cause was not found; a hard kill from outside leaves exactly this (traps 51's addendum
+records Claude Code killing local watchers under memory pressure). Cost: the fork's scoring time is unrecorded, and a reader of the
+summary alone would think two submissions were still running.
+
+**Do:**
+- Before leaving a submitter overnight, keep the laptop on AC power with the lid open, or set the lid action to "do nothing" while
+  plugged in: `powercfg /setacvalueindex SCHEME_CURRENT SUB_BUTTONS LIDACTION 0`, then `powercfg /setactive SCHEME_CURRENT`
+  (`/setacvalueindex … LIDACTION 1` restores sleep).
+- The morning after, read the scores from `kaggle competitions submissions`, never from the summary. A summary printed less than ≈ 5 h
+  after a fork send means a watcher died.
+- To check whether the machine slept: `Get-WinEvent -FilterHashtable @{LogName='System'; ProviderName='Microsoft-Windows-Power-Troubleshooter'}`
+  prints each sleep / wake pair with its wake source.
