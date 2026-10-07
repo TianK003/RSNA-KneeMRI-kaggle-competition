@@ -1054,3 +1054,31 @@ barely charged. A Python error would have left a traceback and the input-layout 
 - To compare a slot's stack, read the Python path in its log (`/usr/local/lib/python3.1x`) or the `timm 1.0.x` loader line.
 - Pin an image only if a version difference ever matters: `"docker_image_pinning_type": "latest"` (or `"original"`) in
   `kernel-metadata.json`, an option the CLI's push supports.
+
+### 55. A RunPod pod's storage differs pod to pod, and on 10-07 neither fast disk fit the 51 GB c03 cache (Tier 3, 2026-10-07)
+
+The EUR-NO-1 pod of P-69 had `/workspace` on MooseFS (`fuseblk`, `mfs#eur-no-1.runpod.net`), a 41 GB `/dev/shm` and a 40 GB container
+disk. The c03 cache is ≈ 51 GB (four shards of 12–13 GB), so it fit neither fast place alone, and MooseFS is never the cache
+(memory "RunPod pod self-service"). Earlier pods had a local NVMe `/workspace` (P-66) or a 58 GB `/dev/shm` (EU-CZ-1).
+
+**Do:** run `stat -f -c %T /workspace; df -h /workspace /dev/shm /` first. When no single place fits, split the shards: before the
+chain, create `$CACHE_ROOT/<shard>` as symlinks to directories on the other disk (on 10-07: `CACHE_ROOT=/dev/shm/cache`, shards a / b
+there, c / d as links into `/root/cache3`). `runpod_chain.sh` follows them unchanged (`mkdir -p` accepts the link, the pull writes
+through it, and `verify` globs through it: 71 blobs, 0 bad). Keep ≥ 10 GB free on the container disk for the pip installs.
+
+### 56. Watching and backing up a pod run: `mawk` buffers a pipe, AUTO_STOP cuts an scp, and a new Dataset's archive 404s (Tier 3, 2026-10-07)
+
+Three frictions from the P-69 run, none of which lost data:
+- **`mawk` reads a pipe in blocks.** A Monitor of `ssh … 'tail -F <log> | awk "/pattern/ {print; fflush()}"'` delivered nothing
+  for 30 min, through the cache verification and epoch 0. `fflush()` flushes awk's output, not its input. Use `awk -W interactive`
+  (mawk) or `grep --line-buffered`.
+- **AUTO_STOP stops the pod the second the ship returns.** `ship` took 14 s, then `job exit rc=0 -- AUTO_STOP` stopped the pod and
+  closed SSH. An scp of `_best.pt` + `_lastema.pt` started at the SWA line was cut: `_best.pt` arrived whole, `_lastema.pt` at 261 KB
+  of ≈ 112 MB. The ship carries `_best.pt`, the OOF csv and the log, not `_lastema.pt`.
+- **A Dataset created minutes ago cannot be downloaded whole.** `kaggle datasets download <slug> --unzip` printed only the licence
+  and wrote nothing; `datasets status` said `ready` yet a second try returned `404 … DownloadDataset`. Per-file downloads
+  (`-f <file>`) worked at once.
+
+**Do:** for the local backup of an AUTO_STOP run, take the files from the shipped Dataset with per-file downloads and compare the
+checkpoint's sha256 with any partial local copy; delete a truncated file rather than keep it. If `_lastema.pt` matters, copy it
+before the SWA pass ends.

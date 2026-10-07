@@ -134,6 +134,7 @@ agreement with the teacher, not truth. A one-seed LB delta needs ≥ 0.004 (P-44
 | 2026-10-07 | **P-62 solo, submission #61 (`rsna-knee-infer` v50)**: `v13rs` = `v13r` + Raptor 0.75 on report-silent cells | 0.9160 | **0.937** | **🔁 (the pair, above); +0.003 vs `v13r` at the same seed. P-62 closes 🔁, not adopted; both solos ≥ 0.936 open B12** |
 | 2026-10-07 | **B5, submission #62 (`rsna-knee-infer` v59)**: flat rank-mean `v11a` + `v13r` + `v13e` + `v13e2` (B6 − `v13b3`) | 0.9238 | **0.940** | **🔁 −0.002 vs B6; predicted 0.939–0.940. Of the three drop-one reads, dropping the B3 costs the most** |
 | 2026-10-07 | **B14, submission #63 (`rsna-knee-infer` v57)**: flat rank-mean `v13r` + `v13e` + `v13b3` + `v13e2` (B6 − `v11a`, the four CNNs) | 0.9211 | **0.942** | **= B6 (0.000); the pre-registered "≥ 0.942 → the CoAtNet is not needed" fires: week 2 drops the CoAtNet retrain. Predicted 0.940–0.941: the CoAtNet's family gain ≈ its quality cost** |
+| 2026-10-07 | **P-69 `v15c` (RunPod RTX 4090, 1.97 pod-h ≈ $1.46)**: timm ConvNeXt-T `in12k_ft_in1k` @ 288 with its own optimiser (`lr_backbone` 1e-4, per-stage decay 0.9, head 1e-3, 20 epochs, SWA 17–19), the B6 data side (c03, heavy aug, drop path 0.1, 2 × 2, 0.5 LLM + 0.5 Raptor) | gold-58 SWA **0.9234** (B6 members 0.9111–0.9222; peak epoch 11 0.9272) | — | **✅ run green, shipped (`rsna-knee-ckpt-v15c`); 🔁 direction only. The clip-rate tripwire fired (82 % of steps clipped at the last epoch, line 50 %): a low solo reads 🔁, not ❌. Placeholders A6 = infer v61, B17 = v62 (gold 0.9266 vs B6 0.9256), B12 = v60 (0.9242), all green; sends staged for 10-08** |
 
 **External reference points** (not ours — for calibrating ambition):
 
@@ -3818,6 +3819,64 @@ last score landed at 01:02 UTC.
    (0.9358) and add no family, so by B13's and B14's reads B12 ≈ B6 ± 0.001. B9 (gated on A3 ✅) stays closed.
 
 **Verdicts #60 / #61: 🔁 (pair +0.002). P-62 closed 🔁, not adopted.**
+
+### 2026-10-07 — P-69 on RunPod: ConvNeXt-T `v15c` (own recipe, 288 px) trained in 1.53 h on one RTX 4090 · gold-58 SWA **0.9234**, the best single on gold (B6 members 0.9111–0.9222) · the clip-rate tripwire fired (82 % at the end) · ✅ run green, shipped, pod deleted, ≈ $1.46 · 🔁 direction only · placeholders A6 / B17 / B12 green, sends staged for 10-08
+
+**Run** (Tian's go 10-07 morning; plan `docs/superpowers/plans/2026-10-06-p69-convnext-plan.md`, critic GO-WITH-CHANGES on 10-06):
+- Pod `ohhzyji8h4db80` (EUR-NO-1, $0.74/h), created 06:26:16 UTC. The on-pod stopper (`scripts/runpod_stopper.sh`, its first real
+  use) was armed at 06:28 with the deadline 09:47:16 (creation + 3.35 h ≈ $2.48), then `runpod_chain.sh v15c` with `AUTO_STOP=1`,
+  `SEQ_ARMS=1`, `SHIP_TRIES=3`, `SHIP_WAIT_S=120`, `MAX_POD_H=3.35`.
+- Storage: `/workspace` was MooseFS and `/dev/shm` only 41 GB, so the 51 GB c03 cache was split, shards a / b in `/dev/shm`, c / d on
+  the 40 GB container disk (1.6 GB/s), through symlinks under `CACHE_ROOT` (traps 55). Bandwidth 174 MB/s (bar 20 MB/s).
+- Timeline: four parallel cache pulls 06:28 → 06:49 (71 blobs, 0 bad, 4,407 studies); training 06:49:48 → 08:23:40 (89.5 min of
+  training + 2.3 min of evaluation, 4.5 min per epoch, the plan's 4.1–4.5); SWA; `SHIPPED v15c` at 08:23:56 (14 s); `job done:
+  shipped 1 / 1`; AUTO_STOP stopped the pod the same second. Pod time 1.97 h ≈ $1.46 (the plan: 1.6–2.3 h, $1.2–1.7).
+- Backup: `v15c_fold0_best.pt` sha256 `4cd3e9bf…` locally = the Dataset's copy; the OOF csv and the log in
+  `artifacts/kaggle_out/pod_v15c/`. The stop cut the scp of `_lastema.pt` (traps 56); it is not used. The pod was deleted after the
+  ship and the backup were confirmed; `list-pods` is empty.
+- Gates: the epoch-0 gate passed (0.55 h elapsed + 20 × 5.0 min × 1.1 + 0.2 h = 2.6 h ≤ 3.0 h). Peak GPU memory 7.02 GiB at
+  2 × 34 windows.
+
+**Training curve and the pre-registered tripwires** (plan, "Under-fit tripwires"):
+
+| epoch | loss | gold-58 | `pred_std` | grad norm (pre-clip) | clipped | the members (`v13e` / `v13r` / `v13b3`) |
+|---|---|---|---|---|---|---|
+| 0 | 0.5502 | 0.8154 | 0.169 | 10.92 | 100 % | loss 0.553–0.570 (flag > 0.60) |
+| 2 | 0.4593 | 0.9100 | 0.290 | 3.27 | 100 % | |
+| 4 | 0.4297 | 0.9182 | 0.305 | 2.50 | 99 % | loss 0.436–0.477, gold 0.876–0.912, `pred_std` 0.267–0.300 (flag: loss > 0.49 and `pred_std` < 0.26) |
+| 9 | 0.3926 | 0.9220 | 0.319 | 1.99 | 96 % | |
+| 11 | 0.3818 | **0.9272** (peak) | 0.322 | — | — | |
+| 14 | 0.3674 | 0.9259 | 0.324 | 1.65 | 87 % | |
+| 19 | 0.3567 | 0.9233 | 0.325 | 1.48 | 82 % | loss 0.350–0.383, `pred_std` 0.316–0.318 (flags: loss > 0.40, `pred_std` < 0.30, clip > 50 %) |
+| SWA 17–19 | — | **0.9234** | 0.325 | | | |
+
+- Epoch 0 and epoch 4: no flag (loss, NaN, GradScaler steady at 2048 → 32768, 5 + 1 + 1 skipped steps).
+- End of run: loss 0.357 and `pred_std` 0.325 are in or above the members' range; gold fell 0.003 over epochs 14–19 instead of still
+  rising. **The clip-rate flag fired:** 82 % of steps were still clipped at 1.0 in the last epoch. By the pre-registered rule a low
+  solo therefore reads 🔁, not ❌. No member has an optimiser line to compare (the line is new in P-69), so whether clipping this
+  often slows ConvNeXt or is simply its gradient scale at this loss is not known.
+
+**Gold-58, direction only (traps 39):**
+- `v15c` SWA 0.9234 is the best single member on gold (`v13b3` 0.9222, `v11a` 0.9204, `v13e2` 0.9151, `v13e` 0.9126, `v13r` 0.9111).
+  It sits above the B6 members' mean on 8 of 12 labels (ACL 0.982, MCL 0.952, Lateral Meniscus 0.902, PF OA 0.882 the clearest),
+  level on Effusion / Synovitis / Contusion, under on Baker's.
+- Within-class ρ with the B6 members 0.825 (`v11a`) to 0.881 (`v13e`), the same range as the members among themselves (0.83–0.89):
+  not an unusually independent vote.
+- Blends: B6 0.9256, **B17 (B6 + `v15c`) 0.9266**, **B12 (B6 + `v13es` + `v13rs`) 0.9242**. Gold had B14 wrong on 10-07, so none
+  of this is a forecast.
+
+**Placeholders (all `rsna-knee-infer`, green by the candidates.md check: `"smoke": "False"`, the right members, `decode-once
+verified`, `constant labels 0`):**
+- **v60 = B12** (7 members), 1.2 min of inference on the 3 placeholder studies.
+- **v61 = A6** (`v15c` alone): the checkpoint read back as `[epoch 19, score 0.9234, ema True]` at img 288. The infer image runs timm
+  1.0.26, training ran 1.0.28: 180 tensors loaded, strict. 208 s per 100 studies on the placeholder's 3 studies.
+- **v62 = B17** (`blend: by_version` → six single-fold votes).
+- The 10-08 plan is written (`artifacts/submit_plan_1008.json`: A6 → B17 → B12, each message carrying its read rule) but no
+  submitter is running: the sends need Tian's go.
+
+**Verdict: ✅ the run (green, shipped, backed up, ≈ $1.46 under the $2.5 cap, the pod deleted); 🔁 direction only on gold-58 (+0.0012
+over `v13b3`, far under the 0.05 floor); the clip-rate tripwire fired, so a low LB solo will read 🔁. The LB reads are A6 and B17
+(10-08).**
 
 ## Infrastructure
 

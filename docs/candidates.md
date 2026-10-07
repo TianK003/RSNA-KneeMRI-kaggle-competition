@@ -9,7 +9,9 @@ How this file relates to the others:
 - **This file is only the queue.** When a candidate is read, its row is deleted here and its score goes to experiments.md
   (Submissions table + Scoreboard) through `/update`. Never keep a score in two places.
 
-Updated 2026-10-07 (01:10 UTC). All five 10-07 reads are in (#59–#63, experiments.md "Submissions #59–#63"): **B14 0.942 = B6**
+Updated 2026-10-07 (08:40 UTC). **P-69 trained** (`v15c` on RunPod, gold-58 SWA 0.9234, ≈ $1.46, pod deleted) and **the 10-08 three
+are built and green: A6 = infer v61, B17 = v62, B12 = v60**, staged in `artifacts/submit_plan_1008.json` (no submitter running yet:
+Tian's go). All five 10-07 reads are in (#59–#63, experiments.md "Submissions #59–#63"): **B14 0.942 = B6**
 (the CoAtNet is not needed: week 2 drops its retrain), **B4 0.941 / B5 0.940** (B4 − B5 = +0.001: neither week-2 branch fires, and
 P-69 runs one arm), **`v13es` 0.936 / `v13rs` 0.937** (P-62 closed 🔁, not adopted; both qualify for B12). The 10-06 reads (#54–#58)
 made C2 the fork pick (0.944), kept B6 as the own pick and closed P-65. 5 slots on every UTC day to the 10-22 deadline; an unattended
@@ -27,10 +29,10 @@ of Kaggle GPU is left until 10-10, enough for ≈ 15).
 
 | Prio | Day | Candidate | What it decides | Gate | Status |
 |---|---|---|---|---|---|
-| **P1** | 10-08 | **A6**: `v15c` solo (P-69 ConvNeXt-T, own recipe; one arm: B4 − B5 read +0.001) | Is ConvNeXt-T member grade with its own optimiser? | the RunPod run ships (10-07 ≈ 01:00–03:30 UTC) | train, then a placeholder |
-| **P1** | 10-08 | **B17**: B6 + `v15c` as one vote | Does a fourth family lift B6? The only own-blend row that can open C3 | A6's checkpoint exists | build after the ship |
+| **P1** | 10-08 | **A6**: `v15c` solo (P-69 ConvNeXt-T, own recipe; one arm: B4 − B5 read +0.001) | Is ConvNeXt-T member grade with its own optimiser? | — (shipped 10-07 08:24) | infer **v61** ✅; staged (send 1) |
+| **P1** | 10-08 | **B17**: B6 + `v15c` as one vote | Does a fourth family lift B6? The only own-blend row that can open C3 | — | infer **v62** ✅; staged (send 2) |
 | **P2 → P4 (recommended 10-06 evening; Tian decides later)** | 10-08 | **B16**: B6 + the public ConvNeXt-T reader (goodpjw2008, Apache-2.0); ≈ +0.0005 LB by the gold-58 model | A sixth family without training; the families, not the member count, carry the blend gain (10-06). Tian's 10-06 focus | the external-member hook (P-71) | needs code (P-71), then a placeholder |
-| **P2** | 10-08 | **B12**: B6 + `v13es` + `v13rs` (both A3 solos read ≥ 0.936) | The own final pick's successor (pick 1); pred. ≈ B6 ± 0.001 | **met 10-07** (0.936 / 0.937) | build (a placeholder) |
+| **P2** | 10-08 | **B12**: B6 + `v13es` + `v13rs` (both A3 solos read ≥ 0.936) | The own final pick's successor (pick 1); pred. ≈ B6 ± 0.001 | **met 10-07** (0.936 / 0.937) | infer **v60** ✅; staged (send 3) |
 | **P2** | 10-09 | **C3**: the public stack + the best own blend as the leg, β 0.45 | Fork pick 2 with a better leg | an own blend ≥ 0.943 (B17, B12 or B16). **Not open after 10-07** (B13 0.940, B11 0.941, B14 0.942, B4 0.941, B5 0.940) | build with `src/build_fork.py` only if gated in (with B17: `--member v15c=rsna-knee-ckpt-v15c:timm-convnext-tiny-in12k`); send 1 of its day |
 | P5 | hold | B1, B2, B7, B8, B9, B10, B15 | — | B14 / B13 supersede B1 / B2; B7 / B10 predict under B6; **B8 and B15 closed by B13** (same-family members under the mean cost); **B9 closed 10-07** (gated on A3 ✅; A3 read 🔁) | hold |
 | — | 10-09 | **Freeze the shortlist for P-50** | pick 1 = B6 (or a B row ≥ 0.943), pick 2 = C2 (#54, fork v12) | — | Tian, by 10-22 |
@@ -60,7 +62,7 @@ A3 (the P-62 pair) was read on 10-07: `v13es` 0.936 / `v13rs` 0.937, P-62 closed
 
 | # | Candidate | What it tests / contributes | Decides | Read rule | Placeholder | Gold-58 |
 |---|---|---|---|---|---|---|
-| A6 | `v15c` (P-69): timm ConvNeXt-T `in12k_ft_in1k` @ 288 with its own optimiser (1e-4, per-stage decay 0.9, 20 epochs), the B6 data side; one arm (`v15c2` needed B4 − B5 ≤ −0.002; it read +0.001 on 10-07) | A fourth family (pretraining data our members never saw), at member grade? | Whether B17 is worth a slot; whether ConvNeXt joins the week-2 finals | vs B6's members' mean 0.9358 (one seed, floor 0.004; a pair: the mean, ± 0.0045): ≥ 0.936 at or above the mean / 0.933–0.935 member grade / ≤ 0.932 stop spending on ConvNeXt (a resource decision; a fired tripwire makes it 🔁 and goes back to Tian) | not built (needs the 10-07 RunPod run + `rsna-knee-ckpt-v15c` in infer) | reported only |
+| A6 | `v15c` (P-69): timm ConvNeXt-T `in12k_ft_in1k` @ 288 with its own optimiser (1e-4, per-stage decay 0.9, 20 epochs), the B6 data side; one arm (`v15c2` needed B4 − B5 ≤ −0.002; it read +0.001 on 10-07) | A fourth family (pretraining data our members never saw), at member grade? | Whether B17 is worth a slot; whether ConvNeXt joins the week-2 finals | vs B6's members' mean 0.9358 (one seed, floor 0.004; a pair: the mean, ± 0.0045): ≥ 0.936 at or above the mean / 0.933–0.935 member grade / ≤ 0.932 stop spending on ConvNeXt (a resource decision; a fired tripwire makes it 🔁 and goes back to Tian) | infer **v61** ✅ (10-07) | 0.9234 (SWA; clip-rate tripwire fired: a low read is 🔁) |
 
 ## B. Submission candidates — ensembles of members we have
 
@@ -86,8 +88,8 @@ follow the members' solos (the B3 −0.002, the B0 seed twin −0.001, the CoAtN
 
 | # | Prio | Members | What it tests / contributes | Read rule (beyond the header bands) | Placeholder | Gold-58 |
 |---|---|---|---|---|---|---|
-| B12 | P2 | B6 + `v13es` + `v13rs` (both A3 solos read ≥ 0.936 on 10-07: 0.936 / 0.937) | The pick-1 successor. Both members sit at B6's members' mean (0.9358) and are variants of B6 families at seed distance, so by the 10-06 / 10-07 refinements pred. ≈ B6 − 0.001 to + 0.001 | ≥ 0.943 → the new pick 1 and the C3 leg | build (gate met 10-07) | — |
-| B17 | P1 | B6 + `v15c` as ONE vote (six votes, flat; with the seed pair, `INFER_VOTE_GROUPS` rank-means `v15c` / `v15c2` into one vote first: B13 showed extra votes of a family cost) | A fourth family on B6. The gold-58 model (research.md 2.7.8 C2) predicts ≈ B6 + 0.001 at member grade, ≈ B6 + 0.0002 for a member 0.005 under the mean, so it doubles as a no-harm check | the header bands vs B6 0.942; **≥ 0.943 → pick 1 by house convention (the floors line is 0.944, so not evidence) and C3's gate opens**; 0.942 → pick 1 only if A6 read ≥ 0.936; otherwise B6 stays. More ConvNeXt training in week 2 only if B17 ≥ 0.943 | build after the ship; mount `rsna-knee-ckpt-v15c` + `timm-convnext-tiny-in12k` (already in the infer metadata) | reported only |
+| B12 | P2 | B6 + `v13es` + `v13rs` (both A3 solos read ≥ 0.936 on 10-07: 0.936 / 0.937) | The pick-1 successor. Both members sit at B6's members' mean (0.9358) and are variants of B6 families at seed distance, so by the 10-06 / 10-07 refinements pred. ≈ B6 − 0.001 to + 0.001 | ≥ 0.943 → the new pick 1 and the C3 leg | infer **v60** ✅ (10-07) | 0.9242 |
+| B17 | P1 | B6 + `v15c` as ONE vote (six votes, flat; with the seed pair, `INFER_VOTE_GROUPS` rank-means `v15c` / `v15c2` into one vote first: B13 showed extra votes of a family cost) | A fourth family on B6. The gold-58 model (research.md 2.7.8 C2) predicts ≈ B6 + 0.001 at member grade, ≈ B6 + 0.0002 for a member 0.005 under the mean, so it doubles as a no-harm check | the header bands vs B6 0.942; **≥ 0.943 → pick 1 by house convention (the floors line is 0.944, so not evidence) and C3's gate opens**; 0.942 → pick 1 only if A6 read ≥ 0.936; otherwise B6 stays. More ConvNeXt training in week 2 only if B17 ≥ 0.943 | infer **v62** ✅ (10-07; `rsna-knee-ckpt-v15c` mounted) | 0.9266 (B6 0.9256) |
 | B16 | P2 → P4 | B6 + the public 2.5D ConvNeXt-T reader (`goodpjw2008/rsna-knee-2-5d-convnext-reader`, 3 checkpoints, 0.929 solo) | A sixth family at no training cost; shares neither our input (c03) nor our targets (Raptor). Pred. ≈ 0.941–0.943 (mean of six 0.9347 + a cross-family gain; more if its independence is worth more than our families' ρ ≈ 0.83–0.89). **If `v15c` becomes a member, B16 adds a second ConvNeXt and its value falls further** | ≥ 0.943 → a final-pick member and the C3 leg | **needs code (P-71)**: run the reader's `infer.py` on `test_series` in a subprocess and rank it in as one member; ≈ 20 min extra scoring; licence Apache-2.0 (read 10-06) | — (no gold predictions) |
 | B15 | P5 | B12 + `v11n` + `v11n2` | B12 and B13 combined | **closed 10-06**: B13 read 0.940 (< 0.943) | — | — |
 | B8 | P5 | every member with a solo ≥ 0.930: B6 + `v11n` + `v11n2` + `v13h` + `v11d`, plus the new solos ≥ 0.930 | Does "everything" beat a curated 3–5? (Tian prefers 3–5) | **held 10-06**: B13 (B6 + two same-family members) lost 0.002, and B8 adds four such members | — | 0.9248 (the nine without the 10-06 arms) |
@@ -114,11 +116,11 @@ one pipeline: fork deltas of one tick are noise (experiments.md 2026-10-06 "The 
   #54–#58"). C3's gate stayed closed and no E solo qualified for B12, so both pre-registered fallbacks fire.
 - **10-07 (sent 00:00–00:04 UTC, all read by 01:02):** B4 0.941 → A3a 0.936 → A3b 0.937 → B5 0.940 → B14 0.942 (experiments.md
   "Submissions #59–#63"). P-62 closed 🔁, B12's gate met, B9 closed, the CoAtNet retrain dropped, P-69 = one arm.
-- **10-07 ≈ 01:00 UTC, after the five sends and the B4 / B5 reads:** the P-69 RunPod run (`v15c`, one arm: B4 − B5 read
-  +0.001), ≈ 1.6–2.3 h. Then the ship, a local backup, and
-  the A6 / B17 placeholders.
-- **10-08 (`submit_plan_1008.json`):** A6 and B17 first (if the pod has shipped); then B12 (gate met); B16 only if Tian
-  approves P-71 and its code is done. C3 moves to 10-09: it is gated on B17 / B12 reading ≥ 0.943, and a fork scores in hours.
+- **10-07 06:26–08:24 UTC:** the P-69 RunPod run (`v15c`, one arm), 1.97 pod-h ≈ $1.46, shipped and backed up, pod deleted
+  (experiments.md 2026-10-07 "P-69 on RunPod"). Placeholders B12 = v60, A6 = v61, B17 = v62, all green.
+- **10-08 (`artifacts/submit_plan_1008.json`, written, no submitter running):** A6 (v61) → B17 (v62) → B12 (v60). Start it with
+  `src/auto_submit.py --plan artifacts/submit_plan_1008.json --at 2026-10-08T00:00:30Z` on Tian's go. Two slots stay free; B16 only
+  if Tian approves P-71 and its code is done. C3 moves to 10-09: it is gated on B17 / B12 reading ≥ 0.943, and a fork scores in hours.
 - **10-09:** C3 if gated in; otherwise only rows that still decide something, or leave the slots empty. Freeze the P-50 shortlist.
 - **10-10:** training resumes (section D). The submissions after that are the new arms' solos.
 
@@ -157,7 +159,7 @@ pair runs on Kaggle. The only RunPod run planned is P-69's.
 - ✅ **`v13ex2` done (10-06):** in SHIPPED_ARMS and DISTILLED_ARMS, unit check, local smoke, and the pair's Kaggle smoke
   `rsna-knee-train-b` v8 green (both tables read, `reseeded 43`, SWA `_best.pt`). Session B at 10-10 is ready.
 - ✅ **P-69 smoke done (10-06):** `rsna-knee-train` v47 green; the RunPod run follows the 10-07 sends.
-- The A6 / B17 placeholders after the pod ships (≈ 0.3–0.5 GPU-h together).
+- ✅ **Placeholders done (10-07):** B12 = infer v60, A6 = v61, B17 = v62 (≈ 0.2 GPU-h together); 2.60 h of Kaggle GPU left until 10-10.
 - Pending Tian, optional: P-73 (`v14tx`), P-74 (a) `channels_last`, the P-71 hook for B16.
 
 **The 10-10 plan (revised 2026-10-06 evening; two Kaggle sessions at a time, two T4s each; ≈ 30 session-h this week):**
@@ -176,7 +178,7 @@ pair runs on Kaggle. The only RunPod run planned is P-69's.
 |---|---|---|---|---|---|
 | **T9** | **P-68** pseudo-label pair `v13ex` ‖ `v13ex2` (B0, seeds 42 / 43, on 0.5 LLM + 0.25 Raptor + 0.25 CoAtNet cross-fit OOF `xfit_v09k`); `v11o` / `v13eo` after the floor run, only if the pair reads ✅ | the forum's largest single-model lever (different-source pseudo-labels, Raymond / SpeedSci +0.011), the one target change we have not tested | **approved by Tian 10-06 evening**; `v13ex2` added and the pair smoke-green (`rsna-knee-train-b` v8) | ≈ 6 h, one session | P-68 |
 | **T7** | **P-67 loop**: proxy baseline × 2 seeds (the floor), then one variable per 5-fold run: `v14lr` / `v14th` / `v14gd` / `v14bl` / `v14ns` / `v14sh` (augmentation components), `v14mx` (mixup), `v14r288` (B0 @ 288), `v14db` (blank windows), `v14ep20` (longer schedule); `v14tx` / `v14prog` if P-73 / P-74 are approved; later drop-path / EMA, slot layout | the single-model recipe, judged on a pooled 5-fold report-label OOF; the forum's 0.95 teams' method. The epoch-budget variant answers the epoch-selection question too | the 10-10 reset | ≈ 5 variants per 9-h session, ≈ 16 per week; or $0.6 each on a 4090 | P-67 |
-| **T8** | **P-69 ConvNeXt-T `v15c`** (timm `convnext_tiny.in12k_ft_in1k` @ 288, LR 1e-4 + per-stage decay 0.9, 20 epochs, the B6 data side, Raptor 0.5); one arm (the second-seed rule did not fire: B4 − B5 = +0.001) | a fourth family with pretraining data our members never saw, on its own optimiser (the `v13h` recipe is what the literature warns against for ConvNeXt) | **re-opened by Tian 10-06 night**; RunPod after the 10-07 sends; Kaggle smoke `rsna-knee-train` v47 green | ≈ $1.4 one arm (≈ 1.6–2.3 pod-h), ≈ $2.3 the pair; cap $2.5 enforced on the pod (`scripts/runpod_stopper.sh`). Kaggle fallback ≈ 6.5–10 T4-h (Tian's call) | P-69 |
+| **T8** | **P-69 ConvNeXt-T `v15c`** (timm `convnext_tiny.in12k_ft_in1k` @ 288, LR 1e-4 + per-stage decay 0.9, 20 epochs, the B6 data side, Raptor 0.5); one arm (the second-seed rule did not fire: B4 − B5 = +0.001) | a fourth family with pretraining data our members never saw, on its own optimiser (the `v13h` recipe is what the literature warns against for ConvNeXt) | ✅ **trained 10-07** on RunPod (1.97 pod-h ≈ $1.46; gold-58 SWA 0.9234); LB on 10-08 (A6, B17) | spent ≈ $1.46 of the $2.5 cap | P-69 |
 | T10 | P-72 a seventh family (`eca_nfnet_l0`) | **pending Tian** (recommended drop: no read on this task, in1k only) | — | 1 arm ≈ 6 h | P-72 |
 | T6 | Final members (week of 10-17): B3 × 2 seeds (RunPod, or Kaggle if P-74 b works), B0 × 2, R50; no CoAtNet retrain (B14 #63 = B6 without it) — all on the winning recipe and target (0.5 LLM + 0.5 Raptor, or the P-68 mix if it reads ✅; no Claude, P-65 ❌; no silent weight, P-62 🔁) | the two final picks (B6-successor; the fork leg) | T7 / T9 reads (A3 / B14 / B4 / B5 read 10-07; B3 × 2 vs B0 × 2 still open) | ≈ 30 Kaggle session-h + ≈ $4 RunPod for the B3s | P-50 |
 | T2 | B3 at seed 43 **now** | de-biases the single 0.940 draw; the critic's case is written | **paused** with the rest of D; folded into T6 (the final B3 retrain on the winning recipe *is* the second draw) | ≈ $1.9 | P-50 |
