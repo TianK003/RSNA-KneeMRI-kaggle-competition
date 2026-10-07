@@ -6,6 +6,54 @@ to read first after a break.
 
 ---
 
+## 2026-10-07 (11:15 → 11:25 UTC) — Tian's go for the 10-08 sends: **`auto_submit.py` pid 25568 armed** (A6 v61 → B17 v62 → B12 v60 at 2026-10-08 00:00:30 UTC)
+
+Tian: "Yeah, do that and run /handoff" (that = start the 10-08 submitter staged in the entry below). Commit `0bdf1ff` plus this one. **This
+entry supersedes the entry below's "no submitter running" and its Next action 1.** Everything else in that entry stands.
+
+### ⏳ Still in flight as this was written (11:25 UTC)
+
+| In flight | What it is | Started | How to check | How to read it |
+|---|---|---|---|---|
+| **Auto-submitter, Windows pid 25568** (interpreter child pid 13440) | `src/auto_submit.py --plan artifacts/submit_plan_1008.json --at 2026-10-08T00:00:30Z`: **A6 (`rsna-knee-infer` v61, `v15c` solo) → B17 (v62, B6 + `v15c`) → B12 (v60, B6 + `v13es` + `v13rs`)**, 20 s apart, then one watcher per ref. Dry run green at 11:19 (API ok, 20 submissions listed) | 11:20 | `Get-Content artifacts/auto_submit_1008.log -Tail 20` (+ `.err`); `Get-Process -Id 25568,13440` | **Green** = `sent 3 / 3` just after 00:00 UTC, then three `-> ref …` lines. The log writes `waiting for … (N h)` once an hour. **Suspicious:** the pid gone before 00:00, `FAILED after 3 attempts`, a Traceback in `.err`, or no line after 00:00 (the laptop slept; traps 53). **Fallback:** `$env:PYTHONUTF8="1"; .venv/Scripts/python.exe src/auto_submit.py --plan artifacts/submit_plan_1008.json` (sends at once; skips anything already sent that UTC day). Read the scores from `kaggle competitions submissions`, not from the summary |
+
+### Where things stand
+
+| | Status |
+|---|---|
+| 10-08 sends | ⏳ queued (above). Two of the day's five slots stay empty: nothing else is gated in (B16 needs P-71's code and Tian's approval; C3 waits for a ≥ 0.943 read) |
+| Laptop | on AC power at 11:19 UTC (`PowerOnline True`). It must stay awake with the lid open through 00:00 UTC (traps 53) |
+| Kaggle token | refreshed 06:25 UTC, expires 18:25 UTC. The submitter re-authenticates after its wait, and the first call ≥ 30 min after expiry refreshes it (traps 20). This is the same path that worked for the 10-07 sends |
+| Everything else | as in the entry below: P-69 trained, placeholders v60–v62 green, `rsna-knee-infer` committed render = v62 (B17), 2.60 h Kaggle GPU until 10-10, RunPod ≈ $3.5 |
+
+### What we talked about and decided
+
+- Tian approved starting the staged 10-08 submitter. The order stays as staged: A6, then B17, then B12. A6 and B17 are the ConvNeXt
+  reads, and all three score in under an hour, so the order changes nothing.
+
+### What we figured out
+
+- Nothing new. The reads arrive with the sends (≈ 00:15–01:00 UTC 10-08).
+
+### ⏭ Next action, in order
+
+1. **Tonight before 00:00 UTC:** laptop on AC, lid open; `Get-Process -Id 25568` alive.
+2. **10-08 ≈ 00:05 UTC:** `sent 3 / 3` in `artifacts/auto_submit_1008.log`. As the scores land, `/update` each one by its read rule
+   (they are in the entry below, Next action 2, and in candidates.md A6 / B17 / B12):
+   - A6 vs 0.9358;
+   - B17 vs B6 0.942 (≥ 0.943 → pick 1 + C3's gate);
+   - B12 vs B6 0.942.
+3. Then the entry below's Next actions 3–4 (C3 on 10-09 if gated in; the 10-10 sessions A and B).
+
+### Open decisions for Tian
+
+- Unchanged from the entry below: week 2 (B3 × 2 vs B0 × 2), P-71 / B16, P-72 … P-79.
+
+### Things that will bite if forgotten
+
+- Closing the lid sleeps the laptop despite the submitter's sleep block (traps 53). On 10-06 the sends only went out because the laptop
+  was woken by hand.
+
 ## 2026-10-07 (22:14 UTC 10-06 → 08:40 UTC) — the 10-07 five sent and read (B14 = B6 → no CoAtNet retrain; P-62 closed 🔁; B4 − B5 +0.001 → P-69 one arm) · **P-69 `v15c` trained on RunPod** (gold-58 0.9234, ≈ $1.46, pod deleted) · B12 / A6 / B17 placeholders green · 10-08 sends staged, **not started**
 
 Tian, in order: "Make sure to read the handoff and push all submissions for today"; "I force approved the kaggle api token so you can
