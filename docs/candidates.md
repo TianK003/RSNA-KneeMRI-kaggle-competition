@@ -10,8 +10,8 @@ How this file relates to the others:
   (Submissions table + Scoreboard) through `/update`. Never keep a score in two places.
 
 Updated 2026-10-07 (08:40 UTC). **P-69 trained** (`v15c` on RunPod, gold-58 SWA 0.9234, ≈ $1.46, pod deleted) and **the 10-08 three
-are built and green: A6 = infer v61, B17 = v62, B12 = v60**, staged in `artifacts/submit_plan_1008.json` (no submitter running yet:
-Tian's go). All five 10-07 reads are in (#59–#63, experiments.md "Submissions #59–#63"): **B14 0.942 = B6**
+are built and green: A6 = infer v61, B17 = v62, B12 = v60**, queued in `artifacts/submit_plan_1008.json`: **`auto_submit.py` pid 25568
+(started 11:20 UTC on Tian's go) sends them at 2026-10-08 00:00:30 UTC**. All five 10-07 reads are in (#59–#63, experiments.md "Submissions #59–#63"): **B14 0.942 = B6**
 (the CoAtNet is not needed: week 2 drops its retrain), **B4 0.941 / B5 0.940** (B4 − B5 = +0.001: neither week-2 branch fires, and
 P-69 runs one arm), **`v13es` 0.936 / `v13rs` 0.937** (P-62 closed 🔁, not adopted; both qualify for B12). The 10-06 reads (#54–#58)
 made C2 the fork pick (0.944), kept B6 as the own pick and closed P-65. 5 slots on every UTC day to the 10-22 deadline; an unattended
@@ -29,10 +29,10 @@ of Kaggle GPU is left until 10-10, enough for ≈ 15).
 
 | Prio | Day | Candidate | What it decides | Gate | Status |
 |---|---|---|---|---|---|
-| **P1** | 10-08 | **A6**: `v15c` solo (P-69 ConvNeXt-T, own recipe; one arm: B4 − B5 read +0.001) | Is ConvNeXt-T member grade with its own optimiser? | — (shipped 10-07 08:24) | infer **v61** ✅; staged (send 1) |
-| **P1** | 10-08 | **B17**: B6 + `v15c` as one vote | Does a fourth family lift B6? The only own-blend row that can open C3 | — | infer **v62** ✅; staged (send 2) |
+| **P1** | 10-08 | **A6**: `v15c` solo (P-69 ConvNeXt-T, own recipe; one arm: B4 − B5 read +0.001) | Is ConvNeXt-T member grade with its own optimiser? | — (shipped 10-07 08:24) | infer **v61** ✅; queued (send 1, pid 25568) |
+| **P1** | 10-08 | **B17**: B6 + `v15c` as one vote | Does a fourth family lift B6? The only own-blend row that can open C3 | — | infer **v62** ✅; queued (send 2, pid 25568) |
 | **P2 → P4 (recommended 10-06 evening; Tian decides later)** | 10-08 | **B16**: B6 + the public ConvNeXt-T reader (goodpjw2008, Apache-2.0); ≈ +0.0005 LB by the gold-58 model | A sixth family without training; the families, not the member count, carry the blend gain (10-06). Tian's 10-06 focus | the external-member hook (P-71) | needs code (P-71), then a placeholder |
-| **P2** | 10-08 | **B12**: B6 + `v13es` + `v13rs` (both A3 solos read ≥ 0.936) | The own final pick's successor (pick 1); pred. ≈ B6 ± 0.001 | **met 10-07** (0.936 / 0.937) | infer **v60** ✅; staged (send 3) |
+| **P2** | 10-08 | **B12**: B6 + `v13es` + `v13rs` (both A3 solos read ≥ 0.936) | The own final pick's successor (pick 1); pred. ≈ B6 ± 0.001 | **met 10-07** (0.936 / 0.937) | infer **v60** ✅; queued (send 3, pid 25568) |
 | **P2** | 10-09 | **C3**: the public stack + the best own blend as the leg, β 0.45 | Fork pick 2 with a better leg | an own blend ≥ 0.943 (B17, B12 or B16). **Not open after 10-07** (B13 0.940, B11 0.941, B14 0.942, B4 0.941, B5 0.940) | build with `src/build_fork.py` only if gated in (with B17: `--member v15c=rsna-knee-ckpt-v15c:timm-convnext-tiny-in12k`); send 1 of its day |
 | P5 | hold | B1, B2, B7, B8, B9, B10, B15 | — | B14 / B13 supersede B1 / B2; B7 / B10 predict under B6; **B8 and B15 closed by B13** (same-family members under the mean cost); **B9 closed 10-07** (gated on A3 ✅; A3 read 🔁) | hold |
 | — | 10-09 | **Freeze the shortlist for P-50** | pick 1 = B6 (or a B row ≥ 0.943), pick 2 = C2 (#54, fork v12) | — | Tian, by 10-22 |
@@ -118,8 +118,8 @@ one pipeline: fork deltas of one tick are noise (experiments.md 2026-10-06 "The 
   "Submissions #59–#63"). P-62 closed 🔁, B12's gate met, B9 closed, the CoAtNet retrain dropped, P-69 = one arm.
 - **10-07 06:26–08:24 UTC:** the P-69 RunPod run (`v15c`, one arm), 1.97 pod-h ≈ $1.46, shipped and backed up, pod deleted
   (experiments.md 2026-10-07 "P-69 on RunPod"). Placeholders B12 = v60, A6 = v61, B17 = v62, all green.
-- **10-08 (`artifacts/submit_plan_1008.json`, written, no submitter running):** A6 (v61) → B17 (v62) → B12 (v60). Start it with
-  `src/auto_submit.py --plan artifacts/submit_plan_1008.json --at 2026-10-08T00:00:30Z` on Tian's go. Two slots stay free; B16 only
+- **10-08 (`artifacts/submit_plan_1008.json`, `auto_submit.py` pid 25568 since 11:20 UTC 10-07, log `artifacts/auto_submit_1008.log`):**
+  A6 (v61) → B17 (v62) → B12 (v60) at 00:00:30 UTC. Laptop on AC, lid open (traps 53). Two slots stay free; B16 only
   if Tian approves P-71 and its code is done. C3 moves to 10-09: it is gated on B17 / B12 reading ≥ 0.943, and a fork scores in hours.
 - **10-09:** C3 if gated in; otherwise only rows that still decide something, or leave the slots empty. Freeze the P-50 shortlist.
 - **10-10:** training resumes (section D). The submissions after that are the new arms' solos.
