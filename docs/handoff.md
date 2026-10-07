@@ -6,6 +6,94 @@ to read first after a break.
 
 ---
 
+## 2026-10-07 (22:14 UTC 10-06 → 08:40 UTC) — the 10-07 five sent and read (B14 = B6 → no CoAtNet retrain; P-62 closed 🔁; B4 − B5 +0.001 → P-69 one arm) · **P-69 `v15c` trained on RunPod** (gold-58 0.9234, ≈ $1.46, pod deleted) · B12 / A6 / B17 placeholders green · 10-08 sends staged, **not started**
+
+Tian, in order: "Make sure to read the handoff and push all submissions for today"; "I force approved the kaggle api token so you can
+send them at 00:01"; then, after the reads: "I approve both items on the list [the P-69 pod and the B12 placeholder], implement them,
+make sure the runpod doesnt run endlessly, then grab results and models and run /update and /handoff". Commits `2e10ef6`, `9f14123`
+plus this one.
+
+**Nothing is in flight.** No pod (`list-pods` empty), no running kernel, and no submitter: pid 25032 finished after its summary. **The
+10-08 submitter has not been started** (see Next action 1).
+
+### Where things stand
+
+| | Status |
+|---|---|
+| 10-07 submissions | ✅ #59–#63 sent 00:00:30–00:04:07 UTC by pid 25032, all scored by 01:02 (experiments.md "Submissions #59–#63"): B4 0.941, `v13es` 0.936, `v13rs` 0.937, B5 0.940, **B14 0.942 = B6** |
+| P-69 `v15c` | ✅ trained on RunPod (pod `ohhzyji8h4db80`, 06:26–08:24 UTC, ≈ $1.46): **gold-58 SWA 0.9234**; the clip-rate tripwire fired (82 %). Shipped `tiankljucanin/rsna-knee-ckpt-v15c`; backup `artifacts/kaggle_out/pod_v15c/` (sha256 = the Dataset's). Pod deleted (experiments.md 2026-10-07 "P-69 on RunPod") |
+| Placeholders | ✅ `rsna-knee-infer` **v60 = B12** (B6 + `v13es` + `v13rs`, gold 0.9242), **v61 = A6** (`v15c` solo, 0.9234), **v62 = B17** (B6 + `v15c`, 0.9266; B6 0.9256), all green |
+| 10-08 plan | ⏳ `artifacts/submit_plan_1008.json`: A6 (v61) → B17 (v62) → B12 (v60), read rules in each message. **No submitter running** |
+| Final picks (P-50) | unchanged: pick 1 = B6 #52 0.942 (B14 ties it; the tie rule keeps the five), pick 2 = C2 #54 0.944 (fork v12) |
+| Committed renders | `rsna-knee-infer` = **v62 (B17)** (re-pushing it as is starts a B17 placeholder) · `rsna-knee-train` = v47 SMOKE · `rsna-knee-train-b` = v8 SMOKE (the P-68 pair) · `rsna-knee-fork` = v12 |
+| Budgets | Kaggle GPU **2.60 h** until 10-10 (27.40 used, `kaggle quota` 08:31 UTC); RunPod ≈ $3.5 left; submissions 5 / day, 15 days |
+| Repo | clean except the pre-existing `discussion.py` / `discussion_735304.xml` (not ours) |
+
+### What we talked about and decided
+
+- **The 10-07 sends:** the armed submitter did the sending. I did not send by hand at 00:01 as Tian offered: two senders could race
+  and double-spend a slot. I checked at 00:06 instead, with a fallback ready.
+- **Pre-registered rules applied to the reads** (experiments.md "Submissions #59–#63"):
+  - B14 ≥ 0.942 → week 2 drops the CoAtNet retrain;
+  - B4 − B5 = +0.001 → neither week-2 branch, and P-69 runs one arm (no `v15c2`);
+  - A3 🔁 → P-62 closed, not adopted; B9 closed;
+  - both A3 solos ≥ 0.936 → B12 opened.
+- **Tian approved both items:** the pod and the B12 placeholder. "Doesn't run endlessly" was met three ways: the on-pod stopper (deadline
+  09:47 UTC ≈ $2.48), the chain's AUTO_STOP (it fired at 08:23:56), and a delete as soon as the ship and the backup were confirmed.
+- **Built A6 / B17 too.** They are step 10 of the approved P-69 plan, cost ≈ 0.1 GPU-h, and are what the 10-08 sends need.
+- **Not started: the 10-08 submitter.** Sends were not part of today's go (memory: the go-ahead lives in the opening message).
+
+### What we figured out
+
+1. **The CoAtNet is neutral in B6.** B14 (B6 without it) 0.942 = B6, and the two-family B14 gained as much over its mean as the
+   three-family B5. A family member ≈ 0.004 under the others buys no diversity gain. Drop-one costs follow the solos: B3 −0.002, the
+   B0 seed −0.001, the CoAtNet 0.000 (experiments.md "Submissions #59–#63"; candidates.md "10-07 refinement").
+2. **The silent-cell mix is worth +0.002 at most** (pair 0.9365 vs 0.9345, both arms up by less than a seed). P-62 is closed.
+3. **ConvNeXt-T with its own recipe trains cleanly at member speed.**
+   - 4.5 min per epoch on a 4090, so 1.53 h for 20 epochs.
+   - Loss and `pred_std` are in or above the CNN members' range, and gold peaked at 0.9272 (epoch 11).
+   - It is above the members' mean on 8 of 12 gold labels, but its within-class ρ with them (0.83–0.88) is ordinary.
+   - The clip-rate flag fired (82 % of steps still clipped at 1.0 at the end), so a low LB solo reads 🔁, not ❌.
+4. **Pod operations** (traps 55, 56):
+   - This pod's `/workspace` was MooseFS with a 41 GB `/dev/shm`, so the c03 cache was split across shm and the container disk.
+   - `mawk` buffers a piped `tail -F`, so monitors need `awk -W interactive`.
+   - AUTO_STOP fires the second the ship returns, which cut an in-flight scp.
+   - A fresh Dataset downloads only file by file.
+
+### ⏭ Next action, in order
+
+1. **10-08 sends (Tian's go needed).** Before 23:30 UTC, with no other submitter alive (`tasklist | findstr python.exe`):
+   `$env:PYTHONUTF8="1"; Start-Process .venv\Scripts\python.exe -ArgumentList 'src\auto_submit.py','--plan','artifacts\submit_plan_1008.json','--at','2026-10-08T00:00:30Z' -RedirectStandardOutput artifacts\auto_submit_1008.log -RedirectStandardError artifacts\auto_submit_1008.err -WindowStyle Hidden`.
+   - Check that the log says `plan … 3 submissions`. Laptop on AC with the lid open (traps 53).
+   - Two slots stay free. B16 can take one only if Tian approves P-71 and its code is written by then.
+2. **10-08 reads → `/update`** (rules in candidates.md A6 / B17 / B12):
+   - **A6** vs B6's members' mean 0.9358: ≥ 0.936 at or above the mean / 0.933–0.935 member grade / ≤ 0.932 stop spending on
+     ConvNeXt. Because the tripwire fired, a ≤ 0.932 is 🔁 and goes back to Tian.
+   - **B17** vs B6 0.942: ✅ ≥ 0.946 / 🔁 0.939–0.945 / ❌ ≤ 0.938. ≥ 0.943 → pick 1 and C3's gate opens. 0.942 → pick 1 only if
+     A6 ≥ 0.936. More ConvNeXt training in week 2 only if B17 ≥ 0.943.
+   - **B12** vs B6: the same bands; ≥ 0.943 → pick 1 and the C3 leg.
+3. **10-09:** C3 only if B17 or B12 read ≥ 0.943:
+   `src/build_fork.py` with that leg at β 0.45 (with B17: `--member v15c=rsna-knee-ckpt-v15c:timm-convnext-tiny-in12k`). Send it first
+   in its day: a fork scores in hours. Freeze the P-50 shortlist.
+4. **10-10 00:00 UTC** (unchanged; grep each built `.py` for `FORCE_SMOKE` / `PARALLEL_ARMS` / `TEACHER_TABLES` before the push):
+   - session A, `rsna-knee-train`: `("v14p", "v14p2")` on `("raptor_teacher",)`;
+   - session B, `rsna-knee-train-b`: `("v13ex", "v13ex2")` on `("raptor_teacher", "xfit_v09k")`, `FORCE_SMOKE = False`.
+   - Read rule for the pair: candidates.md T9.
+
+### Open decisions for Tian
+
+- Start the 10-08 submitter (Next action 1), and what, if anything, goes in its two free slots.
+- Week 2: B3 × 2 (RunPod, ≈ $4) vs B0 × 2 (Kaggle) stays open. B4 − B5 = +0.001 leans B3 but decides nothing. RunPod has ≈ $3.5 left.
+- Unchanged: P-71 / B16, P-72, P-73, P-74, P-75 … P-79.
+
+### Things that will bite if forgotten
+
+- `rsna-knee-infer`'s committed render is **B17 (v62)**: rebuild from `src/` with the infer seds before any new placeholder.
+- The local `_lastema.pt` of `v15c` was cut by AUTO_STOP and deleted. Only `_best.pt` (= SWA), the OOF csv and the log exist, locally
+  and in the Dataset.
+- On RunPod, check the storage type first. MooseFS `/workspace` plus a small shm means splitting the cache (traps 55).
+- The Kaggle token was refreshed at 06:25 UTC and expires 18:25 UTC. The next call after 18:55 refreshes it (traps 20).
+
 ## 2026-10-06 (13:10 → 14:40 UTC) — Tian re-opens ConvNeXt (P-69): **one ConvNeXt-T arm with its own recipe, RunPod, cap $2.5, 288 px** · plan approved and HALF IMPLEMENTED (weights Dataset, arms, unit checks, local smoke, RunPod scripts) · single-model + pseudo-label research → cards P-75 … P-79 · stopped mid-way for context, NOTHING pushed to Kaggle, NOTHING committed before this entry
 
 Tian, in order: "I changed my mind on convxnet - we should try to make one training and testing it … research … what works best
