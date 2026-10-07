@@ -129,6 +129,11 @@ agreement with the teacher, not truth. A one-seed LB delta needs ≥ 0.004 (P-44
 | 2026-10-06 | **P-65 solo, submission #58 (`rsna-knee-infer` v54)**: `v13ec` = `v13e` on 0.25 LLM + 0.5 Raptor + 0.25 Claude | 0.9116 | **0.932** | **❌ by the pre-registered rule (≤ 0.932): −0.0045 vs the seed mean, −0.003 vs `v13e` at the same seed. P-65 ❌ DEAD END as a target lever (pair −0.003, no dose-response); P-46 closes with it** |
 | 2026-10-06 | **P-69 Kaggle smoke (`rsna-knee-train` v47, pushed 14:44 UTC, 0.04 h)**: `PARALLEL_ARMS = ("v15c", "v15c2")` (ConvNeXt-T `in12k_ft_in1k` @ 288, LR 1e-4 + per-stage decay 0.9), `TEACHER_TABLES = ("raptor_teacher",)`, FORCE_SMOKE, full 34 training windows | — | — | ✅ **green: this slot's image ships timm 1.0.26** (train-b's 1.0.29, local / RunPod 1.0.28, traps 54; it loads the weights: `loaded 180 tensors`, `head.fc` dropped); `backbone LR range 5.90e-05 .. 1.00e-04 over 4 blocks`; `teacher table raptor_teacher: 4349`; **peak 7.03 GiB at 288 px, batch 2 × 34 windows → the arm fits a T4**; finite loss (0.734 / 0.818 after one smoke step); `reseeded 43` for `v15c2`; `-> _best.pt = SWA`; `ok  arm` × 2. The new `optimiser:` line printed; its single step was GradScaler's usual first-step fp16 overflow (`skipped 1`, scale 65536 → 32768). A PARALLEL parent runs no inference by design: 288-px inference was checked in the local CPU smoke and gets checked again by the A6 placeholder |
 | 2026-10-06 | **P-68 Kaggle smoke (`rsna-knee-train-b` v8, 15:03 → 15:09 UTC, 0.03 h; v7 = a transient session ERROR, traps 54)**: `PARALLEL_ARMS = ("v13ex", "v13ex2")`, `TEACHER_TABLES = ("raptor_teacher", "xfit_v09k")`, FORCE_SMOKE, full 34 windows; `v13ex2` (= `v13ex` at seed 43) new today | — | — | ✅ **green: both children read both tables** (`raptor_teacher: 4349`, `xfit_v09k: 4407`; `training targets = (1 - 0.5) * LLM + 0.5 * quantile-matched ['raptor_teacher', 'xfit_v09k']`); `reseeded 43 for arm v13ex2`; `freeze_bn: 49 encoder BatchNorm modules`; peak 2.95 GiB; finite loss; `optimiser: 1 steps … GradScaler scale 65536, skipped 0` (B0 does not overflow on its first step; ConvNeXt did); SWA `_best.pt`, `ok  arm` × 2. This slot's image: timm 1.0.29, Python 3.13. Unit checks (`v13ex2` = `v13ex` + seed 43 = `v13e2`'s recipe) and a local CPU smoke green first. **The 10-10 session B is ready** |
+| 2026-10-07 | **B4, submission #59 (`rsna-knee-infer` v58)**: flat rank-mean `v11a` + `v13r` + `v13e` + `v13b3` (B6 − `v13e2`) | 0.9250 | **0.941** | **🔁 −0.001 vs B6 0.942 (band 0.939–0.945); predicted 0.939–0.941. With B5: B4 − B5 = +0.001, inside ± 0.002 → neither week-2 branch fires (B3 × 2 vs B0 × 2 stays open), and P-69 runs one arm (`v15c2` needed ≤ −0.002)** |
+| 2026-10-07 | **P-62 solo, submission #60 (`rsna-knee-infer` v49)**: `v13es` = `v13e` + Raptor 0.75 on report-silent cells | 0.9107 | **0.936** | **🔁 with #61: pair mean 0.9365 vs 0.9345 = +0.002 (band 0.9300–0.9389); +0.001 vs `v13e` at the same seed** |
+| 2026-10-07 | **P-62 solo, submission #61 (`rsna-knee-infer` v50)**: `v13rs` = `v13r` + Raptor 0.75 on report-silent cells | 0.9160 | **0.937** | **🔁 (the pair, above); +0.003 vs `v13r` at the same seed. P-62 closes 🔁, not adopted; both solos ≥ 0.936 open B12** |
+| 2026-10-07 | **B5, submission #62 (`rsna-knee-infer` v59)**: flat rank-mean `v11a` + `v13r` + `v13e` + `v13e2` (B6 − `v13b3`) | 0.9238 | **0.940** | **🔁 −0.002 vs B6; predicted 0.939–0.940. Of the three drop-one reads, dropping the B3 costs the most** |
+| 2026-10-07 | **B14, submission #63 (`rsna-knee-infer` v57)**: flat rank-mean `v13r` + `v13e` + `v13b3` + `v13e2` (B6 − `v11a`, the four CNNs) | 0.9211 | **0.942** | **= B6 (0.000); the pre-registered "≥ 0.942 → the CoAtNet is not needed" fires: week 2 drops the CoAtNet retrain. Predicted 0.940–0.941: the CoAtNet's family gain ≈ its quality cost** |
 
 **External reference points** (not ours — for calibrating ambition):
 
@@ -3758,6 +3763,62 @@ against the pair's mean macro-AUC.
 ≈ 0–2 LB ticks; per-member quality moves the blend one for one. The recommendation built on it is research.md 2.7.8 (improve the
 families we have; at most one hedged ConvNeXt-T arm; drop NFNet; demote B16), pending Tian.
 
+### 2026-10-07 — Submissions #59–#63 (the 10-07 five) · B6 drop-one: **B14 (no CoAtNet) 0.942 = B6** → the "CoAtNet not needed" rule fires, week 2 drops its retrain · B4 (no `v13e2`) **0.941**, B5 (no `v13b3`) **0.940**: B4 − B5 = +0.001, neither week-2 branch fires and P-69 runs one arm · **P-62 closed 🔁**: `v13es` **0.936** / `v13rs` **0.937**, pair mean +0.002 vs 0.9345, not adopted; both qualify for B12
+
+Sent 00:00:30–00:04:07 UTC by `auto_submit.py` (pid 25032, `artifacts/submit_plan_1007.json`), on time: the laptop was on AC
+power with the lid open (traps 53). All five watchers recorded their scoring times this time (`artifacts/submission_timing.csv`); the
+last score landed at 01:02 UTC.
+
+| # | what | gold-58 | LB | scored within | pre-registered read | verdict |
+|---|---|---|---|---|---|---|
+| 59 | B4 = B6 − `v13e2`: `v11a` + `v13r` + `v13e` + `v13b3` (infer v58) | 0.9250 | **0.941** | [45.6, 47.1] min | vs B6 0.942: ✅ ≥ 0.946 / 🔁 0.939–0.945 / ❌ ≤ 0.938; with B5: B4 − B5 ≥ 0.002 → B3 × 2 in week 2 / ≤ −0.002 → B0 seeds suffice | 🔁 (−0.001); B4 − B5 = +0.001 → neither branch |
+| 60 | `v13es` = `v13e` + Raptor 0.75 on report-silent cells (P-62; infer v49) | 0.9107 | **0.936** | [15.5, 17.0] min | mean with #61 vs 0.9345: ✅ ≥ 0.9390 / 🔁 0.9300–0.9389 / ❌ ≤ 0.9299 | 🔁 (the pair) |
+| 61 | `v13rs` = `v13r` + Raptor 0.75 on report-silent cells (P-62; infer v50) | 0.9160 | **0.937** | [33.5, 35.0] min | as #60 | 🔁 (pair mean 0.9365, +0.002) |
+| 62 | B5 = B6 − `v13b3`: `v11a` + `v13r` + `v13e` + `v13e2` (infer v59) | 0.9238 | **0.940** | [57.6, 59.1] min | as #59 (read with it) | 🔁 (−0.002) |
+| 63 | B14 = B6 − `v11a`: `v13r` + `v13e` + `v13b3` + `v13e2` (infer v57) | 0.9211 | **0.942** | [39.5, 41.0] min | vs B6 0.942: ≥ 0.942 → the CoAtNet is not needed (week 2 drops its retrain) / ≤ 0.940 → it stays | the rule fires (= B6) |
+
+**#59 / #62 / #63, what they say (B6 drop-one).**
+1. **Each of three B6 members removed in turn** (LB rounded to 0.001, so each read is ± 0.0005):
+
+   | blend | dropped (solo LB) | families | members' mean | LB | over mean | vs B6 | rule's prediction |
+   |---|---|---|---|---|---|---|---|
+   | #52 B6 | — | 3 | 0.9358 | 0.942 | +0.0062 | — | — |
+   | #63 B14 | `v11a`, the CoAtNet (0.932) | 2 | 0.9368 | 0.942 | +0.0053 | 0.000 | 0.940–0.941 |
+   | #59 B4 | `v13e2`, the B0 seed twin (0.938) | 3 | 0.9353 | 0.941 | +0.0058 | −0.001 | 0.939–0.941 |
+   | #62 B5 | `v13b3`, the B3 @ 288 (0.940) | 3 | 0.9348 | 0.940 | +0.0053 | −0.002 | 0.939–0.940 |
+
+   - The cost of a removal follows the member's solo: the B3 −0.002, the B0 seed twin −0.001, the CoAtNet 0.000. All inside two
+     ticks.
+   - **B14 read above its prediction.** The rule priced the CoAtNet as a third family. In fact the two-family B14 gained over its mean
+     what the three-family B5 gained (+0.0053). The CoAtNet's diversity is worth about its quality deficit (0.932, ≈ 0.004 under the
+     others' mean), so it is neutral in B6. The family rule (10-06) still holds on average, but a family member that far under the
+     others buys nothing: B13's lesson seen from the other side.
+2. **Gold-58 had it the other way:** B14 0.9211 was the lowest of the four (B6 0.9256, B4 0.9250, B5 0.9238). The LB puts the
+   CoAtNet-less blend level with B6 (traps 39: gold is direction only, and here it had the direction wrong).
+3. **What it changes:**
+   - **B14's rule fires: week 2 drops the CoAtNet retrain** (candidates.md T6). `v11a` itself costs 0.000 in B6, so B6 stays pick 1
+     by the tie rule (the same score with more members).
+   - **B4 − B5 = +0.001 is inside ± 0.002, so neither branch fires.** B3 × 2 (RunPod) vs B0 × 2 (Kaggle) for week 2 stays open; the
+     direction favours the B3, the member whose removal costs most.
+   - **P-69 runs one arm** (`v15c`): its seed twin needed B4 − B5 ≤ −0.002.
+   - A CoAtNet now adds 0.000 to B6, so the CoAtNet student `v11o` (P-68's follow-up if its pair reads ✅) matters only if it lifts the
+     CoAtNet solo itself.
+
+**Verdicts: #59 🔁 (−0.001), #62 🔁 (−0.002), #63 = B6 (the "CoAtNet not needed" rule fires).** B6 stays pick 1.
+
+**#60 / #61, what they say (P-62).**
+1. **The silent-cell mix lifts both CNNs by less than a seed:** `v13es` 0.936 vs `v13e` 0.935 (+0.001) and `v13rs` 0.937 vs `v13r`
+   0.934 (+0.003), at the same seeds. The pair mean 0.9365 is +0.002 over 0.9345: 🔁, inside ± 0.0045 and under half the way to the ✅
+   bar (0.9390). The CNN seed spread is s = 0.003 (#51).
+2. **Gold-58 had the pair +0.0015 too** (0.9134 vs 0.9119), but per arm `v13es` down and `v13rs` up, where the LB has both up.
+3. **What closes:** P-62, by its pre-registered rule: 🔁, not adopted. The final retrains train on the flat 0.5 LLM + 0.5 Raptor (or
+   the P-68 mix if it reads ✅). The per-label silent weight (the 10-06 amendment) was conditional on a ✅ and is not built.
+   `TEACHER_SILENT_MIX` stays in the code, off by default.
+4. **What it opens:** both solos are ≥ 0.936, so **B12** (B6 + `v13es` + `v13rs`) passes its gate. They sit at B6's members' mean
+   (0.9358) and add no family, so by B13's and B14's reads B12 ≈ B6 ± 0.001. B9 (gated on A3 ✅) stays closed.
+
+**Verdicts #60 / #61: 🔁 (pair +0.002). P-62 closed 🔁, not adopted.**
+
 ## Infrastructure
 
 ### 2026-09-27 — The "0.943 Speedy Raptors CoAtNet D4" notebook is our anchor **plus two CoAt readers**, not a faster graph; its "< 30 min" is a 3-study commit run · P-41 (threaded scan + 8 decode workers) smoke-green and byte-identical
@@ -4263,6 +4324,11 @@ and public LB score, so a public/private divergence can be traced to a specific 
 | 56 | 2026-10-06 | rsna-knee-infer v56 | **B11**: flat rank-mean of `v13b3` + `v13e2` + `v13e`, the EfficientNet triple (`artifacts/infer_B11.py`) | none; gold-58 0.9196 | **0.941** | **read 00:29:21 UTC → −0.001 vs B6 → 🔁; the same-recipe gain (+0.0033 over the members' mean); scored within [23.0, 24.5] min.** sent 00:04:51 UTC, ref 56864648 |
 | 57 | 2026-10-06 | rsna-knee-infer v53 | **A4 / P-65, `v13ecp` solo**: `v13e` (B0, seed 42) on 0.5 Raptor + 0.5 Claude, no LLM-blend share (`artifacts/infer_solo_v13ecp.py`) | none; gold-58 0.9063 | **0.935** | **read 00:21:06 UTC → −0.0015 vs the B0 seed mean 0.9365 → 🔁 (band 0.933–0.940); = `v13e` at the same seed; scored within [14.0, 15.5] min.** sent 00:05:38 UTC, ref 56864717 |
 | 58 | 2026-10-06 | rsna-knee-infer v54 | **A5 / P-65, `v13ec` solo**: `v13e` on 0.25 LLM + 0.5 Raptor + 0.25 Claude (`claude_rap_v1` at mix 0.75) (`artifacts/infer_solo_v13ec.py`) | none; gold-58 0.9116 | **0.932** | **read 00:42:55 UTC → −0.0045 vs the B0 seed mean → ❌ (≤ 0.932); with #57, P-65 closes ❌; scored within [35.0, 36.5] min.** sent 00:06:24 UTC, ref 56864754 |
+| 59 | 2026-10-07 | rsna-knee-infer v58 | **B4**: flat rank-mean `v11a` + `v13r` + `v13e` + `v13b3` (B6 − `v13e2`) | none; gold-58 0.9250 | **0.941** | **read 00:47:39 UTC → −0.001 vs B6 0.942 → 🔁; with #62, B4 − B5 = +0.001 → neither week-2 branch; scored within [45.6, 47.1] min.** sent 00:00:32 UTC, ref 56893576, by `auto_submit.py` (pid 25032) |
+| 60 | 2026-10-07 | rsna-knee-infer v49 | **A3a / P-62, `v13es` solo**: `v13e` + Raptor 0.75 on report-silent cells (`TEACHER_SILENT_MIX`) | none; gold-58 0.9107 | **0.936** | **read 00:18:22 UTC → +0.001 vs `v13e`; with #61 the pair mean 0.9365 vs 0.9345 → 🔁; scored within [15.5, 17.0] min.** sent 00:01:20 UTC, ref 56893755 |
+| 61 | 2026-10-07 | rsna-knee-infer v50 | **A3b / P-62, `v13rs` solo**: `v13r` + Raptor 0.75 on report-silent cells | none; gold-58 0.9160 | **0.937** | **read 00:37:11 UTC → +0.003 vs `v13r`; P-62 closes 🔁 (pair +0.002), not adopted; scored within [33.5, 35.0] min.** sent 00:02:10 UTC, ref 56893902 |
+| 62 | 2026-10-07 | rsna-knee-infer v59 | **B5**: flat rank-mean `v11a` + `v13r` + `v13e` + `v13e2` (B6 − `v13b3`) | none; gold-58 0.9238 | **0.940** | **read 01:02:01 UTC → −0.002 vs B6 → 🔁; scored within [57.6, 59.1] min.** sent 00:02:56 UTC, ref 56894018 |
+| 63 | 2026-10-07 | rsna-knee-infer v57 | **B14**: flat rank-mean `v13r` + `v13e` + `v13b3` + `v13e2` (B6 − `v11a`, the four CNNs) | none; gold-58 0.9211 | **0.942** | **read 00:44:43 UTC → = B6 → "≥ 0.942: the CoAtNet is not needed" fires (week 2 drops its retrain); scored within [39.5, 41.0] min.** sent 00:03:41 UTC, ref 56894104 |
 
 ## Closed cards index (moved here from proposals.md on 2026-10-05)
 
@@ -4330,3 +4396,4 @@ proposals.md holds live cards only (Tian, 2026-10-05). One line per measured or 
 | P-66 | Bigger CNN (`v13b3` EfficientNet-B3 @ 288) + the first CNN seed twin (`v13e2`), trained on RunPod (≈ $2.6, critic-reviewed) | ✅ KEEP — #50 `v13b3` **0.940** = our best solo (+0.005 vs `v13e` 0.935, bar 0.004; +0.0035 vs the B0 seed mean); #51 `v13e2` 0.938 → CNN seed spread s = 0.003, the one-seed bands stand. B3 = a member and a final-retrain candidate; its seed twin is candidates.md T2 | experiments.md 2026-10-04 "P-66 on RunPod", "P-66 complete"; 2026-10-05 "Submissions #49–#53" |
 | P-65 | Grading-aware Claude (Opus) relabel of the reports as a training target (session E on RunPod, ≈ $1.9: `v13ecp` 0.5 Claude, `v13ec` 0.25 Claude; B0, seed 42) | ❌ DEAD END as a target lever: #57 `v13ecp` **0.935** (🔁) / #58 `v13ec` **0.932** (❌) vs the B0 seed mean 0.9365 — pair −0.003, not monotone in dose; gold-58 the same direction. The gold pilot (+0.007 with Raptor, target level) did not transfer, like D4 and `xfit_v09k`. `claude_v1` / `claude_rap_v1` stay private and unused | experiments.md 2026-10-04 "P-65 gold-58 BLIND pilot", "P-65 full pass"; 2026-10-05 "Session E on RunPod, chain 1", "chain 2"; 2026-10-06 "Submissions #54–#58" |
 | P-46 | Upgrade the LLM half of the targets (absorbs P-16, P-30) | retired 2026-10-06 by its own rule: step 2 (the re-label) ran as P-65 ❌, and step 1 (dread as a 4th vote) was to close if the Claude vote did not move the LB — the LLM half is not binding | experiments.md 2026-10-06 "Submissions #54–#58"; the P-65 row above |
+| P-62 | Silence-aware teacher mix (Raptor 0.75 on report-silent cells, 0.5 elsewhere) | 🔁 not adopted: #60 `v13es` **0.936** / #61 `v13rs` **0.937** → pair mean 0.9365 vs 0.9345 (+0.002; ✅ needed ≥ 0.9390); both arms up vs their same-seed parents (+0.001 / +0.003), under the one-seed floor; the code stays, off by default; both solos qualify for B12 | experiments.md 2026-10-07 "Submissions #59–#63"; 2026-10-04 "Session D"; 2026-09-30 "Silence-aware teacher mix" |
