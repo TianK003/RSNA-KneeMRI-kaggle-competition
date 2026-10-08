@@ -448,8 +448,9 @@ SHIPPED_ARMS = [
     # bottom/right 16 px; 320/32 = 10. Same seed as `v15c`, so it differs from it in the resolution only.
     ("v15c320", {**PROD, **V09R_KW, **C03_KW, "backbone": "timm:convnext_tiny", "img_size": 320, "lr_backbone": 1e-4,
                  "llrd_decay": 0.9, "aug": "heavy", "drop_path": 0.1, "epochs": 20}),
-    # 2026-10-08 (P-81, Tian's go): `v15c` + 2,399 OAI knees with masked soft targets for Synovitis, PF OA, Lateral OA and
-    # Lateral Meniscus (MOAKS baseline readings; src/build_oai_targets.py), images from the OAI cache shard
+    # 2026-10-08 (P-81, Tian's go; labels after the critic): `v15c` + 2,399 OAI knees with masked soft targets for Synovitis,
+    # PF OA and Lateral OA -- the 0.949 author's three (MOAKS baseline readings; src/build_oai_targets.py; Lateral Meniscus
+    # stays masked in this first table), images from the OAI cache shard
     # (src/build_oai_cache.py: SAG IW TSE FS / COR MPR / AX MPR in the three fluid fat-sat slots). Same seed and recipe as
     # `v15c`, so the read is the OAI rows. Off Kaggle only (the OAI data never goes to Kaggle): RunPod, RSNA_OAI_TARGETS.
     ("v15co", {**PROD, **V09R_KW, **C03_KW, "backbone": "timm:convnext_tiny", "img_size": 288, "lr_backbone": 1e-4,

@@ -97,8 +97,11 @@ if [ "${OAI:-0}" = 1 ]; then
   OAI_RAW="${OAI_RAW:-/workspace/oai_raw}"
   mkdir -p "$OAI_RAW"
   log "OAI: the chosen series -> $OAI_RAW (nda-tools, in the background; log /workspace/oai_download.log)"
+  # The NDA password must not outlive the download on the pod's disk (critic, 10-08): .env is shredded as soon as nda-tools
+  # returns, success or failure.
   ( cd "$REPO" && python src/build_oai_cache.py --links /workspace/oai_links.txt \
-      && python scripts/nda_run.py .env -dp "${OAI_PACKAGE:-1249779}" -t /workspace/oai_links.txt -d "$OAI_RAW" -wt 16 \
+      && python scripts/nda_run.py .env -dp "${OAI_PACKAGE:-1249779}" -t /workspace/oai_links.txt -d "$OAI_RAW" -wt 16
+    rc=$?; shred -u "$REPO/.env" 2>/dev/null || rm -f "$REPO/.env"; exit $rc
   ) > /workspace/oai_download.log 2>&1 &
   oai_pid=$!
 fi
@@ -191,12 +194,20 @@ if [ "${OAI:-0}" = 1 ]; then
   wait "$oai_pid" || { echo "!! OAI download failed:"; tail -20 /workspace/oai_download.log; exit 5; }
   echo "  $(find "$OAI_RAW" -name '*.tar.gz' | wc -l) tarballs, $(du -sh "$OAI_RAW" | cut -f1)"
   log "OAI: cache shard 90 -> $IN/rsna-knee-oai-cache"
+  # nproc - 8 workers (at least 4): the training loader uses 8 (critic, 10-08).
   ( cd "$REPO" && python src/build_oai_cache.py --build "$OAI_RAW" --out "$IN/rsna-knee-oai-cache" \
-      --workers "$(nproc)" --delete-tars )
+      --workers "$(( $(nproc) > 12 ? $(nproc) - 8 : 4 ))" --delete-tars )
   n_oai=$(python -c "import pandas as pd; print(int(pd.read_csv('$IN/rsna-knee-oai-cache/manifest_shard90_oai.csv').cached.sum()))")
   [ "$n_oai" -ge 2300 ] || { echo "!! the OAI shard holds only $n_oai knees (expected ~2,398)"; exit 5; }
   export RSNA_OAI_TARGETS="$REPO/artifacts/oai/oai_targets.csv"
   echo "  OAI shard: $n_oai knees; RSNA_OAI_TARGETS=$RSNA_OAI_TARGETS"
+  # OAI_MAX_PREP_H (default 1.2): the preparation must end this long after POD_T0 (pass POD_T0 = the pod's creation time),
+  # or the job stops before training -- a slow download would push the training into the stopper's deadline and lose it
+  # mid-SWA (critic, 10-08).
+  prep_s=$(( $(date +%s) - ${POD_T0:-$(date +%s)} ))
+  max_prep_s=$(awk "BEGIN { print int(${OAI_MAX_PREP_H:-1.2} * 3600) }")
+  [ "$prep_s" -le "$max_prep_s" ] || { echo "!! OAI preparation took $((prep_s / 60)) min > OAI_MAX_PREP_H -- not training"; exit 6; }
+  echo "  preparation done $((prep_s / 60)) min after POD_T0 (limit $((max_prep_s / 60)) min)"
 fi
 
 log "kaggle auth check (the ship at the end needs it too)"

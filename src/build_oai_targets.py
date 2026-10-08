@@ -7,13 +7,14 @@ Columns, in the layout src/kaggle_pipeline.py appends to `targets` for an arm wi
     StudyInstanceUID, oai_id, side, yt__<label> (soft target in [0, 1]), w__<label> (1.0 supervised, 0.0 masked)
 A masked cell has w = 0, so the per-study weighted BCE (`weighted_bce`) averages over the supervised cells only.
 
-Supervised labels (Tian, 2026-10-08: the three the 0.949 author used = our three weakest gold-58 labels, plus Lateral
-Meniscus, our fourth weakest); every other label is masked:
+Supervised labels (Tian, 2026-10-08, after the critic: replicate the 0.949 author's three = our three weakest gold-58 labels;
+Lateral Meniscus, our fourth weakest, is computed but MASKED in this first table -- `--with-lateral-meniscus` adds it);
+every other label is masked:
     Synovitis        Hoffa-synovitis grade 0-3 (V00MSYIC) / 3                                        (1,660 knees)
     PF OA            max over patella M/L + trochlea M/L of cartilage (area grade + full-thickness grade), / 4, clip 1
     Lateral OA       the same over the lateral femur (central, posterior) + lateral tibia (anterior, central, posterior)
-    Lateral Meniscus 1 for a tear or maceration in any lateral horn (codes 2-8) or a lateral root tear,
-                     0.2 for signal abnormality only (code 1), 0 for normal
+    (Lateral Meniscus, optional: 1 for a tear or maceration in any lateral horn (codes 2-8) or a lateral root tear,
+                     0.2 for signal abnormality only (code 1), 0 for normal)
 A knee read in several projects takes, per variable, the first non-missing value in project order 22, 30, 65, 63*.
 
 Reads data/oai/ (gitignored; OAI terms forbid redistribution). Writes artifacts/oai/oai_targets.csv (gitignored).
@@ -28,7 +29,8 @@ import pandas as pd
 
 LABELS = ["ACL", "MCL", "Medial Meniscus", "Lateral Meniscus", "Medial OA", "Lateral OA",
           "PF OA", "Effusion", "Synovitis", "Baker's", "Contusion", "Fracture"]
-SUPERVISED = ("Synovitis", "PF OA", "Lateral OA", "Lateral Meniscus")
+SUPERVISED = ("Synovitis", "PF OA", "Lateral OA")
+OPTIONAL = ("Lateral Meniscus",)                     # --with-lateral-meniscus
 MOAKS = "data/oai/MR Image Assessment_ASCII/Semi-Quant Scoring_ASCII/kMRI_SQ_MOAKS_BICL00.txt"
 OUT = "artifacts/oai/oai_targets.csv"
 PROJECT_ORDER = {"22": 0, "30": 1, "65": 2}           # every 63A-F after these
@@ -62,7 +64,7 @@ def knee_table(moaks_path=MOAKS):
     return m.groupby(["ID", "side"])[feats].first()    # first non-missing per variable, in project order
 
 
-def build(moaks_path=MOAKS):
+def build(moaks_path=MOAKS, supervised=SUPERVISED):
     k = knee_table(moaks_path)
     out = pd.DataFrame(index=k.index)
     syn = k["V00MSYIC"]
@@ -78,7 +80,7 @@ def build(moaks_path=MOAKS):
     out["yt__Lateral Meniscus"] = np.where(men.isna().all(axis=1), np.nan, lm)
     for lab in LABELS:
         col = f"yt__{lab}"
-        if lab in SUPERVISED:
+        if lab in supervised:
             out[f"w__{lab}"] = out[col].notna().astype(float)
             out[col] = out[col].fillna(0.5)
         else:
@@ -92,11 +94,11 @@ def build(moaks_path=MOAKS):
     if empty.any():
         print(f"  dropped {int(empty.sum())} knee(s) with no supervised cell (every supervised MOAKS variable missing)")
         out = out[~empty].reset_index(drop=True)
-    validate(out)
+    validate(out, supervised)
     return out
 
 
-def validate(t):
+def validate(t, supervised=SUPERVISED):
     if t.StudyInstanceUID.duplicated().any():
         raise SystemExit("duplicate knee ids")
     for lab in LABELS:
@@ -105,15 +107,15 @@ def validate(t):
             raise SystemExit(f"{lab}: soft target outside [0, 1] or NaN")
         if not set(w.unique()) <= {0.0, 1.0}:
             raise SystemExit(f"{lab}: weights must be 0 or 1, got {sorted(w.unique())}")
-        if lab not in SUPERVISED and w.any():
+        if lab not in supervised and w.any():
             raise SystemExit(f"{lab} is not supervised but has weight")
     if (t[[f"w__{l}" for l in LABELS]].sum(axis=1) == 0).any():
         raise SystemExit("a knee with no supervised cell would divide by zero in weighted_bce")
 
 
-def summary(t):
+def summary(t, supervised=SUPERVISED):
     print(f"OAI targets: {len(t)} knees ({(t.side == 'R').sum()} right, {(t.side == 'L').sum()} left)")
-    for lab in SUPERVISED:
+    for lab in supervised:
         w = t[f"w__{lab}"] == 1
         y = t.loc[w, f"yt__{lab}"]
         print(f"  {lab:18s} supervised {int(w.sum()):5d}  mean {y.mean():.3f}  >=0.5 {(y >= 0.5).mean():.2f}  "
@@ -125,9 +127,11 @@ def main():
     ap.add_argument("--check", action="store_true")
     ap.add_argument("--moaks", default=MOAKS)
     ap.add_argument("--out", default=OUT)
+    ap.add_argument("--with-lateral-meniscus", action="store_true")
     a = ap.parse_args()
-    t = build(a.moaks)
-    summary(t)
+    sup = SUPERVISED + (OPTIONAL if a.with_lateral_meniscus else ())
+    t = build(a.moaks, sup)
+    summary(t, sup)
     if a.check:
         old = pd.read_csv(a.out)
         same = old.shape == t.shape and np.allclose(old.drop(columns=["StudyInstanceUID", "oai_id", "side"]).to_numpy(float),
