@@ -138,6 +138,7 @@ agreement with the teacher, not truth. A one-seed LB delta needs ≥ 0.004 (P-44
 | 2026-10-08 | **P-69 solo, submission #64 (`rsna-knee-infer` v61)**: `v15c` = ConvNeXt-T `in12k_ft_in1k` @ 288 on its own optimiser | 0.9234 | **0.942** | **✅ KEEP as a member: +0.0062 over B6's members' mean 0.9358 (1.5× the 0.004 one-seed floor; rule ≥ 0.936 = at or above the mean). Our best single model ever, = the five-member B6; +0.002 over `v13b3` 0.940 is 🔁. The clip-rate tripwire had fired, and still the best solo** |
 | 2026-10-08 | **B17, submission #65 (`rsna-knee-infer` v62)**: flat rank-mean of B6 + `v15c` (six votes, four families) | 0.9266 | **0.943** | **🔁 +0.001 vs B6 0.942 (band 0.939–0.945), +0.001 over its best member `v15c`; the pre-registered "≥ 0.943 → pick 1, C3's gate opens, more ConvNeXt training in week 2" fires. Over its members' mean +0.0062 = B6's: the fourth family added its mean shift and no extra diversity gain** |
 | 2026-10-08 | **B12, submission #66 (`rsna-knee-infer` v60)**: flat rank-mean of B6 + `v13es` + `v13rs` (seven votes, three families) | 0.9242 | **0.941** | **🔁 −0.001 vs B6 (predicted ± 0.001); over its mean +0.0050 vs B6's +0.0062: extra same-family votes dilute the family gain (B13's lesson, a third time). Closed, not pick 1** |
+| 2026-10-08 | **B18, submission #67 (`rsna-knee-infer` v63)**: flat rank-mean of `v15c` (ConvNeXt-T 0.942) + `v13b3` (EfficientNet-B3 0.940), two families, two votes | — | **0.944** | **🔁 +0.001 vs B17 0.943 (band 0.940–0.946); the pre-registered "≥ 0.944 → pick 1 and the fork leg" fires. Our best own number, = the C2 fork, from two models. +0.003 over its members' mean (the cross-family pair gain); +0.002 over `v15c` alone (under the +0.004 blend floor)** |
 
 **External reference points** (not ours — for calibrating ambition):
 
@@ -4018,6 +4019,30 @@ Meniscus, MCL), 0.08 (Lateral Meniscus, Fracture, Lateral OA, PF OA), 0.04 (Effu
 **Verdict: ✅ a read.** Reproducing the recipe without OAI would land at ≈ 0.942 (the author's own table), where we already are. The
 whole public gap above 0.943 is external data, plus a one-tick blend.
 
+
+### 2026-10-08 — Submission #67: **B18 = `v15c` + `v13b3` (two models) 0.944 = our best own number** (🔁 +0.001 vs B17; "≥ 0.944 → pick 1" fires)
+
+Sent 10:09 UTC on Tian's go (`rsna-knee-infer` v63, placeholder green: `"smoke": "False"`, members `v15c` / `v13b3`,
+decode-once verified, constant labels 0), ref 56948421, scored within [36.7, 38.2] min.
+
+| blend | members (families) | members' mean | LB | over mean | vs best member |
+|---|---|---|---|---|---|
+| #65 B17 | 6 (4) | 0.9368 | 0.943 | +0.0062 | +0.001 |
+| **#67 B18** | **2 (2)** | **0.9410** | **0.944** | **+0.003** | **+0.002** |
+
+- **The prediction was 0.943–0.946** (members' mean + the cross-family pair gain 0.0025–0.0047); it landed at the low end of it.
+- **Strength over width, one tick:** the two strongest members beat the six-member flat blend by +0.001. That fits the 10-08
+  refinement (B17 gave the strongest model 1/6 of the weight), but +0.001 is not evidence.
+- B11, the EfficientNet triple (one family), lost 0.001 to B6 on 10-06. Here two strong members from *different* families gained.
+- It is also the cheaper pick: two models score in ≈ 38 min against B17's six.
+- **What it changes:**
+  - **B18 = pick 1** by the pre-registered rule (house convention; the floors line vs B17 is 0.947).
+  - B18 is the preferred own leg for C3 / C4 from now on; C4 #68 was built with B17 before this read.
+  - The week-2 final blends start from the two families at the top (ConvNeXt + EfficientNet-B3; P-80 `v15c2` and B3 seeds),
+    not from width.
+
+**Verdict: 🔁 (+0.001); pick 1 by the pre-registered rule.**
+
 ## Infrastructure
 
 ### 2026-09-27 — The "0.943 Speedy Raptors CoAtNet D4" notebook is our anchor **plus two CoAt readers**, not a faster graph; its "< 30 min" is a 3-study commit run · P-41 (threaded scan + 8 decode workers) smoke-green and byte-identical
@@ -4531,6 +4556,7 @@ and public LB score, so a public/private divergence can be traced to a specific 
 | 64 | 2026-10-08 | rsna-knee-infer v61 (+ Dataset `rsna-knee-ckpt-v15c`) | **A6 / P-69, ConvNeXt-T solo**: `INFER_MEMBERS = ["v15c"]`, timm `convnext_tiny.in12k_ft_in1k` @ 288, own optimiser (1e-4, per-stage decay 0.9, 20 ep), trained on RunPod | none; gold-58 0.9234 | **0.942** | **read by 09:32 UTC → +0.0062 vs B6's members' mean 0.9358 → ✅ a member, our best solo (= B6).** sent 06:16:21 UTC, ref 56938698, by the fallback `auto_submit.py` run; scoring time unknown (the laptop slept 06:27–09:31) |
 | 65 | 2026-10-08 | rsna-knee-infer v62 | **B17**: flat rank-mean of B6 + `v15c` (`v11a` + `v13r` + `v13e` + `v13b3` + `v13e2` + `v15c`) | none; gold-58 0.9266 | **0.943** | **read by 09:31 UTC → +0.001 vs B6 → 🔁; "≥ 0.943 → pick 1, C3's gate, more ConvNeXt in week 2" fires.** sent 06:17:09 UTC, ref 56938731 |
 | 66 | 2026-10-08 | rsna-knee-infer v60 | **B12**: flat rank-mean of B6 + `v13es` + `v13rs` | none; gold-58 0.9242 | **0.941** | **read by 09:32 UTC → −0.001 vs B6 → 🔁; closed.** sent 06:17:54 UTC, ref 56938764 |
+| 67 | 2026-10-08 | rsna-knee-infer v63 | **B18**: flat rank-mean `v15c` + `v13b3` (`artifacts/infer_B18.py`) | none | **0.944** | **read 10:47:39 UTC → +0.001 vs B17 0.943 → 🔁; "≥ 0.944 → pick 1 and the fork leg" fires; scored within [36.7, 38.2] min.** sent 10:09:30 UTC, ref 56948421 (Tian's go) |
 
 ## Closed cards index (moved here from proposals.md on 2026-10-05)
 
