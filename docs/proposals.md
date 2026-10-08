@@ -248,8 +248,19 @@ Cost:         one arm ≈ $1.46 and 1.5–2 pod-h on a 4090 (P-69's measured run
               after the 10-10 reset (288 px × 20 epochs; two sessions with a resume). 1–2 sends.
 If it works:  the ConvNeXt pair is the lead vote of both final picks (the own blend and the fork leg).
 If it fails:  (s_c large, `v15c2` ≤ 0.938) `v15c` stays a single vote and B17 stays pick 1 on one draw.
-Later, Tian picks (not cards yet): the clip-rate question (82 % of steps clipped at 1.0: a probe at clip 5.0 or none); 224 px
-              for a cheaper vote. A bigger ConvNeXt is not proposed: the forum's "bigger is null" for CNNs (T5 dropped).
+Recipe probe after the twin (proposed 10-08, Tian's go): **`v15c` at 336 px**, the native resolution of the c03 cache (stored at
+              336 px over 150 mm = 0.45 mm/px; 288 px trains at 0.52 mm/px and throws that away). Resolution is the one recipe lever
+              with positive evidence on this task: our P-43 (CoAtNet-1 @ 320) +0.002, the 0.949 author's 224 → 384 +0.003
+              (confounded with OAI). Cost ≈ (336/288)² = 1.36× → ≈ 2.1 h on a 4090 ≈ $1.6; ≈ 9.6 GiB at 2 × 34 windows. Read vs
+              the ConvNeXt pair mean (one seed, floor 0.004). A new arm line in src/ + a Kaggle smoke.
+Not proposed (10-08):
+              - **The clip rate.** The optimiser is AdamW, which divides each step by a running RMS of the gradients, so scaling
+                the global gradient by a near-constant factor (clipping a 1.5 norm to 1.0) leaves the update almost unchanged. The
+                82 % clip rate is the gradient's scale, not a brake; the model is our best single.
+              - **The 0.949 author's anatomical mirror TTA.** Our inputs are laterality-normalised and never flipped in training
+                (P-05: medial ≠ lateral; removing the normalisation cost 0.0147 OOF). A mirror would show our models a knee with
+                medial and lateral swapped. Their model saw raw left and right knees, so the mirror is natural for them only.
+              - A bigger ConvNeXt (the forum's "bigger is null" for CNNs, T5 dropped); more epochs (gold peaked at epoch 11 of 20).
 Depends on:   Tian's go (RunPod, or the 10-10 Kaggle quota).
 
 ### P-81 OAI knees as masked external labels for our own members
@@ -261,10 +272,22 @@ Status:       💡 new 2026-10-08 (Tian asked how we would get the data). **Not 
 Hypothesis:   adding OAI baseline knees with labels for the findings our report targets read worst lifts a member's solo, as it
               did for the 0.949 author (+0.005 at 224 px; one seed; confounded with +55 % optimizer steps).
 Origin:       experiments.md 2026-10-08 "The 0.949 / 0.950 public notebooks, read" (the author's table and write-up, 746792).
-Access:       NDA (nda.nih.gov) → sign in through the Research Auth Service with Login.gov (an email + MFA was enough for forum
-              users on 10-08), eRA Commons or PIV → create or link an NDA account → request OAI access and accept the OAI data-access
-              terms (the NYU data catalog lists OAI as "Free to All · Application Required"; approval time unknown). Downloads come
-              as NDA data packages through the `nda-tools` CLI (`downloadcmd`), onto a pod or a big disk, never this laptop.
+Access (Tian does steps 1–4 himself: they accept terms in his name; written up 2026-10-08 from the NYU data-catalog entry
+              for OAI and the 10-08 forum thread 746792; the NDA pages render only in a browser, so check each step there):
+              1. Open https://nda.nih.gov and choose Login. Sign in through the Research Auth Service (RAS) with a **Login.gov**
+                 account (create one with an email + a second factor; forum users on 10-08 needed nothing more), or eRA Commons / PIV.
+              2. Create a new NDA account, or link an existing one, when NDA asks after the first RAS login.
+              3. Open the OAI collection (NDA's OAI page, nda.nih.gov/oai, or search "Osteoarthritis Initiative" under Get Data),
+                 choose **Request Data Access**, and accept the **OAI data-access terms** (non-commercial research use, cite the
+                 OAI acknowledgement, no redistribution of the data). The NYU catalog lists OAI as "Free to All · Application
+                 Required".
+              4. Write down what NDA actually asked for (only the terms, or an institutional signature / Data Use Certification?)
+                 and how long approval took. That is our own evidence on the host's "generally accessible" test (741819).
+              5. After approval (Claude can do this part): build a data package in NDA for the baseline knee MRIs plus the X-ray /
+                 MRI reading tables, and pull it with NDA's `nda-tools` CLI (`pip install nda-tools`, then `downloadcmd -dp
+                 <package id>`) on a RunPod pod with ≥ 1 TB of disk, never this laptop. Keep the data off GitHub, Kaggle and every
+                 public place (the terms forbid redistribution).
+              Biospecimens are a separate NIAMS process (6–10 weeks) and are not needed.
 What it needs (our estimate, ≈ 3–5 working days before the first arm):
               (1) the baseline knee MRIs of ≈ 2,400 knees (hundreds of GB, size unverified); (2) a sequence map onto our c03 slots
               (OAI is one 3 T protocol: sagittal IW TSE fat-sat, sagittal 3D DESS, coronal IW TSE, coronal / axial reformats, a
