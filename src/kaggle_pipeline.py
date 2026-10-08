@@ -443,6 +443,11 @@ SHIPPED_ARMS = [
               "llrd_decay": 0.9, "aug": "heavy", "drop_path": 0.1, "epochs": 20}),
     ("v15c2", {**PROD, **V09R_KW, **C03_KW, "backbone": "timm:convnext_tiny", "img_size": 288, "lr_backbone": 1e-4,
                "llrd_decay": 0.9, "aug": "heavy", "drop_path": 0.1, "epochs": 20, "seed": 43}),
+    # 2026-10-08 (P-80 / candidates.md T11, Tian's go): `v15c` at 320 px, nearer the c03 cache's native 336 px (0.47 vs 0.52
+    # mm/px). 320, not 336: ConvNeXt downsamples by 32 in total and 336/32 = 10.5, so its last stage would drop the image's
+    # bottom/right 16 px; 320/32 = 10. Same seed as `v15c`, so it differs from it in the resolution only.
+    ("v15c320", {**PROD, **V09R_KW, **C03_KW, "backbone": "timm:convnext_tiny", "img_size": 320, "lr_backbone": 1e-4,
+                 "llrd_decay": 0.9, "aug": "heavy", "drop_path": 0.1, "epochs": 20}),
 ]
 ARM_V10C = ("v10c", {**C02, "backbone": "timm:coatnet_rmlp_2_rw_384", "img_size": 384,
                      "lr_backbone": 1e-4, "eval_windows": 42, "grad_checkpoint": True})
@@ -585,7 +590,7 @@ DISTILLED_ARMS = {"v09s": ("selfdistill_v1",), "v09t": ("selfdistill_v1",),
                   "v13ex": ("raptor_teacher", "xfit_v09k"), "v13ex2": ("raptor_teacher", "xfit_v09k"),
                   "v11o": ("raptor_teacher", "cnnoof_v1"),
                   "v13eo": ("raptor_teacher", "cnnoof_v1"),
-                  "v15c": ("raptor_teacher",), "v15c2": ("raptor_teacher",)}
+                  "v15c": ("raptor_teacher",), "v15c2": ("raptor_teacher",), "v15c320": ("raptor_teacher",)}
 # 2026-09-28 (traps 40's second gap): the mix a distilled arm must train with; every other distilled arm trains at 0.5.
 DISTILLED_MIX = {"v09o": 0.75, "v09o2": 0.75, "v13ec": 0.75, "v13rc": 0.75, "v13ecp": 1.0}
 # P-62: the silent-cell mix an arm must train with; every arm not listed trains without one (TEACHER_SILENT_MIX = None).

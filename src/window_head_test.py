@@ -724,6 +724,12 @@ def main():
     check(diff == {"seed"} and cx2.seed == 43 and cx.seed == 42 and da["v15c2"] == ("raptor_teacher",)
           and "v15c2" not in dm and "v15c2" not in K["DISTILLED_SILENT_MIX"],
           f"v15c2 = v15c at seed 43 ({sorted(diff)})")
+    # 2026-10-08 (P-80 / T11): the resolution probe = v15c at 320 px, nothing else changed (same seed, same tables)
+    cx3 = Config(smoke=False, **arms["v15c320"])
+    diff = {k for k in K["asdict"](cx3) if getattr(cx3, k) != getattr(cx, k)} - {"version"}
+    check(diff == {"img_size"} and cx3.img_size == 320 and cx3.img_size % 32 == 0 and cx3.seed == 42
+          and da["v15c320"] == ("raptor_teacher",) and "v15c320" not in dm and "v15c320" not in K["DISTILLED_SILENT_MIX"],
+          f"v15c320 = v15c at 320 px ({sorted(diff)})")
 
     print("\n== P-67 additions (2026-10-05): augment_extra, mixup_studies, drop_blank_windows, train_gold, guards")
     torch.manual_seed(0)
