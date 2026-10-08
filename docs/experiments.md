@@ -4134,6 +4134,24 @@ checkpoint. As a fork-pick-2 candidate it beats C2 (0.944) by 0.006 if OAI stand
 **Verdict: ✅ run green, shipped; 🔁 INCONCLUSIVE as a measurement** (gold −0.0054 vs `v15c`, under the 0.05 floor). Next: a `v15c2`
 placeholder in `rsna-knee-infer` (smoke first), then the A7 solo send and the ConvNeXt pair as one vote (`INFER_VOTE_GROUPS`).
 
+### 2026-10-08 — The 10-09 placeholders (Tian's lineup, 22:00 UTC): C3 fork v13, A7 infer v65, B19 v66, A8 v67, all green and staged · B19 gold-58 0.9252 (B18 0.9260) · ✅ builds, no LB read yet
+
+- **v64** = the A7 build with `FORCE_SMOKE = True` (the first infer push since the P-80 / P-81 infer options): `v15c2` read back as
+  `[epoch 19, score 0.918, ema True]`, 202 s per 100 studies (`v15c` 208), a valid `submission.csv`. Green.
+- **v65 = A7** (`v15c2` solo), COMPLETE 22:08 UTC. Its log could not be fetched after v66 started (traps 62); the build is v64's
+  with `FORCE_SMOKE = False`.
+- **v66 = B19** (`v15c` + `v15c2` + `v13b3`, `INFER_VOTE_GROUPS = {"convnext": ("v15c", "v15c2")}`): the log prints `vote groups:
+  convnext = ['v15c', 'v15c2']` and `blend: by_version -> v15c, v15c2, v13b3`. Gold-58 (local OOFs): B19 0.9252, B18 0.9260, the
+  flat three-vote blend 0.9254, all within noise (direction only).
+- **v67 = A8** (`v15c` with `INFER_OVERRIDES = {"v15c": {"img_size": 320}}`): `v15c` at img 320, 280 s per 100 studies.
+- **`rsna-knee-fork` v13 = C3** (the public 0.942 stack + `v15c` + `v13b3` at β 0.45; 17 datasets): the anchor graph ran (20
+  DINOv2 members, fail-closed gate PASS), our leg ran both members, and the log ends `FINAL submission.csv = beta0.45`. On the 3
+  placeholder studies the blend's ranks equal the anchor's (same sha256), as expected with 3 rows. Wall time ≈ 6 min.
+- Kaggle GPU after the five runs: 27.69 h used, 2.31 h left until the 10-10 reset (the quota may lag).
+
+**Verdict: ✅ the builds** (all five runs COMPLETE, logs checked as above). The sends are Tian's on 10-09
+(`artifacts/submit_plan_1009.json`, dry-run ok).
+
 ## Infrastructure
 
 ### 2026-09-27 — The "0.943 Speedy Raptors CoAtNet D4" notebook is our anchor **plus two CoAt readers**, not a faster graph; its "< 30 min" is a 3-study commit run · P-41 (threaded scan + 8 decode workers) smoke-green and byte-identical

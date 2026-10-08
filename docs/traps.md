@@ -1176,3 +1176,16 @@ in `stream-pod-logs` (system source) first; and run the chain's first step in th
 (`pip install -r requirements-gpu.txt`, the import line with `torch.cuda.get_device_name(0)` plus a CUDA matmul, `kaggle --version`,
 one `kaggle datasets files` call), so a host fault shows on the screen instead of as a silent stop. Launch the chain on a line of
 its own: `A && B && setsid nohup chain … &` backgrounds the whole list, which holds the ssh channel open until the chain ends.
+
+### 62. `kaggle kernels output <owner>/<kernel>/<version>` ignores the version: it serves the LATEST version's output (nothing while the latest runs), so a log can be pinned to the wrong placeholder (Tier 3, 2026-10-08)
+
+While building the 10-09 placeholders back to back (infer v65 = A7 `v15c2` solo, v66 = B19, v67 = A8), the log fetched as
+`tiankljucanin/rsna-knee-infer/65` listed three members and the `convnext` vote group: it was v66's, which had completed a minute
+earlier. The CLI's help advertises the `/<version>` form, but the output endpoint returns the newest version's files, and returns
+nothing while that version is running (a fetch of `/64` during v67's run downloaded no log). `kaggle kernels pull <slug>/<version>`
+answers 403. The mapping of version to build was settled by the push order (each push waited for the previous COMPLETE) and by the
+v64 smoke of the same A7 build.
+
+**Do:** read each placeholder's log (`kaggle kernels output <slug> -p <dir> --file-pattern "no_match"`) right after it completes and
+before pushing the next version of the same kernel; record the version → build mapping from the push output, never from a later
+fetch. Check the log for the members, the overrides / vote groups and the `wrote /kaggle/working/submission.csv` line.
