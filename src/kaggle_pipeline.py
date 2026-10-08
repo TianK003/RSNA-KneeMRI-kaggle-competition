@@ -194,6 +194,12 @@ INFER_BLEND = "by_version"
 # can change how a member reads the decoded array, never which array is decoded. Example:
 #   INFER_OVERRIDES = {"v05a": {"tta_offsets": (-1, 0, 1), "tta_pool": "focal"}}
 INFER_OVERRIDES = {}
+# P-81 (2026-10-08, the critic's label-split read): {version: (labels,)} -- a listed version votes ONLY on those labels in
+# the rank-mean; an unlisted version votes on all twelve. E.g. the OAI read "v15co on its three supervised labels, v15c on
+# the other nine": INFER_MEMBERS = ["v15c", "v15co"],
+#   INFER_MEMBER_LABELS = {"v15co": ("Synovitis", "PF OA", "Lateral OA"), "v15c": (<the other nine>)}
+# {} (the default) is the blend as it always was. A label left with no voter is fatal.
+INFER_MEMBER_LABELS = {}
 # P-53 (2026-09-28): a DIAGNOSTIC submission only -- these label columns are written as a constant 0.5
 # (AUC exactly 0.5), so public macro = (4 * 0.5 + sum of the other 8) / 12 and the group's public AUC is
 # 0.5 + 3 * (full - probe) for 4 labels. Never set in a real submission. Sed'd in at build time.
@@ -4022,14 +4028,19 @@ def predict(model, manifest, image_root, cfg, studies, device):
                          **{l: P[:, i] for i, l in enumerate(LABELS)}})
 
 
-def rank_mean(frames):
-    """Average percentile ranks across folds -- the operation macro-AUC actually reads."""
+def rank_mean(frames, label_sets=None):
+    """Average percentile ranks across folds -- the operation macro-AUC actually reads.
+    `label_sets` (P-81 label split): one entry per frame, None = the frame votes on every label, a tuple = only on those.
+    label_sets=None is the old function, operation for operation."""
     base = frames[0][["StudyInstanceUID"]].copy()
     for lab in LABELS:
+        sel = [f for i, f in enumerate(frames) if label_sets is None or label_sets[i] is None or lab in label_sets[i]]
+        if not sel:
+            raise SystemExit(f"INFER_MEMBER_LABELS leaves no member voting on {lab!r}")
         acc = np.zeros(len(base))
-        for f in frames:
+        for f in sel:
             acc += f[lab].rank(pct=True).to_numpy()
-        base[lab] = acc / len(frames)
+        base[lab] = acc / len(sel)
     return base
 
 
@@ -4188,16 +4199,28 @@ else:
                 rho = float(np.mean([frames[i][l].corr(frames[j][l], method="spearman")
                                      for l in LABELS]))
                 print(f"  rank correlation {member_tags[i]} vs {member_tags[j]}: {rho:.3f}")
+    if INFER_MEMBER_LABELS:
+        _versions = set(t.split("/")[0] for t in member_tags)
+        _bad_v = [v for v in INFER_MEMBER_LABELS if v not in _versions]
+        _bad_l = [l for ls in INFER_MEMBER_LABELS.values() for l in ls if l not in LABELS]
+        if _bad_v or _bad_l:
+            raise SystemExit(f"INFER_MEMBER_LABELS: versions not among the members {_bad_v}, unknown labels {_bad_l}")
     if INFER_BLEND == "by_version":
         by_version = {}
         for tag, f in zip(member_tags, frames):
             by_version.setdefault(tag.split("/")[0], []).append(f)
-        sub = rank_mean([rank_mean(fs) for fs in by_version.values()])
+        sub = rank_mean([rank_mean(fs) for fs in by_version.values()],
+                        [INFER_MEMBER_LABELS.get(v) for v in by_version] if INFER_MEMBER_LABELS else None)
         print("  blend: by_version -> " + ", ".join(f"{v} ({len(fs)} fold{'s' if len(fs) != 1 else ''})"
                                                   for v, fs in by_version.items()))
     else:
-        sub = rank_mean(frames)
+        sub = rank_mean(frames, [INFER_MEMBER_LABELS.get(t.split("/")[0]) for t in member_tags]
+                        if INFER_MEMBER_LABELS else None)
         print(f"  blend: flat over {len(frames)} members")
+    if INFER_MEMBER_LABELS:
+        print("  P-81 label split: " + "; ".join(
+            f"{l} <- {[v for v in dict.fromkeys(t.split('/')[0] for t in member_tags) if INFER_MEMBER_LABELS.get(v) is None or l in INFER_MEMBER_LABELS[v]]}"
+            for l in LABELS))
 
     # Any study we could not image must still appear, or the submission is rejected.
     sub = ref[["StudyInstanceUID"]].merge(sub, on="StudyInstanceUID", how="left")
