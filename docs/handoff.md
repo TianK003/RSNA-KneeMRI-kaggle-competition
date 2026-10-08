@@ -6,6 +6,97 @@ to read first after a break.
 
 ---
 
+## 2026-10-08 (12:10 → 19:55 UTC) — C4 read **0.950** (rank 157) · **OAI access granted and P-81 built end to end** (`v15co`, local smokes green, critic GO WITH CHANGES applied) · `v15c2` pod **ended early, cause unknown** · label-split + vote-group infer options built
+
+Tian, in order: "pull the submissions and run /update … explain how we got .950 … what work we should do now"; started the NDA
+OAI request himself (auto-approved); fed the OAI pages and downloads by hand; "Yes, do it. Start working on it"; chose
+**`v15c2` alone tonight** (not one combined pod) and **3 OAI labels** (the critic's replicate-first); "retry community, then
+secure" when no 4090 was free; then "write /handoff immediately". Commits `dcc8725` … `5105b1c` plus this one. (The 10-08 morning
+sends #64–#68 and the 0.949 read have no handoff entry of their own: experiments.md "Submissions #64–#66", "Submission #67",
+"The 0.949 / 0.950 public notebooks, read".)
+
+### ⏳ Still in flight as this was written (19:55 UTC)
+
+| In flight | What it is | Started | How to check | How to read it |
+|---|---|---|---|---|
+| **RunPod pod `kygt8m42pscb6y`, status `EXITED`** (not running, not deleted) | the `v15c2` attempt: community RTX 4090 ($0.34/h), no volume, 80 GB container disk, repo at `30c8a8d`, chain `CACHE_PREFIX=rsna-knee-cache3 … AUTO_STOP=1 MAX_POD_H=3.0 POD_T0=1791487687`, stopper deadline 22:28 UTC | created 19:28, chain 19:38, found EXITED 19:49 | RunPod MCP `get-pod kygt8m42pscb6y`; a stopped pod bills only its disk (≈ $0.02/h) | **The job ended early and AUTO_STOP / the stopper stopped the pod; cause unknown.** A `start` at 19:52 failed ("not enough free GPUs on the host"), so `/workspace/job_v15c2.log` is unread. Next session: one `start` try; if it starts, read the log over the proxy (traps 60) and **stop it at once**; otherwise `delete-pod`. Nothing was trained or shipped (no `rsna-knee-ckpt-v15c2`) |
+| Background timer `bafkhh9fm` (this Claude session only) | a 20-min sleep, then `podcheck.sh` over the proxy | 19:39 | it reports when it ends | will print nothing useful (the pod is stopped); ignore |
+
+No Kaggle kernel and no submitter is running. 10-08's five slots are all used; 10-09 has five.
+
+### Where things stand
+
+| | Status |
+|---|---|
+| Public LB | ✅ **0.950 = #68 C4** (the public OAI-trained 0.949 CoAtNet-2 + B17 at β 0.35), rank 157 of 5,487; 🔁 +0.001 vs its anchor (experiments.md "Submission #68"). OAI-free best 0.944 (B18 #67, C2 #54) |
+| OAI (P-81) | ✅ access (NDA package `1249779` = Tian's copy of `OAIBaselineImages`); ✅ tables in `data/oai/` (gitignored); ✅ `artifacts/oai/oai_targets.csv` = 2,399 knees, Synovitis / PF OA / Lateral OA supervised, the rest masked; ✅ `src/build_oai_cache.py` (6 sample knees built and checked); ✅ arm `v15co` + `apply_oai` (smoke green; the guard smoke green); ✅ `runpod_chain.sh OAI=1`; ⏳ **the pod waits on a RunPod top-up + Tian's go** (candidates.md T12, ≈ $2.5–2.8, cap 4.3 h) |
+| `v15c2` (P-80) | ❌ not trained (the pod above). Relaunch = candidates.md T8 recipe |
+| Infer options | ✅ `INFER_MEMBER_LABELS` (label split, P-81's second read) and ✅ `INFER_VOTE_GROUPS` (seed twins as one vote, P-80), both unit-checked identical to the old blend when empty |
+| Budgets | RunPod ≈ $3.66 (≈ $3.78 − this pod); Kaggle GPU ≈ 2.3 h until the 10-10 reset; Kaggle token valid to 2026-10-09 06:48 UTC |
+| Committed renders | unchanged from 10-08 morning: `rsna-knee-infer` = v63 (B18), `rsna-knee-fork949` = v1 (C4), `rsna-knee-fork` = v12 |
+| Repo | clean except the pre-existing `discussion.py` / `discussion_735304.xml` (not ours). `.env` (NDA credentials) is gitignored since `2d94944` |
+
+### What we talked about and decided
+
+- **How the 0.950 happened:** almost all of it is the public checkpoint; our leg adds one tick. Fork lift ≈ diversity gain
+  (+0.002–0.003) − β × (anchor − leg), so β cannot buy a tick and each +0.001 on our leg is ≈ +0.0004 on the fork (experiments.md
+  "Submission #68"). The only lever priced above a tick is a stronger leg, i.e. OAI for our own models (P-81).
+- **Pick 2 and OAI:** read now, decide late (picks due 10-22). Two-pick hedging protects the score, not the team, if OAI is
+  ruled out (brainstorm.md). C4b (= the 0.949 model + B18) is the queued successor; C3 demoted (it predicts B18's own level).
+- **OAI design:** replicate the 0.949 author (2,399 knees from the baseline MOAKS file = exactly their count; their three labels =
+  our three weakest gold labels). Lateral Meniscus is built but masked (Tian, after the critic). OAI never goes to Kaggle or
+  GitHub: the cache is built on the pod, only the trained weights ship.
+- **Critic (GO WITH CHANGES), applied:** 3 labels; `.env` shredded on the pod after the download; `OAI_MAX_PREP_H` 1.2 abort;
+  build workers nproc − 8; a US datacentre and a 4.3 h cap at launch; the label-split read (built). **Not taken:** one combined pod
+  (Tian chose `v15c2` alone).
+- **The pod tonight:** no 4090 for 40 min on either cloud; Tian: retry community ($0.34/h), then secure ($0.89/h, now above the
+  old $0.74). The community pod came at 19:28 with no public IP; it ended early.
+
+### What we figured out
+
+1. **The OAI subset is small and exact:** one `.tar.gz` per series in package 1249779; 3 series × 2,398 knees = 7,196 files ≈ 58 GB
+   (the `image03.txt` index; P-81 card).
+2. **OAI's MPR series start with a reference image of another orientation**, which misfiles the whole series in our builder;
+   dropped per series (traps 57). OAI has no Laterality tag; the series name gives the side (6/6 checked).
+3. **Masking needs no loss change:** `weighted_bce` already normalises by per-label weights per study; w = 0 masks a label.
+4. **nda-tools needs the NDA account's own username and password** (401 with the Login.gov ones; traps 59); `scripts/nda_run.py`
+   serves them from `.env` in memory. A `.env` "in .gitignore" was not, and `git add -A` would have pushed it (traps 58).
+5. **A community pod may have no public IP:** proxy SSH only via a piped PTY, where a child can eat the queued input (traps 60).
+
+### ⏭ Next action, in order
+
+1. **The stopped pod:** `get-pod kygt8m42pscb6y` → `pod-action start` once. If it starts, read the cause:
+   `printf '%s\n' 'tail -40 /workspace/job_v15c2.log' exit | ssh -tt -i ~/.ssh/id_ed25519 kygt8m42pscb6y-64411a5a@ssh.runpod.io`,
+   then `pod-action stop`. Either way `delete-pod kygt8m42pscb6y` and confirm `list-pods` is empty. Log the cause in traps.md.
+2. **Relaunch `v15c2`** (T8 recipe) only after the cause is known or fixed. Prefer a host with `ssh.direct` (secure cloud). On a
+   proxy-only host, run each step in its own session (traps 60).
+3. **10-09 sends** (Tian's go needed; first in the day because forks score slowly): C4b = `src/build_fork949.py --members v15c v13b3`
+   → `rsna-knee-fork949` placeholder (FORCE_SMOKE on the first push, hard constraint 5) → send; read vs C4 0.950: ✅ ≥ 0.953 /
+   🔁 0.948–0.952 / ❌ ≤ 0.947. A8 (`v15c` at 320 px at inference, `INFER_OVERRIDES = {"v15c": {"img_size": 320}}`) → read vs 0.942:
+   ✅ ≥ 0.946 / 🔁 0.939–0.945 / ❌ ≤ 0.938.
+4. **P-81 pod (after a top-up and Tian's go):** a US 4090, ≥ 200 GB `/workspace`, scp (or a no-echo heredoc) `.env`,
+   `data/oai/nda_pkg_meta/image03.txt`, `artifacts/oai/oai_targets.csv` into the clone at `aeb4897` or later; then
+   `OAI=1 CACHE_PREFIX=rsna-knee-cache3 RSNA_TEACHER_TABLES='("raptor_teacher",)' AUTO_STOP=1 SEQ_ARMS=1 OAI_MAX_PREP_H=1.2 POD_T0=… runpod_chain.sh v15co`,
+   stopper at POD_T0 + 4.3 h. Read A9: `v15co` solo vs 0.942 (✅ ≥ 0.946), plus the label split (`INFER_MEMBERS = ["v15c", "v15co"]`,
+   `INFER_MEMBER_LABELS = {"v15co": ("Synovitis", "PF OA", "Lateral OA"), "v15c": <the other nine>}`). A 🔁 means a second OAI
+   seed, not dropping OAI (critic).
+5. **10-10 00:00 UTC Kaggle reset:** unchanged plan (sessions A / B, the previous entry's Next action 4). Worth asking Tian whether a
+   ConvNeXt session beats the P-67 floor pair now (the 10-08 fork arithmetic puts the value in our strongest member).
+
+### Open decisions for Tian
+
+- **RunPod top-up** for `v15co` (≈ $2.5–2.8, cap ≈ $3.2) and the `v15c2` relaunch (≈ $0.7 community / ≈ $1.8 secure).
+- **Pick 2:** C4 / C4b (OAI-carrying, 0.950) vs C2 (OAI-free, 0.944); ask the host on 746792 for an OAI ruling.
+- The 10-09 sends (C4b, A8) and the 10-10 session plan.
+
+### Things that will bite if forgotten
+
+- `kygt8m42pscb6y` is stopped, not deleted: it bills disk until deleted.
+- `.env` holds the NDA password: read key names only, never values; `git check-ignore -v .env` before any `git add -A`.
+- `artifacts/cache_local/oai/` holds the 6-knee OAI sample shard: every local smoke now prints "P-81: oai=False -- dropped 6 OAI
+  studies"; that is the guard working. OAI data stays in `data/oai/` and `artifacts/` (both gitignored), never on Kaggle.
+- The `rsna-knee-fork949` render is still C4 (B17 leg); C4b needs a rebuild before its placeholder.
+
 ## 2026-10-07 (11:15 → 11:25 UTC) — Tian's go for the 10-08 sends: **`auto_submit.py` pid 25568 armed** (A6 v61 → B17 v62 → B12 v60 at 2026-10-08 00:00:30 UTC)
 
 Tian: "Yeah, do that and run /handoff" (that = start the 10-08 submitter staged in the entry below). Commit `0bdf1ff` plus this one. **This
