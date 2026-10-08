@@ -198,8 +198,13 @@ INFER_OVERRIDES = {}
 # the rank-mean; an unlisted version votes on all twelve. E.g. the OAI read "v15co on its three supervised labels, v15c on
 # the other nine": INFER_MEMBERS = ["v15c", "v15co"],
 #   INFER_MEMBER_LABELS = {"v15co": ("Synovitis", "PF OA", "Lateral OA"), "v15c": (<the other nine>)}
-# {} (the default) is the blend as it always was. A label left with no voter is fatal.
+# {} (the default) is the blend as it always was. A label left with no voter is fatal. With INFER_VOTE_GROUPS, a group's
+# key here is its group name.
 INFER_MEMBER_LABELS = {}
+# P-80 (2026-10-08): {group name: (versions,)} -- the versions of a group (seed twins) are rank-meaned into ONE vote before
+# the across-member mean (by_version only), so a second seed does not double its family's weight (B13: extra votes of a
+# family already present cost). E.g. {"convnext": ("v15c", "v15c2")}. {} = every version is its own vote, as always.
+INFER_VOTE_GROUPS = {}
 # P-53 (2026-09-28): a DIAGNOSTIC submission only -- these label columns are written as a constant 0.5
 # (AUC exactly 0.5), so public macro = (4 * 0.5 + sum of the other 8) / 12 and the group's public AUC is
 # 0.5 + 3 * (full - probe) for 4 labels. Never set in a real submission. Sed'd in at build time.
@@ -4201,16 +4206,30 @@ else:
                 print(f"  rank correlation {member_tags[i]} vs {member_tags[j]}: {rho:.3f}")
     if INFER_MEMBER_LABELS:
         _versions = set(t.split("/")[0] for t in member_tags)
-        _bad_v = [v for v in INFER_MEMBER_LABELS if v not in _versions]
+        _bad_v = [v for v in INFER_MEMBER_LABELS if v not in _versions and v not in INFER_VOTE_GROUPS]
         _bad_l = [l for ls in INFER_MEMBER_LABELS.values() for l in ls if l not in LABELS]
         if _bad_v or _bad_l:
             raise SystemExit(f"INFER_MEMBER_LABELS: versions not among the members {_bad_v}, unknown labels {_bad_l}")
+    if INFER_VOTE_GROUPS:
+        _versions = set(t.split("/")[0] for t in member_tags)
+        _in = [v for vs in INFER_VOTE_GROUPS.values() for v in vs]
+        if INFER_BLEND != "by_version" or [v for v in _in if v not in _versions] or len(_in) != len(set(_in)):
+            raise SystemExit(f"INFER_VOTE_GROUPS {INFER_VOTE_GROUPS!r}: needs INFER_BLEND='by_version', member versions "
+                             f"only, each version in at most one group")
     if INFER_BLEND == "by_version":
         by_version = {}
         for tag, f in zip(member_tags, frames):
             by_version.setdefault(tag.split("/")[0], []).append(f)
-        sub = rank_mean([rank_mean(fs) for fs in by_version.values()],
-                        [INFER_MEMBER_LABELS.get(v) for v in by_version] if INFER_MEMBER_LABELS else None)
+        per_vote = {v: rank_mean(fs) for v, fs in by_version.items()}
+        if INFER_VOTE_GROUPS:            # P-80: the versions of a group are rank-meaned into ONE vote first
+            _grp = {v: g for g, vs in INFER_VOTE_GROUPS.items() for v in vs}
+            _votes = {}
+            for v, f in per_vote.items():
+                _votes.setdefault(_grp.get(v, v), []).append(f)
+            per_vote = {k: (fs[0] if len(fs) == 1 else rank_mean(fs)) for k, fs in _votes.items()}
+            print("  vote groups: " + ", ".join(f"{g} = {list(vs)}" for g, vs in INFER_VOTE_GROUPS.items()))
+        sub = rank_mean(list(per_vote.values()),
+                        [INFER_MEMBER_LABELS.get(k) for k in per_vote] if INFER_MEMBER_LABELS else None)
         print("  blend: by_version -> " + ", ".join(f"{v} ({len(fs)} fold{'s' if len(fs) != 1 else ''})"
                                                   for v, fs in by_version.items()))
     else:
