@@ -9,12 +9,12 @@ How this file relates to the others:
 - **This file is only the queue.** When a candidate is read, its row is deleted here and its score goes to experiments.md
   (Submissions table + Scoreboard) through `/update`. Never keep a score in two places.
 
-Updated 2026-10-08 (10:50 UTC). **B18 (`v15c` + `v13b3`, two models) read 0.944 = our best own number (#67; pick 1 by the "≥ 0.944" rule); C4 (the public 0.949 model + B17) sent as #68, ⏳.** Earlier today: **The 10-08 three are read** (experiments.md "Submissions #64–#66"; sent 06:16–06:18 UTC by the
-fallback after the armed submitter died with the laptop): **A6 `v15c` (ConvNeXt-T) 0.942 = our best solo, level with B6**; **B17 = B6 +
-`v15c` 0.943 = our best own blend** (🔁 +0.001; pick 1 by convention, C3's gate opens, week 2 trains more ConvNeXt: P-80); **B12 0.941**
-(closed). B17 is only +0.001 over `v15c` alone, so the next own-blend question is a *small* blend of the strongest members (B18). **The
-public plateau jumped to 0.950 on 10-08** (338 teams ≥ 0.950; we are rank 720 at 0.944), which reprices C3 and re-opens the fork's
-anchor (brainstorm.md). Two 10-08 slots are still free (until 00:00 UTC). Earlier, the 10-07 reads (#59–#63, experiments.md "Submissions #59–#63"): **B14 0.942 = B6**
+Updated 2026-10-08 (12:20 UTC). **C4 (the public OAI-trained 0.949 model + B17 at β 0.35) read 0.950 (#68; 🔁 +0.001 vs the anchor):
+our best public number, rank 157 of 5,487 (was 720), inside the 247-team 0.950 tie.** Almost all of it is the public checkpoint: on a
+0.949 anchor our leg is worth one tick, and a fork's lift is capped by the gap between the leg and the anchor (experiments.md "Submission
+#68"). Whether an OAI-trained pick 2 is acceptable is Tian's call (brainstorm.md). **B18 (`v15c` + `v13b3`) read 0.944 = our best own
+number (#67; pick 1, OAI-free).** Earlier today (#64–#66, experiments.md "Submissions #64–#66"): **A6 `v15c` (ConvNeXt-T) 0.942 = our
+best solo**; **B17 = B6 + `v15c` 0.943**; **B12 0.941** (closed). All five 10-08 slots are used. Earlier, the 10-07 reads (#59–#63, experiments.md "Submissions #59–#63"): **B14 0.942 = B6**
 (the CoAtNet is not needed: week 2 drops its retrain), **B4 0.941 / B5 0.940** (B4 − B5 = +0.001: neither week-2 branch fires, and
 P-69 runs one arm), **`v13es` 0.936 / `v13rs` 0.937** (P-62 closed 🔁, not adopted; both qualify for B12). The 10-06 reads (#54–#58)
 made C2 the fork pick (0.944), kept B6 as the own pick and closed P-65. 5 slots on every UTC day to the 10-22 deadline; an unattended
@@ -27,16 +27,17 @@ RunPod after the 10-07 sends (cap $2.5), read as A6 (solo) and B17 (B6 + it)** �
 
 **P1** is the next sends. **P2** decides the own final pick or the fork leg. **P3** is contingent or explains a P1 / P2 read. **P5** is
 held: the blend rule prices it under the current pick, or a read closed it. "Build" means a `rsna-knee-infer` placeholder (≈ 5–10
-GPU-min each; 2.60 h of Kaggle GPU is left until 10-10).
+GPU-min each; ≈ 2.3 h of Kaggle GPU is left until 10-10).
 
 | Prio | Day | Candidate | What it decides | Gate | Status |
 |---|---|---|---|---|---|
-| **P1** | 10-08 | **C4**: the public 0.949 checkpoint + B17 as our leg at β 0.35 (section C) | What our models add on top of the best public single model | **Tian's go 10-08: build it and accept the OAI risk to read it; whether it is ever a final pick is his separate call** | `rsna-knee-fork949` **v1** green 10:33 UTC (anchor 22 s on 3 studies; ours 6 members, decode-once verified; status beta0.35); **sent #68 10:33 UTC 10-08** (ref 56949373), ⏳ scoring |
-| **P2** | 10-09 | **C3**: the 0.942 public stack + **B18** (#67, 0.944; was B17) as the leg, β 0.45 | Fork pick 2 with a better leg | **open since 10-08** (B17 0.943). **But** the public plateau is now 0.950 (10-08): C3 predicts ≈ 0.944–0.945 (C2 0.944 + B17's +0.001 over B6), 0.005 under it. Tian decides between C3 and re-anchoring first (brainstorm.md) | build with `src/build_fork.py --member v15c=rsna-knee-ckpt-v15c:timm-convnext-tiny-in12k` (B17's members); send 1 of its day |
-| **P2** | after 10-10 or on RunPod | **`v15c2`** (P-80): the ConvNeXt seed twin, then `v15c` + `v15c2` as one vote | The ConvNeXt family's seed spread; the final ConvNeXt vote | Tian's go (where it trains) | arm built and smoke-green (v47); `INFER_VOTE_GROUPS` not written |
+| **P1** | 10-09 | **C4b**: the public 0.949 checkpoint + **B18** (#67, 0.944) as our leg at β 0.35 (section C) | The OAI-carrying fork pick 2 on our best own leg (cheaper than C4: two members) | **Tian: is an OAI-trained pick 2 acceptable (brainstorm.md)?** Then a go for the placeholder and the send | build: `src/build_fork949.py --members v15c v13b3` (one command, ≈ 10 GPU-min); send 1 of its day |
+| **P2** | 10-08 evening (RunPod) | **`v15c2`** (P-80, T8): the ConvNeXt seed twin, then `v15c` + `v15c2` as one vote | The ConvNeXt family's seed spread; the final ConvNeXt vote; the leg of both picks | **approved + critic GO; on hold until the evening of 10-08 (Tian)** | relaunch recipe in T8; `INFER_VOTE_GROUPS` not written |
+| **P2** | 10-09 | **A8**: `v15c` scored at 320 px at inference (section A) | Free read of the test-time resolution effect; whether T11 is worth training | a go for one placeholder + one send | build (one placeholder) |
+| P3 | 10-09+ | **C3**: the 0.942 public stack + B18 as the leg, β 0.45 | The OAI-free fork pick 2. Predicted ≈ 0.944–0.945 = B18's own level, so it is worth a slot only if Tian rules C4 / C4b out as pick 2 (C2 0.944 already holds that slot until then) | Tian's OAI call | build with `src/build_fork.py --members v15c v13b3 --member v15c=rsna-knee-ckpt-v15c:timm-convnext-tiny-in12k` |
 | P5 | hold | **B16** (P-71) | — | **recommended DROP 10-08:** `v15c` 0.942 makes the 0.929 public reader a second, weaker ConvNeXt | hold |
 | P5 | hold | B1, B2, B7, B8, B9, B10, B12, B15 | — | B14 / B13 supersede B1 / B2; B7 / B10 predict under B6; **B8 and B15 closed by B13**; **B9 closed 10-07**; **B12 read 0.941 on 10-08 (closed)** | hold |
-| — | 10-09 | **Freeze the shortlist for P-50** | pick 1 = **B18 (#67, 0.944)**, pick 2 = C2 (#54, fork v12) or C3, or a re-anchored fork | — | Tian, by 10-22 |
+| — | 10-09 | **Freeze the shortlist for P-50** | pick 1 = **B18 (#67, 0.944; OAI-free)**, pick 2 = **C4 (#68, 0.950) / C4b if OAI is acceptable**, else C2 (#54, 0.944) or C3 | — | Tian, by 10-22 |
 
 **What the blend rule expects:** B18 read 0.944 inside its predicted 0.943–0.946 (#67). The next own blends are the two-family top with
 a second seed of each (P-80 `v15c2`, the B3 seeds in week 2). A slot left empty costs nothing; a repeat of a read is worth nothing.
@@ -45,6 +46,7 @@ a second seed of each (P-80 `v15c2`, the B3 seeds in week 2). A slot left empty 
 
 | | LB | What |
 |---|---|---|
+| Fork on the 0.949 anchor (OAI-trained) | **0.950** | **#68 = C4**: the public `nartaa` CoAtNet-2 (0.949 alone, its author's score; not re-scored from our account) + B17 at β 0.35, rank 157 of 5,487 (10-08 12:12 UTC). Read rule for a C4 successor: vs 0.950, ✅ ≥ 0.953 / 🔁 0.948–0.952 / ❌ ≤ 0.947 (experiments.md "Submission #68") |
 | Public-stack fork | **0.944** | **#54 = C2**: our anchor (0.942 alone, #13 / #15) + B6 at β 0.45, rank 337 of 5,293; 0.943 with the #48 trio (#49). The public community stack now reads 0.943 alone and a public ConvNeXt-T fork of it 0.944; its run-to-run spread is one tick (experiments.md 2026-10-06 "The public frontier moved") |
 | Our best own | **0.944** | **#67 = B18: flat rank-mean of `v15c` + `v13b3`** (10-08); #65 B17 (B6 + `v15c`) 0.943. B6 #52 = `v11a` + `v13r` + `v13e` + `v13b3` + `v13e2` 0.942; B12 (B6 + `v13es` + `v13rs`) 0.941; B13 (+ two CoAtNets) 0.940, B11 (the EfficientNet triple) 0.941; drop-one (10-07): B14 (no CoAtNet) 0.942, B4 (no `v13e2`) 0.941, B5 (no `v13b3`) 0.940 |
 | Solos | **0.942** / 0.940 / 0.938 / 0.937 / 0.936 / 0.935 / 0.935 / 0.934 / 0.932 / 0.932 / 0.932 / 0.932 / 0.931 | **`v15c` (ConvNeXt-T, #64)** / `v13b3` / `v13e2` / `v13rs` / `v13es` / `v13e` / `v13ecp` / `v13r` / `v11a` / `v11n` / `v11n2` / `v13ec` / `v13h` |
@@ -62,7 +64,7 @@ A6 (`v15c`, P-69) was read on 10-08: **0.942**, our best solo (experiments.md "S
 
 | # | Candidate | What it tests / contributes | Decides | Read rule | Placeholder | Gold-58 |
 |---|---|---|---|---|---|---|
-| A7 | `v15c2` (P-80): `v15c` at seed 43 | the ConvNeXt seed spread s_c | whether #64's 0.942 is the family's level; the final ConvNeXt vote | s_c = \|`v15c2` − 0.942\|: ≤ 0.003 the bands stand / ≥ 0.005 #64 was a draw | **not trained** (Tian's go: RunPod ≈ $1.46 or Kaggle after 10-10) | — |
+| A7 | `v15c2` (P-80): `v15c` at seed 43 | the ConvNeXt seed spread s_c | whether #64's 0.942 is the family's level; the final ConvNeXt vote | s_c = \|`v15c2` − 0.942\|: ≤ 0.003 the bands stand / ≥ 0.005 #64 was a draw | **not trained**; approved for RunPod (critic GO), on hold until the evening of 10-08 (T8) | — |
 | A8 | `v15c` scored at 320 px at inference (`INFER_OVERRIDES = {"v15c": {"img_size": 320}}`; `img_size` is an `INFER_MEMBER_KEYS` key) | the test-time resolution effect on the same weights, no seed noise (the critic's free version of T11) | whether T11 is worth training | vs `v15c` 0.942: ≥ 0.946 ✅ (T11 then worth $1.4) / 0.939–0.945 🔁 / ≤ 0.938 ❌ | build (one placeholder) | — |
 
 ## B. Submission candidates — ensembles of members we have
@@ -110,11 +112,16 @@ strongest model 1/6 of the weight. The own-blend question becomes "which few str
 now reads 0.943, a public fork of it with a 0.929 ConvNeXt-T leg 0.944, and that author saw the stack score 0.944 / 0.944 / 0.943 on
 one pipeline: fork deltas of one tick are noise (experiments.md 2026-10-06 "The public frontier moved").
 
+**C4 was read on 10-08: #68 = 0.950** (🔁 +0.001 vs the 0.949 anchor; rank 157). On a 0.949 anchor, our 0.943 leg is worth the same one
+tick as the public 0.929 reader. A fork's lift ≈ a diversity gain of +0.002–0.003, minus β × (anchor − leg). So a C4 successor gains
+≈ +0.0004 per +0.001 on our leg, and β cannot buy a tick (experiments.md "Submission #68"). Every C4-family pick carries the OAI rule
+risk; C2 / C3 do not.
+
 | # | Prio | Candidate | What it tests / contributes | Read rule | Placeholder |
 |---|---|---|---|---|---|
-| C3 | P2 | Public 0.942 stack + **B18** (#67, 0.944) as our leg at β 0.45 | Whether a better own leg lifts the fork further | Gate: the leg read ≥ 0.943 — **open since 10-08 (B17 0.943)**. vs C2 0.944: ✅ ≥ 0.947 / 🔁 0.942–0.946 / ❌ ≤ 0.941. Pred. 0.944–0.945, under the new 0.950 public plateau | build with `src/build_fork.py --members …` plus `--member v15c=rsna-knee-ckpt-v15c:timm-convnext-tiny-in12k`; send 1 of its day; **Tian picks C3 vs re-anchoring first** |
-| C4 | **P1 (Tian's go 10-08)** | **The public 0.949 checkpoint** (`nartaa`, one CoAtNet-2, read 10-08: experiments.md "The 0.949 / 0.950 public notebooks, read") **+ B17 as our leg** (built before B18 read 0.944; a rebuild with the B18 leg is one command: `src/build_fork949.py --members v15c v13b3`) | A fork on a 0.949 anchor instead of 0.942: likely ≈ 0.949–0.952 (C2 read +0.002 over both its parts; the 0.950 author got +0.001 from a 0.929 leg) | Gate: Tian accepts the OAI rule risk (the checkpoint was trained on 2,399 OAI knees; the host allows OAI only if generally accessible, a participant in China reports it is not, no ruling since). vs the anchor alone (0.949): ✅ ≥ 0.952 / 🔁 0.947–0.951 / ❌ ≤ 0.946 | **built 10-08:** `src/build_fork949.py` (the anchor's five cells byte-identical + a clock cell + payload + arm; β 0.35 a priori because the leg reads 0.006 under the anchor, C2's 0.45 was for an equal leg; diagnostic CSVs at β 0.20 / 0.50, unscored); local dry runs green (blend path and fail-soft path); `rsna-knee-fork949` v1 placeholder ⏳ |
-| — | — | Fork at other β | **Not planned:** it tunes a weight to the public LB | — | — |
+| C4b | **P1 (needs Tian's OAI call)** | **The public 0.949 checkpoint + B18** (#67, 0.944) as our leg at β 0.35 | The C4 pick on our best own leg: one tick closer to the anchor, and more independent of it (B17 carries `v11a`, a CoAtNet like the anchor; B18 is two CNNs); two members score in ≈ 38 min against B17's six. Pred. 0.950–0.951 | vs C4 0.950: ✅ ≥ 0.953 / 🔁 0.948–0.952 / ❌ ≤ 0.947. Tie rule: an equal read takes C4b (the stronger leg on paper, the faster rerun) | build: `src/build_fork949.py --members v15c v13b3`, then the `rsna-knee-fork949` placeholder (≈ 10 GPU-min) |
+| C3 | P3 | Public 0.942 stack + **B18** (#67, 0.944) as our leg at β 0.45 | The OAI-free fork pick 2 with a better leg | Gate: the leg read ≥ 0.943 (open since 10-08). vs C2 0.944: ✅ ≥ 0.947 / 🔁 0.942–0.946 / ❌ ≤ 0.941. Pred. 0.944–0.945 = B18's own level, so **worth a slot only if Tian rules the C4 family out as pick 2** | build with `src/build_fork.py --members …` plus `--member v15c=rsna-knee-ckpt-v15c:timm-convnext-tiny-in12k`; send 1 of its day |
+| — | — | Fork at other β | **Not planned:** it tunes a weight to the public LB, and on #68's arithmetic it is worth < 0.0002 | — | — |
 
 ## Order
 
@@ -126,9 +133,10 @@ one pipeline: fork deltas of one tick are noise (experiments.md 2026-10-06 "The 
   (experiments.md 2026-10-07 "P-69 on RunPod"). Placeholders B12 = v60, A6 = v61, B17 = v62, all green.
 - **10-08 (sent 06:16–06:18 UTC by the fallback; the armed pid 25568 died with the laptop on 10-07, traps 53):** A6 **0.942** →
   B17 **0.943** → B12 **0.941** (experiments.md "Submissions #64–#66"). P-69 closed ✅, B17 = pick 1, C3's gate open, B12 closed.
-  Then, on Tian's go: B18 #67 **0.944** (pick 1) and C4 #68 (the public 0.949 model + B17, OAI risk accepted for the read) ⏳. All 5 slots used.
-- **10-09:** C3 or a re-anchored fork (Tian's call, brainstorm.md), sent first in its day. Freeze the P-50
-  shortlist.
+  Then, on Tian's go: B18 #67 **0.944** (pick 1) and C4 #68 **0.950** (the public 0.949 model + B17, OAI risk accepted for the read;
+  rank 157). All 5 slots used.
+- **10-08 evening:** `v15c2` on RunPod (T8; approved, on hold until then).
+- **10-09:** C4b if Tian accepts an OAI-carrying pick 2 (else C3), sent first in its day; A8 (free). Freeze the P-50 shortlist.
 - **10-10:** training resumes (section D). The submissions after that are the new arms' solos.
 
 ## D. Training candidates (GPU) — paused until the 10-10 reset
