@@ -1106,6 +1106,11 @@ Three frictions from the P-69 run, none of which lost data:
 checkpoint's sha256 with any partial local copy; delete a truncated file rather than keep it. If `_lastema.pt` matters, copy it
 before the SWA pass ends.
 
+**10-08 addendum (`v15c2`):** the race repeated. The SWA-triggered scp watcher (a background shell on the laptop) was killed by
+Claude Code for low laptop memory, and a foreground scp started 60 s after the SWA line found the pod already stopped. A stopped pod
+does not come back to hand over its volume: both 10-08 4090 hosts gave their GPU away within minutes, and `start` failed with "not
+enough free GPUs on the host" each time. Treat the AUTO_STOP as the end of pod access; anything not in the ship is gone.
+
 ### 57. OAI's MPR series start with ONE reference image in another orientation — our cache builder takes the plane and the stack normal from the first header, so the whole series would be misfiled (Tier 1: silent, caught on 6 sample knees 2026-10-08, never trained)
 
 Every OAI `COR_MPR` / `AX_MPR` tarball (the coronal / axial 1.5 mm reformats of the sagittal 3D DESS) holds `001` = a single

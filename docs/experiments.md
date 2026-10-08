@@ -140,6 +140,7 @@ agreement with the teacher, not truth. A one-seed LB delta needs ≥ 0.004 (P-44
 | 2026-10-08 | **B12, submission #66 (`rsna-knee-infer` v60)**: flat rank-mean of B6 + `v13es` + `v13rs` (seven votes, three families) | 0.9242 | **0.941** | **🔁 −0.001 vs B6 (predicted ± 0.001); over its mean +0.0050 vs B6's +0.0062: extra same-family votes dilute the family gain (B13's lesson, a third time). Closed, not pick 1** |
 | 2026-10-08 | **B18, submission #67 (`rsna-knee-infer` v63)**: flat rank-mean of `v15c` (ConvNeXt-T 0.942) + `v13b3` (EfficientNet-B3 0.940), two families, two votes | — | **0.944** | **🔁 +0.001 vs B17 0.943 (band 0.940–0.946); the pre-registered "≥ 0.944 → pick 1 and the fork leg" fires. Our best own number, = the C2 fork, from two models. +0.003 over its members' mean (the cross-family pair gain); +0.002 over `v15c` alone (under the +0.004 blend floor)** |
 | 2026-10-08 | **C4, submission #68 (`rsna-knee-fork949` v1)**: the public OAI-trained 0.949 single model (`nartaa`, one CoAtNet-2) + B17 (our six members, 0.943) rank-blended per label at β 0.35 | — | **0.950** | **🔁 +0.001 vs the anchor's 0.949 (band 0.947–0.951; ✅ needed ≥ 0.952). Our best public number, rank 157 of 5,487 (was 720), inside the 247-team 0.950 tie. Most of it is the public anchor: our leg added one tick, the same as the public 0.929 reader adds in the 0.950 notebook. Carries the OAI rule risk (Tian accepted it for this read; final use is his call)** |
+| 2026-10-08 | **P-80 `v15c2` (RunPod secure RTX 4090, 1.59 pod-h ≈ $1.41)**: `v15c` at seed 43 (ConvNeXt-T `in12k_ft_in1k` @ 288, own optimiser, 20 epochs, SWA 17–19, the B6 data side, 0.5 LLM + 0.5 Raptor) | gold-58 SWA **0.9180** (`v15c` 0.9234; the seed twins' rank-mean 0.9234; ρ 0.955) | — | **✅ run green, shipped (`rsna-knee-ckpt-v15c2`), backed up, pod deleted; 🔁 direction only. The LB read (A7) and the pair as one vote wait on a placeholder and a send** |
 
 **External reference points** (not ours — for calibrating ambition):
 
@@ -4083,6 +4084,55 @@ B17's: `final = rank_pct(0.65 · rank_pct(anchor) + 0.35 · rank_pct(ours))`. B1
 
 **Verdict: 🔁 INCONCLUSIVE (+0.001 vs the anchor; ✅ needed ≥ 0.952).** Our best public number (0.950), and almost all of it is the public
 checkpoint. As a fork-pick-2 candidate it beats C2 (0.944) by 0.006 if OAI stands. Whether to use it is Tian's call (brainstorm.md).
+
+### 2026-10-08 — P-80 on RunPod: the ConvNeXt seed twin `v15c2` (= `v15c` at seed 43) trained in 1.45 h on one secure RTX 4090 · gold-58 SWA **0.9180** (`v15c` 0.9234) · seed twins ρ 0.955, rank-mean 0.9234 · ✅ run green, shipped, backed up, pod deleted, ≈ $1.41 · 🔁 direction only
+
+**Run** (approved by Tian and the critic for 10-08 evening, candidates.md T8; the 19:38 UTC community attempt died on its host, traps 61):
+- Pod `nvjvi86joqceu9` (SECURE, RTX 4090, $0.89/h; 12 vCPU, 100 GB local NVMe xfs `/workspace` as a persistent volume, 14 GB
+  `/dev/shm`, direct SSH), created 20:07:05 UTC. Stopper armed 20:08:09 with the deadline 22:43:05 (creation + 2.6 h ≈ $2.3); the
+  chain's first step (pip, the import line with CUDA, `kaggle --version`, an auth call) run in the foreground first: green, pip 31 s.
+  Then `runpod_chain.sh v15c2` at `30c8a8d` with `CACHE_ROOT=/workspace/cache`, `AUTO_STOP=1`, `SEQ_ARMS=1`, `SHIP_TRIES=3`,
+  `SHIP_WAIT_S=120`, `MAX_POD_H=2.6`.
+- Timeline: inputs 20:09:08 → 20:09:58; four parallel cache pulls done and verified by 20:14 (71 blobs, 0 bad, 4,407 studies); training
+  20:14:17 → 21:41 (≈ 87 min, 4.3 min per epoch; `v15c` 4.5); SWA; ship 21:42:09–12; AUTO_STOP stopped the pod ≈ 21:42:10. Pod time
+  1.59 h ≈ $1.41 (T8: ≈ 2.1 h, $1.9).
+- Backup: the Dataset `rsna-knee-ckpt-v15c2` is `ready` with `v15c2_fold0_best.pt` (112,204,320 bytes, = the pod's size), the OOF csv
+  and the log; per-file downloads into `artifacts/kaggle_out/pod_v15c2/`, `_best.pt` sha256 `8eeb9f30…1275`, loads (189 tensors).
+  `_lastema.pt` is lost: the SWA-triggered scp watcher was killed by Claude Code for low laptop memory, a foreground scp lost the race
+  to AUTO_STOP by seconds (traps 56), and a `start` to fetch it from the volume failed ("not enough free GPUs on the host"). It is not
+  used anywhere. The pod was deleted after the ship and the backup were confirmed; `list-pods` is empty.
+- Config confirmed in the log: `timm:convnext_tiny` @ 288, `lr_backbone` 1e-4 (5.9e-5 … 1e-4 over 4 stages, decay 0.9), head 1e-3,
+  20 epochs, `swa_last` 3, `train_all`, "reseeded 43 for arm v15c2", targets 0.5 LLM + 0.5 quantile-matched Raptor. Peak GPU memory
+  7.02 GiB (= `v15c`).
+
+**Training curve, beside `v15c`:**
+
+| epoch | loss | gold-58 | `pred_std` | clipped | `v15c` loss / gold |
+|---|---|---|---|---|---|
+| 0 | 0.5555 | 0.7964 | 0.153 | 100 % | 0.5502 / 0.8154 |
+| 2 | 0.4607 | 0.9045 | 0.297 | 99 % | 0.4593 / 0.9100 |
+| 4 | 0.4291 | 0.9154 | 0.305 | 98 % | 0.4297 / 0.9182 |
+| 9 | 0.3936 | 0.9193 | 0.316 | 94 % | 0.3926 / 0.9220 |
+| 12 | 0.3766 | **0.9239** (peak) | 0.322 | 90 % | — (peak 0.9272 at epoch 11) |
+| 14 | 0.3675 | 0.9212 | 0.324 | 86 % | 0.3674 / 0.9259 |
+| 19 | 0.3569 | 0.9178 | 0.326 | 79 % | 0.3567 / 0.9233 |
+| SWA 17–19 | — | **0.9180** | 0.326 | | — / 0.9234 |
+
+- Loss matches `v15c` to the third decimal at every epoch; gold runs 0.003–0.006 lower from epoch 2 on and falls 0.006 after its
+  epoch-12 peak (`v15c`: 0.004 after epoch 11). The clip rate again ends high (79 %; `v15c` 82 %), so the P-69 clip flag is a property
+  of the recipe, not of one seed.
+
+**Gold-58, direction only (traps 39):**
+- Per label vs `v15c`: higher on Medial Meniscus 0.974 (+0.011), Synovitis 0.818 (+0.012), Contusion 0.972 (+0.012); lower on Lateral
+  Meniscus 0.877 (−0.025), Fracture 0.864 (−0.036), Lateral OA 0.816 (−0.018), Effusion 0.924 (−0.013); the rest within ±0.005.
+- Seed twins: Spearman ρ 0.955 over the 58 (0.906–0.976 per label), within-class 0.916, above `v15c`'s ρ with the B6 members
+  (0.825–0.881). The flat rank-mean of the pair reads 0.9234, +0.0027 over the twins' mean 0.9207: a same-family gain that the blend
+  rule (experiments.md 10-05 … 10-08) expects to be small on the LB.
+- −0.0054 vs `v15c` on gold is far inside gold's noise (0.05 macro). Gold put `v15c` above `v13b3` correctly on 10-08, but one seed pair
+  cannot say whether 0.942 was a high draw: that is A7's LB read (s_c = |LB(`v15c2`) − 0.942|).
+
+**Verdict: ✅ run green, shipped; 🔁 INCONCLUSIVE as a measurement** (gold −0.0054 vs `v15c`, under the 0.05 floor). Next: a `v15c2`
+placeholder in `rsna-knee-infer` (smoke first), then the A7 solo send and the ConvNeXt pair as one vote (`INFER_VOTE_GROUPS`).
 
 ## Infrastructure
 
