@@ -1153,3 +1153,21 @@ setup session started the stopper but not the chain.
 
 **Do:** with no `ssh.direct`, send one short session per step (setup; then the launch alone with `setsid nohup … &`), and verify
 each with a fresh session (`pgrep -fa runpod_`). Plan the local backup from the shipped Dataset, since scp is not available.
+
+### 61. A RunPod pod without a volume loses its container on stop, so an AUTO_STOP early failure leaves no log — run the chain's first step in the foreground (Tier 3, 2026-10-08)
+
+The 10-08 19:38 `v15c2` chain on community pod `kygt8m42pscb6y` (80 GB container disk, no volume) stopped the pod within 90 s, and
+its log was never read. The RunPod system log (`stream-pod-logs`, source `system`) shows `stop container` 19:39:34, then `remove
+container` 19:39:36: a stop deletes a volume-less container with its disk, so `/workspace/job_v15c2.log` was gone before anyone
+looked, and a `start` (which failed anyway: "not enough free GPUs on the host") would have booted an empty container. The timing
+narrows the step: the chain printed `python deps` at 19:38:11 and was alive at 19:38:50, and the stopper waits 90 s after a
+`job exit` line, so only the chain's own AUTO_STOP trap fits. It died 40–80 s in, in `pip install` / the torch-CUDA import check /
+`kaggle --version`. The same package set (pip dry-run for manylinux py3.12 with torch 2.8.0: huggingface-hub 1.33.0, not 10-08's
+2.2.0) installed, imported and ran `kaggle --version` cleanly in a clean local venv and on the secure relaunch pod, so the fault was
+that host's (network or CUDA init); which of the two is unknowable.
+
+**Do:** give every pod a persistent `/workspace` (`mounts.persistent`), so a stopped pod keeps its log; read a vanished pod's fate
+in `stream-pod-logs` (system source) first; and run the chain's first step in the foreground before the AUTO_STOP launch
+(`pip install -r requirements-gpu.txt`, the import line with `torch.cuda.get_device_name(0)` plus a CUDA matmul, `kaggle --version`,
+one `kaggle datasets files` call), so a host fault shows on the screen instead of as a silent stop. Launch the chain on a line of
+its own: `A && B && setsid nohup chain … &` backgrounds the whole list, which holds the ssh channel open until the chain ends.
