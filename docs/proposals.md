@@ -345,6 +345,19 @@ Read 2026-10-08 (MRI ASSESSMENTS + X-RAY ASSESSMENTS zips; counts only, nothing 
                 every baseline series with its own barcode and type (77,224 rows), so the download list is exact. Proposed
                 series: SAG IW TSE FS, COR IW TSE, COR MPR, AX MPR (≈ 74 MB per knee → ≈ 180 GB), + SAG 3D DESS if a slot
                 wants it (≈ 120 MB per knee → ≈ 290 GB). COR FLASH (right knees only) and the T2 map are skipped.
+The image package, read 2026-10-08 (no images downloaded):
+              - Shared package `OAIBaselineImages` (1228997) → Tian's personal copy **1249779**: 186,189 files, 974.6 GB (NDA
+                units), **one `.tar.gz` per series** (`image03/00m/<release>/<participant>/<date>/<series>.tar.gz`) plus
+                preview JPEGs and six metadata files. The metadata (`image03.txt`, one row per series: OAI ID, series name
+                such as `SAG_IW_TSE_RIGHT`, S3 link; `oai_enrollee01.txt`) is in `data/oai/nda_pkg_meta/`; the file list with
+                sizes is nda-tools' `package_file_metadata_1249779.txt` (`--verify` writes it, downloads nothing).
+              - **Our subset, exact:** the 2,400 MOAKS knees match all 2,030 OAI IDs. Core 4 series (SAG IW TSE FS, COR IW TSE,
+                COR MPR, AX MPR) = **9,642 files, 76.4 GB** for 2,398 knees; + SAG 3D DESS = 12,053 files, 137.6 GB; every
+                series of those knees = 231.7 GB. 184 knee-series have a repeat scan (keep one).
+              - Access: `scripts/nda_run.py` (the .env credentials held in memory; NDA_USERNAME = the NDA account username,
+                not the Login.gov email; NDA_PASSWORD = the one set under "Update Password", the Login.gov one gets a 401).
+                A download is `downloadcmd -dp 1249779 -t <our s3 links> -wt 16`, on the training pod (US datacenter,
+                minutes for 76 GB), never committed or uploaded anywhere public.
 What it needs (our estimate, ≈ 3–5 working days before the first arm):
               (1) the baseline knee MRIs of ≈ 2,400 knees (≈ 150–300 GB, our estimate); (2) a sequence map onto our c03 slots
               (OAI is one 3 T Siemens protocol). Proposed: SAG IW TSE fat-sat → `SAG_FLUID_FS`; the coronal / axial MPR reformats
