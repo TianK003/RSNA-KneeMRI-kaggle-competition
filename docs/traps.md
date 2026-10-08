@@ -1140,3 +1140,16 @@ NDA access goes through Login.gov (RAS), but `downloadcmd` authenticates against
 **Do:** `scripts/nda_run.py <.env> <downloadcmd args>` serves the `.env` password from an in-memory keyring (never prompted, printed
 or stored). `--verify` lists a package's files with sizes and downloads nothing; `--file-regex` matches the download alias
 (`image03/00m/…`, or `image03.txt` for the metadata), not the S3 URL; `-t <links.txt>` downloads exactly the listed S3 files.
+
+### 60. A community-cloud pod may have no public IP: no direct SSH, no scp — and the proxy runs only what you pipe into its PTY, where a child can swallow the queued input (Tier 3, 2026-10-08)
+
+No RTX 4090 could be created on 10-08 evening for 40 min (secure and community, every disk / CUDA variant: "no longer any
+instances available"); the one that came was a community host (`kygt8m42pscb6y`, $0.34/h vs secure $0.89/h) whose `ssh.direct` stayed
+`null` (its ports map to a 100.65.x CGNAT address, HTTP only). The RunPod proxy (`ssh <pod>-<hash>@ssh.runpod.io`) ignores a remote
+command (timeout) but runs commands piped into `ssh -tt` stdin. Two catches: (1) the PTY echoes what you pipe, so a secret must be
+sent after `stty -echo` (the Kaggle credentials went over as a base64 heredoc that way, checked by size and expiry, never printed);
+(2) a long-running child of the piped shell (`apt-get` here) reads the queued input, so the lines after it never run — the first
+setup session started the stopper but not the chain.
+
+**Do:** with no `ssh.direct`, send one short session per step (setup; then the launch alone with `setsid nohup … &`), and verify
+each with a fresh session (`pgrep -fa runpod_`). Plan the local backup from the shipped Dataset, since scp is not available.
