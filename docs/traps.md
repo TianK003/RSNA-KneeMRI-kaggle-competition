@@ -931,6 +931,9 @@ run ended at train loss 0.471 (CoAtNet 0.383) with gold still rising. P-59 chang
 **0.8992** (+0.069) — the backbone was never the problem. **Do:** when a card swaps the backbone *family*, set that family's own LR /
 LLRD / epochs and check the train loss reaches the old family's before reading the verdict; a verdict from an under-fit run (loss
 far above the baseline's, metric still rising at the last epoch) is 🔁, not ❌ (experiments.md 2026-09-29 "P-59").
+**Confirmed again 2026-10-08, on the LB:** ConvNeXt-T on its own optimiser (`v15c`, AdamW 1e-4, per-stage decay 0.9) reads **0.942
+solo**, our best single model. Every forum ConvNeXt run on a shared recipe read 0.929–0.939, and so did the prior we priced it with
+(experiments.md 2026-10-08 "Submissions #64–#66").
 **Addendum (same night, pod 2):** the A100 pod in US-MD-1 pulled the 51 GB at ≈ 135 MB/s into `/dev/shm` and trained 5 epochs, then
 RunPod stopped and **removed** the container at 19:33 UTC — the account balance had run out (`402 Payment Required: Your account
 balance is too low` on `start`). Everything on the container disk and in `/dev/shm` (the cache, `/kaggle/working` with every
@@ -1030,6 +1033,26 @@ summary alone would think two submissions were still running.
   after a fork send means a watcher died.
 - To check whether the machine slept: `Get-WinEvent -FilterHashtable @{LogName='System'; ProviderName='Microsoft-Windows-Power-Troubleshooter'}`
   prints each sleep / wake pair with its wake source.
+
+**Addendum 2026-10-08: a crash or power loss kills the submitter too, and a sleep falsifies the watchers' timings.** The 10-08
+submitter (pid 25568, armed 11:20 UTC 10-07, laptop on AC at that moment) logged its hourly line at 12:00 and 13:00 UTC and then nothing.
+The System log has two unexpected shutdowns that afternoon (Kernel-Power 41 / event 6008: 13:47 and 17:01 UTC 10-07), with reboots at
+14:33 and 17:13. Nothing restarts the submitter after a reboot. Its death was noticed at 06:16 UTC 10-08, when the fallback sent the
+three at once: six hours late, but on the right UTC day, so no slot was lost (the dead log is `artifacts/auto_submit_1008_dead.log`).
+The laptop then slept (lid) from 06:27 to 09:31 UTC, while all three were scoring. Each watcher logged `PENDING` and then `COMPLETE …
+196 min after sending` at the wake, and wrote "scored within [193–194.5, 194.5–196] min" to `artifacts/submission_timing.csv`. Those
+bounds are false: the true window starts at the last poll before the sleep (≈ 8–10 min after sending). The three rows' `bound_lo_min`
+were corrected by hand.
+
+**Do (in addition):**
+- The evening before a send, check `Get-Process -Id <pid>` **and** `Get-WinEvent -FilterHashtable @{LogName='System'; Id=41,6008}` for
+  an unexpected shutdown since the submitter started. A crash leaves no trace in the submitter's own log.
+- A watcher's elapsed time is valid only if the machine stayed awake between its polls. Check the Power-Troubleshooter log for a
+  sleep inside the window before trusting a timing row.
+
+**Fix, not built:** a Windows Task Scheduler task ("run once at 00:00:30 UTC", "wake the computer to run this task", "run whether the
+user is logged on or not") survives reboots, which the waiting process cannot. Whether wake timers fire with the lid closed depends on
+the laptop's standby mode (Modern Standby often ignores them), so it does not replace AC power with the lid open.
 
 ### 54. The two training slots run different Kaggle images, and a GPU session can end `ERROR` with an empty log that a re-push fixes (Tier 3, 2026-10-06)
 

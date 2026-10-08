@@ -10,19 +10,19 @@ by **macro ROC-AUC** (unweighted mean of 12 per-label AUCs).
 
 Competition: https://www.kaggle.com/competitions/rsna-knee-abnormality-detection
 
-## Current state (2026-10-07, 08:40 UTC)
+## Current state (2026-10-08, 09:45 UTC)
 
 One block, kept current by `/update`. Session history is in [docs/handoff.md](docs/handoff.md); every number, with its verdict,
 is in [docs/experiments.md](docs/experiments.md).
 
 | | |
 |---|---|
-| Public LB (2026-10-06, 09:25 UTC) | **Top 0.964**; 10th 0.960; 123 teams ≥ 0.950; 319 ≥ 0.945; 5,293 teams. **We are rank 337 at 0.944** (#54). The public plateau moved to **0.943** (984 teams: the community stack, reproduced by skarin); a public fork of it with its own ConvNeXt-T leg reads 0.944 (194 teams). That author saw the stack score 0.944 / 0.944 / 0.943 on one pipeline: a fork read carries ≈ one tick of noise |
-| Our best | **LB 0.944** = #54 (C2), the public 0.942 stack + B6 at β 0.45 (`rsna-knee-fork` v12; 🔁 +0.001 over #49) = **final pick 2**, level with the best public notebook. **Own models 0.942** = #52 (B6), a flat rank-mean of `v11a` + `v13r` + `v13e` + `v13b3` + `v13e2` (`rsna-knee-infer` v51) = **final pick 1**; no variant beat it: B13 (+ two CoAtNet votes, #55) 0.940, B11 (the EfficientNet triple, #56) 0.941, and the 10-07 drop-one reads B14 (no CoAtNet, #63) 0.942 = B6, B4 (no `v13e2`, #59) 0.941, B5 (no `v13b3`, #62) 0.940. **Solo 0.940** = #50 `v13b3` (EfficientNet-B3 @ 288). Blend rule: a flat rank-mean ≈ its members' mean + a gain that grows with the number of *families* (≈ +0.003 for one, ≈ +0.005–0.006 for three); a member under the mean from a family already present costs (experiments.md 10-05, 10-06). CNN seed spread s = 0.003 |
-| Production recipe | CNNs on the `v13h` recipe: c03 input, CNN LR 3e-4 uniform, frozen BN, heavy aug, drop-path 0.1, 30 epochs, SWA of 27–29. Targets 0.5 LLM + 0.5 quantile-matched Raptor: the only target change that ever transferred. The Claude relabel (P-65, 10-06) and the P-62 silent-cell mix (#60 / #61 0.936 / 0.937, pair +0.002, 10-07) read no lift and are closed, like D4, self-distillation and the same-family OOF student. The c03 CoAtNet `v11a` is the non-CNN family; it adds 0.000 to B6 (B14), so week 2 drops its retrain |
-| Trained, LB pending | **P-69 `v15c`** (ConvNeXt-T @ 288, own recipe), trained 10-07 on RunPod (≈ $1.46, pod deleted): gold-58 SWA 0.9234, the clip-rate tripwire fired (a low solo reads 🔁). **Built and green for 10-08:** A6 = `rsna-knee-infer` v61 (`v15c` solo), B17 = v62 (B6 + `v15c`), B12 = v60 (B6 + `v13es` + `v13rs`), in `artifacts/submit_plan_1008.json`, **queued for 2026-10-08 00:00:30 UTC in `auto_submit.py` pid 25568** (started 11:20 UTC 10-07, Tian's go; laptop on AC, lid open). The 10-07 reads: #59 B4 0.941, #60 / #61 `v13es` / `v13rs` 0.936 / 0.937 (P-62 closed 🔁), #62 B5 0.940, #63 B14 0.942 = B6 (week 2 drops the CoAtNet retrain); B4 − B5 = +0.001 |
-| Next | **The queue: [docs/candidates.md](docs/candidates.md)** (every candidate ranked with its day). **Tian's decisions (10-06 night; they supersede the evening's "no ConvNeXt"): ONE ConvNeXt-T arm with its own recipe, P-69 `v15c`** (timm `convnext_tiny.in12k_ft_in1k` @ 288, LR 1e-4 + per-stage decay 0.9, 20 epochs, the B6 data side; plan `docs/superpowers/plans/2026-10-06-p69-convnext-plan.md`, evidence research.md 2.7.9) trained on RunPod 10-07 (row above). Read 10-08: A6 (solo), B17 (B6 + it) and B12 (B6 + `v13es` + `v13rs`). **The pseudo-label pair P-68 `v13ex` ‖ `v13ex2`** runs at the 10-10 reset. Single-model cards P-75 … P-79: Tian picks later. Background (research.md 2.7.8): improve the families we have first; a fourth family is worth ≈ +0.0008 LB on B6. **10-07:** the five sends went out 00:00–00:04 UTC and are read (row above); an unattended send needs the laptop on AC with the lid open (traps 53). **10-10:** session A = the P-67 floor pair, session B = `v13ex` ‖ `v13ex2`, then the proxy loop (candidates.md section D). Final picks by 10-22 (entry / merger deadline 10-15) |
-| Budgets | Kaggle GPU 30 h/week of *session* time, two T4s per session (≈ 60 GPU-h): 27.40 h used, 2.60 h left until the 2026-10-10 reset (`kaggle quota`, 10-07 08:31 UTC, after the B12 / A6 / B17 placeholders), then a second reset 10-17. 5 submissions per UTC day (15 days × 5 left, 10-08 to 10-22). RunPod ≈ $3.5 after P-69's ≈ $1.46 (≈ 4.5 h on a 4090), only after a justification checked by a critic subagent and Tian's go |
+| Public LB (2026-10-08, 09:39 UTC) | **Top 0.964**; 10th 0.961; **338 teams ≥ 0.950** (123 on 10-06); 698 ≥ 0.945; 5,469 teams. **The public plateau jumped to 0.950 on 10-08** (199 teams at exactly 0.950, 184 of them that day: most likely a new public notebook, which one is unverified). **We are rank 720 at 0.944** (#54; rank 337 on 10-06). Below it: 0.943 (817 teams, the old community stack) and 0.944 (218) |
+| Our best | **LB 0.944** = #54 (C2), the public 0.942 stack + B6 at β 0.45 (`rsna-knee-fork` v12) = **final pick 2** for now. **Own models 0.943** = #65 **B17** = B6 + ConvNeXt-T `v15c`, a flat rank-mean of six (`rsna-knee-infer` v62; 🔁 +0.001 over B6 #52 0.942) = **final pick 1** by the house convention; B12 (#66, B6 + `v13es` + `v13rs`) 0.941. **Solo 0.942** = #64 **`v15c`** (ConvNeXt-T `in12k_ft_in1k` @ 288, own optimiser): our best single model, level with the five-member B6; then `v13b3` 0.940. B17 is only +0.001 over `v15c` alone. Blend rule (held a fourth time on 10-08): a flat rank-mean ≈ its members' mean + a gain that grows with the number of *families*; extra votes of a family already present cost (experiments.md 10-05 … 10-08). CNN seed spread s = 0.003 |
+| Production recipe | CNNs on the `v13h` recipe: c03 input, CNN LR 3e-4 uniform, frozen BN, heavy aug, drop-path 0.1, 30 epochs, SWA of 27–29. **ConvNeXt-T on its own optimiser** (P-69, ✅ 10-08): AdamW 1e-4 + per-stage decay 0.9, head 1e-3, 20 epochs, SWA 17–19, the same data side (traps 46: a family needs its own optimiser). Targets 0.5 LLM + 0.5 quantile-matched Raptor: the only target change that ever transferred (the Claude relabel, the silent-cell mix, D4, self-distillation and the same-family OOF student read no lift) |
+| Read 10-08 | #64 A6 `v15c` **0.942** (✅ +0.0062 over B6's members' mean, 1.5× the floor) · #65 B17 **0.943** (🔁 +0.001; the "≥ 0.943" branch fires: pick 1, C3's gate open, week 2 trains more ConvNeXt) · #66 B12 **0.941** (🔁, closed). Sent 06:16 UTC by the fallback: the armed submitter died when the laptop crashed on 10-07 (traps 53 addendum). Two 10-08 slots are still free until 00:00 UTC |
+| Next | **The queue: [docs/candidates.md](docs/candidates.md).** Proposed 10-08, each needs Tian's go: **B18** = `v15c` + `v13b3` (the two strongest, two families; pred. 0.943–0.946; a placeholder, then a send, today or 10-09); **the fork pick:** C3 (the 0.942 stack + B17, pred. 0.944–0.945) vs re-anchoring on the new 0.950 public stack (brainstorm.md); **P-80** `v15c2`, the ConvNeXt seed twin (RunPod ≈ $1.46 after a critic check, or Kaggle after 10-10). **10-10:** session A = the P-67 floor pair, session B = the P-68 pseudo-label pair `v13ex` ‖ `v13ex2`, then the proxy loop. Final picks by 10-22 (entry / merger deadline 10-15). An unattended send needs the laptop on AC with the lid open, and a check for a crash the evening before (traps 53) |
+| Budgets | Kaggle GPU 30 h/week of *session* time, two T4s per session (≈ 60 GPU-h): 27.40 h used, 2.60 h left until the 2026-10-10 reset (`kaggle quota`, 10-08 09:38 UTC), then a second reset 10-17. 5 submissions per UTC day: 2 left on 10-08, then 14 days × 5 (10-09 to 10-22). RunPod ≈ $3.5, only after a justification checked by a critic subagent and Tian's go |
 
 ## 📚 Documentation map — read the relevant one before acting
 
@@ -378,15 +378,15 @@ Macro ROC-AUC is invariant to any strictly increasing per-label transform, so:
 
 ## Where the field is
 
-Public LB on 2026-10-06, 09:25 UTC (full CSV via `kaggle competitions leaderboard -d`):
-- **Top 0.964**; ranks 1–10 span 0.960–0.964.
-- 60 teams ≥ 0.955, 123 ≥ 0.950, 319 ≥ 0.945; 5,293 teams in total.
-- **The plateau is now 0.943: 984 teams sit at exactly 0.943** (the community stack, reproduced cell for cell by skarin; it is our
-  anchor plus two CoAt readers). 194 teams sit at 0.944, among them a public fork (`goodpjw2008`, 112 votes) that adds its own 2.5D
-  ConvNeXt-T reader (0.929 solo) at 30 %. Its author measured the stack's run-to-run spread at one tick (0.944 / 0.944 / 0.943).
-- **We are at 0.944 (rank 337)** with our 0.942 anchor + B6 at β 0.45 (#54): level with that public notebook.
-- Our own models read **0.942** (#52, five members) and **0.940** solo (#50 `v13b3`, EfficientNet-B3; B0 seeds 0.935 / 0.938).
-- Earlier snapshots are in research.md §2.7.3–2.7.4 and experiments.md (2026-10-06 "The public frontier moved").
+Public LB on 2026-10-08, 09:39 UTC (full CSV via `kaggle competitions leaderboard -d`):
+- **Top 0.964**; ranks 1–10 span 0.961–0.964.
+- 72 teams ≥ 0.955, **338 ≥ 0.950**, 698 ≥ 0.945; 5,469 teams in total.
+- **The plateau is now 0.950 (10-08): 199 teams sit at exactly 0.950**, 184 of them with a submission that day, the signature of a new public notebook (which one is unverified; first guess `sujanmajhisuzan/rsna-knee-apex-grandmaster-stack`). The old plateau, 0.943 (the community stack, our anchor plus two CoAt readers), still holds 817 teams; 0.944 holds 218, among them the public fork `goodpjw2008`
+  (its 2.5D ConvNeXt-T reader, 0.929 solo, at 30 %), whose author measured the stack's run-to-run spread at one tick
+  (0.944 / 0.944 / 0.943).
+- **We are at 0.944 (rank 720; 337 on 10-06)** with our 0.942 anchor + B6 at β 0.45 (#54).
+- Our own models read **0.943** (#65 B17, six members) and **0.942** solo (#64 `v15c`, ConvNeXt-T on its own optimiser; then #50 `v13b3` 0.940, EfficientNet-B3).
+- Earlier snapshots are in research.md §2.7.3–2.7.4 and experiments.md (2026-10-06 "The public frontier moved"; 2026-10-08 "Submissions #64–#66").
 
 The Efficiency Prize has its own leaderboard, published
 as a notebook (`ryanholbrook/rsna-knee-abnormalities-efficiency-lb`, readable via
@@ -413,7 +413,8 @@ Consensus architecture there: DINOv2 ViT-S/14 as the workhorse (with DINOv3 and 
 ResNet-50 rank-blended alongside), 2.5D one-series-per-slot with a presence mask, laterality
 normalisation, attention pooling over slices, and **LLM-read report labels as the de-facto
 standard target source**. (**Corrected 2026-10-04:** "not EfficientNet" no longer holds. The forum's best singles are CNNs,
-ResNet-34/50 and EfficientNet-B0, and so is ours: EfficientNet-B3 `v13b3` 0.940; B0 `v13e` / `v13e2` 0.935 / 0.938.)
+ResNet-34/50 and EfficientNet-B0, and so is ours: EfficientNet-B3 `v13b3` 0.940; B0 `v13e` / `v13e2` 0.935 / 0.938. **10-08:** our best
+single is now a ConvNeXt-T on its own optimiser, `v15c` 0.942.)
 
 Our own measurements of these choices are in [docs/experiments.md](docs/experiments.md).
 

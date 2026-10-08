@@ -135,12 +135,16 @@ agreement with the teacher, not truth. A one-seed LB delta needs ≥ 0.004 (P-44
 | 2026-10-07 | **B5, submission #62 (`rsna-knee-infer` v59)**: flat rank-mean `v11a` + `v13r` + `v13e` + `v13e2` (B6 − `v13b3`) | 0.9238 | **0.940** | **🔁 −0.002 vs B6; predicted 0.939–0.940. Of the three drop-one reads, dropping the B3 costs the most** |
 | 2026-10-07 | **B14, submission #63 (`rsna-knee-infer` v57)**: flat rank-mean `v13r` + `v13e` + `v13b3` + `v13e2` (B6 − `v11a`, the four CNNs) | 0.9211 | **0.942** | **= B6 (0.000); the pre-registered "≥ 0.942 → the CoAtNet is not needed" fires: week 2 drops the CoAtNet retrain. Predicted 0.940–0.941: the CoAtNet's family gain ≈ its quality cost** |
 | 2026-10-07 | **P-69 `v15c` (RunPod RTX 4090, 1.97 pod-h ≈ $1.46)**: timm ConvNeXt-T `in12k_ft_in1k` @ 288 with its own optimiser (`lr_backbone` 1e-4, per-stage decay 0.9, head 1e-3, 20 epochs, SWA 17–19), the B6 data side (c03, heavy aug, drop path 0.1, 2 × 2, 0.5 LLM + 0.5 Raptor) | gold-58 SWA **0.9234** (B6 members 0.9111–0.9222; peak epoch 11 0.9272) | — | **✅ run green, shipped (`rsna-knee-ckpt-v15c`); 🔁 direction only. The clip-rate tripwire fired (82 % of steps clipped at the last epoch, line 50 %): a low solo reads 🔁, not ❌. Placeholders A6 = infer v61, B17 = v62 (gold 0.9266 vs B6 0.9256), B12 = v60 (0.9242), all green; sends staged for 10-08** |
+| 2026-10-08 | **P-69 solo, submission #64 (`rsna-knee-infer` v61)**: `v15c` = ConvNeXt-T `in12k_ft_in1k` @ 288 on its own optimiser | 0.9234 | **0.942** | **✅ KEEP as a member: +0.0062 over B6's members' mean 0.9358 (1.5× the 0.004 one-seed floor; rule ≥ 0.936 = at or above the mean). Our best single model ever, = the five-member B6; +0.002 over `v13b3` 0.940 is 🔁. The clip-rate tripwire had fired, and still the best solo** |
+| 2026-10-08 | **B17, submission #65 (`rsna-knee-infer` v62)**: flat rank-mean of B6 + `v15c` (six votes, four families) | 0.9266 | **0.943** | **🔁 +0.001 vs B6 0.942 (band 0.939–0.945), +0.001 over its best member `v15c`; the pre-registered "≥ 0.943 → pick 1, C3's gate opens, more ConvNeXt training in week 2" fires. Over its members' mean +0.0062 = B6's: the fourth family added its mean shift and no extra diversity gain** |
+| 2026-10-08 | **B12, submission #66 (`rsna-knee-infer` v60)**: flat rank-mean of B6 + `v13es` + `v13rs` (seven votes, three families) | 0.9242 | **0.941** | **🔁 −0.001 vs B6 (predicted ± 0.001); over its mean +0.0050 vs B6's +0.0062: extra same-family votes dilute the family gain (B13's lesson, a third time). Closed, not pick 1** |
 
 **External reference points** (not ours — for calibrating ambition):
 
 | Score | What |
 |---|---|
-| 0.964 | Public LB #1 (2026-10-06); 10th 0.960; 123 teams ≥ 0.950 of 5,293 |
+| 0.964 | Public LB #1 (2026-10-08 09:39 UTC); 10th 0.961; **338 teams ≥ 0.950 of 5,469 (123 on 10-06)** |
+| **0.950** | **The new public plateau (2026-10-08): 199 teams at exactly 0.950, 184 of them with their last submission on 10-08.** Most likely a new public notebook; which one is unverified (by votes and date: `sujanmajhisuzan/rsna-knee-apex-grandmaster-stack`, 109 votes, run 10-07 22:23 UTC). Our 0.944 is rank 720 (entry "Submissions #64–#66") |
 | **0.944** | `goodpjw2008/rsna-knee-stack-2-5d-convnext-mil-lb-0-944` (2026-10-06): the 0.943 community stack + its author's 2.5D ConvNeXt-T reader (0.929 solo) at 30 %; 194 teams at 0.944 = our #54 (entry "The public frontier moved") |
 | **0.943** | The community stack as of 10-06 (skarin's reproduction; = our anchor + two CoAt readers); 984 teams at exactly 0.943 |
 | 0.958 | Public LB #1 (2026-09-21); #2–#5 at 0.955–0.956 — the top moved +0.006 in three weeks |
@@ -3878,6 +3882,68 @@ verified`, `constant labels 0`):**
 over `v13b3`, far under the 0.05 floor); the clip-rate tripwire fired, so a low LB solo will read 🔁. The LB reads are A6 and B17
 (10-08).**
 
+**READ 2026-10-08:** A6 = **0.942** (✅ a member, our best solo) and B17 = **0.943** (🔁 +0.001, pick 1 by house convention). The
+tripwire did not predict a weak model (entry "Submissions #64–#66").
+
+### 2026-10-08 — Submissions #64–#66 · **#64 ConvNeXt-T `v15c` solo 0.942 = our best single model, level with the five-member B6** (✅ +0.006 over B6's members' mean) · **#65 B17 = B6 + `v15c` 0.943 = our best own number** (🔁 +0.001; pick 1, C3's gate opens, week 2 trains more ConvNeXt) · #66 B12 0.941 (🔁 −0.001, closed) · the public plateau jumped to 0.950 the same day
+
+**Sending.** The armed submitter (pid 25568) died with the laptop on 10-07: two unexpected shutdowns (13:47 and 17:01 UTC), its log
+ends at 13:00 UTC (`artifacts/auto_submit_1008_dead.log`). The fallback command re-sent the plan at **06:16–06:18 UTC 10-08**, six
+hours late but on the right UTC day, so no slot was lost. The laptop then slept 06:27 → 09:31 UTC, so the watchers' "scored within
+[193, 196] min" are upper bounds only; the three scored somewhere between ≈ 8–10 min and ≈ 195 min after sending (traps 53 addendum).
+
+| # | what | gold-58 | LB | pre-registered read | verdict |
+|---|---|---|---|---|---|
+| 64 | A6 = `v15c` solo (P-69; infer v61) | 0.9234 | **0.942** | vs B6's members' mean 0.9358: ≥ 0.936 at or above the mean / 0.933–0.935 member grade / ≤ 0.932 stop spending on ConvNeXt | **✅ at or above the mean (+0.0062)** |
+| 65 | B17 = B6 + `v15c`, six flat votes (infer v62) | 0.9266 | **0.943** | vs B6 0.942: ✅ ≥ 0.946 / 🔁 0.939–0.945 / ❌ ≤ 0.938; ≥ 0.943 → pick 1 + C3's gate + more ConvNeXt in week 2 | 🔁 (+0.001); **the ≥ 0.943 branch fires** |
+| 66 | B12 = B6 + `v13es` + `v13rs`, seven flat votes (infer v60) | 0.9242 | **0.941** | vs B6 0.942, the same bands; ≥ 0.943 → pick 1 | 🔁 (−0.001); closed |
+
+**#64, what it says.**
+1. **One ConvNeXt-T, trained in 1.5 h on one 4090 for ≈ $1.46, reads what our five-member blend reads.** It is +0.002 over the best
+   solo we had (`v13b3` 0.940; 🔁 as a ranking of the two: one seed, s = 0.003), +0.0055 over the B0 seed mean 0.9365, and +0.013
+   over the public ConvNeXt-T reader (goodpjw2008, 0.929). No ConvNeXt solo on the forum read above 0.939 (research.md 2.7.8).
+2. **The recipe was the difference, a second time.** The forum's ConvNeXt reads and our `v06c` (08-30) used a shared or ViT-style
+   optimiser. With the family's own (AdamW 1e-4, per-stage decay 0.9, 20 epochs) it is our strongest backbone. This is traps 46 again:
+   the ResNet-34 went 0.8306 → 0.8992 on gold with a CNN learning rate (P-59).
+3. **The clip-rate tripwire (82 % of steps clipped at the end) did not mark a weak model.** Either clipping at 1.0 is just this
+   family's gradient scale, or there is more left in the recipe. One seed cannot tell which.
+4. **Gold-58 had today's four directions right:** `v15c` 0.9234 > `v13b3` 0.9222 (LB 0.942 > 0.940), and B17 0.9266 > B6 0.9256 >
+   B12 0.9242 (LB 0.943 > 0.942 > 0.941). On 10-07 it had B14 wrong, so it stays direction only (traps 39).
+
+**#65 / #66, what they say (the blend rule, read a fourth time).**
+
+| blend | members (families) | members' mean | LB | over mean | vs B6 |
+|---|---|---|---|---|---|
+| #52 B6 | 5 (3) | 0.9358 | 0.942 | +0.0062 | — |
+| #65 B17 | 6 (4) | 0.9368 | 0.943 | +0.0062 | +0.001 |
+| #66 B12 | 7 (3) | 0.9360 | 0.941 | +0.0050 | −0.001 |
+
+- **B17:** the rule (members' mean + a family gain) predicted 0.943–0.944, and the gold-58 model (experiments.md 2026-10-06) ≈ B6 +
+  0.001. Both were right. The fourth family moved the blend by its mean shift (+0.001); the diversity gain stayed at B6's +0.0062.
+- **But B17 is only +0.001 over its best member.** Under the floors line ("a blend counts only if it reads ≥ its best member +
+  0.004"), the five B6 members add nothing readable to `v15c` alone. A flat six-vote mean gives the strongest model 1/6 of the weight.
+  So the next own-blend question is a small blend of the strongest members (candidates.md B18), not a wider one.
+- **B12:** two more votes from families already present (the B0 recipe now 3 votes, the R50 2) cut the gain over the mean by 0.0012
+  and cost 0.001: B13's lesson (10-06), a third time. B12 is closed.
+
+**What it changes:**
+- **P-69 closes ✅.** Its "if it works" branch: B17 becomes pick 1 by house convention (0.943 > 0.942; the floors line is 0.944, so
+  this is a convention, not evidence), C3's gate opens, and one ConvNeXt vote joins the week-2 final members.
+- **Week 2 trains more ConvNeXt** (the pre-registered "only if B17 ≥ 0.943" fires): the seed twin `v15c2` first. It measures the
+  seed spread of a family that is now our strongest, and the pair is the final ConvNeXt vote.
+- **P-71 (B16, the public 0.929 ConvNeXt-T reader) loses its case:** it would be a second, weaker ConvNeXt next to `v15c`.
+- **The research prior was half wrong** (research.md 2.7.8): the blend half held (a fourth family ≈ +0.001), the solo half did not
+  (ConvNeXt is not capped at "one tick").
+
+**Verdicts: #64 ✅ KEEP (a member at +0.0062 over the mean, 1.5× the floor; our best solo); #65 🔁 (+0.001), pick 1 by convention;
+#66 🔁 (−0.001), closed.**
+
+**The public frontier moved the same day** (`kaggle competitions leaderboard -d`, 09:39 UTC): **338 teams ≥ 0.950 (123 on 10-06),
+199 at exactly 0.950, 184 of them last submitting on 10-08.** That is the signature of a new public notebook at 0.950, 0.008 over
+the 0.942 anchor our fork uses. Which notebook it is was not verified (by votes and date: `sujanmajhisuzan/rsna-knee-apex-grandmaster-stack`,
+109 votes, run 10-07 22:23 UTC). Our best, C2 #54 0.944, is now rank 720 of 5,469 (was 337). Top 0.964, 10th 0.961, 698 teams ≥ 0.945.
+This reprices C3, whose anchor is the 0.942 stack, and re-opens the question of re-anchoring the fork pick (brainstorm.md).
+
 ## Infrastructure
 
 ### 2026-09-27 — The "0.943 Speedy Raptors CoAtNet D4" notebook is our anchor **plus two CoAt readers**, not a faster graph; its "< 30 min" is a 3-study commit run · P-41 (threaded scan + 8 decode workers) smoke-green and byte-identical
@@ -4388,6 +4454,9 @@ and public LB score, so a public/private divergence can be traced to a specific 
 | 61 | 2026-10-07 | rsna-knee-infer v50 | **A3b / P-62, `v13rs` solo**: `v13r` + Raptor 0.75 on report-silent cells | none; gold-58 0.9160 | **0.937** | **read 00:37:11 UTC → +0.003 vs `v13r`; P-62 closes 🔁 (pair +0.002), not adopted; scored within [33.5, 35.0] min.** sent 00:02:10 UTC, ref 56893902 |
 | 62 | 2026-10-07 | rsna-knee-infer v59 | **B5**: flat rank-mean `v11a` + `v13r` + `v13e` + `v13e2` (B6 − `v13b3`) | none; gold-58 0.9238 | **0.940** | **read 01:02:01 UTC → −0.002 vs B6 → 🔁; scored within [57.6, 59.1] min.** sent 00:02:56 UTC, ref 56894018 |
 | 63 | 2026-10-07 | rsna-knee-infer v57 | **B14**: flat rank-mean `v13r` + `v13e` + `v13b3` + `v13e2` (B6 − `v11a`, the four CNNs) | none; gold-58 0.9211 | **0.942** | **read 00:44:43 UTC → = B6 → "≥ 0.942: the CoAtNet is not needed" fires (week 2 drops its retrain); scored within [39.5, 41.0] min.** sent 00:03:41 UTC, ref 56894104 |
+| 64 | 2026-10-08 | rsna-knee-infer v61 (+ Dataset `rsna-knee-ckpt-v15c`) | **A6 / P-69, ConvNeXt-T solo**: `INFER_MEMBERS = ["v15c"]`, timm `convnext_tiny.in12k_ft_in1k` @ 288, own optimiser (1e-4, per-stage decay 0.9, 20 ep), trained on RunPod | none; gold-58 0.9234 | **0.942** | **read by 09:32 UTC → +0.0062 vs B6's members' mean 0.9358 → ✅ a member, our best solo (= B6).** sent 06:16:21 UTC, ref 56938698, by the fallback `auto_submit.py` run; scoring time unknown (the laptop slept 06:27–09:31) |
+| 65 | 2026-10-08 | rsna-knee-infer v62 | **B17**: flat rank-mean of B6 + `v15c` (`v11a` + `v13r` + `v13e` + `v13b3` + `v13e2` + `v15c`) | none; gold-58 0.9266 | **0.943** | **read by 09:31 UTC → +0.001 vs B6 → 🔁; "≥ 0.943 → pick 1, C3's gate, more ConvNeXt in week 2" fires.** sent 06:17:09 UTC, ref 56938731 |
+| 66 | 2026-10-08 | rsna-knee-infer v60 | **B12**: flat rank-mean of B6 + `v13es` + `v13rs` | none; gold-58 0.9242 | **0.941** | **read by 09:32 UTC → −0.001 vs B6 → 🔁; closed.** sent 06:17:54 UTC, ref 56938764 |
 
 ## Closed cards index (moved here from proposals.md on 2026-10-05)
 
@@ -4456,3 +4525,4 @@ proposals.md holds live cards only (Tian, 2026-10-05). One line per measured or 
 | P-65 | Grading-aware Claude (Opus) relabel of the reports as a training target (session E on RunPod, ≈ $1.9: `v13ecp` 0.5 Claude, `v13ec` 0.25 Claude; B0, seed 42) | ❌ DEAD END as a target lever: #57 `v13ecp` **0.935** (🔁) / #58 `v13ec` **0.932** (❌) vs the B0 seed mean 0.9365 — pair −0.003, not monotone in dose; gold-58 the same direction. The gold pilot (+0.007 with Raptor, target level) did not transfer, like D4 and `xfit_v09k`. `claude_v1` / `claude_rap_v1` stay private and unused | experiments.md 2026-10-04 "P-65 gold-58 BLIND pilot", "P-65 full pass"; 2026-10-05 "Session E on RunPod, chain 1", "chain 2"; 2026-10-06 "Submissions #54–#58" |
 | P-46 | Upgrade the LLM half of the targets (absorbs P-16, P-30) | retired 2026-10-06 by its own rule: step 2 (the re-label) ran as P-65 ❌, and step 1 (dread as a 4th vote) was to close if the Claude vote did not move the LB — the LLM half is not binding | experiments.md 2026-10-06 "Submissions #54–#58"; the P-65 row above |
 | P-62 | Silence-aware teacher mix (Raptor 0.75 on report-silent cells, 0.5 elsewhere) | 🔁 not adopted: #60 `v13es` **0.936** / #61 `v13rs` **0.937** → pair mean 0.9365 vs 0.9345 (+0.002; ✅ needed ≥ 0.9390); both arms up vs their same-seed parents (+0.001 / +0.003), under the one-seed floor; the code stays, off by default; both solos qualify for B12 | experiments.md 2026-10-07 "Submissions #59–#63"; 2026-10-04 "Session D"; 2026-09-30 "Silence-aware teacher mix" |
+| P-69 | ConvNeXt-T with its own recipe (`v15c`: timm `convnext_tiny.in12k_ft_in1k` @ 288, AdamW 1e-4, per-stage decay 0.9, 20 ep; RunPod, ≈ $1.46) | ✅ KEEP — #64 `v15c` **0.942** = our best solo (+0.0062 over B6's members' mean, 1.5× the floor; = B6) with the clip-rate tripwire fired; #65 B17 (B6 + it) **0.943** (🔁 +0.001; pick 1 by convention, C3's gate open, the seed twin `v15c2` is week 2's first ConvNeXt arm). The family's own optimiser was the lever (traps 46) | experiments.md 2026-10-07 "P-69 on RunPod"; 2026-10-08 "Submissions #64–#66" |
