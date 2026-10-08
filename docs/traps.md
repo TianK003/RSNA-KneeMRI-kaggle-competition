@@ -1105,3 +1105,38 @@ Three frictions from the P-69 run, none of which lost data:
 **Do:** for the local backup of an AUTO_STOP run, take the files from the shipped Dataset with per-file downloads and compare the
 checkpoint's sha256 with any partial local copy; delete a truncated file rather than keep it. If `_lastema.pt` matters, copy it
 before the SWA pass ends.
+
+### 57. OAI's MPR series start with ONE reference image in another orientation — our cache builder takes the plane and the stack normal from the first header, so the whole series would be misfiled (Tier 1: silent, caught on 6 sample knees 2026-10-08, never trained)
+
+Every OAI `COR_MPR` / `AX_MPR` tarball (the coronal / axial 1.5 mm reformats of the sagittal 3D DESS) holds `001` = a single
+`DERIVED\SECONDARY\PROJECTION IMAGE\CSA MPR` image in a different orientation (sagittal or axial), then `002…` = the real 66–75
+slices. `scan_one_series` reads the first readable header for the plane, and `ordered_slice_paths` takes the stack normal from
+`heads[0]`, so the series was classified **Sagittal** (an AX_MPR and a COR_MPR landed in `SAG_FLUID_NOFS` on all 6 sample knees)
+and would have been sorted along the wrong axis. Nothing fails: the arrays build and look like a knee.
+
+Two more OAI header facts from the same check: there is **no Laterality tag** (the geometry fallback resolved 6/6 sides correctly;
+`src/build_oai_cache.py` takes the side from the series name `_RIGHT` / `_LEFT` and logs a geometry disagreement), and DESS
+water excitation (`ScanOptions = WE`) is fat suppression that `FATSAT_TOKENS` does not know.
+
+**Do:** never feed an external dataset through `scan_one_series` / `select_slots` blind. `src/build_oai_cache.py` deletes every file
+whose plane differs from its series' majority plane (logged per knee as `COR_MPR:-1`), assigns the slots by series name, and the
+competition code path is untouched. Check a new source's series on a handful of studies (`plane per file`, `IPP step`) first.
+
+### 58. A `.env` you "put in .gitignore" may not be ignored — and `/update` commits with `git add -A` (Tier 1 for a secret, caught 2026-10-08 before any commit)
+
+Tian's NDA credentials went into a repo-root `.env`; `.gitignore` had no `.env` line, so `git status` listed `?? .env` and the next
+`git add -A` (the `/update` skill's commit step) would have pushed the password to GitHub. Fixed in 2d94944 (`.env`, `.env.*`).
+
+**Do:** after any new secret file, `git check-ignore -v <file>` must print a matching rule, and `git status --short` must not list
+it. Read only its key names (`grep -oE '^[A-Za-z_]+='`), never the values.
+
+### 59. nda-tools wants the NDA account's own username and password — the Login.gov email and password get a 401 (Tier 3, 2026-10-08)
+
+NDA access goes through Login.gov (RAS), but `downloadcmd` authenticates against the NDA account behind it: the username shown on
+`nda.nih.gov/user/dashboard/profile` (not the email) and a password set there with **Update Password**. Both wrong pairs returned
+"Username/password combination is incorrect" (HTTP 401; 423 would mean locked). nda-tools then prompts for a username on stdin
+(EOFError when run unattended) and, after a good login, tries to save the password to the OS keyring.
+
+**Do:** `scripts/nda_run.py <.env> <downloadcmd args>` serves the `.env` password from an in-memory keyring (never prompted, printed
+or stored). `--verify` lists a package's files with sizes and downloads nothing; `--file-regex` matches the download alias
+(`image03/00m/…`, or `image03.txt` for the metadata), not the S3 URL; `-t <links.txt>` downloads exactly the listed S3 files.

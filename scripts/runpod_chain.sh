@@ -28,6 +28,13 @@
 # seconds (default: when this job started). Pair it with scripts/runpod_stopper.sh, the hard deadline on the pod itself.
 # Before the chain: `mkdir -p /workspace/kaggle && ln -sfn /workspace/kaggle /kaggle` so /kaggle/working (every _last.pt)
 # lives on the persistent volume and survives a stop (traps 46); put CACHE_ROOT on fast local storage, never on MooseFS.
+# 2026-10-08 (P-81): OAI=1 also builds the OAI cache shard ON THE POD -- the OAI data never goes to Kaggle or GitHub. It needs
+# three files copied to the pod by hand (scp; all gitignored): $REPO/.env (NDA_USERNAME / NDA_PASSWORD for nda-tools),
+# $REPO/data/oai/nda_pkg_meta/image03.txt and $REPO/artifacts/oai/oai_targets.csv. The ~58 GB of chosen series (7,196 tarballs,
+# NDA package OAI_PACKAGE, default 1249779) download in parallel with the cache pulls into OAI_RAW (default /workspace/oai_raw);
+# src/build_oai_cache.py then writes shard 90 (~36 GB) to $IN/rsna-knee-oai-cache, deleting each knee's tarballs once it is in a
+# blob, and RSNA_OAI_TARGETS is exported for the arms (an arm without oai=True drops every OAI study: apply_oai). Disk: put
+# /workspace on >= 200 GB (c03 51 GB + OAI cache 36 GB + the not-yet-built tarballs).
 set -euo pipefail
 
 ARMS=("$@")
@@ -81,6 +88,20 @@ for k in "${CACHE2[@]}"; do
   ( kaggle kernels output "$OWNER/$k" -p "$CACHE_ROOT/$k" > "$CACHE_ROOT/$k.pull.log" 2>&1 || true ) &
   pids+=($!)
 done
+
+if [ "${OAI:-0}" = 1 ]; then
+  for f in .env data/oai/nda_pkg_meta/image03.txt artifacts/oai/oai_targets.csv; do
+    [ -f "$REPO/$f" ] || { echo "!! OAI=1 needs $REPO/$f (copy it to the pod by hand; it is gitignored)"; exit 5; }
+  done
+  PIP_BREAK_SYSTEM_PACKAGES=1 pip install -q nda-tools
+  OAI_RAW="${OAI_RAW:-/workspace/oai_raw}"
+  mkdir -p "$OAI_RAW"
+  log "OAI: the chosen series -> $OAI_RAW (nda-tools, in the background; log /workspace/oai_download.log)"
+  ( cd "$REPO" && python src/build_oai_cache.py --links /workspace/oai_links.txt \
+      && python scripts/nda_run.py .env -dp "${OAI_PACKAGE:-1249779}" -t /workspace/oai_links.txt -d "$OAI_RAW" -wt 16 \
+  ) > /workspace/oai_download.log 2>&1 &
+  oai_pid=$!
+fi
 
 log "competition CSVs"
 for f in train.csv train_series.csv test.csv test_series.csv sample_submission.csv; do
@@ -164,6 +185,19 @@ for attempt in 1 2 3; do
   for k in "${CACHE2[@]}"; do kaggle kernels output "$OWNER/$k" -p "$CACHE_ROOT/$k" > /dev/null 2>&1 || true; done
 done
 du -sh "${CACHE2[@]/#/$CACHE_ROOT/}"
+
+if [ "${OAI:-0}" = 1 ]; then
+  log "OAI: waiting for the download"
+  wait "$oai_pid" || { echo "!! OAI download failed:"; tail -20 /workspace/oai_download.log; exit 5; }
+  echo "  $(find "$OAI_RAW" -name '*.tar.gz' | wc -l) tarballs, $(du -sh "$OAI_RAW" | cut -f1)"
+  log "OAI: cache shard 90 -> $IN/rsna-knee-oai-cache"
+  ( cd "$REPO" && python src/build_oai_cache.py --build "$OAI_RAW" --out "$IN/rsna-knee-oai-cache" \
+      --workers "$(nproc)" --delete-tars )
+  n_oai=$(python -c "import pandas as pd; print(int(pd.read_csv('$IN/rsna-knee-oai-cache/manifest_shard90_oai.csv').cached.sum()))")
+  [ "$n_oai" -ge 2300 ] || { echo "!! the OAI shard holds only $n_oai knees (expected ~2,398)"; exit 5; }
+  export RSNA_OAI_TARGETS="$REPO/artifacts/oai/oai_targets.csv"
+  echo "  OAI shard: $n_oai knees; RSNA_OAI_TARGETS=$RSNA_OAI_TARGETS"
+fi
 
 log "kaggle auth check (the ship at the end needs it too)"
 retry kaggle datasets files "$OWNER/rsna-knee-teacher-tables" > /dev/null

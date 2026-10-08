@@ -448,6 +448,12 @@ SHIPPED_ARMS = [
     # bottom/right 16 px; 320/32 = 10. Same seed as `v15c`, so it differs from it in the resolution only.
     ("v15c320", {**PROD, **V09R_KW, **C03_KW, "backbone": "timm:convnext_tiny", "img_size": 320, "lr_backbone": 1e-4,
                  "llrd_decay": 0.9, "aug": "heavy", "drop_path": 0.1, "epochs": 20}),
+    # 2026-10-08 (P-81, Tian's go): `v15c` + 2,399 OAI knees with masked soft targets for Synovitis, PF OA, Lateral OA and
+    # Lateral Meniscus (MOAKS baseline readings; src/build_oai_targets.py), images from the OAI cache shard
+    # (src/build_oai_cache.py: SAG IW TSE FS / COR MPR / AX MPR in the three fluid fat-sat slots). Same seed and recipe as
+    # `v15c`, so the read is the OAI rows. Off Kaggle only (the OAI data never goes to Kaggle): RunPod, RSNA_OAI_TARGETS.
+    ("v15co", {**PROD, **V09R_KW, **C03_KW, "backbone": "timm:convnext_tiny", "img_size": 288, "lr_backbone": 1e-4,
+               "llrd_decay": 0.9, "aug": "heavy", "drop_path": 0.1, "epochs": 20, "oai": True}),
 ]
 ARM_V10C = ("v10c", {**C02, "backbone": "timm:coatnet_rmlp_2_rw_384", "img_size": 384,
                      "lr_backbone": 1e-4, "eval_windows": 42, "grad_checkpoint": True})
@@ -590,7 +596,8 @@ DISTILLED_ARMS = {"v09s": ("selfdistill_v1",), "v09t": ("selfdistill_v1",),
                   "v13ex": ("raptor_teacher", "xfit_v09k"), "v13ex2": ("raptor_teacher", "xfit_v09k"),
                   "v11o": ("raptor_teacher", "cnnoof_v1"),
                   "v13eo": ("raptor_teacher", "cnnoof_v1"),
-                  "v15c": ("raptor_teacher",), "v15c2": ("raptor_teacher",), "v15c320": ("raptor_teacher",)}
+                  "v15c": ("raptor_teacher",), "v15c2": ("raptor_teacher",), "v15c320": ("raptor_teacher",),
+                  "v15co": ("raptor_teacher",)}
 # 2026-09-28 (traps 40's second gap): the mix a distilled arm must train with; every other distilled arm trains at 0.5.
 DISTILLED_MIX = {"v09o": 0.75, "v09o2": 0.75, "v13ec": 0.75, "v13rc": 0.75, "v13ecp": 1.0}
 # P-62: the silent-cell mix an arm must train with; every arm not listed trains without one (TEACHER_SILENT_MIX = None).
@@ -832,6 +839,11 @@ class Config:
     # P-67 (2026-10-05): > 0 also saves the EMA weights every N completed epochs as {version}_fold{k}_ep{e}_ema.pt, in
     # the `_best.pt` format, so an earlier epoch can be shipped and submitted (copy it to a new version's _best.pt).
     snapshot_every: int = 0
+    # P-81 (2026-10-08): also train on the OAI knees of a mounted OAI cache shard (src/build_oai_cache.py), with the masked
+    # soft targets of src/build_oai_targets.py appended to `targets` (fold -1: always trained, never validated; w = 0 on the
+    # masked labels, so weighted_bce averages each OAI knee over its supervised cells). False: every OAI_* study is dropped
+    # from the manifest AND the targets, so a mounted OAI shard can never reach a non-OAI arm as placeholder targets.
+    oai: bool = False
     # > 0: keep the EMA state_dict of the last N COMPLETED epochs in host RAM (persisted in _last.pt,
     # so a resumed session averages the same N) and write their element-wise mean as _best.pt;
     # the final-epoch EMA is kept as `_lastema.pt` for the A/B. 0 = plain ckpt_policy.
@@ -3591,6 +3603,67 @@ def ensure_cache(c):
         f"v02 decode path deliberately.")
 
 
+OAI_PREFIX = "OAI_"          # P-81: the StudyInstanceUID prefix of an OAI knee (src/build_oai_targets.py / build_oai_cache.py)
+
+
+def find_oai_targets():
+    """P-81: the OAI target table -- RSNA_OAI_TARGETS, else the first oai_targets.csv under the input root."""
+    p = os.environ.get("RSNA_OAI_TARGETS", "")
+    if p:
+        return p if os.path.exists(p) else None
+    for root in (["/kaggle/input"] if ON_KAGGLE else ["artifacts"]):
+        hits = shallow_glob(root, "oai_targets.csv", max_depth=4)
+        if hits:
+            return hits[0]
+    return None
+
+
+def apply_oai(manifest, targets, cfg):
+    """P-81, per arm. oai=False: drop every OAI_* study from the manifest and the targets (a mounted OAI shard, or OAI
+    rows an earlier arm of this process appended, must never train a non-OAI arm). oai=True: append the OAI knees that
+    the cache holds as target rows -- fold -1 (always trained, never validated), not gold, the table's soft targets in
+    both the label and the yt__ columns, its 0 / 1 weights in w__ (0 = masked). Fatal when the table or the shard is
+    missing, or (outside smoke) when the shard holds < 95 % of the table's knees."""
+    is_m = manifest.StudyInstanceUID.astype(str).str.startswith(OAI_PREFIX)
+    is_t = targets.StudyInstanceUID.astype(str).str.startswith(OAI_PREFIX)
+    if not getattr(cfg, "oai", False):
+        if is_m.any() or is_t.any():
+            print(f"  P-81: oai=False -- dropped {int(is_m.sum())} OAI studies from the manifest, "
+                  f"{int(is_t.sum())} from the targets")
+        return manifest[~is_m].copy(), targets[~is_t].reset_index(drop=True)
+    path = find_oai_targets()
+    if not path:
+        raise SystemExit("P-81: this arm has oai=True but no oai_targets.csv was found (set RSNA_OAI_TARGETS)")
+    o = pd.read_csv(path)
+    need = ["StudyInstanceUID", "oai_id", *[f"yt__{l}" for l in LABELS], *[f"w__{l}" for l in LABELS]]
+    lacking = [c for c in need if c not in o.columns]
+    if lacking:
+        raise SystemExit(f"P-81: {path} lacks columns {lacking}")
+    n_table = len(o)
+    o = o[o.StudyInstanceUID.isin(set(manifest.StudyInstanceUID[is_m]))].reset_index(drop=True)
+    cover = len(o) / max(n_table, 1)
+    if len(o) == 0 or (not cfg.smoke and cover < 0.95):
+        raise SystemExit(f"P-81: the OAI cache shard holds {len(o)} of the table's {n_table} knees ({cover:.1%}) -- "
+                         f"is the shard (manifest_shard90_oai.csv, cache {cache_version_for(cfg)}) mounted?")
+    rows = pd.DataFrame({"StudyInstanceUID": o.StudyInstanceUID, "is_gold": 0,
+                         "report_group": "oai_" + o.oai_id.astype(str), "fold": -1})
+    for l in LABELS:
+        rows[l] = o[f"yt__{l}"].to_numpy(float)          # never evaluated (not gold); equal to the training target
+    for l in LABELS:
+        rows[f"w__{l}"] = o[f"w__{l}"].to_numpy(float)
+    if f"yt__{LABELS[0]}" in targets.columns:
+        for l in LABELS:
+            rows[f"yt__{l}"] = o[f"yt__{l}"].to_numpy(float)
+    if (rows[[f"w__{l}" for l in LABELS]].sum(axis=1) <= 0).any():
+        raise SystemExit("P-81: an OAI row has no supervised cell (weighted_bce would divide by zero)")
+    keep = manifest[~is_m | manifest.StudyInstanceUID.isin(set(rows.StudyInstanceUID))].copy()
+    out = pd.concat([targets[~is_t], rows], ignore_index=True)
+    sup = {l: int((rows[f"w__{l}"] > 0).sum()) for l in LABELS if (rows[f"w__{l}"] > 0).any()}
+    print(f"  P-81: oai=True -- {len(rows)} OAI knees appended from {path} ({cover:.1%} of the table imaged); "
+          f"supervised cells per label {sup}")
+    return keep, out
+
+
 def training_manifest(cache_manifest):
     """Train manifest for one cache (slots, side, mask straight from its manifest; a header scan
     only on the legacy decode path), plus placeholder target rows for imaged studies that are
@@ -3611,6 +3684,8 @@ def training_manifest(cache_manifest):
             series_df = scan_series(os.path.join(COMP, "test_series.csv"), TRAIN_IMG,
                                     os.path.join(WORK, "series_scan_fallback.csv"))
         manifest = build_manifest(series_df, os.path.join(WORK, "manifest_train.csv"))
+    # P-81: before the placeholder step, so an OAI knee never gets a placeholder target row.
+    manifest, targets = apply_oai(manifest, targets, cfg)
     missing = set(manifest.StudyInstanceUID) - set(targets.StudyInstanceUID)
     if missing:
         print(f"  {len(missing)} imaged studies not in targets; adding placeholder "
