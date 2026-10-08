@@ -311,6 +311,18 @@ Access (Tian does steps 1–4 himself: they accept terms in his name; written up
                  e. Keep every byte of OAI data and its derived cache off GitHub, Kaggle and every public place (the terms
                     forbid redistribution). Build the cache on the pod, delete the raw DICOMs, and train the OAI arms there.
               Biospecimens are a separate NIAMS process (6–10 weeks) and are not needed.
+What we have (read 10-08 from `data/oai/`: GENERAL, MRI METAANALYSIS and X-RAY METAANALYSIS, ASCII; `MeasInventory.csv` is
+              the key, one row per participant, 4,796 rows):
+              - **Images, baseline:** the five core series (SAG IW TSE FS, COR IW TSE, SAG DESS, COR MPR, AX MPR) for 4,722 right
+                + 4,703 left knees; COR FLASH and the T2 map almost only right knees (4,697 / 84).
+              - **X-ray labels:** the overall KL grade for ≈ 4,470 right + 4,480 left knees (`V00XRKLR/L` in the inventory).
+                Per-compartment grades (OARSI joint-space narrowing and osteophytes) are project 15 (Boston University,
+                8,982 baseline knees), dataset `kXR_SQ_BU00` in the X-RAY ASSESSMENTS zip, **not downloaded yet**.
+              - **MRI labels:** MOAKS is project 22 (FNIH, 600 knees) in the 2016 overview. Projects 63 / 65 / 66 (660 / 1,145 /
+                630 baseline knees) are newer and unexplained there. Every MRI-read baseline knee together: 3,360. The 0.949
+                author's 2,399 = projects 22 + 30 + 63 + 65 (2,400), suggestive only. The readings themselves (`kMRI_SQ_MOAKS_BICL00`
+                and the rest) are in the MRI ASSESSMENTS zip, **not downloaded yet**: the METAANALYSIS zips hold only the
+                exam summaries (`MRIxx` / `XRayxx`: barcode, side, date per knee), not the readings.
 What it needs (our estimate, ≈ 3–5 working days before the first arm):
               (1) the baseline knee MRIs of ≈ 2,400 knees (≈ 150–300 GB, our estimate); (2) a sequence map onto our c03 slots
               (OAI is one 3 T Siemens protocol). Proposed: SAG IW TSE fat-sat → `SAG_FLUID_FS`; the coronal / axial MPR reformats
