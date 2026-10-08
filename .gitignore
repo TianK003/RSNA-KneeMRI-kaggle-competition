@@ -13,3 +13,7 @@ venv/
 
 # Kaggle credentials
 kaggle.json
+
+# Local secrets (NDA credentials for nda-tools, etc.) -- never commit
+.env
+.env.*
