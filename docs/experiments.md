@@ -144,7 +144,8 @@ agreement with the teacher, not truth. A one-seed LB delta needs ≥ 0.004 (P-44
 | Score | What |
 |---|---|
 | 0.964 | Public LB #1 (2026-10-08 09:39 UTC); 10th 0.961; **338 teams ≥ 0.950 of 5,469 (123 on 10-06)** |
-| **0.950** | **The new public plateau (2026-10-08): 199 teams at exactly 0.950, 184 of them with their last submission on 10-08.** Most likely a new public notebook; which one is unverified (by votes and date: `sujanmajhisuzan/rsna-knee-apex-grandmaster-stack`, 109 votes, run 10-07 22:23 UTC). Our 0.944 is rank 720 (entry "Submissions #64–#66") |
+| **0.950** | **The new public plateau (2026-10-08): 199 teams at exactly 0.950, 184 of them with their last submission on 10-08.** = `matterhorn3838/rsna-knee-v2-velciraptor-dinosaur-speed` ("Grandmaster Apex Fusion"; the "Apex Grandmaster Stack" notebooks are the same fusion): the 0.949 single model below + the public 0.929 ConvNeXt-T reader at per-label weights (+0.001). Our 0.944 is rank 720 (entry "The 0.949 / 0.950 public notebooks, read") |
+| **0.949** | `nartaa/rsna-knee-0949-anatomical-mirror` (Danial Zakaria, 10-07): ONE retrained Raptor CoAtNet-2 @ 384 on 96 slices, 2,399 **OAI** knees as masked external labels (+0.005 in the author's table), anatomical mirror TTA; without OAI the same author read 0.942. A 224 px sibling reads 0.945 |
 | **0.944** | `goodpjw2008/rsna-knee-stack-2-5d-convnext-mil-lb-0-944` (2026-10-06): the 0.943 community stack + its author's 2.5D ConvNeXt-T reader (0.929 solo) at 30 %; 194 teams at 0.944 = our #54 (entry "The public frontier moved") |
 | **0.943** | The community stack as of 10-06 (skarin's reproduction; = our anchor + two CoAt readers); 984 teams at exactly 0.943 |
 | 0.958 | Public LB #1 (2026-09-21); #2–#5 at 0.955–0.956 — the top moved +0.006 in three weeks |
@@ -3943,6 +3944,79 @@ hours late but on the right UTC day, so no slot was lost. The laptop then slept 
 the 0.942 anchor our fork uses. Which notebook it is was not verified (by votes and date: `sujanmajhisuzan/rsna-knee-apex-grandmaster-stack`,
 109 votes, run 10-07 22:23 UTC). Our best, C2 #54 0.944, is now rank 720 of 5,469 (was 337). Top 0.964, 10th 0.961, 698 teams ≥ 0.945.
 This reprices C3, whose anchor is the 0.942 stack, and re-opens the question of re-anchoring the fork pick (brainstorm.md).
+
+### 2026-10-08 — The 0.949 / 0.950 public notebooks, read: **one retrained Raptor CoAtNet-2 whose edge over us is external OAI data** (+0.005 in its author's own table); the 0.950 is that model + the public 0.929 ConvNeXt reader at per-label weights (+0.001) · ✅ a read (no GPU)
+
+**Read** (Tian's request; pulled with `kaggle kernels pull`, read as text, nothing executed): `nartaa/rsna-knee-0949-anatomical-mirror`
+(0.949, author Danial Zakaria) and `matterhorn3838/rsna-knee-v2-velciraptor-dinosaur-speed` (0.950), plus the author's forum write-up
+"Reaching 0.949 with one CoAtNet: labels, native crops, and anatomical mirroring" (topic 746792, 10-07 19:34 UTC), the weights Dataset's
+card, and the host's OAI ruling (topic 741819).
+
+**The 0.949 notebook: one model, one checkpoint, two views.**
+- `raptor_ft_alldata_t16_blendjev_oai_d96_r384_swa.pt` (Dataset `nartaa/rsna-knee-publication-swa-weights-20261007`, published 10-07,
+  licence "other": "research and educational use, including the RSNA Knee competition"). timm `coatnet_rmlp_2_rw_384.sw_in12k_ft_in1k`,
+  the dreaddevelopment Raptor head (LayerNorm, per-finding tanh attention over windows, per-finding linear classifier), trained by
+  the author.
+- Input: 96 slices in five slots (sagittal fluid 26 / sagittal other 22 / coronal fluid 18 / coronal other 12 / axial 18), slices
+  picked over 2–98 % of each series, 2–98 % intensity band per series, a 140 mm crop stored at **native 384 px** (0.36 mm/px), 3-slice
+  windows as RGB, all 94 window positions evaluated.
+- Inference: a 320 px **center crop without resize** (≈ 117 mm), fp16, and an **anatomical left/right mirror** averaged 50/50 in
+  probability (sagittal windows: the three slice channels reversed; coronal / axial: width flipped). The rest of the file is I/O speed
+  (a 49 KB embedded DICOM reader, byte-identical output).
+- Training (the write-up): 4,349 report-labelled studies, the 58 gold excluded from training but used to pick the epochs (SWA of
+  epochs 14, 11, 12 of 16); seed 42; backbone LR 4.0e-5, head 1.95e-3, weight decay 0.059; 12 windows per study, batch 1 × accum 16;
+  targets = their own report-derived soft labels + stevenleehans + pilkwang + riadmohamed42's JEV labels (no image teacher).
+  **Plus 2,399 OAI knees (6,748 rows in total) with masked labels: only PF OA, Lateral OA and Synovitis were supervised from OAI.**
+
+**The author's score history** (public LB; their caveat: successive recipes, not isolated effects):
+
+| configuration | LB | step |
+|---|---|---|
+| all-data CoAtNet, 80 slices, 78 windows | 0.939 | start |
+| 96 slices, native 384 cache, 94 windows | 0.940 | +0.001 |
+| + their label blend with the JEV labels | 0.942 | +0.002 |
+| 224 px crop model + epoch averaging | 0.940 | −0.002 |
+| **+ 2,399 OAI knees, masked labels** | **0.945** | **+0.005** |
+| 384 px full-field, with OAI | 0.948 | +0.003 |
+| same weights, native 320 crop at inference | 0.948 | 0.000 |
+| + anatomical mirror averaging | 0.949 | +0.001 |
+
+Their negative results: 94 → 24 windows −0.006; a width flip on every plane −0.001; a 304 / 288 inference crop −0.001 / −0.002; the
+last epoch instead of the 3-epoch average −0.001; a fresh run with a BN fix −0.004; a model trained on the 320 crop 0.946 (−0.003).
+Gold-58 picked epoch 14 as better; the LB disagreed.
+
+**The 0.950 notebook = the 0.949 script verbatim** (one added line saves its CSV) **+ goodpjw2008's public 2.5D ConvNeXt-T reader
+(0.929) as a subprocess, rank-fused per label** with weights 0.35 (Baker's), 0.30 (Contusion), 0.25 (Medial OA, ACL), 0.20 (Medial
+Meniscus, MCL), 0.08 (Lateral Meniscus, Fracture, Lateral OA, PF OA), 0.04 (Effusion), 0.03 (Synovitis), set from per-label gold AUCs.
++0.001 = one tick, the community stack's own run-to-run spread. Its last cell is titled "Grandmaster Apex Fusion", so the
+"Apex Grandmaster Stack" notebooks (109 votes) are almost certainly the same fusion. The 199 teams at exactly 0.950 are forks of it.
+
+**What differs from us, ranked by what the evidence prices:**
+1. **External data (OAI): +0.005**, the largest single step in their table. It supervises three labels where report-derived targets are
+   weakest. We use none: proposals.md lists external datasets as dropped, after the host's 09-21 ruling (741819: OAI is allowed only
+   "if it is generally accessible to all participants without an escalated (i.e. institutional) review and sign-off").
+   - On 10-08 participants reported NDA access with a plain login.gov account (an email suffices), and the data steward (UMass) said
+     yes to one of them.
+   - One participant in China reports access fails (NIH bars some countries), which is exactly the host's "generally accessible" test.
+   - **No host ruling since the post.** Legality is open.
+2. **Bigger hybrid at a finer pixel: CoAtNet-2 @ 384 native (0.36 mm/px) vs our CoAtNet-1 @ 224 (0.67 mm/px) and our CNNs @ 224–288
+   (0.52 mm/px at 288).** Their 224 → 384 step read +0.003, confounded with OAI and the architecture variant. Our dropped direction
+   "resolution > 288" rested on forum reads at 384 without OAI (0.935–0.937) and our P-43 (+0.002 at 320).
+3. **Targets: +0.002** (their own report labels + the JEV labels, no image teacher). We train on the 3-table LLM blend + 0.5 Raptor;
+   P-65 (a better LLM half) read flat for us.
+4. **Inference tricks: +0.001** (the anatomical mirror). The native center crop read 0.000.
+5. **Without OAI their best was 0.942: level with our `v15c` solo (#64) and under B17 (#65, 0.943).** Our own-model work is at parity
+   with the best disclosed non-OAI single model.
+
+**What it means for the fork pick:**
+- The 0.949 checkpoint is public, its licence names this competition, and the notebook is one self-contained script.
+- So "the 0.949 model + our B17 / B18 as a leg" is buildable: a builder like `src/build_fork.py` around one 600-line script; scoring
+  ≈ 26 min for theirs plus ours.
+- **The open risk is the rules, not the code:** an OAI-trained checkpoint in a final pick is only as legal as OAI. Pick 1 (our own
+  models) carries no such risk. This is Tian's decision (brainstorm.md).
+
+**Verdict: ✅ a read.** Reproducing the recipe without OAI would land at ≈ 0.942 (the author's own table), where we already are. The
+whole public gap above 0.943 is external data, plus a one-tick blend.
 
 ## Infrastructure
 
