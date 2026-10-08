@@ -323,6 +323,28 @@ What we have (read 10-08 from `data/oai/`: GENERAL, MRI METAANALYSIS and X-RAY M
                 author's 2,399 = projects 22 + 30 + 63 + 65 (2,400), suggestive only. The readings themselves (`kMRI_SQ_MOAKS_BICL00`
                 and the rest) are in the MRI ASSESSMENTS zip, **not downloaded yet**: the METAANALYSIS zips hold only the
                 exam summaries (`MRIxx` / `XRayxx`: barcode, side, date per knee), not the readings.
+Read 2026-10-08 (MRI ASSESSMENTS + X-RAY ASSESSMENTS zips; counts only, nothing leaves `data/oai/`):
+              - **`kMRI_SQ_MOAKS_BICL00` = 3,017 baseline readings of exactly 2,400 knees** (projects 65 / 22 / 30 / 63A–F;
+                1,292 right, 1,108 left; 544 knees read in 2–4 projects). That is the 0.949 author's 2,399: we have their source.
+                The two POMA MOAKS files are other visits of the same projects. The X-ray grades (`KXR_SQ_BU00`, project 15)
+                cover 8,982 knees, including 2,392 of the 2,400.
+              - **Coverage per score:** cartilage, bone marrow lesions and menisci for ≈ all 2,400; effusion-synovitis,
+                Hoffa-synovitis and the ACL for 1,660; popliteal (Baker's) cyst and osteophytes for 600 (project 22 only).
+                MOAKS has **no MCL**, and its bone marrow lesions in OA knees are not trauma contusions: MCL, Contusion and
+                Fracture stay masked.
+              - **Draft map** (knee-level, positive rate): ACL partial or complete tear 0.09 (1,660) · Medial Meniscus tear or
+                maceration in any horn, or root tear, 0.41 · Lateral Meniscus 0.21 · Medial / Lateral / PF OA as max cartilage
+                grade ≥ 2 (10–75 % area) 0.47 / 0.37 / 0.74, or with full-thickness loss 0.20 / 0.15 / 0.40 · Effusion ≥ 1
+                0.57, ≥ 2 0.20 · Hoffa-synovitis ≥ 1 0.58, ≥ 2 0.11 · Baker's 0.42 (600). Graded soft targets (grade / 3)
+                instead of thresholds keep the rank information the metric reads.
+              - **Which labels:** the 0.949 author supervised PF OA, Lateral OA and Synovitis = our three weakest gold-58 labels
+                (`v09t` SWA: Synovitis 0.754, PF OA 0.799, Lateral OA 0.803; next Lateral Meniscus 0.839, every other ≥ 0.93).
+                Proposed for one arm: those three + Lateral Meniscus, the rest masked (strong report labels gain little from
+                a shifted cohort and protocol).
+              - **Images:** 2,398 of the 2,400 knees have all five baseline core series (`MeasInventory`); `MRI00.txt` lists
+                every baseline series with its own barcode and type (77,224 rows), so the download list is exact. Proposed
+                series: SAG IW TSE FS, COR IW TSE, COR MPR, AX MPR (≈ 74 MB per knee → ≈ 180 GB), + SAG 3D DESS if a slot
+                wants it (≈ 120 MB per knee → ≈ 290 GB). COR FLASH (right knees only) and the T2 map are skipped.
 What it needs (our estimate, ≈ 3–5 working days before the first arm):
               (1) the baseline knee MRIs of ≈ 2,400 knees (≈ 150–300 GB, our estimate); (2) a sequence map onto our c03 slots
               (OAI is one 3 T Siemens protocol). Proposed: SAG IW TSE fat-sat → `SAG_FLUID_FS`; the coronal / axial MPR reformats
