@@ -94,6 +94,7 @@ everything else is decided later.** (The ConvNeXt half is superseded by the nigh
 |---|---|---|---|---|---|---|
 | 1 | P-68 | Different-family OOF image teacher (cross-family pairs; no silent-cell weight: A3 read 🔁 on 10-07) | ⏳ **APPROVED 2026-10-06 evening (Tian): one session at the 10-10 reset, the seed pair `v13ex` ‖ `v13ex2` (B0 on Raptor + the CoAtNet cross-fit OOF `xfit_v09k`); `v13ex2` (seed 43) added 10-06 night, pair smoke `rsna-knee-train-b` v8 green. Read the pair mean vs the B0 seed mean 0.9365: ✅ ≥ 0.9410 / 🔁 0.9320–0.9409 / ❌ ≤ 0.9319.** Earlier 10-06: demoted ("don't focus on labels that much"). Was: implemented 2026-10-05, effect pending; Tian's top priority ("especially this"); redesigned after the critic the same day**: `v13ex` (B0 student on Raptor + `xfit_v09k`, the CoAtNet cross-fit OOF; trainable at the 10-10 reset), `v11o` (CoAtNet student on Raptor + `cnnoof_v1`, the B0 floor pair's OOF; after the floor run), `v13eo` (B0 on `cnnoof_v1`, the same-family control), all at the flat mix 0.5; RunPod on 10-07 = NO-GO (critic: ≈ $3.8, no decision unlocked before 10-17) | 0..+ 0.004 solo (forum claims + 0.011; same-family read flat for us) | the P-67 floor run + 1–2 Kaggle arms (≈ 6 T4-h each) | A3 (10-07) for any silent mix; the P-67 floor run for `cnnoof_v1` |
 | 2 | P-80 | ConvNeXt as the lead family: the seed twin `v15c2`, then the final ConvNeXt vote | 💡 new 2026-10-08 (P-69's "if it works" branch fired: B17 0.943); **needs Tian's go for where it trains** (RunPod ≈ $1.46 after a critic check, or Kaggle after the 10-10 reset) | the seed spread of our strongest family; a two-seed vote ≈ +0.001–0.003 on the solo (#26: +0.003) | one arm ≈ $1.46 on a 4090 (or ≈ 6.5–10 T4-h); ≈ 15 lines for `INFER_VOTE_GROUPS`; 1–2 sends | — |
+| 2b | P-81 | OAI knees as masked external labels for our own members | 💡 new 2026-10-08; **gated on Tian's NDA access request and the rule risk** (host 741819; no ruling since 746792) | +0.003–0.005 solo if the 0.949 author's step transfers (one seed, confounded) | ≈ 3–5 days of data and label work + a ≥ 1 TB pod + one arm ≈ $1.5–2.5 | Tian's access; a host ruling |
 | 3 | P-71 | An independently trained public reader as a blend member (B16: goodpjw2008's 2.5D ConvNeXt-T, Apache-2.0) | 💡 new 2026-10-06; **recommended DROP (pending Tian), 10-08:** our own ConvNeXt-T `v15c` reads 0.942 solo (#64), so B16 would add a second, weaker (0.929) ConvNeXt vote, plus third-party code at the rerun. Was: recommended DEMOTE (≈ +0.0005 LB) | B16 ≈ 0.941–0.943 vs B6 0.942; upside if its independence beats our families' (gold ρ 0.83–0.89) | ≈ 60 lines + 1 placeholder (≈ 0.2 GPU-h) + 1 send; ≈ 20 min more scoring | — |
 | 4 | P-72 | A seventh family on the `v13h` recipe (`eca_nfnet_l0` by default) + a family-diversity ruler on the proxy OOF (Δ_div) | 💡 new 2026-10-06; **recommended DROP (pending Tian): no read on this task, in1k only** | B6 + 0.001–0.003 if member-grade (≥ 0.933 solo); the ruler ranks families on 4,349 studies, not LB slots | weight Dataset + loader check; 1 Kaggle arm ≈ 6 h; ≈ 1 proxy per screened family | the 10-10 quota; the P-67 floor for Δ_div |
 | 5 | P-67 | Fast-proxy 5-fold CV ruler + single-variable recipe ablation loop | 🔧 **implemented, effect pending: the floor pair `v14p` / `v14p2` and, since 10-05 (Tian: "focus on these"), ten one-variable arms `v14lr` / `v14th` / `v14gd` / `v14bl` / `v14ns` / `v14sh` (augmentation components), `v14mx` (mixup), `v14r288` (B0 @ 288), `v14db` (blank windows), `v14ep20` (longer schedule); unit checks, a local CPU smoke and a Kaggle GPU smoke (v46) green; the floor run starts at the 10-10 reset** — approved by Tian (research.md 2.7.6 / 2.7.7 / 2.10) | + 0.003–0.005 per production member if ≥ half transfers → B6 ≈ 0.945–0.947 | ≈ 16 proxy variants per 30-h Kaggle week, or ≈ $0.6 each on a 4090; + 1 transfer arm | a measured pooled-OOF floor (2 seeds) |
@@ -250,6 +251,35 @@ If it fails:  (s_c large, `v15c2` ≤ 0.938) `v15c` stays a single vote and B17 
 Later, Tian picks (not cards yet): the clip-rate question (82 % of steps clipped at 1.0: a probe at clip 5.0 or none); 224 px
               for a cheaper vote. A bigger ConvNeXt is not proposed: the forum's "bigger is null" for CNNs (T5 dropped).
 Depends on:   Tian's go (RunPod, or the 10-10 Kaggle quota).
+
+### P-81 OAI knees as masked external labels for our own members
+Status:       💡 new 2026-10-08 (Tian asked how we would get the data). **Not started; two gates: Tian's own NDA access request
+              (a person must accept the terms; it cannot be done for him) and the rule risk** (the host allows OAI only "if generally
+              accessible to all participants without an escalated (institutional) review", 741819; a participant in China reports
+              access fails; no ruling since the 0.949 post, 746792). Anything trained on OAI carries that risk into every pick it
+              enters, so a clean pick 1 must stay OAI-free.
+Hypothesis:   adding OAI baseline knees with labels for the findings our report targets read worst lifts a member's solo, as it
+              did for the 0.949 author (+0.005 at 224 px; one seed; confounded with +55 % optimizer steps).
+Origin:       experiments.md 2026-10-08 "The 0.949 / 0.950 public notebooks, read" (the author's table and write-up, 746792).
+Access:       NDA (nda.nih.gov) → sign in through the Research Auth Service with Login.gov (an email + MFA was enough for forum
+              users on 10-08), eRA Commons or PIV → create or link an NDA account → request OAI access and accept the OAI data-access
+              terms (the NYU data catalog lists OAI as "Free to All · Application Required"; approval time unknown). Downloads come
+              as NDA data packages through the `nda-tools` CLI (`downloadcmd`), onto a pod or a big disk, never this laptop.
+What it needs (our estimate, ≈ 3–5 working days before the first arm):
+              (1) the baseline knee MRIs of ≈ 2,400 knees (hundreds of GB, size unverified); (2) a sequence map onto our c03 slots
+              (OAI is one 3 T protocol: sagittal IW TSE fat-sat, sagittal 3D DESS, coronal IW TSE, coronal / axial reformats, a
+              coronal T1); (3) per-knee labels from the OAI readings: X-ray KL / compartment joint-space grades for Medial / Lateral /
+              PF OA, MRI semi-quantitative readings (MOAKS-style: effusion-synovitis, bone marrow lesions, menisci) where they
+              exist, every other cell masked; (4) a masked-BCE path in `src/kaggle_pipeline.py` (soft targets + a per-cell mask),
+              a unit check and a smoke; (5) a c03-style cache of the OAI knees uploaded as a private Dataset (≈ 28 GB by
+              proportion to c03's 51 GB) or trained on a pod.
+Measure:      one member retrained with OAI vs its OAI-free twin on the solo LB (the `v15c` ConvNeXt first: our strongest).
+Noise floor:  one seed 0.004 (s = 0.003).
+Cost:         the days above, a pod with ≥ 1 TB of disk for the download and preprocessing (≈ $1–3 beyond training), one
+              training arm ≈ $1.5–2.5 on a 4090 (RunPod has ≈ $3.5 left), 1–2 sends. Week 2's retrains start 10-17.
+If it works:  OAI joins the final members of a second, OAI-carrying pick; pick 1 stays OAI-free.
+If it fails:  closed; C4 (their public checkpoint) is the only OAI exposure.
+Depends on:   Tian's access request; ideally a host ruling first (watch 746792 / 743416).
 
 ### P-71 An independently trained public reader as a blend member (B16 first)
 Status:       **Recommended DROP 2026-10-08 (pending Tian):** our own ConvNeXt-T `v15c` reads 0.942 solo (#64), so B16 would add a

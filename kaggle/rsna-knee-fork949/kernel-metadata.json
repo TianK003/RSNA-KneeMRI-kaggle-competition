@@ -1,0 +1,37 @@
+{
+ "id": "tiankljucanin/rsna-knee-fork949",
+ "title": "RSNA Knee Fork949",
+ "code_file": "rsna-knee-fork949.ipynb",
+ "language": "python",
+ "kernel_type": "notebook",
+ "is_private": true,
+ "enable_gpu": true,
+ "enable_tpu": false,
+ "enable_internet": false,
+ "keywords": [],
+ "dataset_sources": [
+  "nartaa/rsna-knee-publication-swa-weights-20261007",
+  "pilkwang/rsna-knee-llm-labels",
+  "stevenleehans/rsna-knee-llm-report-labels",
+  "lixin73/rsna-knee-llm-report-labels-sol56",
+  "tiankljucanin/rsna-knee-ckpt-v11a",
+  "tiankljucanin/rsna-knee-ckpt-v13b3",
+  "tiankljucanin/rsna-knee-ckpt-v13e",
+  "tiankljucanin/rsna-knee-ckpt-v13e2",
+  "tiankljucanin/rsna-knee-ckpt-v13r",
+  "tiankljucanin/rsna-knee-ckpt-v15c",
+  "tiankljucanin/timm-coatnet-rmlp-1-rw-224",
+  "tiankljucanin/timm-convnext-tiny-in12k",
+  "tiankljucanin/timm-efficientnet-b0-ra",
+  "tiankljucanin/timm-efficientnet-b3-ra2",
+  "tiankljucanin/timm-resnet50-a1"
+ ],
+ "kernel_sources": [],
+ "competition_sources": [
+  "rsna-knee-abnormality-detection"
+ ],
+ "model_sources": [
+  "metaresearch/dinov2/PyTorch/small/1"
+ ],
+ "machine_shape": "NvidiaTeslaT4"
+}
