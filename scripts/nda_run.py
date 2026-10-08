@@ -1,4 +1,4 @@
-"""Run nda-tools' downloadcmd with the NDA credentials from a .env file, held in memory only (P-81, OAI).
+r"""Run nda-tools' downloadcmd with the NDA credentials from a .env file, held in memory only (P-81, OAI).
 
 Usage: python scripts/nda_run.py <path/to/.env> <downloadcmd args...>     (needs `pip install nda-tools`)
   list a package without downloading:  ... -dp 1249779 --verify -d <dir>
