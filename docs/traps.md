@@ -622,6 +622,15 @@ day):** `auto_submit.py` builds a new client after its wait and calls `api.authe
 refresh after a real expiry was not re-observed. **Do:** any Python process that holds a `KaggleApi` for more than an hour must call
 `authenticate()` again before use, not just retry.
 
+**Addendum 2026-10-09: a refreshed token lived 3 h, not 12 h, and a send started two minutes after expiry stalled.** The file was rewritten
+at 06:50:45 UTC with `access_token_expiration` 09:50:45 UTC (3 h). The C4b send (`auto_submit.py --plan artifacts/submit_plan_1009b.json`)
+started at 09:52:35, inside the dead half hour: its pre-flight failed and went into the 5-min retry loop, and a plain
+`kaggle competitions submissions` answered "Authentication required". Its re-authentication would have refreshed at ≈ 10:22. Tian
+reloaded the token by hand instead. The submitter was stopped first (so it could not race a manual send; its same-day description check
+would have caught a duplicate anyway), and C4b was sent by hand at 10:05:39. **Do:** read `access_token_expiration` before any send. If
+it is less than ≈ 15 min away or just past, reload the token first (`kaggle auth login --force`, browser). Never assume 12 h: lifetimes
+of 3 h and 12 h have both been observed.
+
 ### 21. `kaggle datasets create` on Windows: two silent-looking failures
 
 Publishing the ConvNeXt weights (2026-08-29) failed twice before it worked:
