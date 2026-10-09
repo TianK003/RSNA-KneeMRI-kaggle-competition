@@ -141,6 +141,9 @@ agreement with the teacher, not truth. A one-seed LB delta needs ≥ 0.004 (P-44
 | 2026-10-08 | **B18, submission #67 (`rsna-knee-infer` v63)**: flat rank-mean of `v15c` (ConvNeXt-T 0.942) + `v13b3` (EfficientNet-B3 0.940), two families, two votes | — | **0.944** | **🔁 +0.001 vs B17 0.943 (band 0.940–0.946); the pre-registered "≥ 0.944 → pick 1 and the fork leg" fires. Our best own number, = the C2 fork, from two models. +0.003 over its members' mean (the cross-family pair gain); +0.002 over `v15c` alone (under the +0.004 blend floor)** |
 | 2026-10-08 | **C4, submission #68 (`rsna-knee-fork949` v1)**: the public OAI-trained 0.949 single model (`nartaa`, one CoAtNet-2) + B17 (our six members, 0.943) rank-blended per label at β 0.35 | — | **0.950** | **🔁 +0.001 vs the anchor's 0.949 (band 0.947–0.951; ✅ needed ≥ 0.952). Our best public number, rank 157 of 5,487 (was 720), inside the 247-team 0.950 tie. Most of it is the public anchor: our leg added one tick, the same as the public 0.929 reader adds in the 0.950 notebook. Carries the OAI rule risk (Tian accepted it for this read; final use is his call)** |
 | 2026-10-08 | **P-80 `v15c2` (RunPod secure RTX 4090, 1.59 pod-h ≈ $1.41)**: `v15c` at seed 43 (ConvNeXt-T `in12k_ft_in1k` @ 288, own optimiser, 20 epochs, SWA 17–19, the B6 data side, 0.5 LLM + 0.5 Raptor) | gold-58 SWA **0.9180** (`v15c` 0.9234; the seed twins' rank-mean 0.9234; ρ 0.955) | — | **✅ run green, shipped (`rsna-knee-ckpt-v15c2`), backed up, pod deleted; 🔁 direction only. The LB read (A7) and the pair as one vote wait on a placeholder and a send** |
+| 2026-10-09 | **P-80 solo, submission #70 (`rsna-knee-infer` v65)**: `v15c2` = `v15c` at seed 43 | 0.9180 | **0.941** | **✅ measured: the ConvNeXt seed spread s_c = 0.001 (≤ 0.003) → the bands stand; #64's 0.942 is the family's level (two-seed mean 0.9415), still our strongest family** |
+| 2026-10-09 | **B19, submission #71 (`rsna-knee-infer` v66)**: `v15c` + `v15c2` rank-meaned into ONE vote (`INFER_VOTE_GROUPS`) + `v13b3` | 0.9252 | **0.944** | **🔁 0.000 vs B18 (band 0.941–0.947). Pick 1 by the tie rule (an equal score with more members wins): the ConvNeXt vote is a two-seed average. The second seed adds nothing readable (the blend rule, a fifth time)** |
+| 2026-10-09 | **A8, submission #72 (`rsna-knee-infer` v67)**: `v15c` scored at 320 px, trained at 288 | — | **0.942** | **🔁 0.000 vs `v15c` at 288 (✅ needed ≥ 0.946): test-time resolution is neutral; T11 (training at 320) is not trained** |
 
 **External reference points** (not ours — for calibrating ambition):
 
@@ -4152,6 +4155,63 @@ placeholder in `rsna-knee-infer` (smoke first), then the A7 solo send and the Co
 **Verdict: ✅ the builds** (all five runs COMPLETE, logs checked as above). The sends are Tian's on 10-09
 (`artifacts/submit_plan_1009.json`, dry-run ok).
 
+### 2026-10-09 — Submissions #70–#72 (#69 C3 ⏳) · **#70 `v15c2` 0.941: ConvNeXt seed spread s_c = 0.001**, so #64's 0.942 is the family's level · **#71 B19 (the ConvNeXt twins as one vote + `v13b3`) 0.944 = B18** (🔁 0.000; pick 1 by the tie rule) · **#72 `v15c` scored at 320 px 0.942 = at 288** (🔁 0.000; T11 not trained)
+
+Sent 06:51–06:54 UTC by `src/auto_submit.py --plan artifacts/submit_plan_1009.json` (Tian's lineup, 4 of 4 sent; one 10-09 slot
+left). The watchers timed all three own reads (`artifacts/submission_timing.csv`). C3 (#69, the fork) was still scoring at 09:14 UTC;
+forks take hours.
+
+| # | what | gold-58 | LB | scored within | pre-registered read | verdict |
+|---|---|---|---|---|---|---|
+| 69 | C3 = the public 0.942 stack + B18 at β 0.45 (`rsna-knee-fork` v13) | — | ⏳ | — | vs C2 0.944: ✅ ≥ 0.947 / 🔁 0.942–0.946 / ❌ ≤ 0.941 | ⏳ PENDING |
+| 70 | A7 = `v15c2` solo (P-80; infer v65) | 0.9180 | **0.941** | [30.9, 32.4] min | s_c = \|LB − 0.942\|: ≤ 0.003 the bands stand / ≥ 0.005 #64 was a draw | **✅ measured: s_c = 0.001, the bands stand** |
+| 71 | B19 = {`v15c`, `v15c2`} as one vote + `v13b3` (infer v66) | 0.9252 | **0.944** | [44.6, 46.1] min | vs B18 0.944: ✅ ≥ 0.948 / 🔁 0.941–0.947 / ❌ ≤ 0.940; an equal score with more members wins | 🔁 (0.000); **pick 1 by the tie rule** |
+| 72 | A8 = `v15c` scored at 320 px, trained at 288 (infer v67) | — | **0.942** | [29.3, 30.8] min | vs `v15c` 0.942: ✅ ≥ 0.946 (T11 worth $1.4) / 🔁 0.939–0.945 / ❌ ≤ 0.938 | 🔁 (0.000); **T11 not trained** |
+
+**#70, the ConvNeXt seed spread.**
+- `v15c2` reads 0.941 and `v15c` 0.942: s_c = 0.001, inside the CNN seed spread s = 0.003 (#51, the B0 twins). The family's two-seed
+  level is ≈ 0.9415. It is still our strongest family: +0.0015 over `v13b3` 0.940 (one seed, so 🔁 as a ranking).
+- Gold-58 put the twins in the same order (0.9234 > 0.9180).
+- The bands stand: a one-seed ConvNeXt delta needs ≥ 0.004, like any CNN.
+
+**#71, the pair as one vote.**
+
+| blend | votes (families) | members' mean | LB | over the mean |
+|---|---|---|---|---|
+| #67 B18 | `v15c` + `v13b3` (2) | 0.9410 | 0.944 | +0.003 |
+| **#71 B19** | {`v15c`, `v15c2`} + `v13b3` (2) | 0.9408 (the vote at its twins' solo mean, 0.9415) | **0.944** | **+0.003** |
+
+- **B19 equals B18.** The expected gain from the second seed was ≈ +0.001 at most: the same-recipe gain (+0.001–0.0033) applies to
+  the vote, and the vote is half of a two-vote blend. The LB rounds that away. Gold-58 was flat as well (0.9252 vs 0.9260).
+- **The tie rule (used since #10) makes B19 pick 1:** at an equal score, the blend with more members wins. Here that is about the
+  private LB: the ConvNeXt vote is now a two-seed average, so pick 1 depends less on a single seed's draw. The cost is ≈ 8 more
+  minutes of scoring (45 vs 38 min).
+- C3 (in flight) and C4b use B18 as the leg. B19 reads the same, so swapping the leg would buy nothing measurable.
+- **The blend rule, a fifth time:** a second vote of a family already in the blend adds no readable LB. For week 2, more seeds of the
+  two lead families hedge the private LB; they do not move the public number.
+
+**#72, the test-time resolution.**
+- The same `v15c` weights read 0.942 at 320 px and at 288 px. Input 1.11× finer at test time neither helps nor hurts. A lift to
+  0.946 was needed to pay for T11.
+- **T11 (`v15c320`, training at 320) is not trained:** its pre-registered gate did not fire, and the critic had already held it on
+  P-43's arithmetic. The ≈ $1.4 stays unspent.
+- At 320 px the model costs 1.39× GPU per study (280 vs 202 s per 100 studies in the placeholder), yet A8 scored in about A7's wall
+  time (≈ 30 vs 31 min). The solo rerun is dominated by DICOM I/O, not by the model.
+- This reads the *test-time* resolution only. Training at 336 px (the probe P-80 proposed: the c03 cache's native 0.45 mm/px) is a
+  different lever, and A8 does not test it. It gives it no support either. It is recorded with "resolution > 288" in proposals.md
+  Dropped directions, recommended drop; re-opening it is Tian's call.
+
+**What it changes:**
+- **P-80 closes ✅** (closed-cards index): ConvNeXt is the lead family at a two-seed level of ≈ 0.9415, and the twins form one vote in
+  pick 1.
+- **Pick 1 = B19 (#71, 0.944)** by the tie rule; B18 (#67) reads the same. Pick 2 is unchanged: C4 (#68, 0.950) if Tian accepts the
+  OAI risk, else C2 (#54, 0.944) or C3 (#69, ⏳).
+- **Week 2 (T6):** the ConvNeXt pair and the B3 stay the final members. A second B3 seed is a private-LB hedge, not a public-LB lever.
+  The levers with evidence left are new single-model recipes (P-67 / P-68 from the 10-10 reset) and OAI (P-81).
+
+**Verdicts: #70 ✅ measured (s_c = 0.001, the bands stand); #71 🔁 (0.000), pick 1 by the tie rule; #72 🔁 (0.000), T11 not trained;
+#69 ⏳ PENDING.**
+
 ## Infrastructure
 
 ### 2026-09-27 — The "0.943 Speedy Raptors CoAtNet D4" notebook is our anchor **plus two CoAt readers**, not a faster graph; its "< 30 min" is a 3-study commit run · P-41 (threaded scan + 8 decode workers) smoke-green and byte-identical
@@ -4667,6 +4727,10 @@ and public LB score, so a public/private divergence can be traced to a specific 
 | 66 | 2026-10-08 | rsna-knee-infer v60 | **B12**: flat rank-mean of B6 + `v13es` + `v13rs` | none; gold-58 0.9242 | **0.941** | **read by 09:32 UTC → −0.001 vs B6 → 🔁; closed.** sent 06:17:54 UTC, ref 56938764 |
 | 67 | 2026-10-08 | rsna-knee-infer v63 | **B18**: flat rank-mean `v15c` + `v13b3` (`artifacts/infer_B18.py`) | none | **0.944** | **read 10:47:39 UTC → +0.001 vs B17 0.943 → 🔁; "≥ 0.944 → pick 1 and the fork leg" fires; scored within [36.7, 38.2] min.** sent 10:09:30 UTC, ref 56948421 (Tian's go) |
 | 68 | 2026-10-08 | rsna-knee-fork949 v1 (`src/build_fork949.py`; the anchor's Dataset `nartaa/rsna-knee-publication-swa-weights-20261007` + our six `rsna-knee-ckpt-*` Datasets) | **C4**: the public 0.949 notebook's five cells byte-identical (one CoAtNet-2 @ 384, OAI-trained) + B17 (`v11a` + `v13r` + `v13e` + `v13b3` + `v13e2` + `v15c`) as our leg, `final = rank_pct(0.65 · rank_pct(anchor) + 0.35 · rank_pct(ours))` per label | none | **0.950** | **read by 12:12 UTC → +0.001 vs the anchor's 0.949 → 🔁 (band 0.947–0.951); rank 157 of 5,487.** sent 10:33:59 UTC, ref 56949373 (Tian's go, OAI risk accepted for the read). Placeholder: anchor 21 s on 3 studies, our arm rc 0 in 96 s, decode-once verified, status `beta0.35`. Scoring time unknown: the watcher logged PENDING at 10:34:25 and died before the completion line (the laptop slept 11:56–12:07 UTC) |
+| 69 | 2026-10-09 | rsna-knee-fork v13 (`src/build_fork.py --members v15c v13b3 --beta 0.45`) | **C3**: the public 0.942 stack + B18 (`v15c` + `v13b3`) as our leg at β 0.45 | none | ⏳ | **⏳ PENDING (forks score in hours).** sent 06:51:14 UTC, ref 56996997, by `auto_submit.py` (plan `artifacts/submit_plan_1009.json`, Tian's lineup). Read vs C2 #54 0.944: ✅ ≥ 0.947 / 🔁 0.942–0.946 / ❌ ≤ 0.941 |
+| 70 | 2026-10-09 | rsna-knee-infer v65 (+ Dataset `rsna-knee-ckpt-v15c2`) | **A7 / P-80, `v15c2` solo**: `INFER_MEMBERS = ["v15c2"]`, `v15c` at seed 43, trained on RunPod | none; gold-58 0.9180 | **0.941** | **read 07:24:21 UTC → s_c = 0.001 → ✅ measured, the ConvNeXt bands stand; scored within [30.9, 32.4] min.** sent 06:52:00 UTC, ref 56997030 |
+| 71 | 2026-10-09 | rsna-knee-infer v66 | **B19**: `INFER_MEMBERS = ["v15c", "v15c2", "v13b3"]` with `INFER_VOTE_GROUPS = {"convnext": ("v15c", "v15c2")}` (two votes) | none; gold-58 0.9252 | **0.944** | **read 07:38:54 UTC → = B18 0.944 → 🔁; pick 1 by the tie rule; scored within [44.6, 46.1] min.** sent 06:52:47 UTC, ref 56997075 |
+| 72 | 2026-10-09 | rsna-knee-infer v67 | **A8**: `v15c` with `INFER_OVERRIDES = {"v15c": {"img_size": 320}}` (trained at 288) | none | **0.942** | **read 07:24:23 UTC → = `v15c` at 288 → 🔁; T11 not trained; scored within [29.3, 30.8] min.** sent 06:53:33 UTC, ref 56997111 |
 
 ## Closed cards index (moved here from proposals.md on 2026-10-05)
 
@@ -4736,3 +4800,4 @@ proposals.md holds live cards only (Tian, 2026-10-05). One line per measured or 
 | P-46 | Upgrade the LLM half of the targets (absorbs P-16, P-30) | retired 2026-10-06 by its own rule: step 2 (the re-label) ran as P-65 ❌, and step 1 (dread as a 4th vote) was to close if the Claude vote did not move the LB — the LLM half is not binding | experiments.md 2026-10-06 "Submissions #54–#58"; the P-65 row above |
 | P-62 | Silence-aware teacher mix (Raptor 0.75 on report-silent cells, 0.5 elsewhere) | 🔁 not adopted: #60 `v13es` **0.936** / #61 `v13rs` **0.937** → pair mean 0.9365 vs 0.9345 (+0.002; ✅ needed ≥ 0.9390); both arms up vs their same-seed parents (+0.001 / +0.003), under the one-seed floor; the code stays, off by default; both solos qualify for B12 | experiments.md 2026-10-07 "Submissions #59–#63"; 2026-10-04 "Session D"; 2026-09-30 "Silence-aware teacher mix" |
 | P-69 | ConvNeXt-T with its own recipe (`v15c`: timm `convnext_tiny.in12k_ft_in1k` @ 288, AdamW 1e-4, per-stage decay 0.9, 20 ep; RunPod, ≈ $1.46) | ✅ KEEP — #64 `v15c` **0.942** = our best solo (+0.0062 over B6's members' mean, 1.5× the floor; = B6) with the clip-rate tripwire fired; #65 B17 (B6 + it) **0.943** (🔁 +0.001; pick 1 by convention, C3's gate open, the seed twin `v15c2` is week 2's first ConvNeXt arm). The family's own optimiser was the lever (traps 46) | experiments.md 2026-10-07 "P-69 on RunPod"; 2026-10-08 "Submissions #64–#66" |
+| P-80 | ConvNeXt as the lead family: the seed twin `v15c2` (RunPod, ≈ $1.41), then the twins as one vote | ✅ measured: #70 `v15c2` **0.941** vs `v15c` 0.942 → s_c = 0.001, the bands stand, family level ≈ 0.9415; #71 B19 (the twins as one vote + `v13b3`) **0.944** = B18 → pick 1 by the tie rule. The proposed 336 px training probe was not run (A8 #72: `v15c` scored at 320 px read 0.000; proposals.md Dropped directions) | experiments.md 2026-10-08 "P-80 on RunPod", "The 10-09 placeholders"; 2026-10-09 "Submissions #70–#72" |
