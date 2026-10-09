@@ -12,7 +12,8 @@ How this file relates to the others:
 Updated 2026-10-09 (09:15 UTC). **The 10-09 reads (Tian's lineup, sent 06:51–06:54 UTC; experiments.md "Submissions #70–#72"):
 A7 `v15c2` 0.941 (#70: ConvNeXt seed spread s_c = 0.001, the bands stand, P-80 closed ✅); B19 0.944 (#71) = B18 → pick 1 by the tie
 rule; A8 (`v15c` scored at 320 px) 0.942 (#72) = at 288 → T11 not trained. C3 (#69, the fork) is still scoring. One 10-09 slot is
-free; C4b is the candidate for it only if Tian accepts an OAI-carrying pick.** Earlier, 10-08 12:20 UTC: **C4 (the public OAI-trained 0.949 model + B17 at β 0.35) read 0.950 (#68; 🔁 +0.001 vs the anchor):
+free. Tian, ≈ 09:30 UTC: an OAI-trained pick 2 is accepted (pick 2 = the C4 family), and no training at 336 px. The C4b placeholder
+(`rsna-knee-fork949` v2) is built for that slot; the send is Tian's go.** Earlier, 10-08 12:20 UTC: **C4 (the public OAI-trained 0.949 model + B17 at β 0.35) read 0.950 (#68; 🔁 +0.001 vs the anchor):
 our best public number, rank 157 of 5,487 (was 720), inside the 247-team 0.950 tie.** Almost all of it is the public checkpoint: on a
 0.949 anchor our leg is worth one tick, and a fork's lift is capped by the gap between the leg and the anchor (experiments.md "Submission
 #68"). Whether an OAI-trained pick 2 is acceptable is Tian's call (brainstorm.md). **B18 (`v15c` + `v13b3`) read 0.944 = our best own
@@ -34,11 +35,11 @@ GPU-min each; ≈ 2.3 h of Kaggle GPU is left until 10-10).
 
 | Prio | Day | Candidate | What it decides | Gate | Status |
 |---|---|---|---|---|---|
-| P3 | hold (one 10-09 slot is free) | **C4b**: the public 0.949 checkpoint + **B18** (#67, 0.944) as our leg at β 0.35 (section C) | The OAI-carrying fork pick 2 on our best own leg (cheaper than C4: two members) | **Tian: is an OAI-trained pick 2 acceptable (brainstorm.md)?** Then a go for the placeholder and the send | **not in the 10-09 lineup** (Tian chose C3, 10-08 22:00 UTC); build when asked: `src/build_fork949.py --members v15c v13b3` (≈ 10 GPU-min; ≈ 2.3 GPU-h left until 10-10) |
+| **P1** | 10-09 (the free slot) | **C4b**: the public 0.949 checkpoint + **B18** (#67, 0.944) as our leg at β 0.35 (section C) | Which C4-family fork is pick 2 (on our best own leg; cheaper than C4: two members) | ✅ OAI-trained pick 2 accepted by Tian (10-09); **the send is Tian's go** | **placeholder `rsna-knee-fork949` v2 ✅** (10-09: `src/build_fork949.py --members v15c v13b3 --beta 0.35`; our arm rc 0 in 73 s, `FINAL = beta0.35`); staged in `artifacts/submit_plan_1009b.json` |
 | **P1** | ⏳ | **C3** (#69): the 0.942 public stack + B18 as the leg, β 0.45 (section C) | The OAI-free fork pick 2. Predicted ≈ 0.944–0.945 = B18's own level | — | **sent 06:51 UTC 10-09 (ref 56996997), scoring** (forks take hours); read vs C2 0.944 |
 | P5 | hold | **B16** (P-71) | — | **recommended DROP 10-08:** `v15c` 0.942 makes the 0.929 public reader a second, weaker ConvNeXt | hold |
 | P5 | hold | B1, B2, B7, B8, B9, B10, B12, B15 | — | B14 / B13 supersede B1 / B2; B7 / B10 predict under B6; **B8 and B15 closed by B13**; **B9 closed 10-07**; **B12 read 0.941 on 10-08 (closed)** | hold |
-| — | 10-09 | **Freeze the shortlist for P-50** | pick 1 = **B19 (#71, 0.944; OAI-free; = B18 #67, pick 1 by the tie rule)**, pick 2 = **C4 (#68, 0.950) / C4b if OAI is acceptable**, else C2 (#54, 0.944) or C3 (#69, ⏳) | — | Tian, by 10-22 |
+| — | 10-09 | **Freeze the shortlist for P-50** | pick 1 = **B19 (#71, 0.944; OAI-free; = B18 #67, pick 1 by the tie rule)**, pick 2 = **the C4 family (Tian accepted OAI, 10-09): C4 (#68, 0.950), or C4b if it reads ≥ 0.950**; C2 (#54, 0.944) / C3 (#69, ⏳) only if the host rules OAI out | — | Tian, by 10-22 |
 
 **What the blend rule expects:** B18 read 0.944 inside its predicted 0.943–0.946 (#67), and B19 (the ConvNeXt twins as one vote +
 `v13b3`) read the same 0.944 (#71): a second seed of a family already in the blend adds nothing readable on the public LB; it hedges the
@@ -117,11 +118,11 @@ one pipeline: fork deltas of one tick are noise (experiments.md 2026-10-06 "The 
 **C4 was read on 10-08: #68 = 0.950** (🔁 +0.001 vs the 0.949 anchor; rank 157). On a 0.949 anchor, our 0.943 leg is worth the same one
 tick as the public 0.929 reader. A fork's lift ≈ a diversity gain of +0.002–0.003, minus β × (anchor − leg). So a C4 successor gains
 ≈ +0.0004 per +0.001 on our leg, and β cannot buy a tick (experiments.md "Submission #68"). Every C4-family pick carries the OAI rule
-risk; C2 / C3 do not.
+risk; C2 / C3 do not. **Tian accepted that risk for pick 2 on 10-09** (brainstorm.md), so pick 2 is a C4-family fork.
 
 | # | Prio | Candidate | What it tests / contributes | Read rule | Placeholder |
 |---|---|---|---|---|---|
-| C4b | **P1 (needs Tian's OAI call)** | **The public 0.949 checkpoint + B18** (#67, 0.944) as our leg at β 0.35 | The C4 pick on our best own leg: one tick closer to the anchor, and more independent of it (B17 carries `v11a`, a CoAtNet like the anchor; B18 is two CNNs); two members score in ≈ 38 min against B17's six. Pred. 0.950–0.951 | vs C4 0.950: ✅ ≥ 0.953 / 🔁 0.948–0.952 / ❌ ≤ 0.947. Tie rule: an equal read takes C4b (the stronger leg on paper, the faster rerun) | build: `src/build_fork949.py --members v15c v13b3`, then the `rsna-knee-fork949` placeholder (≈ 10 GPU-min) |
+| C4b | **P1 (OAI accepted 10-09; send = Tian's go)** | **The public 0.949 checkpoint + B18** (#67, 0.944) as our leg at β 0.35 | The C4 pick on our best own leg: one tick closer to the anchor, and more independent of it (B17 carries `v11a`, a CoAtNet like the anchor; B18 is two CNNs); two members score in ≈ 38 min against B17's six. Pred. 0.950–0.951 | vs C4 0.950: ✅ ≥ 0.953 / 🔁 0.948–0.952 / ❌ ≤ 0.947. Tie rule: an equal read takes C4b (the stronger leg on paper, the faster rerun) | **`rsna-knee-fork949` v2** (built 10-09: `src/build_fork949.py --members v15c v13b3 --beta 0.35`; 8 datasets) |
 | C3 | ⏳ | Public 0.942 stack + **B18** (#67, 0.944) as our leg at β 0.45 | The OAI-free fork pick 2 with a better leg | Gate: the leg read ≥ 0.943 (open since 10-08). vs C2 0.944: ✅ ≥ 0.947 / 🔁 0.942–0.946 / ❌ ≤ 0.941. Pred. 0.944–0.945 = B18's own level | **sent 10-09 06:51 UTC as #69 (ref 56996997), scoring.** `rsna-knee-fork` v13, built with `src/build_fork.py --members v15c v13b3 --member v15c=tiankljucanin/rsna-knee-ckpt-v15c:tiankljucanin/timm-convnext-tiny-in12k --member v13b3=tiankljucanin/rsna-knee-ckpt-v13b3:tiankljucanin/timm-efficientnet-b3-ra2 --beta 0.45` (`v13b3` has no stored mapping) |
 | — | — | Fork at other β | **Not planned:** it tunes a weight to the public LB, and on #68's arithmetic it is worth < 0.0002 | — | — |
 
@@ -141,7 +142,8 @@ risk; C2 / C3 do not.
   trained 20:14–21:41 UTC, shipped (gold 0.9180), pod deleted.
 - **10-09 (Tian's lineup; sent 06:51–06:54 UTC by `auto_submit.py`):** C3 #69 ⏳ → A7 `v15c2` #70 **0.941** → B19 #71 **0.944**
   (pick 1 by the tie rule) → A8 #72 **0.942** (experiments.md "Submissions #70–#72"). P-80 closed ✅, T11 not trained. One slot free.
-  Freeze the P-50 shortlist.
+  Then Tian: an OAI-trained pick 2 is accepted, no 336 px training; the C4b placeholder (`rsna-knee-fork949` v2) is built for the free
+  slot, the send is his go. Freeze the P-50 shortlist.
 - **10-10:** training resumes (section D). The submissions after that are the new arms' solos.
 
 ## D. Training candidates (GPU) — paused until the 10-10 reset

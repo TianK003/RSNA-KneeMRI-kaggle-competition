@@ -4212,6 +4212,13 @@ forks take hours.
 **Verdicts: #70 ✅ measured (s_c = 0.001, the bands stand); #71 🔁 (0.000), pick 1 by the tie rule; #72 🔁 (0.000), T11 not trained;
 #69 ⏳ PENDING.**
 
+**DECIDED 2026-10-09 (Tian, after this read):** no training at 336 px (the probe is dropped, proposals.md Dropped directions), and an
+OAI-trained pick 2 is accepted (brainstorm.md): pick 2 is the C4 family. **The C4b placeholder, `rsna-knee-fork949` v2** (the public
+0.949 model + B18 at β 0.35, `src/build_fork949.py --members v15c v13b3 --beta 0.35`, `--check` ok, 8 datasets), ran COMPLETE by
+09:47 UTC: the anchor wrote its CSV, our arm returned rc 0 in 73 s (`"smoke": "False"`, members `v15c` / `v13b3`, decode-once
+verified, constant labels 0), and the log ends `FINAL submission.csv = beta0.35` (≈ 2 min of wall time; outputs in
+`artifacts/kaggle_out/fork949_v2_c4b/`). ✅ build; the send is Tian's go (`artifacts/submit_plan_1009b.json`).
+
 ## Infrastructure
 
 ### 2026-09-27 — The "0.943 Speedy Raptors CoAtNet D4" notebook is our anchor **plus two CoAt readers**, not a faster graph; its "< 30 min" is a 3-study commit run · P-41 (threaded scan + 8 decode workers) smoke-green and byte-identical
