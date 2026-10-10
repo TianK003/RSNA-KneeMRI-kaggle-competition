@@ -146,6 +146,7 @@ agreement with the teacher, not truth. A one-seed LB delta needs ≥ 0.004 (P-44
 | 2026-10-09 | **A8, submission #72 (`rsna-knee-infer` v67)**: `v15c` scored at 320 px, trained at 288 | — | **0.942** | **🔁 0.000 vs `v15c` at 288 (✅ needed ≥ 0.946): test-time resolution is neutral; T11 (training at 320) is not trained** |
 | 2026-10-09 | **C3, submission #69 (`rsna-knee-fork` v13)**: the public 0.942 stack + B18 (`v15c` + `v13b3`) rank-blended per label at β 0.45 | — | **0.946** | **🔁 +0.002 vs C2 0.944 (band 0.942–0.946; ✅ needed ≥ 0.947). +0.004 over the anchor, +0.002 over its own leg, +0.003 over the weighted mean of its parts (the fork rule's diversity gain). Our best OAI-free number; it replaces C2 as the OAI-free fork** |
 | 2026-10-09 | **C4b, submission #73 (`rsna-knee-fork949` v2)**: the public OAI-trained 0.949 single model + B18 at β 0.35 | — | **0.951** | **🔁 +0.001 vs C4 0.950 (band 0.948–0.952; ✅ needed ≥ 0.953); pick 2 by the pre-registered "≥ 0.950" rule. Our best public number, rank 218 of 5,626 (10-10 00:50 UTC). +0.002 over the anchor, +0.004 over the weighted mean of its parts. Carries the OAI rule risk (accepted by Tian 10-09)** |
+| 2026-10-10 | **Sessions A ‖ B (Kaggle, the 10-10 reset)**: P-67 floor pair `v14p` ‖ `v14p2` (`rsna-knee-train` v49) and P-68 pseudo-label pair `v13ex` ‖ `v13ex2` on Raptor + `xfit_v09k` (`rsna-knee-train-b` v10) | — | — | **✅ smokes green (v48 / v9: rc 0 per child, tables loaded, `reseeded 43`); ⏳ real runs pushed 01:21 UTC** (entry 2026-10-10 "Sessions A ‖ B") |
 
 **External reference points** (not ours — for calibrating ambition):
 
@@ -4288,6 +4289,31 @@ gap to the top ten (0.011) is out of reach of any fork of a public anchor.
 **Verdicts: #73 🔁 (+0.001 vs C4), pick 2 by the pre-registered rule; #69 🔁 (+0.002 vs C2), the OAI-free fork.** The fork rule
 (experiments.md "Submission #68") held on both new forks: C4b inside its predicted band, C3 one tick above it. Over four forks the
 diversity gain is +0.002 to +0.004. That is a fit to rounded scores, not a measurement against a floor.
+
+### 2026-10-10 — Sessions A ‖ B at the quota reset: the P-67 floor pair `v14p` ‖ `v14p2` (`rsna-knee-train` v49) and the P-68 pseudo-label pair `v13ex` ‖ `v13ex2` (`rsna-knee-train-b` v10) · both smokes green · ⏳ PENDING
+
+Tian's go, 10-10 ≈ 01:05 UTC ("do A + B now on kaggle, arm watchers"). `kaggle quota` at 00:50: 0.00 h used of 30, next reset 10-17.
+Built from `src/` at `cd38821` with seds on `PARALLEL_ARMS` / `TEACHER_TABLES` only (`FORCE_SMOKE` True for the smoke, False for the real
+run; the build lines grepped before each push). Both kernels mount the same inputs: the four c03 cache kernels, the three LLM label
+Datasets, `rsna-knee-teacher-tables` and the backbone weights.
+
+| session | kernel | arms | tables | smoke (pushed 01:12:51) | real run |
+|---|---|---|---|---|---|
+| A (P-67 floor) | `rsna-knee-train` | `v14p` ‖ `v14p2` = `PROXY` (B0 @ 224, c03, 12 train windows, 12 epochs, SWA 3, five folds, not train_all), seeds 42 / 43 | `("raptor_teacher",)` | **v48 green** in 4.2 min: both children rc 0 on `cuda:0` / `cuda:1`, `_best.pt` (SWA) + `_oof.csv` + per-epoch OOF, Raptor 4,349 studies, `reseeded 43` for `v14p2`. "All folds complete: False" is expected: the smoke trains fold 0 of five | **v49, pushed 01:21:26 UTC**, est. ≈ 3.75 h |
+| B (P-68) | `rsna-knee-train-b` | `v13ex` ‖ `v13ex2` = the `v13e` B0 recipe (30 epochs, SWA 27–29, train_all), seeds 42 / 43 | `("raptor_teacher", "xfit_v09k")`, mix 0.5 | **v9 green** in 4.2 min: both rc 0, `_best.pt` written, Raptor 4,349 + `xfit_v09k` 4,407 studies, "training targets = (1 − 0.5) · LLM + 0.5 · quantile-matched ['raptor_teacher', 'xfit_v09k']", `reseeded 43` | **v10, pushed 01:21:40 UTC**, est. ≈ 6 h |
+
+- **Watchers:** `src/watch_kernel.py` (new) polls `kernels status` every 10 min in a fresh CLI process, logs the timeline to
+  `artifacts/watch_sA_1010.log` / `watch_sB_1010.log`, and when the run ends pulls the `.log` and `_oof.csv` outputs into
+  `artifacts/kaggle_out/sA_1010/` / `sB_1010/`. Mid-run logs are not readable from the CLI (traps 20, CORRECTED 2026-10-10).
+- **Reads, pre-registered:**
+  - A (P-67): the pooled 5-fold OOF of each seed (`src/fold_oof_summary.py`). The floor comes from the five per-fold paired seed
+    differences (their SD / √5, the critic's rule), and the ablation bar is 1.5 × that floor. Expected ≈ 0.0036. The OOFs also build
+    `cnnoof_v1` (`src/build_distill_table.py --per-fold-rank`), the teacher table for `v11o` / `v13eo`.
+  - B (P-68): two infer placeholders, then two LB solos. mean(`v13ex`, `v13ex2`) vs the B0 seed mean 0.9365: ✅ ≥ 0.9410 /
+    🔁 0.9320–0.9409 / ❌ ≤ 0.9319. Each arm is also compared with its same-seed parent (`v13e` 0.935, `v13e2` 0.938). Gold-58 is
+    not readable, not even for direction (`xfit_v09k` trained on the gold rows).
+
+**Verdict: ✅ both smokes green; ⏳ PENDING both real runs.**
 
 ## Infrastructure
 

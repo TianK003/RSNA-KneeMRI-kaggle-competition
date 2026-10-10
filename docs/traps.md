@@ -631,6 +631,14 @@ would have caught a duplicate anyway), and C4b was sent by hand at 10:05:39. **D
 it is less than ≈ 15 min away or just past, reload the token first (`kaggle auth login --force`, browser). Never assume 12 h: lifetimes
 of 3 h and 12 h have both been observed.
 
+**CORRECTED 2026-10-10: `kaggle kernels logs` is blank mid-run for our notebook training kernels.** The 09-26 note above ("streams a
+running kernel's log") does not hold for them. During the `rsna-knee-train` v48 and `rsna-knee-train-b` v9 smokes, a plain `kernels logs`
+returned nothing, and `kernels logs -f` streamed zero lines in 40 s, both via the exe and from a PowerShell job. The same call returned the
+whole JSON log as soon as the status read COMPLETE. **Do:** the only mid-run signal is `kernels status`. `src/watch_kernel.py` polls it in a
+fresh CLI process each time, so the dead half hour costs one poll, not the watcher. It also tries `logs` on every poll, and pulls the
+`.log` / `_oof.csv` outputs and their key lines when the run ends. Children's progress (epochs, gold) is readable only after the session
+ends.
+
 ### 21. `kaggle datasets create` on Windows: two silent-looking failures
 
 Publishing the ConvNeXt weights (2026-08-29) failed twice before it worked:
