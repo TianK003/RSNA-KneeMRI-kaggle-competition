@@ -144,11 +144,14 @@ agreement with the teacher, not truth. A one-seed LB delta needs ≥ 0.004 (P-44
 | 2026-10-09 | **P-80 solo, submission #70 (`rsna-knee-infer` v65)**: `v15c2` = `v15c` at seed 43 | 0.9180 | **0.941** | **✅ measured: the ConvNeXt seed spread s_c = 0.001 (≤ 0.003) → the bands stand; #64's 0.942 is the family's level (two-seed mean 0.9415), still our strongest family** |
 | 2026-10-09 | **B19, submission #71 (`rsna-knee-infer` v66)**: `v15c` + `v15c2` rank-meaned into ONE vote (`INFER_VOTE_GROUPS`) + `v13b3` | 0.9252 | **0.944** | **🔁 0.000 vs B18 (band 0.941–0.947). Pick 1 by the tie rule (an equal score with more members wins): the ConvNeXt vote is a two-seed average. The second seed adds nothing readable (the blend rule, a fifth time)** |
 | 2026-10-09 | **A8, submission #72 (`rsna-knee-infer` v67)**: `v15c` scored at 320 px, trained at 288 | — | **0.942** | **🔁 0.000 vs `v15c` at 288 (✅ needed ≥ 0.946): test-time resolution is neutral; T11 (training at 320) is not trained** |
+| 2026-10-09 | **C3, submission #69 (`rsna-knee-fork` v13)**: the public 0.942 stack + B18 (`v15c` + `v13b3`) rank-blended per label at β 0.45 | — | **0.946** | **🔁 +0.002 vs C2 0.944 (band 0.942–0.946; ✅ needed ≥ 0.947). +0.004 over the anchor, +0.002 over its own leg, +0.003 over the weighted mean of its parts (the fork rule's diversity gain). Our best OAI-free number; it replaces C2 as the OAI-free fork** |
+| 2026-10-09 | **C4b, submission #73 (`rsna-knee-fork949` v2)**: the public OAI-trained 0.949 single model + B18 at β 0.35 | — | **0.951** | **🔁 +0.001 vs C4 0.950 (band 0.948–0.952; ✅ needed ≥ 0.953); pick 2 by the pre-registered "≥ 0.950" rule. Our best public number, rank 218 of 5,626 (10-10 00:50 UTC). +0.002 over the anchor, +0.004 over the weighted mean of its parts. Carries the OAI rule risk (accepted by Tian 10-09)** |
 
 **External reference points** (not ours — for calibrating ambition):
 
 | Score | What |
 |---|---|
+| 0.964 | Public LB #1 (2026-10-10 00:50 UTC); 10th 0.962; **797 teams ≥ 0.950 of 5,626** (485 at exactly 0.950), 312 ≥ 0.951 (114 at exactly 0.951), 198 ≥ 0.952, 90 ≥ 0.955. **Our C4b #73 = 0.951, rank 218** (the front of the 0.951 tie; entry 2026-10-09 "Submissions #69 and #73") |
 | 0.964 | Public LB #1 (2026-10-08 12:12 UTC); 10th 0.961; **392 teams ≥ 0.950 of 5,487** (338 at 09:39 UTC, 123 on 10-06); 145 ≥ 0.951, 73 ≥ 0.955 |
 | **0.950** | **The new public plateau (2026-10-08): 247 teams at exactly 0.950 at 12:12 UTC** (199 at 09:39 UTC, 184 of them with their last submission on 10-08). = `matterhorn3838/rsna-knee-v2-velciraptor-dinosaur-speed` ("Grandmaster Apex Fusion"; the "Apex Grandmaster Stack" notebooks are the same fusion): the 0.949 single model below + the public 0.929 ConvNeXt-T reader at per-label weights (+0.001). **Our C4 #68 (the 0.949 model + B17) sits in this tie at rank 157** (was 720 at 0.944; entries "The 0.949 / 0.950 public notebooks, read", "Submission #68") |
 | **0.949** | `nartaa/rsna-knee-0949-anatomical-mirror` (Danial Zakaria, 10-07): ONE retrained Raptor CoAtNet-2 @ 384 on 96 slices, 2,399 **OAI** knees as masked external labels (+0.005 in the author's table), anatomical mirror TTA; without OAI the same author read 0.942. A 224 px sibling reads 0.945 |
@@ -4219,6 +4222,73 @@ OAI-trained pick 2 is accepted (brainstorm.md): pick 2 is the C4 family. **The C
 verified, constant labels 0), and the log ends `FINAL submission.csv = beta0.35` (≈ 2 min of wall time; outputs in
 `artifacts/kaggle_out/fork949_v2_c4b/`). ✅ build; the send is Tian's go (`artifacts/submit_plan_1009b.json`).
 
+**READ 2026-10-10:** #69 C3 = 0.946 and #73 C4b = 0.951; see the next entry.
+
+### 2026-10-09 — Submissions #69 and #73 (the two forks on B18) · **#73 C4b = the public 0.949 model + B18 at β 0.35 → 0.951 = our best public number** (🔁 +0.001 vs C4; pick 2 by the rule; rank 218 of 5,626) · **#69 C3 = the public 0.942 stack + B18 at β 0.45 → 0.946 = our best OAI-free number** (🔁 +0.002 vs C2; replaces C2 as the OAI-free fork) · the fork rule holds on all four forks
+
+Read 2026-10-10 00:50 UTC from `kaggle competitions submissions` (both had scored on 10-09; the watcher timed C4b, the timing CSV both).
+Both forks use B18 (`v15c` + `v13b3`, #67 0.944) as our leg, rank-blended per label: `final = rank_pct((1 − β) · rank_pct(anchor) +
+β · rank_pct(ours))`. β was set a priori (0.45 for a leg at the anchor's level, 0.35 for a leg under it), never tuned on the LB.
+
+| fork | anchor | our leg | β | weighted mean of the parts | LB | over the weighted mean | over the anchor | scored within |
+|---|---|---|---|---|---|---|---|---|
+| #54 C2 | 0.942 (the public stack) | 0.942 (B6, 5 members) | 0.45 | 0.9420 | 0.944 | +0.002 | +0.002 | hours |
+| **#69 C3** | **0.942** (the public stack) | **0.944 (B18, 2 members)** | **0.45** | **0.9429** | **0.946** | **+0.003** | **+0.004** | **[403.7, 405.2] min** |
+| #68 C4 | 0.949 (one OAI-trained CoAtNet-2) | 0.943 (B17, 6 members) | 0.35 | 0.9469 | 0.950 | +0.003 | +0.001 | unknown |
+| **#73 C4b** | **0.949** (one OAI-trained CoAtNet-2) | **0.944 (B18, 2 members)** | **0.35** | **0.9473** | **0.951** | **+0.004** | **+0.002** | **[104.1, 105.6] min** |
+
+**#73 C4b, by the pre-registered rule:** +0.001 vs C4 0.950, inside 🔁 0.948–0.952. "≥ 0.950 → C4b replaces C4 as pick 2" fires. The
+prediction was 0.950–0.951; it landed at the top.
+
+**#69 C3, by the pre-registered rule:** +0.002 vs C2 0.944, the top of 🔁 0.942–0.946 (✅ needed ≥ 0.947). The prediction was 0.944–0.945
+("B18's own level"); it landed one tick above it. That prediction left out the diversity gain the fork rule itself predicts.
+
+**The fork rule, now on four forks:** a fork reads ≈ the weighted mean of its parts + a diversity gain of **+0.002 to +0.004 (mean
++0.003)**. Its lift over the anchor ≈ that gain − β × (anchor − leg). When the leg is above the anchor (C3), the second term turns into a
+bonus: +0.004 over the anchor.
+- The two B18 forks gained one tick more over their weighted means than the B6 / B17 forks: +0.003 / +0.004 against +0.002 / +0.003.
+  B18 is two CNNs. B6 and B17 also carry `v11a`, a CoAtNet like both anchors' strongest members, so B18 may be the more independent
+  leg. That is a reading of one tick on rounded scores: direction only.
+- **The OAI premium in pick 2 is now 0.005** (C4b 0.951 − C3 0.946; it was 0.006 = C4 − C2). That is the price of the OAI rule risk.
+- **What the leg is worth, priced by the rule:**
+  - on C4b, each +0.001 on the leg ≈ +0.00035 on the fork;
+  - on C3, ≈ +0.00045;
+  - on an own-model pick 1, the full +0.001.
+- **What it takes to move pick 2,** from 0.65 × 0.949 + 0.35 × L + g with g = 0.003–0.004:
+  - 0.953 (+0.002 over C4b) needs a leg at ≈ 0.948–0.949, the anchor's level. That is +0.004–0.005 over B18, about the OAI step the
+    0.949 author reports (P-81).
+  - A ✅ against C4b (≥ 0.954) needs a leg at ≈ 0.950–0.952, above the anchor.
+  - So even a successful own OAI leg (P-81 `v15co`) is worth ≈ +0.001–0.002 on pick 2, and it can go nowhere else: pick 1 and C3
+    must stay OAI-free. An OAI-free gain of the same size lands in full on pick 1 and at 0.45 on C3.
+
+**Scoring time.** A fork on the public 0.942 stack (≈ 35 public checkpoints) scored in ≈ 6.7 h. A fork on the 0.949 anchor (one CoAtNet-2) +
+our two members scored in ≈ 1.75 h. A final-day rebuild of a C3-type fork needs to be sent early on 10-22.
+
+**Standing (10-10 00:50 UTC, full CSV):** 0.951 = rank 218 of 5,626, at the front of a 114-team tie at 0.951. 797 teams are ≥ 0.950
+(392 on 10-08), 485 at exactly 0.950: the 0.950 public fork is everywhere now. 198 ≥ 0.952, 90 ≥ 0.955; top 0.964, 10th 0.962. The
+gap to the top ten (0.011) is out of reach of any fork of a public anchor.
+
+**What it changes:**
+- **Pick 2 = C4b (#73, 0.951)**, replacing C4 (#68, 0.950). It carries the OAI risk Tian accepted on 10-09.
+- **The OAI-free fallback for pick 2 = C3 (#69, 0.946)**, replacing C2 (#54, 0.944). It matters only if the host rules OAI out.
+- **New open question for Tian (brainstorm.md): is C3 a better pick 1 than B19?** C3 is OAI-free and reads 0.946, against B19's 0.944.
+  - The +0.002 is under the 0.004 floor.
+  - C3 leans 0.55 on the public stack, whose author calls it "likely overfit to the public leaderboard".
+  - C3 is less correlated with C4b than B19 is: C3 shares only B18 × 0.45 with C4b, B19 is all leg. So it is the more different
+    ticket (P-50's hypothesis).
+  - If OAI is ruled out and only pick 2 is voided, pick 1 is our whole score.
+- **The lever is unchanged: a stronger own leg.** An OAI-free one feeds all three candidates at once (B19 in full, C3 at 0.45, C4b at
+  0.35). β
+  tuning stays dropped (worth < 0.0002 on #68's arithmetic).
+- **This reorders the candidate legs:**
+  - the OAI-free ones first: the P-68 pair (pseudo-labels) and the P-67 single-model loop, then the week-2 final retrains. A gain
+    there lifts all three candidates;
+  - P-81 `v15co` second: it can only enter C4b, where a +0.005 leg is worth ≈ +0.001–0.002.
+
+**Verdicts: #73 🔁 (+0.001 vs C4), pick 2 by the pre-registered rule; #69 🔁 (+0.002 vs C2), the OAI-free fork.** The fork rule
+(experiments.md "Submission #68") held on both new forks: C4b inside its predicted band, C3 one tick above it. Over four forks the
+diversity gain is +0.002 to +0.004. That is a fit to rounded scores, not a measurement against a floor.
+
 ## Infrastructure
 
 ### 2026-09-27 — The "0.943 Speedy Raptors CoAtNet D4" notebook is our anchor **plus two CoAt readers**, not a faster graph; its "< 30 min" is a 3-study commit run · P-41 (threaded scan + 8 decode workers) smoke-green and byte-identical
@@ -4734,11 +4804,11 @@ and public LB score, so a public/private divergence can be traced to a specific 
 | 66 | 2026-10-08 | rsna-knee-infer v60 | **B12**: flat rank-mean of B6 + `v13es` + `v13rs` | none; gold-58 0.9242 | **0.941** | **read by 09:32 UTC → −0.001 vs B6 → 🔁; closed.** sent 06:17:54 UTC, ref 56938764 |
 | 67 | 2026-10-08 | rsna-knee-infer v63 | **B18**: flat rank-mean `v15c` + `v13b3` (`artifacts/infer_B18.py`) | none | **0.944** | **read 10:47:39 UTC → +0.001 vs B17 0.943 → 🔁; "≥ 0.944 → pick 1 and the fork leg" fires; scored within [36.7, 38.2] min.** sent 10:09:30 UTC, ref 56948421 (Tian's go) |
 | 68 | 2026-10-08 | rsna-knee-fork949 v1 (`src/build_fork949.py`; the anchor's Dataset `nartaa/rsna-knee-publication-swa-weights-20261007` + our six `rsna-knee-ckpt-*` Datasets) | **C4**: the public 0.949 notebook's five cells byte-identical (one CoAtNet-2 @ 384, OAI-trained) + B17 (`v11a` + `v13r` + `v13e` + `v13b3` + `v13e2` + `v15c`) as our leg, `final = rank_pct(0.65 · rank_pct(anchor) + 0.35 · rank_pct(ours))` per label | none | **0.950** | **read by 12:12 UTC → +0.001 vs the anchor's 0.949 → 🔁 (band 0.947–0.951); rank 157 of 5,487.** sent 10:33:59 UTC, ref 56949373 (Tian's go, OAI risk accepted for the read). Placeholder: anchor 21 s on 3 studies, our arm rc 0 in 96 s, decode-once verified, status `beta0.35`. Scoring time unknown: the watcher logged PENDING at 10:34:25 and died before the completion line (the laptop slept 11:56–12:07 UTC) |
-| 69 | 2026-10-09 | rsna-knee-fork v13 (`src/build_fork.py --members v15c v13b3 --beta 0.45`) | **C3**: the public 0.942 stack + B18 (`v15c` + `v13b3`) as our leg at β 0.45 | none | ⏳ | **⏳ PENDING (forks score in hours).** sent 06:51:14 UTC, ref 56996997, by `auto_submit.py` (plan `artifacts/submit_plan_1009.json`, Tian's lineup). Read vs C2 #54 0.944: ✅ ≥ 0.947 / 🔁 0.942–0.946 / ❌ ≤ 0.941 |
+| 69 | 2026-10-09 | rsna-knee-fork v13 (`src/build_fork.py --members v15c v13b3 --beta 0.45`) | **C3**: the public 0.942 stack + B18 (`v15c` + `v13b3`) as our leg at β 0.45 | none | **0.946** | **read 13:36:26 UTC → +0.002 vs C2 0.944 → 🔁 (band 0.942–0.946; ✅ needed ≥ 0.947); our best OAI-free number, replaces C2 as the OAI-free fork; scored within [403.7, 405.2] min (≈ 6.7 h).** sent 06:51:14 UTC, ref 56996997, by `auto_submit.py` (plan `artifacts/submit_plan_1009.json`, Tian's lineup) |
 | 70 | 2026-10-09 | rsna-knee-infer v65 (+ Dataset `rsna-knee-ckpt-v15c2`) | **A7 / P-80, `v15c2` solo**: `INFER_MEMBERS = ["v15c2"]`, `v15c` at seed 43, trained on RunPod | none; gold-58 0.9180 | **0.941** | **read 07:24:21 UTC → s_c = 0.001 → ✅ measured, the ConvNeXt bands stand; scored within [30.9, 32.4] min.** sent 06:52:00 UTC, ref 56997030 |
 | 71 | 2026-10-09 | rsna-knee-infer v66 | **B19**: `INFER_MEMBERS = ["v15c", "v15c2", "v13b3"]` with `INFER_VOTE_GROUPS = {"convnext": ("v15c", "v15c2")}` (two votes) | none; gold-58 0.9252 | **0.944** | **read 07:38:54 UTC → = B18 0.944 → 🔁; pick 1 by the tie rule; scored within [44.6, 46.1] min.** sent 06:52:47 UTC, ref 56997075 |
 | 72 | 2026-10-09 | rsna-knee-infer v67 | **A8**: `v15c` with `INFER_OVERRIDES = {"v15c": {"img_size": 320}}` (trained at 288) | none | **0.942** | **read 07:24:23 UTC → = `v15c` at 288 → 🔁; T11 not trained; scored within [29.3, 30.8] min.** sent 06:53:33 UTC, ref 56997111 |
-| 73 | 2026-10-09 | rsna-knee-fork949 v2 (`src/build_fork949.py --members v15c v13b3 --beta 0.35`) | **C4b**: the public 0.949 notebook's five cells byte-identical (one CoAtNet-2 @ 384, OAI-trained) + B18 (`v15c` + `v13b3`) as our leg at β 0.35 | none | ⏳ | **⏳ PENDING (forks score in hours).** sent 10:05:39 UTC by hand (Tian's go; the token had expired at 09:50, traps 20 addendum), ref 57005017, watcher `artifacts/watch_57005017.log`. Read vs C4 #68 0.950: ✅ ≥ 0.953 / 🔁 0.948–0.952 / ❌ ≤ 0.947; a tie makes C4b pick 2 |
+| 73 | 2026-10-09 | rsna-knee-fork949 v2 (`src/build_fork949.py --members v15c v13b3 --beta 0.35`) | **C4b**: the public 0.949 notebook's five cells byte-identical (one CoAtNet-2 @ 384, OAI-trained) + B18 (`v15c` + `v13b3`) as our leg at β 0.35 | none | **0.951** | **read 11:51:18 UTC → +0.001 vs C4 0.950 → 🔁 (band 0.948–0.952; ✅ needed ≥ 0.953); "≥ 0.950 → C4b is pick 2" fires; our best public number, rank 218 of 5,626 (10-10 00:50 UTC); scored within [104.1, 105.6] min.** sent 10:05:39 UTC by hand (Tian's go; the token had expired at 09:50, traps 20 addendum), ref 57005017, watcher `artifacts/watch_57005017.log` |
 
 ## Closed cards index (moved here from proposals.md on 2026-10-05)
 
