@@ -4392,6 +4392,58 @@ dead August mounts (`rsna-knee-ckpt-v05` / `-v06`) were dropped. Timed by `src/w
 
 **Verdict: 🔁 INCONCLUSIVE (pair Δ 0.000 vs a ± 0.0045 band) → P-68 closed, not adopted.**
 
+### 2026-10-10 — P-81 on RunPod: `v15co` = `v15c` + 2,399 OAI knees (masked soft targets on Lateral OA / PF OA / Synovitis) trained in 2.2 h on one secure RTX 4090 · gold-58 SWA **0.9211** (`v15c` 0.9234, `v15c2` 0.9180) · the three OAI labels 0.849 vs 0.841 / 0.838 · ✅ run green, shipped, backed up, pod deleted, **$2.64** · 🔁 direction only
+
+**Run** (Tian's go with the 10-10 top-up; critic GO WITH CHANGES 10-08; candidates.md T12):
+- Pod `3lutummotrslpb` (SECURE RTX 4090, US, CUDA 12.8, $0.89/h; cgroup quota 10.2 CPUs, 31 GB; 200 GB NVMe `/workspace`; proxy-only
+  SSH), created 13:08:27 UTC after three broken community 4090s (traps 65). OAI (7,196 series, shard 90 = 2,399 knees) ready 37 min
+  after creation, `.env` shredded by the chain; training 13:46 → 15:57 UTC (20 epochs × 6.4 min, 0.06 s / study); SWA; ship 15:57:29–31;
+  AUTO_STOP stopped the pod.
+- Cost (`list-pod-billing`, 10-10): GPU $2.51 + disk $0.13 = **$2.64** (the case: ≈ 3.1 h, $2.8). About $9.5 of Tian's $12.15 is left.
+- Backup: the Dataset `rsna-knee-ckpt-v15co` lists `v15co_fold0_best.pt` (112,204,320 bytes), the OOF csv and the log; downloaded to
+  `artifacts/kaggle_out/pod_v15co/`, same sizes. The pod was deleted at ≈ 17:45 UTC after both were confirmed; `list-pods` is empty.
+  The ship watcher never matched its pattern (the stopped pod answers "container not found") and ran to its 230-min timeout, so the
+  stopped pod's volume billed ≈ 1.8 h longer than needed (a few cents of the disk line).
+- Config confirmed in the training log: `oai=True`, "2399 OAI knees appended (100.0% of the table imaged)", supervised cells Lateral OA
+  2,399 / PF OA 2,399 / Synovitis 1,659; `timm:convnext_tiny` @ 288, `lr_backbone` 1e-4, decay 0.9, drop path 0.1, heavy aug, 20 epochs,
+  SWA 3, `train_all`, seed 42, 0.5 LLM + 0.5 Raptor on the competition studies; 6,748 training studies, 1,687 steps per epoch (`v15c`
+  1,087); peak GPU memory 7.02 GiB (= `v15c`).
+
+**Training curve, beside `v15c`** (gold-58; the loss is not comparable: other studies, masked cells):
+
+| epoch | gold-58 | clipped | `v15c` gold |
+|---|---|---|---|
+| 0 | 0.8017 | 100 % | 0.8154 |
+| 2 | 0.9005 | 100 % | 0.9100 |
+| 4 | 0.9190 | 99 % | 0.9182 |
+| 9 | **0.9232** (peak) | 98 % | 0.9220 |
+| 14 | 0.9213 | 97 % | 0.9259 |
+| 19 | 0.9212 | 96 % | 0.9233 |
+| SWA 17–19 | **0.9211** | | 0.9234 |
+
+- The clip rate stays at 96–100 % to the end (`v15c` fell to 82 %, `v15c2` 79 %): the mean pre-clip norm stays ≈ 3, so every step is
+  clipped to 1.0. GradScaler skipped 0–2 steps per epoch (5 in epoch 0); no divergence.
+
+**Gold-58, direction only** (traps 39; a scratch script over the gold rows of the three local OOF csvs, `pod_v15c*/`):
+
+| | `v15c` | `v15c2` | `v15co` |
+|---|---|---|---|
+| Lateral OA | 0.834 | 0.816 | 0.839 |
+| PF OA | 0.882 | 0.879 | 0.887 |
+| Synovitis | 0.806 | 0.818 | 0.821 |
+| **the 3 OAI labels** | 0.841 | 0.838 | **0.849** |
+| the other 9 | 0.951 | 0.945 | 0.945 |
+| macro | 0.9234 | 0.9180 | 0.9211 |
+
+- `v15co` is the best of the three on each OAI label, by +0.003 to +0.015, and at `v15c2`'s level on the other nine. Three labels on 58
+  studies (per-label SE ≈ 0.09) cannot carry this. It points the way the 0.949 author's table does, and it is not a measurement.
+- Spearman ρ with `v15c` 0.959 (median over labels) vs the seed twins' 0.967: barely more different than a second seed.
+- Gold of the infer options (direction only): the label split (`v15co` on its 3 labels, `v15c` on the other 9) 0.9255; the flat
+  rank-mean `v15c` + `v15co` 0.9271 (B18 0.9260, B19 0.9252).
+
+**Verdict: ✅ run green, shipped; 🔁 INCONCLUSIVE as a measurement** (gold −0.0023 vs `v15c`, under the 0.05 floor). The read is A9's LB
+solo vs `v15c` 0.942 (✅ ≥ 0.946 / 🔁 0.939–0.945 / ❌ ≤ 0.938). As OAI-trained, `v15co` can only enter pick 2 (C4b).
+
 ## Infrastructure
 
 ### 2026-09-27 — The "0.943 Speedy Raptors CoAtNet D4" notebook is our anchor **plus two CoAt readers**, not a faster graph; its "< 30 min" is a 3-study commit run · P-41 (threaded scan + 8 decode workers) smoke-green and byte-identical
