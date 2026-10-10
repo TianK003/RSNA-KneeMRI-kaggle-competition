@@ -45,7 +45,7 @@ GPU-min each; ≈ 2.3 h of Kaggle GPU is left until 10-10).
 | Prio | Day | Candidate | What it decides | Gate | Status |
 |---|---|---|---|---|---|
 | **P1** | 10-10 → | **The P-67 loop** (T7: session C = `v14lr` ‖ `v14gd`, then the evidence order; P-68 read 🔁 on 10-10, so this is one of the two OAI-free levers left) | the single-model recipe on a measured ruler (bar ≈ 0.002) | **Tian's go 10-10**; 20.25 h of Kaggle GPU left this week | smoke v50 green (`aug_extra` lowres / grid, both `ok arm`); **real session `rsna-knee-train` v51 pushed 14:43 UTC** |
-| **P1** | 10-11 | **A12 `v16d1` / A13 `v16d3`** (P-82, a DINOv2-S retrain on our recipe, T13) | whether a third family (a ViT) reaches member grade; then B20 = B19 + its vote | **Tian's go 10-10** | smoke v11 green; timing smoke v12 running; real session next (≈ 7 h) |
+| **P1** | 10-11 | **A12 `v16d1` / A13 `v16d3`** (P-82, a DINOv2-S retrain on our recipe, T13) | whether a third family (a ViT) reaches member grade; then B20 = B19 + its vote | **Tian's go 10-10** | smokes v11 / v12 green (≈ 19 min / epoch → ≈ 6.5 h); **real session `rsna-knee-train-b` v13 pushed 14:43 UTC** |
 | P2 | 10-10 → 10-11 | **A9 `v15co`** (P-81, section A) | An OAI leg can only enter C4b: ≈ +0.001–0.002 on pick 2 at +0.005 on the leg | Tian's go 10-10 (top-up) | **training on RunPod since 13:46 UTC**; ships ≈ 16:15 |
 | P5 | hold | **B16** (P-71) | — | **recommended DROP 10-08:** `v15c` 0.942 makes the 0.929 public reader a second, weaker ConvNeXt | hold |
 | P5 | hold | B1, B2, B7, B8, B9, B10, B12, B15 | — | B14 / B13 supersede B1 / B2; B7 / B10 predict under B6; **B8 and B15 closed by B13**; **B9 closed 10-07**; **B12 read 0.941 on 10-08 (closed)** | hold |
