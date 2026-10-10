@@ -1230,5 +1230,20 @@ Adding `rsna-knee-ckpt-v13ex` / `-v13ex2` to `kaggle/rsna-knee-infer/kernel-meta
 one Model = 51 sources, and `kaggle kernels push` failed with only `400 Client Error: Bad Request for url: …/SaveKernel` (the JSON was
 valid, both Datasets `ready`). Dropping the two August checkpoints `rsna-knee-ckpt-v05` / `-v06` (no candidate uses them) → 49 sources →
 the push went through as v68. The last good push before (v67) also had 49. So the cap is 49 or 50; the error names neither the cap nor
-the field. **Do:** keep the infer kernel at ≤ 49 sources; before mounting a new member, drop a dead one (the August / September
+the field.
+
+### 65. Community RTX 4090 hosts on CUDA 13.0 (driver 580) can boot with a dead GPU: `nvidia-smi` works, `cuInit` returns 999 because `/dev/nvidia-uvm` answers EIO (Tier 3, 2026-10-10)
+
+For P-81 (`v15co`) on 10-10, three community 4090 pods were created (`runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404`, $0.34/h):
+`yyu1ptimxom6k4` (Taichung, TW; driver 580.173.02), `yi1ruq8v1nelku` (Chicago, US; 580.126.09) and `30grz17kuonzzh` (the Taichung host
+again). On every one `nvidia-smi` listed the 4090, but torch said `CUDA unknown error` and a bare `ctypes` `cuInit(0)` returned **999**.
+`strace` showed why: `openat("/dev/nvidia-uvm") = -1 EIO`, the host's UVM kernel module, unreachable from the container. The container's
+`libcuda.so.1` matched the kernel module, the compute mode was Default, `NVIDIA_VISIBLE_DEVICES=void` (RunPod injects the device nodes
+itself), so nothing inside the container can fix it. Every community 4090 in stock at the time was on CUDA 13.0; the CUDA 12.8 ones
+(driver 570, presumably what the working 10-07 / 10-08 secure pods had) went to "no instances" within minutes, and the scheduler kept
+handing out the same broken host. Cost of the three tries: ≈ 11 pod-min ≈ $0.07, because each was tested and deleted at once.
+
+**Do:** make the pod's first command the 2-second driver test
+`python -c "import ctypes; print(ctypes.CDLL('libcuda.so.1').cuInit(0))"` (0 = good) before copying anything to it; on 999, delete
+the pod at once. Prefer `gpu.allowedCudaVersions: ["12.8"]` for 4090s. Shred anything copied to a pod you abandon (`shred -u`). **Do:** keep the infer kernel at ≤ 49 sources; before mounting a new member, drop a dead one (the August / September
 checkpoints `v05g`, `v08w`, `v09*`, `v10c`, `v11b`, `v11p`, `v11dl`, `v13a`–`v13c`, and `convnext-tiny-224-hf` are in no candidate).
