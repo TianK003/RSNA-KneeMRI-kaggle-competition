@@ -314,10 +314,12 @@ def main():
                          backbone="timm:coatnet_rmlp_1_rw_224")
     check(ok_cfg.aug == "heavy", "Config accepts aug='heavy' in window mode")
     try:
-        K["Config"](drop_path=0.1, backbone="dinov2")
-        check(False, "Config refuses drop_path on a non-timm backbone")
+        K["Config"](drop_path=0.1, backbone="convnext_tiny")
+        check(False, "Config refuses drop_path on the HF ConvNeXt backbone (not wired)")
     except SystemExit:
-        check(True, "Config refuses drop_path on a non-timm backbone")
+        check(True, "Config refuses drop_path on the HF ConvNeXt backbone (not wired)")
+    # P-82 (2026-10-10): HF DINOv2 takes drop_path (ramped 0 -> rate over the blocks in KneeNet)
+    check(K["Config"](drop_path=0.1, backbone="dinov2").drop_path == 0.1, "Config accepts drop_path on DINOv2")
 
     print("\n== weighted_bce per-study normalisation (P-32)")
     logits, yt = torch.randn(2, 12), torch.rand(2, 12)

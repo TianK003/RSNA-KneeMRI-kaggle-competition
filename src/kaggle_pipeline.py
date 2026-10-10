@@ -480,6 +480,10 @@ ARM_ONLY = ""
 # environment; RSNA_WORKERS / RSNA_RUNTIME_H override the loader worker count and the session
 # guard. One filter serves both; the environment wins when both are set.
 _only = os.environ.get("RSNA_ARM") or ARM_ONLY
+# traps 63 test hook (local smokes only): RSNA_FORCE_NAN=loss makes the first micro-batch's loss NaN (the skip path);
+# RSNA_FORCE_NAN=weights poisons one weight after the first epoch (the DIVERGED path). Unset = no effect.
+FORCE_NAN = os.environ.get("RSNA_FORCE_NAN", "")
+FORCE_NAN_LOSS = FORCE_NAN == "loss"
 if _only:
     ARMS = [a for a in list(ARMS) + list(SHIPPED_ARMS) + [ARM_V10C] if a[0] == _only]
     if not ARMS:
@@ -879,8 +883,8 @@ class Config:
         self.tta_offsets = tuple(self.tta_offsets)
         if self.aug not in ("none", "light", "heavy"):
             raise SystemExit(f"unknown aug {self.aug!r} (none | light | heavy)")
-        if self.drop_path and not str(self.backbone).startswith("timm:"):
-            raise SystemExit("drop_path is wired for timm backbones only (it would be silently ignored)")
+        if self.drop_path and not (str(self.backbone).startswith("timm:") or self.backbone == "dinov2"):
+            raise SystemExit("drop_path is wired for timm backbones and DINOv2 only (it would be silently ignored)")
         if self.aug != "none" and self.window_mode != "random":
             raise SystemExit("aug runs inside forward_windows only: set window_mode='random' (a fixed-window arm "
                              "would otherwise claim an augmentation that never runs)")
@@ -2617,8 +2621,17 @@ class KneeNet(nn.Module):
             self.dim = self.enc.num_features
         else:
             from transformers import Dinov2Model
-            self.enc = Dinov2Model.from_pretrained(backbone_dir)
+            # 2026-10-10 (P-82): HF DINOv2 stochastic depth (Dinov2DropPath, train mode only); 0 -> the call as before.
+            kw = {"drop_path_rate": float(drop_path)} if drop_path else {}
+            self.enc = Dinov2Model.from_pretrained(backbone_dir, **kw)
             self.dim = self.enc.config.hidden_size
+            if drop_path:
+                # HF gives every block the same rate; timm / BEiT / MAE ramp it linearly from 0 (first block) to the rate
+                # (last block), which is what "drop path 0.1" means in their recipes. Ramp it the same way.
+                layers = self.enc.encoder.layer
+                for i, layer in enumerate(layers):
+                    layer.drop_path.drop_prob = float(drop_path) * i / max(1, len(layers) - 1)
+                print(f"  DINOv2 drop path ramped 0 .. {float(drop_path)} over {len(layers)} blocks")
         if in_chans != 3:
             widen_patch_embedding(self.enc, in_chans)
         self.drop = nn.Dropout(dropout)
@@ -3201,6 +3214,7 @@ def train_fold(fold, manifest, targets, image_root, cfg, device):
         n_studies = 0
         guard_hit = False
         n_opt = n_fin = n_clip = n_skip = 0      # P-69: optimiser health per epoch (printed after the epoch)
+        n_nonfinite = 0                          # traps 63: micro-batches whose loss was NaN / inf (no backward)
         gn_sum = 0.0
         opt.zero_grad(set_to_none=True)
         for i, b in enumerate(tr_loader):
@@ -3210,7 +3224,14 @@ def train_fold(fold, manifest, targets, image_root, cfg, device):
                 logits = forward_batch(model, b, device, cfg)
                 y_train = b["yt"] if "yt" in b else b["y"]           # teacher-mixed targets train; y stays the OOF target
                 loss = weighted_bce(logits, y_train.to(device), b["w"].to(device), pos_weight=pos_w)
-            scaler.scale(loss / cfg.grad_accum).backward()
+            if FORCE_NAN_LOSS and epoch == start_epoch and i == 0:
+                loss = loss * float("nan")                           # test hook for the traps 63 guard (local smoke only)
+            # traps 63 (2026-10-10): a NaN / inf loss never reaches backward(). Through it, GradScaler halved its scale on
+            # every step to ~0 and the weights went NaN for the rest of the fold. The step's other micro-batches still count.
+            if not bool(torch.isfinite(loss.detach())):
+                n_nonfinite += 1
+            else:
+                scaler.scale(loss / cfg.grad_accum).backward()
             if (i + 1) % cfg.grad_accum == 0:
                 scaler.unscale_(opt)
                 gnorm = float(nn.utils.clip_grad_norm_(model.parameters(), cfg.max_grad_norm))
@@ -3235,8 +3256,9 @@ def train_fold(fold, manifest, targets, image_root, cfg, device):
                     print(f"    peak GPU memory after the first optimiser step: "
                           f"{torch.cuda.max_memory_allocated() / 2**30:.2f} GiB "
                           f"(batch {cfg.batch_studies} x {cfg.train_windows} windows, accum {cfg.grad_accum})")
-            running += float(loss.detach())
-            nb += 1
+            if math.isfinite(float(loss.detach())):
+                running += float(loss.detach())
+                nb += 1
             n_studies += int(b["mask"].shape[0])
             # Throughput is the open risk of this pipeline; print it early and often.
             if n_studies in (10, 50) or (n_studies % 500 == 0):
@@ -3282,6 +3304,30 @@ def train_fold(fold, manifest, targets, image_root, cfg, device):
         if metrics.get("pred_std", 1.0) < 0.01:
             print("  !! prediction spread near zero -- base-rate collapse, not a "
                   "converged model")
+        # traps 63 (2026-10-10): a diverged fold must not end `"completed": true`. Checked BEFORE this epoch's checkpoints
+        # are written, so `_last.pt` stays the last good epoch (a resume restarts from it); any earlier `_best.pt` (a
+        # mid-schedule EMA) is removed, so the parent sees no member and the chain never ships one.
+        diverged = []
+        if FORCE_NAN == "weights" and epoch == start_epoch:
+            with torch.no_grad():
+                next(eval_model.parameters()).view(-1)[0] = float("nan")   # test hook (local smoke only)
+        if n_nonfinite:
+            print(f"    !! {n_nonfinite} micro-batch(es) with a non-finite loss this epoch (backward skipped)")
+        if nb == 0 and n_studies > 0:
+            diverged.append("every training loss was non-finite")
+        if use_amp and scaler.get_scale() < 1.0:
+            diverged.append(f"GradScaler scale {scaler.get_scale():.2e} < 1")
+        if not math.isfinite(float(metrics.get("pred_std", 0.0))):
+            diverged.append("held-out predictions are NaN")
+        if not all(bool(torch.isfinite(p).all()) for p in eval_model.parameters()):
+            diverged.append("non-finite weights in the evaluated model")
+        if diverged:
+            print(f"  !! DIVERGED fold {fold} epoch {epoch}: {'; '.join(diverged)} -- the fold FAILS (traps 63): no "
+                  f"_best.pt is kept; _last.pt stays the last good epoch")
+            for p in (ckpt_best, ckpt_lastema):
+                if os.path.exists(p):
+                    os.remove(p)
+            return model, float("nan"), False
 
         # Which epoch is "the" model? Selecting on the ~11 gold studies per fold is a coin
         # flip (Hanley-McNeil SE ~0.09) and stays banned. Through v05 `_best.pt` was simply
@@ -3835,10 +3881,11 @@ def run_parallel_arms(arms, results):
         best, last = bool(bests), bool(lasts)
         fold_ids = [int(_re.search(r"_fold(\d)_best\.pt$", b).group(1)) for b in bests] or [0]
         ep_lines = [ln for ln in tail(arm, 400)
-                    if _re.search(r"epoch \d+ EMA score|stopping: runtime guard|FAILED|Error|SWA of last", ln)]
+                    if _re.search(r"epoch \d+ EMA score|stopping: runtime guard|FAILED|DIVERGED|Error|SWA of last", ln)]
         for k in fold_ids:
             results[f"{arm}/{k}"] = {"best": float("nan"), "completed": bool(best and rc == 0)}
-        tag = "ok  " if (rc == 0 and best) else "!!  "
+        diverged_any = any("DIVERGED" in ln for ln in ep_lines)       # traps 63: a failed fold beside finished ones
+        tag = "ok  " if (rc == 0 and best and not diverged_any) else "!!  "
         print(f"  {tag}arm {arm}: rc={rc}, _best.pt {'written (folds ' + str(fold_ids) + ')' if best else 'MISSING'}, "
               f"_last.pt {'present' if last else 'missing'}; last lines: {[ln.strip()[:120] for ln in ep_lines[-2:]]}")
         if not best:

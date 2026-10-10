@@ -22,7 +22,9 @@ QUERIES = ["rsna knee", "knee abnormality", "knee mri", "knee", "rsna knee singl
            "knee inference", "knee augmentation", "knee resolution", "knee slices", "knee report", "knee llm",
            "knee cv lb", "knee private", "knee shake", "knee 0.95", "knee 0.94", "knee baseline", "knee qwen",
            "knee vlm", "knee mil", "knee attention", "knee series", "knee dicom", "knee laterality", "knee test",
-           "knee teammates", "knee team", "knee noise", "knee soft labels", "knee radiologist", "knee rules"]
+           "knee teammates", "knee team", "knee noise", "knee soft labels", "knee radiologist", "knee rules",
+           "knee vit", "knee optimizer", "knee learning rate", "knee convnext", "knee oai", "knee external data",
+           "knee fine-tune", "knee swin"]
 
 
 def retry(fn, *a):
