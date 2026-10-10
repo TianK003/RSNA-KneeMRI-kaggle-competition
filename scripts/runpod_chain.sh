@@ -211,7 +211,10 @@ if [ "${OAI:-0}" = 1 ]; then
 fi
 
 log "kaggle auth check (the ship at the end needs it too)"
-retry kaggle datasets files "$OWNER/rsna-knee-teacher-tables" > /dev/null
+# 2026-10-10: a warning, not an exit -- the check can land in the token's 30-min post-expiry window (traps 20), and an exit here
+# would throw away the whole preparation; the ship retries SHIP_TRIES x SHIP_WAIT_S on its own.
+retry kaggle datasets files "$OWNER/rsna-knee-teacher-tables" > /dev/null ||
+  log "!! kaggle auth check failed (token window?) -- training anyway; the ship retries"
 
 # Ship only a finished member: a guard-stopped run also leaves a _best.pt (a mid-schedule EMA under ckpt_policy="last",
 # traps 47). A ship can land inside the Kaggle token's 30-min post-expiry window (traps 20): retry SHIP_TRIES x SHIP_WAIT_S.
