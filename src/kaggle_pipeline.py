@@ -497,6 +497,9 @@ _only = os.environ.get("RSNA_ARM") or ARM_ONLY
 # RSNA_FORCE_NAN=weights poisons one weight after the first epoch (the DIVERGED path). Unset = no effect.
 FORCE_NAN = os.environ.get("RSNA_FORCE_NAN", "")
 FORCE_NAN_LOSS = FORCE_NAN == "loss"
+# P-82 (2026-10-10): training studies of a smoke. 4 = the old smoke; sed a few hundred in for a TIMING smoke (the real loader
+# workers too), because a Kaggle log is blank mid-run (traps 20) and an arm's epochs must be set before the real push.
+SMOKE_TRAIN_N = 4
 if _only:
     ARMS = [a for a in list(ARMS) + list(SHIPPED_ARMS) + [ARM_V10C] if a[0] == _only]
     if not ARMS:
@@ -2945,7 +2948,7 @@ def make_loaders(manifest, targets, image_root, cfg, fold):
     tr_studies, va_studies = split_studies(targets, fold, cfg)
     if cfg.smoke:
         avail = set(manifest.StudyInstanceUID)
-        tr_studies = [s for s in tr_studies if s in avail][:4]
+        tr_studies = [s for s in tr_studies if s in avail][:SMOKE_TRAIN_N]
         # train_all: a few gold rows, so the AUC has both classes on some labels
         va_studies = [s for s in va_studies if s in avail][:(8 if cfg.train_all else 4)]
         if not tr_studies:      # local sample has no training studies at all
@@ -2962,7 +2965,7 @@ def make_loaders(manifest, targets, image_root, cfg, fold):
           + (" [train_all: val = gold rows]" if cfg.train_all else "")
           + (" [train_gold: the gold rows ALSO train -> this validation is IN-SAMPLE, not a read]"
              if getattr(cfg, "train_gold", False) else ""))
-    nw = 0 if cfg.smoke else cfg.num_workers
+    nw = 0 if (cfg.smoke and SMOKE_TRAIN_N <= 4) else cfg.num_workers     # a timing smoke uses the real loader
     # Window-mode items travel through collate_windows (P-32) at any batch size; evaluation is always ONE
     # study per batch, so the OOF path is bit-identical whatever batch_studies the arm trains with.
     collate = collate_windows if getattr(cfg, "window_mode", "fixed") == "random" else None

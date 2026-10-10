@@ -1221,8 +1221,11 @@ scale is ≈ 0 (`get_scale() < scale_before` stops firing), so "skipped 61" in e
 Cost: the floor came from four fold pairs instead of five (experiments.md 2026-10-10 "Session A"), and the 5-fold `cnnoof_v1` table
 (P-68 follow-ups) cannot use seed 43 as built. **Do:** after any `PARALLEL_ARMS` / five-fold run, check every fold's result for
 `"best": NaN` and grep the child logs for `loss nan` / `GradScaler scale 0` before reading or shipping (traps 47 is the same gap for the
-runtime guard). Open fix (not coded): skip `backward()` on a non-finite loss and count it, and fail the fold (`completed: false`, a loud
-parent line) when the scale falls under 1 or `auc_soft` is NaN after an epoch.
+runtime guard). **FIXED 2026-10-10 (`4faecd0`):** a non-finite loss skips `backward()` and is counted (`!! N micro-batch(es) with a
+non-finite loss`); after each epoch, before any checkpoint is written, a fold whose GradScaler scale is under 1, whose held-out
+predictions or evaluated weights are non-finite, or whose every loss was non-finite prints `!! DIVERGED fold k epoch e` and FAILS:
+`_best.pt` / `_lastema.pt` are removed, `_last.pt` stays the last good epoch, the result is `completed: false`, and the parent tags the
+arm `!!`. Both paths checked in local smokes through the `RSNA_FORCE_NAN=loss|weights` test hook.
 
 ### 64. A kernel with more than ≈ 50 input sources is refused with a bare `400 Client Error: Bad Request … SaveKernel` (Tier 3, 2026-10-10)
 
@@ -1230,7 +1233,8 @@ Adding `rsna-knee-ckpt-v13ex` / `-v13ex2` to `kaggle/rsna-knee-infer/kernel-meta
 one Model = 51 sources, and `kaggle kernels push` failed with only `400 Client Error: Bad Request for url: …/SaveKernel` (the JSON was
 valid, both Datasets `ready`). Dropping the two August checkpoints `rsna-knee-ckpt-v05` / `-v06` (no candidate uses them) → 49 sources →
 the push went through as v68. The last good push before (v67) also had 49. So the cap is 49 or 50; the error names neither the cap nor
-the field.
+the field. **Do:** keep the infer kernel at ≤ 49 sources; before mounting a new member, drop a dead one (the August / September
+checkpoints `v05g`, `v08w`, `v09*`, `v10c`, `v11b`, `v11p`, `v11dl`, `v13a`–`v13c`, and `convnext-tiny-224-hf` are in no candidate).
 
 ### 65. Community RTX 4090 hosts on CUDA 13.0 (driver 580) can boot with a dead GPU: `nvidia-smi` works, `cuInit` returns 999 because `/dev/nvidia-uvm` answers EIO (Tier 3, 2026-10-10)
 
@@ -1245,5 +1249,15 @@ handing out the same broken host. Cost of the three tries: ≈ 11 pod-min ≈ $0
 
 **Do:** make the pod's first command the 2-second driver test
 `python -c "import ctypes; print(ctypes.CDLL('libcuda.so.1').cuInit(0))"` (0 = good) before copying anything to it; on 999, delete
-the pod at once. Prefer `gpu.allowedCudaVersions: ["12.8"]` for 4090s. Shred anything copied to a pod you abandon (`shred -u`). **Do:** keep the infer kernel at ≤ 49 sources; before mounting a new member, drop a dead one (the August / September
-checkpoints `v05g`, `v08w`, `v09*`, `v10c`, `v11b`, `v11p`, `v11dl`, `v13a`–`v13c`, and `convnext-tiny-224-hf` are in no candidate).
+the pod at once. Prefer `gpu.allowedCudaVersions: ["12.8"]` for 4090s. Shred anything copied to a pod you abandon (`shred -u`).
+**10-10 afternoon:** community 4090 and 5090 stock on CUDA 12.8 read `NONE` / refused (also with a smaller volume); the P-81 pod went
+to a **secure** 4090 on CUDA 12.8 (driver 570.195.03, `cuInit` 0 at once) at $0.89/h.
+
+### 66. On a RunPod pod `nproc` reports the host's CPUs, not the pod's: a worker count from `nproc` oversubscribes the quota (Tier 2, 2026-10-10)
+
+The P-81 pod (`3lutummotrslpb`, secure 4090) showed `nproc` **96** while `/sys/fs/cgroup/cpu.max` was `1020000 100000` (**10.2 CPUs**)
+and `memory.max` 31 GB. `runpod_chain.sh` sized the OAI cache build as `nproc − 8` workers, i.e. **88 decoding processes** on 10 CPUs
+and 31 GB: a thrash or an OOM kill in the middle of the 1.2-h preparation window, i.e. the whole run. Caught before the launch; the
+chain now takes the CPU count from `cpu.max` (`3c199ba`; 9 workers here, `OAI_BUILD_WORKERS` overrides), and the build ran at
+0.57 s / knee (2,399 knees in ≈ 23 min). **Do:** on a pod, read `cat /sys/fs/cgroup/cpu.max /sys/fs/cgroup/memory.max` with the
+`cuInit` test, and size every pool from the quota (the training loader's fixed 8 workers fit 10 CPUs).

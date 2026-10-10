@@ -919,6 +919,64 @@ only if the 10-07 reads free the money); P-75 … P-79 as cards for Tian to pick
 P-67 (sharpen first; a mixup arm at α ≈ 2), P-68 (a B3 student next) and P-73 (AnyMC3D ranks learnable-query attention, our head's
 type, above a transformer: 0.962 vs 0.950).
 
+#### 2.7.10 A DINOv2-S recipe of its own: the literature against the forum (2026-10-10)
+
+Two research passes on Tian's DINOv2 go (P-82): the literature (papers, official configs) and the competition (forum re-harvested
+10-10, 123 topics; 40 public notebooks read as text). Plus three threads Tian pasted (743374, 746792, 735304).
+
+**The competition.**
+
+| who | backbone | LR backbone / head, LLRD | epochs | input | score |
+|---|---|---|---|---|---|
+| colum2131 (735304, 10-09) | DINOv2 ViT-S, 2.5D, pseudo-labels | "tuned … lr, number of epochs" for the ViT; no values | — | his ConvNeXt pipeline | **0.951** (his ConvNeXt-T 0.953; both 0.955) |
+| SpeedSci (735304 / 744511) | DINOv2 | — | — | — | 0.942 five-fold, 0.945 one fold |
+| `pilkwang` baseline and its copies (DINOsaur, E-series) | DINOv2-S | 8e-6 / 1e-3; bottom 6 blocks frozen | 10–12, OneCycle | 130 mm at 224 / 336, one window per slot | the 20-checkpoint package 0.891 |
+| `dehaiwang` v21, `fleongg` soup | DINOv2-S / -B | 7e-6 – 9e-6 / 9e-4, LLRD 0.72–0.78, partial unfreeze | 10–16 | 224 / 280 | — |
+| sadamtorres | DINOv2 ViT-B, five-fold | — | — | **224 → 336: 0.866 → 0.883** | 0.892 with a 2-LLM label mean |
+| Will (740610) | DINOv2-S | — | 25 → 50: 0.899 → 0.903 (an ensemble) | 336 | 0.903 |
+| ours, `v08r` (#21) | DINOv2-S | 2e-5 at the final norm, LLRD 0.75 (block 0 ≈ 8e-7) / 1e-3 | 8, no aug | c02 (130 mm), 224 | **0.918** |
+
+No public notebook with a visible DINOv2 config beats ≈ 0.89; the only strong ViTs (0.951, 0.942–0.945) give no hyperparameters.
+Labels moved DINOv2 more than any knob on the forum (SpeedSci +0.011, sadamtorres +0.009). Our own `v08*` runs never had the CNNs'
+data side (c03 150 mm, heavy aug, 20–30 epochs, drop path) that took them from 0.918–0.927 to 0.940–0.942.
+
+**The literature** (sources in the P-82 card's research pass):
+
+| source | model / data | peak LR (batch) | LLRD | wd / drop path | epochs |
+|---|---|---|---|---|---|
+| MAE fine-tune | ViT-B / L, ImageNet | 5e-4 × bs/256 (2e-3 at 1024) | 0.65 / 0.75 | 0.05 / 0.1–0.2 | 100 / 50 |
+| BEiT | ViT-B / L | 4e-3 / 1e-3 (1024) | 0.65 / 0.75 | 0.05 / 0.1–0.2 | 100 / 50; **2e-5, LLRD 0.85–0.9 for an already fine-tuned checkpoint** |
+| iBOT | **ViT-S/16** | 8e-4 – 2e-3 (1024) | **0.75** (S) | — | 200 (S) |
+| RETFound (incl. its DINOv2 variant) | ViT-L, 1–4k retina images | ≈ 4.7e-4 (bs 24) | 0.65 | 0.05 / 0.2 | 50 |
+| EoMT (CVPR 2025) | DINOv2-L, COCO / ADE | 1e-4 (bs 16) | **0.8** | — | 12; the head alone for 500 iterations first |
+| Baharoon 2023 | DINOv2-L / g, chest X-ray | swept 5e-4 – 1e-7 | none | — | 20 / 10; "lower LR usually better for larger DINOv2"; ViT-L fine-tuned under its own linear probe |
+| CUFIT, 2410.04256 | DINOv2-S, ViT-B under synthetic label noise | 1e-4 / 1e-3, no LLRD | — | — | full fine-tuning the worst under heavy flipped noise |
+| Kumar 2022 (LP-FT) | various | — | — | — | fine-tuning distorts features: −7 OOD; linear probe first ≈ +10 OOD, +1 ID |
+| DINOv2 pretraining config | all sizes | 4e-3 (1024) | 0.9 | 0.04–0.4 / 0.3 | **fp16 + GradScaler, clip 3.0, LayerScale 1e-5** |
+
+- **What it says about our 0.918 run:** 2e-5 at the top is BEiT's rate for an *already supervised-fine-tuned* checkpoint. Scaled to
+  our step (4 studies ≈ 136 windows) by the square-root rule (Malladi 2022), the SSL-ViT recipes give a top block of ≈ 6e-5 (counting
+  studies) to ≈ 3.6e-4 (counting windows). Surgical fine-tuning (Lee 2022): for an input-level shift (greyscale MRI) the *first*
+  blocks are the ones to tune, and ours sat at 8e-7.
+- **The case for low LR** (the forum's public notebooks, Kumar, Baharoon, CUFIT): feature distortion and noise memorisation. Those
+  studies used hard flipped labels, long schedules and no EMA; our targets are soft (LLM + Raptor 0.5) with EMA + SWA.
+- **Resolution:** the checkpoints are native 518 px (37 × 37); 224 interpolates to 16 × 16 (≈ 9.4 mm per token over 150 mm), 280
+  to 20 × 20 (≈ 7.5 mm). DINOv2 fine-tuned at 448 vs 224 +0.4 on ImageNet (ViT-g); the forum's one controlled read +0.017 (ViT-B).
+- **Head:** CLS alone matched an attention head once the backbone is unfrozen (2505.19779); CLS + mean patch tokens is untested
+  for fine-tuning. **fp16:** outlier tokens appear at ViT-L and above, not ViT-S (Darcet 2023).
+- **The three threads (10-10):** 743374 is inference speed (per-GPU model copies, threaded DICOM reads, raw header / pixel parsing,
+  fp16 weights without autocast 2.08× on a T4): no score lever (P-18 stays low). 746792's body was read on 10-08
+  (experiments.md "The 0.949 / 0.950 public notebooks, read"); its new comments: users in China still cannot log in to NDA (10-10),
+  the author's 12-month OAI arm failed, and nda-tools with a file list is the fast download (what `runpod_chain.sh` does). 735304:
+  the 0.95+ singles are pseudo-labelled and / or five-fold (Archit 0.950 CoAtNet @ 224 with OOF predictions filling report-silent
+  cells, colum2131 0.953 / 0.951, CoolinLai ResNet-50 five-fold 0.954, azamat1ch ConvNeXt-T 0.959 / EfficientNetV2-S 0.956 /
+  CoAtNet 0.952 five-fold, NguyenThanhNhan Qwen3.5-2B LoRA 0.950); Karcher: a 50/50 soft bootstrap lifted local CV but not the LB,
+  our experience six times over.
+
+**What follows (Tian's choices, 10-10):** P-82 = two DINOv2-S arms in one Kaggle session, an LR bracket — top block 1e-4 with LLRD
+0.8 (`v16d1`) and 3e-4 with LLRD 0.75 (`v16d3`) — at 280 px for ≈ 20 epochs, on `v15c`'s data side, AdamW wd 0.05, drop path ramped
+0 → 0.1, head 1e-3, CLS into our window head. The low-LR / LP-FT option and a resolution pair were offered and not chosen.
+
 ### 2.8 Data-pipeline engineering
 
 **What we learned**
