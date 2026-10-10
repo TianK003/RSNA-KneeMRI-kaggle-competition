@@ -64,8 +64,8 @@ result*, per unit of cost. "Depends on" lists hard blockers only. EVs are solo-L
 
 **Focus (Tian, 2026-10-06): single-model strength and new family members for the blend; labels are de-emphasised.** The 10-06
 reads back it: every target change except Raptor read flat or worse (P-65 closed), and the blend gain grows with the number of
-families (B13 / B11). Label-side cards (P-68, P-47, P-51) run only on an otherwise idle slot; P-62 read 🔁 on 10-07
-and is closed (experiments.md). The 10-06 brainstorm added P-71 … P-74; the ideas it set aside are rows in Dropped directions.
+families (B13 / B11). Label-side cards (P-47, P-51) run only on an otherwise idle slot; P-62 read 🔁 on 10-07
+and P-68 🔁 on 10-10, both closed (experiments.md). The 10-06 brainstorm added P-71 … P-74; the ideas it set aside are rows in Dropped directions.
 
 **Read 2026-10-08: P-69 closed ✅.** ConvNeXt-T `v15c` on its own optimiser reads **0.942 solo** (our best single model, = the
 five-member B6) and B17 = B6 + it **0.943** (experiments.md "Submissions #64–#66"). It also takes most of P-71's case away.
@@ -73,6 +73,11 @@ five-member B6) and B17 = B6 + it **0.943** (experiments.md "Submissions #64–#
 **Read 2026-10-09: P-80 closed ✅.** The seed twin `v15c2` reads **0.941** (s_c = 0.001: 0.942 is the family's level), and B19 = the
 twins as one vote + `v13b3` reads **0.944** = B18 → pick 1 by the tie rule (experiments.md "Submissions #70–#72"). `v15c` scored at
 320 px read 0.942 = at 288, so T11 is not trained and resolution stays in Dropped directions.
+
+**Read 2026-10-10: P-68 closed 🔁, P-67's floor measured.** The pseudo-label pair `v13ex` / `v13ex2` (B0 on 0.5 LLM + 0.25
+Raptor + 0.25 `xfit_v09k`) reads **0.937 / 0.936**, pair mean 0.9365 = the B0 seed mean: not adopted, Raptor 0.5 stays, the label
+side is closed (experiments.md "Submissions #74–#75"). The P-67 floor pair gives a seed floor of **0.0014** on the pooled 5-fold
+proxy OOF → ablation bar ≈ 0.002 (experiments.md "Sessions A ‖ B read"); its loop is the live single-model lever.
 
 **Tian's decisions, 10-06 night (they supersede the evening's "no ConvNeXt"):**
 - **P-69 is re-opened: one ConvNeXt-T arm with its own recipe**, built from the literature and other teams' experience
@@ -95,11 +100,10 @@ everything else is decided later.** (The ConvNeXt half is superseded by the nigh
 
 | rank | id | title | status | expected value | cost | depends on |
 |---|---|---|---|---|---|---|
-| 1 | P-68 | Different-family OOF image teacher (cross-family pairs; no silent-cell weight: A3 read 🔁 on 10-07) | ⏳ **RUNNING since 2026-10-10 01:21 UTC: `rsna-knee-train-b` v10 (`v13ex` ‖ `v13ex2`, ≈ 6 h; smoke v9 green).** Was: **APPROVED 2026-10-06 evening (Tian): one session at the 10-10 reset, the seed pair `v13ex` ‖ `v13ex2` (B0 on Raptor + the CoAtNet cross-fit OOF `xfit_v09k`); `v13ex2` (seed 43) added 10-06 night, pair smoke `rsna-knee-train-b` v8 green. Read the pair mean vs the B0 seed mean 0.9365: ✅ ≥ 0.9410 / 🔁 0.9320–0.9409 / ❌ ≤ 0.9319.** Earlier 10-06: demoted ("don't focus on labels that much"). Was: implemented 2026-10-05, effect pending; Tian's top priority ("especially this"); redesigned after the critic the same day**: `v13ex` (B0 student on Raptor + `xfit_v09k`, the CoAtNet cross-fit OOF; trainable at the 10-10 reset), `v11o` (CoAtNet student on Raptor + `cnnoof_v1`, the B0 floor pair's OOF; after the floor run), `v13eo` (B0 on `cnnoof_v1`, the same-family control), all at the flat mix 0.5; RunPod on 10-07 = NO-GO (critic: ≈ $3.8, no decision unlocked before 10-17) | 0..+ 0.004 solo (forum claims + 0.011; same-family read flat for us) | the P-67 floor run + 1–2 Kaggle arms (≈ 6 T4-h each) | A3 (10-07) for any silent mix; the P-67 floor run for `cnnoof_v1` |
 | 2 | P-81 | OAI knees as masked external labels for our own members | 🔧 **implemented 10-08, local smokes green** (`v15co` = `v15c` + 2,399 OAI knees, masked targets for Synovitis / PF OA / Lateral OA; OAI cache built on the pod by `runpod_chain.sh` OAI=1); the pod waits on the critic + a RunPod top-up. NDA access granted 10-08 (auto-approved: Login.gov + email, Spain). **10-09: Tian accepted an OAI-trained pick 2**, so `v15co` can be the C4 leg at no new risk; pick 1 stays OAI-free. Rule risk open (host 741819; no ruling since 746792; NIH blocks some countries). **10-08 C4 read 0.950 (#68):** if the C4 family becomes pick 2, an OAI-trained leg adds no new risk to it, and the leg–anchor gap is that fork's only lever. **10-09 C4b read 0.951 (#73) = pick 2:** a leg at ≈ 0.949 (+0.005 over B18, about this card's step) lifts it to ≈ 0.953 only; a ✅ (≥ 0.954) needs a leg above the anchor. An OAI-trained leg cannot enter pick 1 or C3 (both OAI-free), so this card is worth ≈ +0.001–0.002 on pick 2 only; an OAI-free gain of the same size (P-68, P-67) lands on all three candidates and is worth more | +0.003–0.005 solo if the 0.949 author's step transfers (one seed, confounded); on the C4 fork ≈ +0.0015 for a leg 0.004 stronger (β × the gap it closes) | ≈ 3–5 days of data and label work + a CPU pod with ≈ 300–500 GB for the download and cache + one arm ≈ $1.5–2.5 (RunPod ≈ $2.3 after `v15c2`: needs a top-up) | a host ruling (access: done) |
 | 3 | P-71 | An independently trained public reader as a blend member (B16: goodpjw2008's 2.5D ConvNeXt-T, Apache-2.0) | 💡 new 2026-10-06; **recommended DROP (pending Tian), 10-08:** our own ConvNeXt-T `v15c` reads 0.942 solo (#64), so B16 would add a second, weaker (0.929) ConvNeXt vote, plus third-party code at the rerun. Was: recommended DEMOTE (≈ +0.0005 LB) | B16 ≈ 0.941–0.943 vs B6 0.942; upside if its independence beats our families' (gold ρ 0.83–0.89) | ≈ 60 lines + 1 placeholder (≈ 0.2 GPU-h) + 1 send; ≈ 20 min more scoring | — |
 | 4 | P-72 | A seventh family on the `v13h` recipe (`eca_nfnet_l0` by default) + a family-diversity ruler on the proxy OOF (Δ_div) | 💡 new 2026-10-06; **recommended DROP (pending Tian): no read on this task, in1k only** | B6 + 0.001–0.003 if member-grade (≥ 0.933 solo); the ruler ranks families on 4,349 studies, not LB slots | weight Dataset + loader check; 1 Kaggle arm ≈ 6 h; ≈ 1 proxy per screened family | the 10-10 quota; the P-67 floor for Δ_div |
-| 5 | P-67 | Fast-proxy 5-fold CV ruler + single-variable recipe ablation loop | ⏳ **The floor pair RUNNING since 2026-10-10 01:21 UTC: `rsna-knee-train` v49 (`v14p` ‖ `v14p2`, ≈ 3.75 h; smoke v48 green).** 🔧 **implemented, effect pending: the floor pair `v14p` / `v14p2` and, since 10-05 (Tian: "focus on these"), ten one-variable arms `v14lr` / `v14th` / `v14gd` / `v14bl` / `v14ns` / `v14sh` (augmentation components), `v14mx` (mixup), `v14r288` (B0 @ 288), `v14db` (blank windows), `v14ep20` (longer schedule); unit checks, a local CPU smoke and a Kaggle GPU smoke (v46) green; the floor run starts at the 10-10 reset** — approved by Tian (research.md 2.7.6 / 2.7.7 / 2.10) | + 0.003–0.005 per production member if ≥ half transfers → B6 ≈ 0.945–0.947 | ≈ 16 proxy variants per 30-h Kaggle week, or ≈ $0.6 each on a 4090; + 1 transfer arm | a measured pooled-OOF floor (2 seeds) |
+| 5 | P-67 | Fast-proxy 5-fold CV ruler + single-variable recipe ablation loop | ✅ **floor measured 2026-10-10 (`rsna-knee-train` v49, 5.63 h): 0.0014 from four fold pairs (`v14p2` fold 0 diverged to NaN, traps 63) → ablation bar ≈ 0.002; `v14p` pooled 0.8628; the 12-epoch curve still rising at epoch 11 (experiments.md 2026-10-10 "Sessions A ‖ B read"). Next: session C, two variants per session in the evidence order, on Tian's go.** Was: 🔧 **implemented, effect pending: the floor pair `v14p` / `v14p2` and, since 10-05 (Tian: "focus on these"), ten one-variable arms `v14lr` / `v14th` / `v14gd` / `v14bl` / `v14ns` / `v14sh` (augmentation components), `v14mx` (mixup), `v14r288` (B0 @ 288), `v14db` (blank windows), `v14ep20` (longer schedule); unit checks, a local CPU smoke and a Kaggle GPU smoke (v46) green; the floor run starts at the 10-10 reset** — approved by Tian (research.md 2.7.6 / 2.7.7 / 2.10) | + 0.003–0.005 per production member if ≥ half transfers → B6 ≈ 0.945–0.947 | ≈ 16 proxy variants per 30-h Kaggle week, or ≈ $0.6 each on a 4090; + 1 transfer arm | a measured pooled-OOF floor (2 seeds) |
 | 6 | P-73 | Study-level token mixer before the per-label attention head | 💡 new 2026-10-06; a P-67 proxy variable (`v14tx`) | 0..+0.004 per member if it transfers | ≈ 40 lines + a unit check + 1 proxy | the P-67 floor |
 | 7 | P-74 | CNN throughput on a T4: `channels_last`, and B3 @ 288 by progressive resizing | 💡 new 2026-10-06, infrastructure | + 8–35 % arms per week; B3 seeds on Kaggle instead of RunPod | ≈ 10 + 20 lines; smoke timings; 1 proxy (`v14prog`) | — |
 | 8 | P-75 | Noisy-Student JFT weights for the EfficientNet members (`tf_efficientnet_b0 / b3.ns_jft_in1k`) | 💡 new 2026-10-06 night (research.md 2.7.9); **Tian picks later** | 0..+0.003 solo, plus blend diversity (different pretraining data) | weights Dataset + loader check + 1 proxy (`v14jft`) | the P-67 floor |
@@ -117,8 +121,11 @@ everything else is decided later.** (The ConvNeXt half is superseded by the nigh
 ## Cards
 
 ### P-67 Fast-proxy 5-fold CV ruler + single-variable recipe ablation loop
-Status:       ⏳ **2026-10-10: the real floor run is RUNNING** (`rsna-knee-train` v49, pushed 01:21 UTC after smoke v48 green;
-              experiments.md 2026-10-10 "Sessions A ‖ B").
+Status:       ✅ **2026-10-10: the floor is measured** (`rsna-knee-train` v49, 5.63 h; experiments.md 2026-10-10 "Sessions A ‖ B
+              read"): SD of the four valid paired fold differences 0.0027 → floor 0.0014 → **ablation bar ≈ 0.002** (expected
+              0.0036); `v14p` pooled 0.8628, `v14p2` 0.8607 on folds 1–4. `v14p2` fold 0 diverged to NaN in epoch 0 (traps 63; a
+              non-finite guard is open). The loop (session C on: `v14lr` ‖ `v14gd`, then the evidence order) waits on Tian's go.
+              Was: ⏳ the real floor run RUNNING (pushed 01:21 UTC after smoke v48 green).
               🔧 **implemented, effect pending (2026-10-05, 09:12 UTC): `PROXY` preset + arms `v14p` / `v14p2` (seeds 42 / 43) in
               `src/kaggle_pipeline.py`; Kaggle smoke `rsna-knee-train` v45 green (PARALLEL pair, cache mounted, teacher table loaded,
               `_best.pt` + `_oof.csv` per child).** Approved by Tian ("go with the loop"): the real 5-fold floor run goes out at the
@@ -169,69 +176,6 @@ If it works:  the winning stack goes into every final retrain (P-50 week of 10-1
 If it fails:  nothing clears 1.5 × the floor, or the proxy's wins do not transfer in the production check → week 2 = plain retrains
               with more seeds / families (blend rule: + 0.001–0.003).
 Depends on:   Tian's go on the 10-10 week; the P-62 read does not block it (image-side only).
-
-### P-68 Different-family image teacher on the report-silent cells (a CNN OOF table at ≥ 0.5)
-Status:       ⏳ **2026-10-10: RUNNING** (`rsna-knee-train-b` v10, pushed 01:21 UTC after smoke v9 green; experiments.md 2026-10-10
-              "Sessions A ‖ B"). Was: ⏳ **APPROVED 2026-10-06 evening (Tian: "I want a run of pseudo-labels"): one Kaggle session at the 10-10 reset,
-              `v13ex` ‖ `v13ex2`** = the `v13e` B0 recipe at seeds 42 / 43 on `TEACHER_TABLES = ("raptor_teacher", "xfit_v09k")`,
-              flat mix 0.5 (0.5 LLM + 0.25 Raptor + 0.25 CoAtNet cross-fit OOF). Same seeds as `v13e` / `v13e2`, so each arm has a
-              same-seed control. **Read:** mean(`v13ex`, `v13ex2`) vs the B0 seed mean 0.9365: ✅ ≥ 0.9410 / 🔁 0.9320–0.9409 /
-              ❌ ≤ 0.9319 (the two-arm band ± 0.0045). Gold-58 not readable (the OOF table trained the gold rows). **`v13ex2`
-              added 2026-10-06 (= `v13ex` + `"seed": 43`, pinned to `("raptor_teacher", "xfit_v09k")`, unit check + local smoke
-              green); Kaggle smoke of the pair `rsna-knee-train-b` v8 green** (experiments.md Scoreboard) — the 10-10 real push
-              is the same build with `FORCE_SMOKE = False`. If ✅: every final member trains on the
-              mix, and `v11o` (the CoAtNet student on the CNN OOF) is the next arm. Earlier 10-06:
-              🔧 **DEMOTED (Tian: "don't focus on labels that much", single models and a new family first).** It is a
-              target change, and every target change except Raptor has read flat or worse on the LB (P-38, P-45, P-55, P-65). It runs
-              only on an otherwise idle GPU slot, `v13ex` first; `v11o` / `v13eo` are paused. **10-06 evening (research.md 2.7.8):**
-              the forum's largest measured single-model jumps (Raymond +0.011, SpeedSci +0.011, Archit) came from exactly this kind of
-              teacher: different-source image models, out of fold, heavy on silent cells. It is the one target change we have not
-              tested. If Tian gives targets one session, make it a `v13ex` ‖ `v13ex2` seed pair (± 0.0045 two-arm band). Its tables
-              (Raptor + `xfit_v09k`) cannot share a session with a Raptor-only arm. Was:
-              🔧 **implemented 2026-10-05, effect pending — Tian's top priority ("especially this one"); REDESIGNED the same day
-              after the critic subagent** (artifacts/runpod_case_P68_1007.md + its review):
-              - **Cross-family pairs only.** Same-family OOF teachers read flat for us (P-55: CoAtNet OOF into CoAtNet students)
-                and for Myo; Archit's own-model setup is the one counter-example. So: `v13ex` = the `v13e` B0 student on
-                `raptor_teacher` + `xfit_v09k` (the P-54 CoAtNet cross-fit OOF, which already exists → trainable at the 10-10 reset,
-                first session); `v11o` = the `v11a` CoAtNet student on `raptor_teacher` + `cnnoof_v1` (the B0 floor pair's OOF,
-                built after the P-67 floor run); `v13eo` = the B0 student on `cnnoof_v1`, the same-family control, lowest priority.
-              - **One variable.** All three at the flat mix 0.5 (the two tables averaged after quantile matching: 0.5 LLM +
-                0.25 Raptor + 0.25 OOF), so the LLM share stays 0.5 and the change is the image-teacher half. No silent-cell mix:
-                A3 read 🔁 on 10-07 (P-62 closed, not adopted).
-              - **Reads:** each solo vs its parent's seed mean (B0: 0.9365; CoAtNet `v11a` / `v11b` 0.932 / 0.929 → 0.9305), the
-                one-seed bands (✅ ≥ parent + 0.004). **Gold-58 is not readable here, not even for direction:** both OOF tables come
-                from k-fold runs that trained the gold rows at weight 8.
-              - **RunPod 10-07 = NO-GO** (critic): recomputed ≈ 5 h ≈ $3.8, not $2.6 (per-study overhead does not shrink with the
-                window count); the week-2 retrains start 10-17, so a 10-08 read unlocks nothing earlier than a 10-10 Kaggle read;
-                it would leave ≈ $1.2, under one B3 retrain. On Kaggle, `v13ex` ‖ `v13ex2` go out at 10-10 00:00 and read 10-10
-                evening; `v11o` follows the floor run.
-              - **The table:** `src/build_distill_table.py --sets "<dir>/v14p_fold[0-9]_oof.csv" "<dir>/v14p2_fold[0-9]_oof.csv"
-                --per-fold-rank --expect-folds 5 --expect-rows 4407 --out artifacts/teacher/cnnoof_v1.csv` (refuses a partial
-                set: `mix_teacher` would silently fall back to the LLM value on uncovered rows), a plausibility read
-                (`src/teacher_plausibility.py`), then publish to `rsna-knee-teacher-tables` (private). Later P-67 variants each add
-                a five-fold OOF set, so `cnnoof_v2` can pool the best few proxies.
-Hypothesis:   mixing a CNN-family OOF teacher (5-fold cross-fit of the B0 / B3 recipe) into the training targets at ≥ 0.5 on
-              report-silent cells, beside Raptor (a CoAtNet) and the LLM blend, lifts a production solo by ≥ 0.004.
-Origin:       forum 2.7.6: Archit (OOF image predictions > 50 % on silent cells, "only because the predictions were properly out of
-              fold"), Raymond + 0.011 and SpeedSci + 0.011 from multi-source teachers; same-encoder OOF flat for Myo and for us
-              (P-54 / P-55, the CoAtNet cross-fit on CoAtNet students). Literature 2.7.7: per-label uncertainty policies (CheXpert),
-              soft pseudo-distillation + 0.03 CV (aneurysm 4th).
-Evidence:     our only teacher gain is cross-family (Raptor CoAtNet → DINOv2 / CoAtNet students + 0.009); the Claude table's `m` field
-              gives a second, finer silence mask than pilkwang `UNK`.
-Measure:      solo LB of one production arm on the new mix vs its flat twin (one-seed ≥ 0.004), or a pair read ± 0.0045; gold
-              direction only. The table itself: `src/build_distill_table.py` + quantile matching (both exist), plausibility by
-              `src/teacher_plausibility.py`.
-Noise floor:  ≥ 0.004 one-seed.
-Cost:         the OOF table is free from P-67's best proxy 5-fold (a ≈ 0.92-level teacher), or ≈ 5.5 4090-h ≈ $4 / ≈ 15 Kaggle
-              session-h for a 30-epoch B0 cross-fit (a ≈ 0.935-level teacher); then one production arm ≈ 6 h.
-If it works:  all final retrains train on it. **Amendment 2026-10-06 night (research.md 2.7.9 C6):** Raptor and `xfit_v09k` are
-              both CoAtNets, so their errors may correlate with each other; after a ✅ the production follow-up student is B3 (a
-              student at least as large as its teacher gains more: Noisy Student B4 student +0.8, B5 +1.5 over a B4 teacher), and a
-              second round switches family (`v11o`). With mixup in the same run, α ≥ 1. Realistic gain ≤ +0.004 (the forum's
-              +0.011 came from weaker starting points).
-              If it fails: the label side is closed; Raptor 0.5 stays (P-62 read 🔁 on 10-07).
-Depends on:   — for `v13ex` / `v13ex2` (`xfit_v09k` exists). No silent mix (A3 read 🔁 on 10-07).
-              `v11o` / `v13eo` need P-67's floor run for `cnnoof_v1`. Since 10-06 (P-65 ❌) this is the only live target-side card.
 
 ### P-81 OAI knees as masked external labels for our own members
 Status:       🔧 **implemented 2026-10-08, local smokes green; the pod run waits on the critic check + a RunPod top-up.**

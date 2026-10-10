@@ -1206,3 +1206,29 @@ v64 smoke of the same A7 build.
 **Do:** read each placeholder's log (`kaggle kernels output <slug> -p <dir> --file-pattern "no_match"`) right after it completes and
 before pushing the next version of the same kernel; record the version → build mapping from the push output, never from a later
 fetch. Check the log for the members, the overrides / vote groups and the `wrote /kaggle/working/submission.csv` line.
+
+### 63. An fp16 fold can diverge to NaN weights in epoch 0, train 11 more epochs on nothing, and still end `"completed": true` (Tier 2: it cost one fold of the P-67 floor pair, 2026-10-10)
+
+`rsna-knee-train` v49 (the P-67 floor pair, `PROXY` = B0 @ 224, LR 3e-4 uniform, frozen BN, heavy aug, AMP fp16): `v14p2` (seed 43)
+fold 0 logged `loss nan` from **epoch 0** on, with `GradScaler scale 0, skipped 105` (the scale printed `:.0f`, so < 0.5: ≈ 100
+halvings from 65,536) and a pre-clip grad norm mean of 3.74 (seed 42, same fold: 2.63, scale 32,768, 1 skip). The EMA still scored
+0.742 after epoch 0 and 0.596 after epoch 1, then `pred_std nan` / `auc_soft nan` from epoch 2 to 11: every held-out prediction is NaN
+(882 / 882 rows of `v14p2_fold0_oof.csv`). The child went on through folds 1–4 normally (0.860–0.867), the parent printed `ok  arm v14p2`,
+and the fold result is `{"best": NaN, "completed": true}`. The same seed's other four folds and the other seed's fold 0 were clean, so it
+is a sporadic fp16 divergence on one random path, not a data fault (cause not pinned: no per-step log). `n_skip` also undercounts once the
+scale is ≈ 0 (`get_scale() < scale_before` stops firing), so "skipped 61" in epoch 1 understates it.
+
+Cost: the floor came from four fold pairs instead of five (experiments.md 2026-10-10 "Session A"), and the 5-fold `cnnoof_v1` table
+(P-68 follow-ups) cannot use seed 43 as built. **Do:** after any `PARALLEL_ARMS` / five-fold run, check every fold's result for
+`"best": NaN` and grep the child logs for `loss nan` / `GradScaler scale 0` before reading or shipping (traps 47 is the same gap for the
+runtime guard). Open fix (not coded): skip `backward()` on a non-finite loss and count it, and fail the fold (`completed: false`, a loud
+parent line) when the scale falls under 1 or `auc_soft` is NaN after an epoch.
+
+### 64. A kernel with more than ≈ 50 input sources is refused with a bare `400 Client Error: Bad Request … SaveKernel` (Tier 3, 2026-10-10)
+
+Adding `rsna-knee-ckpt-v13ex` / `-v13ex2` to `kaggle/rsna-knee-infer/kernel-metadata.json` brought it to 49 Datasets + the competition +
+one Model = 51 sources, and `kaggle kernels push` failed with only `400 Client Error: Bad Request for url: …/SaveKernel` (the JSON was
+valid, both Datasets `ready`). Dropping the two August checkpoints `rsna-knee-ckpt-v05` / `-v06` (no candidate uses them) → 49 sources →
+the push went through as v68. The last good push before (v67) also had 49. So the cap is 49 or 50; the error names neither the cap nor
+the field. **Do:** keep the infer kernel at ≤ 49 sources; before mounting a new member, drop a dead one (the August / September
+checkpoints `v05g`, `v08w`, `v09*`, `v10c`, `v11b`, `v11p`, `v11dl`, `v13a`–`v13c`, and `convnext-tiny-224-hf` are in no candidate).

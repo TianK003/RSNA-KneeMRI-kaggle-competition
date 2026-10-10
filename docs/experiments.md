@@ -147,6 +147,9 @@ agreement with the teacher, not truth. A one-seed LB delta needs ≥ 0.004 (P-44
 | 2026-10-09 | **C3, submission #69 (`rsna-knee-fork` v13)**: the public 0.942 stack + B18 (`v15c` + `v13b3`) rank-blended per label at β 0.45 | — | **0.946** | **🔁 +0.002 vs C2 0.944 (band 0.942–0.946; ✅ needed ≥ 0.947). +0.004 over the anchor, +0.002 over its own leg, +0.003 over the weighted mean of its parts (the fork rule's diversity gain). Our best OAI-free number; it replaces C2 as the OAI-free fork** |
 | 2026-10-09 | **C4b, submission #73 (`rsna-knee-fork949` v2)**: the public OAI-trained 0.949 single model + B18 at β 0.35 | — | **0.951** | **🔁 +0.001 vs C4 0.950 (band 0.948–0.952; ✅ needed ≥ 0.953); pick 2 by the pre-registered "≥ 0.950" rule. Our best public number, rank 218 of 5,626 (10-10 00:50 UTC). +0.002 over the anchor, +0.004 over the weighted mean of its parts. Carries the OAI rule risk (accepted by Tian 10-09)** |
 | 2026-10-10 | **Sessions A ‖ B (Kaggle, the 10-10 reset)**: P-67 floor pair `v14p` ‖ `v14p2` (`rsna-knee-train` v49) and P-68 pseudo-label pair `v13ex` ‖ `v13ex2` on Raptor + `xfit_v09k` (`rsna-knee-train-b` v10) | — | — | **✅ smokes green (v48 / v9: rc 0 per child, tables loaded, `reseeded 43`); ⏳ real runs pushed 01:21 UTC** (entry 2026-10-10 "Sessions A ‖ B") |
+| 2026-10-10 | **P-67 floor pair read (`rsna-knee-train` v49, 5.63 h)**: `PROXY` (B0 @ 224, 12 epochs, five folds) at seeds 42 / 43, Raptor 0.5 | pooled 5-fold OOF `v14p` **0.8628**; folds 1–4 0.8617 vs `v14p2` 0.8607; gold 0.8927 (not read) | — | **✅ floor measured: SD of four paired fold differences 0.0027 → 0.0014 → ablation bar ≈ 0.002** (expected 0.0036). `v14p2` fold 0 diverged to NaN in epoch 0 and still read `completed` (traps 63) (entry 2026-10-10 "Sessions A ‖ B read") |
+| 2026-10-10 | **P-68 pair trained (`rsna-knee-train-b` v10, 4.02 h)**: `v13ex` ‖ `v13ex2` = the `v13e` B0 recipe at seeds 42 / 43 on 0.5 LLM + 0.25 Raptor + 0.25 `xfit_v09k` | gold-58 SWA 0.9044 / 0.9190 (not readable: the OOF table trained the gold rows) | 0.937 / 0.936 (#74 / #75) | **✅ runs green, shipped `rsna-knee-ckpt-v13ex` / `-v13ex2`; the solos (#74 / #75) are the read (next row)** |
+| 2026-10-10 | **P-68 solos, submissions #74 / #75 (`rsna-knee-infer` v68 / v69)**: `v13ex` / `v13ex2` alone | 0.9044 / 0.9190 (not readable) | **0.937 / 0.936** | **🔁 pair mean 0.9365 = the B0 seed mean 0.9365 (Δ 0.000; ✅ needed ≥ 0.9410); vs the same-seed parents +0.002 / −0.002. The cross-family CoAtNet OOF mix lifts nothing readable: P-68 closed, not adopted; Raptor 0.5 stays the target, and the label side is closed** (entry 2026-10-10 "Submissions #74–#75") |
 
 **External reference points** (not ours — for calibrating ambition):
 
@@ -4315,6 +4318,80 @@ Datasets, `rsna-knee-teacher-tables` and the backbone weights.
 
 **Verdict: ✅ both smokes green; ⏳ PENDING both real runs.**
 
+**READ 2026-10-10:** both runs COMPLETE; see the next entry.
+
+### 2026-10-10 — Sessions A ‖ B read · **P-67 floor = 0.0014** (four fold pairs; ablation bar ≈ 0.002, not the expected 0.0036) · **`v14p2` fold 0 diverged to NaN in epoch 0** (traps 63) · P-68 pair trained green, shipped, solos sent
+
+Both kernels were COMPLETE when checked at 08:39 UTC. The watchers had stopped at 02:02 UTC after three "Permission 'kernels.get' was
+denied" polls (the token's dead half hour, traps 20) and never logged again, so the end times come from the logs: **session A ran
+5.63 h** (20,283 s; est. 3.75 h) and **session B 4.02 h** (14,484 s; est. 6 h). `kaggle quota` at 08:48: **9.75 h used of 30**, next
+reset 10-17. Outputs (logs, OOFs, the two `_best.pt`) in `artifacts/kaggle_out/sA_1010/` / `sB_1010/`.
+
+**Session A: the P-67 floor pair** (`v14p` ‖ `v14p2` = `PROXY`, B0 @ 224, 12 epochs, SWA 3, five folds, seeds 42 / 43, Raptor 0.5).
+Per-fold OOF macro-AUC vs the LLM targets (`src/fold_oof_summary.py`, SWA checkpoints):
+
+| fold | 0 | 1 | 2 | 3 | 4 | pooled (fold-rank-normalised) |
+|---|---|---|---|---|---|---|
+| `v14p` (seed 42) | 0.8675 | 0.8649 | 0.8587 | 0.8555 | 0.8689 | **0.8628** (5 folds); 0.8617 (folds 1–4) |
+| `v14p2` (seed 43) | **NaN** | 0.8604 | 0.8597 | 0.8569 | 0.8670 | 0.8607 (folds 1–4) |
+| paired difference | — | +0.0045 | −0.0010 | −0.0013 | +0.0018 | +0.0010 (folds 1–4) |
+
+- **The floor (the critic's rule, SD of the paired fold differences / √n):** SD 0.0027 over n = 4 → **0.0014** (0.0012 with the card's
+  √5). **Ablation bar = 1.5 × floor ≈ 0.002** (0.0021 with n = 4). The card expected ≈ 0.0036 (the fold-0 floor 0.008 / √5): the proxy
+  ruler is about 2.5× sharper than that, and ≈ 6× sharper than one fold's 0.008. Three degrees of freedom only: the SD itself is uncertain
+  by ≈ ± 40 %, so treat 0.002 as the bar and ≥ 0.003 as a clear win until a third seed or the next variants' own folds confirm it.
+- **`v14p2` fold 0 diverged:** `loss nan` from epoch 0, GradScaler scale → < 0.5 (≥ 105 skipped steps), EMA 0.742 → 0.596 → NaN from
+  epoch 2, all 882 OOF rows NaN; the fold still reads `"completed": true` and the parent printed `ok  arm v14p2` (traps 63). The four other
+  folds of the same seed are clean, so the floor uses the four valid pairs.
+- **Epoch curve (EMA, mean of folds 1–4):** 0.734 / 0.762 / 0.791 / 0.810 / 0.823 / 0.835 / 0.845 / 0.853 / 0.857 / 0.861 / 0.862 /
+  0.863 (`v14p`, epochs 0–11); `v14p2` the same within 0.001 from epoch 3. Still rising at epoch 11 (+0.0006 over epoch 10): the 12-epoch
+  proxy is not saturated, so `v14ep20` (20 proxy epochs) is a live question.
+- Gold-58 (reported, not read): `v14p` 0.8927 over all 58.
+- **`cnnoof_v1` is not built:** the card's command needs both seeds' complete five-fold sets (`--expect-folds 5`), and `v14p2` lacks fold 0.
+  It is needed only if the P-68 pair reads ✅ (`v11o` / `v13eo`); then either build it from `v14p` alone or retrain `v14p2` fold 0.
+
+**Session B: the P-68 pair** (`v13ex` ‖ `v13ex2` = the `v13e` B0 recipe, 30 epochs, SWA 27–29, `train_all`, seeds 42 / 43, targets
+0.5 LLM + 0.5 quantile-matched mean of `raptor_teacher` + `xfit_v09k`). Run checks: `ok  arm` ×2, `teacher table raptor_teacher: 4349`,
+`teacher table xfit_v09k: 4407`, the `training targets = (1 - 0.5) * LLM + 0.5 * quantile-matched ['raptor_teacher', 'xfit_v09k']`
+line, `freeze_bn: 49`, `reseeded 43` for `v13ex2`, epochs 0–29, `SWA of last 3`, `= SWA`, no runtime guard, no `loss nan`.
+Gold-58 SWA **0.9044 / 0.9190** (same-seed parents `v13e` / `v13e2` 0.9126 / 0.9151); **not readable, not even for direction**: `xfit_v09k` trained on the gold
+rows. Shipped 08:43 UTC as private Datasets `rsna-knee-ckpt-v13ex` / `-v13ex2` (`_best.pt` + OOF + log; both `ready`; local copies
+`artifacts/ship_v13ex*/`). Placeholders and sends: the next entry.
+
+**Verdicts: ✅ P-67's floor is measured (0.0014, bar ≈ 0.002) and the loop can start; 🔧 the NaN fold is a pipeline gap (traps 63, fix
+open); ✅ the P-68 runs are green and shipped (the read is the LB).**
+
+### 2026-10-10 — Submissions #74–#75: the P-68 solos · **`v13ex` 0.937, `v13ex2` 0.936 → pair mean 0.9365 = the B0 seed mean** (🔁 0.000) · P-68 closed, not adopted
+
+Sent on Tian's go ("pull both runs … and submit them if possible/sensible"). Placeholders `rsna-knee-infer` v68 (`INFER_MEMBERS =
+["v13ex"]`) and v69 (`["v13ex2"]`), each green before its send: `"smoke": "False"`, one member, `decode-once verified`, `constant
+labels 0`, `wrote /kaggle/working/submission.csv`. The first v68 push was refused (`400 … SaveKernel`: 51 input sources, traps 64); two
+dead August mounts (`rsna-knee-ckpt-v05` / `-v06`) were dropped. Timed by `src/watch_submission.py` (`artifacts/submission_timing.csv`).
+
+| # | what | gold-58 | LB | scored within | pre-registered read | verdict |
+|---|---|---|---|---|---|---|
+| 74 | A10 = `v13ex` (B0, seed 42, 0.5 LLM + 0.25 Raptor + 0.25 `xfit_v09k`; infer v68) | 0.9044 (not readable) | **0.937** | [27.3, 28.8] min | the pair mean vs the B0 seed mean 0.9365: ✅ ≥ 0.9410 / 🔁 0.9320–0.9409 / ❌ ≤ 0.9319; vs `v13e` 0.935 | see the pair |
+| 75 | A11 = `v13ex2` (the same at seed 43; infer v69) | 0.9190 (not readable) | **0.936** | [19.7, 21.2] min | as #74; vs `v13e2` 0.938 | see the pair |
+| pair | mean(#74, #75) | — | **0.9365** | — | as above | **🔁 Δ 0.000 → P-68 closed, not adopted** |
+
+- **The pair lands exactly on the B0 seed mean** (`v13e` 0.935 + `v13e2` 0.938 → 0.9365). The same-seed differences are +0.002 (`v13ex`
+  − `v13e`) and −0.002 (`v13ex2` − `v13e2`): opposite signs, each inside the one-seed spread s = 0.003. The two new seeds sit 0.001
+  apart, closer than the parents' 0.003.
+- **What it says:** replacing half of the Raptor share with a second CoAtNet teacher's cross-fit OOF (`xfit_v09k`, the P-54 table) gives
+  a B0 student nothing readable. It is the sixth target change after Raptor to read flat or worse on the LB (self-distillation P-38, D4
+  P-45, the CoAtNet OOF on a CoAtNet student P-55, the silent mix P-62, the Claude relabel P-65, and now this one). The forum's +0.011
+  (Raymond, SpeedSci) started from weaker members; Raptor and `xfit_v09k` are both CoAtNets, so this teacher half was the least
+  different one available (the card's 10-06 amendment named that risk).
+- **Consequences:**
+  - the week-2 members train on 0.5 LLM + 0.5 Raptor, as before;
+  - `v11o` / `v13eo` (students on `cnnoof_v1`) are not run, and `cnnoof_v1` is not built;
+  - the label side is closed (the card's fail branch);
+  - the two arms are not blend candidates: a B0-recipe vote at the B0 level is a family already present, under the blend's mean
+    (the blend rule, B12 / B13). The three remaining 10-10 slots stay unused: no queued candidate is worth one.
+- Gold-58 (0.9044 / 0.9190) was not readable by construction and is not read.
+
+**Verdict: 🔁 INCONCLUSIVE (pair Δ 0.000 vs a ± 0.0045 band) → P-68 closed, not adopted.**
+
 ## Infrastructure
 
 ### 2026-09-27 — The "0.943 Speedy Raptors CoAtNet D4" notebook is our anchor **plus two CoAt readers**, not a faster graph; its "< 30 min" is a 3-study commit run · P-41 (threaded scan + 8 decode workers) smoke-green and byte-identical
@@ -4835,6 +4912,8 @@ and public LB score, so a public/private divergence can be traced to a specific 
 | 71 | 2026-10-09 | rsna-knee-infer v66 | **B19**: `INFER_MEMBERS = ["v15c", "v15c2", "v13b3"]` with `INFER_VOTE_GROUPS = {"convnext": ("v15c", "v15c2")}` (two votes) | none; gold-58 0.9252 | **0.944** | **read 07:38:54 UTC → = B18 0.944 → 🔁; pick 1 by the tie rule; scored within [44.6, 46.1] min.** sent 06:52:47 UTC, ref 56997075 |
 | 72 | 2026-10-09 | rsna-knee-infer v67 | **A8**: `v15c` with `INFER_OVERRIDES = {"v15c": {"img_size": 320}}` (trained at 288) | none | **0.942** | **read 07:24:23 UTC → = `v15c` at 288 → 🔁; T11 not trained; scored within [29.3, 30.8] min.** sent 06:53:33 UTC, ref 56997111 |
 | 73 | 2026-10-09 | rsna-knee-fork949 v2 (`src/build_fork949.py --members v15c v13b3 --beta 0.35`) | **C4b**: the public 0.949 notebook's five cells byte-identical (one CoAtNet-2 @ 384, OAI-trained) + B18 (`v15c` + `v13b3`) as our leg at β 0.35 | none | **0.951** | **read 11:51:18 UTC → +0.001 vs C4 0.950 → 🔁 (band 0.948–0.952; ✅ needed ≥ 0.953); "≥ 0.950 → C4b is pick 2" fires; our best public number, rank 218 of 5,626 (10-10 00:50 UTC); scored within [104.1, 105.6] min.** sent 10:05:39 UTC by hand (Tian's go; the token had expired at 09:50, traps 20 addendum), ref 57005017, watcher `artifacts/watch_57005017.log` |
+| 74 | 2026-10-10 | rsna-knee-infer v68 (+ Dataset `rsna-knee-ckpt-v13ex`) | **A10 / P-68, `v13ex` solo**: `INFER_MEMBERS = ["v13ex"]` (B0 seed 42 on 0.5 LLM + 0.25 Raptor + 0.25 `xfit_v09k`, trained on Kaggle `rsna-knee-train-b` v10) | none; gold-58 0.9044 (not readable) | **0.937** | **read 09:18:06 UTC; with #75 the pair mean 0.9365 = the B0 seed mean → 🔁, P-68 closed; scored within [27.3, 28.8] min.** sent 08:49:20 UTC, ref 57037215 |
+| 75 | 2026-10-10 | rsna-knee-infer v69 (+ Dataset `rsna-knee-ckpt-v13ex2`) | **A11 / P-68, `v13ex2` solo**: `INFER_MEMBERS = ["v13ex2"]` (`v13ex` at seed 43) | none; gold-58 0.9190 (not readable) | **0.936** | **read 09:16:27 UTC → the pair read above; scored within [19.7, 21.2] min.** sent 08:55:13 UTC, ref 57037349 |
 
 ## Closed cards index (moved here from proposals.md on 2026-10-05)
 
@@ -4905,3 +4984,4 @@ proposals.md holds live cards only (Tian, 2026-10-05). One line per measured or 
 | P-62 | Silence-aware teacher mix (Raptor 0.75 on report-silent cells, 0.5 elsewhere) | 🔁 not adopted: #60 `v13es` **0.936** / #61 `v13rs` **0.937** → pair mean 0.9365 vs 0.9345 (+0.002; ✅ needed ≥ 0.9390); both arms up vs their same-seed parents (+0.001 / +0.003), under the one-seed floor; the code stays, off by default; both solos qualify for B12 | experiments.md 2026-10-07 "Submissions #59–#63"; 2026-10-04 "Session D"; 2026-09-30 "Silence-aware teacher mix" |
 | P-69 | ConvNeXt-T with its own recipe (`v15c`: timm `convnext_tiny.in12k_ft_in1k` @ 288, AdamW 1e-4, per-stage decay 0.9, 20 ep; RunPod, ≈ $1.46) | ✅ KEEP — #64 `v15c` **0.942** = our best solo (+0.0062 over B6's members' mean, 1.5× the floor; = B6) with the clip-rate tripwire fired; #65 B17 (B6 + it) **0.943** (🔁 +0.001; pick 1 by convention, C3's gate open, the seed twin `v15c2` is week 2's first ConvNeXt arm). The family's own optimiser was the lever (traps 46) | experiments.md 2026-10-07 "P-69 on RunPod"; 2026-10-08 "Submissions #64–#66" |
 | P-80 | ConvNeXt as the lead family: the seed twin `v15c2` (RunPod, ≈ $1.41), then the twins as one vote | ✅ measured: #70 `v15c2` **0.941** vs `v15c` 0.942 → s_c = 0.001, the bands stand, family level ≈ 0.9415; #71 B19 (the twins as one vote + `v13b3`) **0.944** = B18 → pick 1 by the tie rule. The proposed 336 px training probe was not run (A8 #72: `v15c` scored at 320 px read 0.000; proposals.md Dropped directions) | experiments.md 2026-10-08 "P-80 on RunPod", "The 10-09 placeholders"; 2026-10-09 "Submissions #70–#72" |
+| P-68 | Different-family OOF image teacher as a pseudo-label mix (`v13ex` / `v13ex2`: B0 on 0.5 LLM + 0.25 Raptor + 0.25 `xfit_v09k`, the CoAtNet cross-fit OOF; Kaggle `rsna-knee-train-b` v10) | 🔁 not adopted: #74 `v13ex` **0.937** / #75 `v13ex2` **0.936** → pair mean 0.9365 = the B0 seed mean (Δ 0.000; ✅ needed ≥ 0.9410); same-seed deltas +0.002 / −0.002. Raptor 0.5 stays; `v11o` / `v13eo` / `cnnoof_v1` not run; the label side is closed | experiments.md 2026-10-10 "Sessions A ‖ B read", "Submissions #74–#75" |
