@@ -194,9 +194,14 @@ if [ "${OAI:-0}" = 1 ]; then
   wait "$oai_pid" || { echo "!! OAI download failed:"; tail -20 /workspace/oai_download.log; exit 5; }
   echo "  $(find "$OAI_RAW" -name '*.tar.gz' | wc -l) tarballs, $(du -sh "$OAI_RAW" | cut -f1)"
   log "OAI: cache shard 90 -> $IN/rsna-knee-oai-cache"
-  # nproc - 8 workers (at least 4): the training loader uses 8 (critic, 10-08).
+  # nproc - 8 workers (at least 4): the training loader uses 8 (critic, 10-08). 2026-10-10: count the CPUs from the cgroup
+  # quota, not nproc -- a secure 4090 pod showed nproc 96 with cpu.max 10.2 CPUs and 31 GB (88 workers would thrash or OOM).
+  cpus=$(awk '{ if ($1 == "max") print 0; else print int($1 / $2) }' /sys/fs/cgroup/cpu.max 2>/dev/null || echo 0)
+  [ "${cpus:-0}" -ge 1 ] || cpus=$(nproc)
+  oai_workers="${OAI_BUILD_WORKERS:-$(( cpus > 12 ? cpus - 8 : (cpus > 5 ? cpus - 1 : 4) ))}"
+  log "  build workers: $oai_workers (cgroup CPUs $cpus, nproc $(nproc))"
   ( cd "$REPO" && python src/build_oai_cache.py --build "$OAI_RAW" --out "$IN/rsna-knee-oai-cache" \
-      --workers "$(( $(nproc) > 12 ? $(nproc) - 8 : 4 ))" --delete-tars )
+      --workers "$oai_workers" --delete-tars )
   n_oai=$(python -c "import pandas as pd; print(int(pd.read_csv('$IN/rsna-knee-oai-cache/manifest_shard90_oai.csv').cached.sum()))")
   [ "$n_oai" -ge 2300 ] || { echo "!! the OAI shard holds only $n_oai knees (expected ~2,398)"; exit 5; }
   export RSNA_OAI_TARGETS="$REPO/artifacts/oai/oai_targets.csv"
