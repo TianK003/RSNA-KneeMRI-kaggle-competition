@@ -732,6 +732,29 @@ def main():
     check(diff == {"img_size"} and cx3.img_size == 320 and cx3.img_size % 32 == 0 and cx3.seed == 42
           and da["v15c320"] == ("raptor_teacher",) and "v15c320" not in dm and "v15c320" not in K["DISTILLED_SILENT_MIX"],
           f"v15c320 = v15c at 320 px ({sorted(diff)})")
+    # 2026-10-10 (P-82): the DINOv2 LR bracket -- the two arms differ in the optimiser LR keys only, and share v15c's data
+    # side (cache, windows, batch, aug, drop path, epochs, SWA, Raptor 0.5)
+    cd1, cd3 = Config(smoke=False, **arms["v16d1"]), Config(smoke=False, **arms["v16d3"])
+    diff = {k for k in K["asdict"](cd3) if getattr(cd3, k) != getattr(cd1, k)} - {"version"}
+    check(diff == {"lr_backbone", "llrd_decay"} and da["v16d1"] == da["v16d3"] == ("raptor_teacher",)
+          and "v16d1" not in dm and "v16d3" not in dm, f"v16d3 = v16d1 with the LR keys only ({sorted(diff)})")
+    diff = {k for k in K["asdict"](cd1) if getattr(cd1, k) != getattr(cx, k)} - {"version"}
+    check(diff == {"backbone", "img_size", "lr_backbone", "llrd_decay", "weight_decay"} and cd1.img_size % 14 == 0
+          and K["cache_version_for"](cd1) == K["cache_version_for"](cx),
+          f"v16d1 = v15c's data side with the DINOv2 model + optimiser keys ({sorted(diff)})")
+    if os.path.isdir("models/dinov2_small"):
+        for name, cd, top, bottom in (("v16d1", cd1, 1e-4, 8.59e-6), ("v16d3", cd3, 3e-4, 1.267e-5)):
+            mdl = K["KneeNet"]("models/dinov2_small", backbone="dinov2", head_type="window_attn", drop_path=cd.drop_path)
+            rate = {}
+            for grp in K["param_groups"](mdl, cd):
+                for p in grp["params"]:
+                    rate[id(p)] = grp["lr"]
+            r_top = rate[id(next(mdl.enc.encoder.layer[11].parameters()))]
+            r_bot = rate[id(next(mdl.enc.encoder.layer[0].parameters()))]
+            check(abs(r_top - top) < 1e-9 and abs(r_bot - bottom) / bottom < 0.01 and cd.weight_decay == 0.05,
+                  f"{name}: top block LR {r_top:.3g} (want {top:.0e}), block 0 {r_bot:.3g} (want ~{bottom:.3g})")
+            dps = [layer.drop_path.drop_prob for layer in mdl.enc.encoder.layer]
+            check(dps[0] == 0.0 and abs(dps[-1] - 0.1) < 1e-9, f"{name}: drop path ramps 0 .. 0.1 over 12 blocks")
 
     print("\n== P-67 additions (2026-10-05): augment_extra, mixup_studies, drop_blank_windows, train_gold, guards")
     torch.manual_seed(0)

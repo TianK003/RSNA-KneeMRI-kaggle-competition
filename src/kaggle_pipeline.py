@@ -466,6 +466,19 @@ SHIPPED_ARMS = [
     # `v15c`, so the read is the OAI rows. Off Kaggle only (the OAI data never goes to Kaggle): RunPod, RSNA_OAI_TARGETS.
     ("v15co", {**PROD, **V09R_KW, **C03_KW, "backbone": "timm:convnext_tiny", "img_size": 288, "lr_backbone": 1e-4,
                "llrd_decay": 0.9, "aug": "heavy", "drop_path": 0.1, "epochs": 20, "oai": True}),
+    # 2026-10-10 (P-82, Tian's go; recipe from the literature + forum review): DINOv2-S/14 retrained on the CNNs' data side
+    # (c03, heavy aug, Raptor 0.5, SWA of the last 3), which the 0.918 `v08r` never had, with a ViT optimiser: AdamW wd 0.05
+    # (MAE / BEiT / iBOT), drop path ramped 0 -> 0.1, head 1e-3, 280 px (20 x 20 tokens of ~7.5 mm; Tian), 20 epochs.
+    # An LR bracket (Tian): `v16d1` top block 1e-4 with LLRD 0.8 (EoMT's DINOv2 setting, our ConvNeXt's 1e-4; block 0
+    # 8.6e-6), `v16d3` top block 3e-4 with LLRD 0.75 (iBOT ViT-S / RETFound scaled to 4 studies per step, our CNNs' 3e-4;
+    # block 0 1.3e-5). `lr_backbone` is the final LayerNorm's rate and the top block gets lr_backbone x llrd_decay
+    # (param_groups), hence 1.25e-4 / 4e-4. `v08r` had 2e-5 at the final norm (block 0 8e-7), 8 epochs, no aug, c02, 224.
+    ("v16d1", {**PROD, **C03_KW, "backbone": "dinov2", "img_size": 280, "batch_studies": 2, "grad_accum": 2,
+               "aug": "heavy", "drop_path": 0.1, "weight_decay": 0.05, "epochs": 20,
+               "lr_backbone": 1.25e-4, "llrd_decay": 0.8}),
+    ("v16d3", {**PROD, **C03_KW, "backbone": "dinov2", "img_size": 280, "batch_studies": 2, "grad_accum": 2,
+               "aug": "heavy", "drop_path": 0.1, "weight_decay": 0.05, "epochs": 20,
+               "lr_backbone": 4e-4, "llrd_decay": 0.75}),
 ]
 ARM_V10C = ("v10c", {**C02, "backbone": "timm:coatnet_rmlp_2_rw_384", "img_size": 384,
                      "lr_backbone": 1e-4, "eval_windows": 42, "grad_checkpoint": True})
@@ -613,7 +626,7 @@ DISTILLED_ARMS = {"v09s": ("selfdistill_v1",), "v09t": ("selfdistill_v1",),
                   "v11o": ("raptor_teacher", "cnnoof_v1"),
                   "v13eo": ("raptor_teacher", "cnnoof_v1"),
                   "v15c": ("raptor_teacher",), "v15c2": ("raptor_teacher",), "v15c320": ("raptor_teacher",),
-                  "v15co": ("raptor_teacher",)}
+                  "v15co": ("raptor_teacher",), "v16d1": ("raptor_teacher",), "v16d3": ("raptor_teacher",)}
 # 2026-09-28 (traps 40's second gap): the mix a distilled arm must train with; every other distilled arm trains at 0.5.
 DISTILLED_MIX = {"v09o": 0.75, "v09o2": 0.75, "v13ec": 0.75, "v13rc": 0.75, "v13ecp": 1.0}
 # P-62: the silent-cell mix an arm must train with; every arm not listed trains without one (TEACHER_SILENT_MIX = None).
@@ -918,9 +931,10 @@ class Config:
                 # RSNA_SMOKE_FULL_WINDOWS=1 keeps the real window count so a Kaggle smoke exercises the
                 # batch_studies x train_windows memory path (P-32) on a handful of studies
                 self.train_windows = 4
-            if not str(self.backbone).startswith("timm:"):
+            if not str(self.backbone).startswith("timm:") and not os.environ.get("RSNA_SMOKE_FULL_WINDOWS"):
                 # a fixed-resolution timm hybrid (coatnet_rmlp_2_rw_384) crashes at 224; DINOv2
-                # and ConvNeXt take any size, and 224 keeps a CPU smoke fast
+                # and ConvNeXt take any size, and 224 keeps a CPU smoke fast. A Kaggle PARALLEL smoke (full windows)
+                # keeps the arm's size: P-82's DINOv2 at 280 must show its real memory and s/study there.
                 self.img_size = 224
             self.runtime_limit_hours = 0.4
             self.ema_decay = 0.9      # 8 steps of smoke would leave a 0.998 EMA ~= init
