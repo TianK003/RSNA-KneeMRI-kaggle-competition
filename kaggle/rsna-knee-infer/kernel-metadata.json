@@ -14,10 +14,8 @@
         "stevenleehans/rsna-knee-llm-report-labels",
         "lixin73/rsna-knee-llm-report-labels-sol56",
         "tiankljucanin/convnext-tiny-224-hf",
-        "tiankljucanin/rsna-knee-ckpt-v05g",
         "tiankljucanin/timm-coatnet-rmlp-1-rw-224",
         "tiankljucanin/timm-coatnet-rmlp-2-rw-384",
-        "tiankljucanin/rsna-knee-ckpt-v10c",
         "tiankljucanin/rsna-knee-ckpt-v09h",
         "tiankljucanin/rsna-knee-ckpt-v08w",
         "tiankljucanin/rsna-knee-ckpt-v09a",
@@ -56,7 +54,9 @@
         "tiankljucanin/rsna-knee-ckpt-v15c",
         "tiankljucanin/rsna-knee-ckpt-v15c2",
         "tiankljucanin/rsna-knee-ckpt-v13ex",
-        "tiankljucanin/rsna-knee-ckpt-v13ex2"
+        "tiankljucanin/rsna-knee-ckpt-v15co",
+        "tiankljucanin/rsna-knee-ckpt-v16d1",
+        "tiankljucanin/rsna-knee-ckpt-v16d3"
     ],
     "kernel_sources": [],
     "competition_sources": [

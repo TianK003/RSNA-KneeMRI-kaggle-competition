@@ -1261,3 +1261,13 @@ and 31 GB: a thrash or an OOM kill in the middle of the 1.2-h preparation window
 chain now takes the CPU count from `cpu.max` (`3c199ba`; 9 workers here, `OAI_BUILD_WORKERS` overrides), and the build ran at
 0.57 s / knee (2,399 knees in ≈ 23 min). **Do:** on a pod, read `cat /sys/fs/cgroup/cpu.max /sys/fs/cgroup/memory.max` with the
 `cuInit` test, and size every pool from the quota (the training loader's fixed 8 workers fit 10 CPUs).
+
+### 67. PowerShell's `-replace` is case-insensitive: a build recipe ported from `sed` also rewrites lower-case twins of the config lines (Tier 3, 2026-10-11)
+
+Building the P-82 placeholders in PowerShell, `(Get-Content src/kaggle_pipeline.py -Raw) -replace '(?m)^INFER_MEMBERS = \[.*\]', …`
+rewrote line 184 **and** line 3556, `infer_members = []          # [(version, fold, path)] -- …`, into `INFER_MEMBERS = ["v16d1", "v16d3"]
+-- the blend, …`. The infer smoke `rsna-knee-infer` v70 died in cell 9 with a `SyntaxError` (≈ 4 GPU-min lost). Our `sed` recipes
+(CLAUDE.md, candidates.md) are case-sensitive, so this only bites a PowerShell port. Today only `infer_members` collides with a config
+line at column 0, and loudly; a collision that still compiled (a lower-case `mode = …` or `force_smoke = …`) would ship a wrong build
+silently. **Do:** in PowerShell use `-creplace` (and `Select-String -CaseSensitive` for the check), then diff the build against `src/`
+(`git diff --no-index --unified=0 src/kaggle_pipeline.py artifacts/<build>.py`): exactly the intended lines may differ.
