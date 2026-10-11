@@ -1,4 +1,4 @@
-"""Build kaggle/rsna-knee-fork954/ from notebook_score_0.954.ipynb + src/kaggle_pipeline.py (candidates.md C5, A14).
+"""Build kaggle/rsna-knee-fork954/ from notebook_score_0.954.ipynb + src/kaggle_pipeline.py (candidates.md C5, A14, C6).
 
 The public "rsna-knee-blend-gold (Dataset restored)" notebook (heliosli, public LB 0.954; pulled 2026-10-11) is a rank blend
 of two public models: stage 1 runs nartaa's 0.949 CoAtNet-2 (OAI-trained; the C4 / C4b anchor) as a subprocess, stage 2
@@ -15,12 +15,17 @@ appends "our arm" exactly as src/build_fork949.py does (same cells, same fail-so
 beta 0: `submission.csv` is then S6's per-finding ranks (a study S6 failed on takes the CoAtNet's rank, the anchor's
 own fallback). The CoAtNet stage still runs; only its weight is zero.
 
+`--s6-anchor` (C6, the OAI-free pick-1 candidate) drops stage 1 (the OAI-trained CoAtNet) and stage 3 altogether, does not
+mount nartaa's Dataset, defines `NB_T0` in the clock cell (stage 2 reads it), and replaces stage 3 with one cell that writes
+S6's own `ours_sub.csv` as `submission.csv`; our arm then blends onto S6 at beta. Stage 2's two cells stay byte-identical.
+
 The kernel pins the anchor's Docker image (`docker_image` in kernel-metadata.json): the image heliosli's run used, and the
 one `rsna-knee-fork949` has carried since its creation (traps 54).
 
     export PYTHONUTF8=1
     .venv/Scripts/python.exe src/build_fork954.py --members v15co v13b3 --beta 0.20      # C5 (B21 leg)
     .venv/Scripts/python.exe src/build_fork954.py --s6-only                              # A14 (S6 alone)
+    .venv/Scripts/python.exe src/build_fork954.py --s6-anchor --members v15c v13b3 --beta 0.30   # C6 (S6 + B18, OAI-free)
     .venv/Scripts/python.exe src/build_fork954.py --members v15co v13b3 --beta 0.20 --check
 """
 import argparse
@@ -43,8 +48,8 @@ OUT_DIR = os.path.join("kaggle", "rsna-knee-fork954")
 KERNEL_ID = "tiankljucanin/rsna-knee-fork954"
 KERNEL_TITLE = "RSNA Knee Fork954"
 COMPETITION = "rsna-knee-abnormality-detection"
-ANCHOR_DATASETS = ("heliosli/rsna-knee-compact-v1", "nartaa/rsna-knee-publication-swa-weights-20261007",
-                   "heliosli/rsna-orthofoundation-fold0-epoch7-20261004")
+NARTAA_DATASET = "nartaa/rsna-knee-publication-swa-weights-20261007"     # the OAI-trained CoAtNet: never in --s6-anchor
+ANCHOR_DATASETS = ("heliosli/rsna-knee-compact-v1", NARTAA_DATASET, "heliosli/rsna-orthofoundation-fold0-epoch7-20261004")
 DOCKER_IMAGE = ("gcr.io/kaggle-private-byod/python@sha256:"
                 "2757e0c7d1e0a9cb43da657b97e223c321a98f5014bdf64f44f2f6b083ad2b2f")
 ANCHOR_CELL_TYPES = ["markdown", "markdown", "code", "code", "code", "code", "code"]
@@ -81,6 +86,40 @@ FORK_ARM_TEMPLATE = _swap(f949.FORK_ARM_TEMPLATE, [
      "'anchor': 'public 0.954 blend (heliosli: nartaa CoAtNet 0.7 + S6 0.3)'"),
 ])
 
+FORK_MARKDOWN_S6 = _swap(FORK_MARKDOWN, [
+    ("## Fork arm — our members blended onto the public 0.954 blend (nartaa's CoAtNet 0.7 + heliosli's S6 0.3)",
+     "## Fork arm — our members blended onto heliosli's S6 alone (OAI-free: no CoAtNet stage in this notebook)"),
+    ("The previous cell (stage 3 of the 0.954 notebook, unchanged) has written `submission.csv`.",
+     "The previous cell has written S6's predictions (stage 2 of the 0.954 notebook, unchanged) as `submission.csv`."),
+])
+
+FORK_ARM_TEMPLATE_S6 = _swap(FORK_ARM_TEMPLATE, [
+    ("# ===================== FORK ARM: ours as a beta-blend on the public 0.954 blend =====================      ",
+     "# ===================== FORK ARM: ours as a beta-blend on heliosli's S6 alone (OAI-free) =====================  "),
+    ("'anchor': 'public 0.954 blend (heliosli: nartaa CoAtNet 0.7 + S6 0.3)'",
+     "'anchor': 'S6 alone (heliosli compact model; no OAI-trained stage)'"),
+])
+
+T0_CELL_S6 = """# Fork954 --s6-anchor: start clock for our arm's time budget (added by src/build_fork954.py). Stage 1 (the OAI-trained
+# CoAtNet) is not in this notebook, so its clock NB_T0, which stage 2 reads (T0 = NB_T0), is set here instead.
+import time as _fork_time0
+_FORK_T0 = _fork_time0.time()
+NB_T0 = _FORK_T0
+"""
+
+S6_ANCHOR_CELL = """# Fork954 --s6-anchor: S6's own predictions (stage 2, unchanged, wrote ours_sub.csv) become the anchor submission.csv.
+# Stage 3 (the 0.7 / 0.3 blend with the CoAtNet) is not in this notebook. A failed S6 stage has already raised above.
+import pandas as _fork_pd0
+_fork_ids = _fork_pd0.read_csv(DATA / 'test.csv')['StudyInstanceUID'].astype(str).tolist()
+_fork_s6 = _fork_pd0.read_csv(WORK / 'ours_sub.csv', dtype={'StudyInstanceUID': str})
+_fork_cols = (list(_fork_pd0.read_csv(DATA / 'sample_submission.csv', nrows=1).columns)
+              if (DATA / 'sample_submission.csv').is_file() else list(_fork_s6.columns))
+assert sorted(_fork_s6['StudyInstanceUID']) == sorted(_fork_ids), 'S6: rows differ from test.csv'
+assert set(_fork_cols) <= set(_fork_s6.columns), 'S6: columns differ'
+_fork_s6.set_index('StudyInstanceUID').loc[_fork_ids].reset_index()[_fork_cols].to_csv(WORK / 'submission.csv', index=False)
+print('S6_ANCHOR_WRITTEN rows %d' % len(_fork_ids), flush=True)
+"""
+
 T0_CELL = """# Fork954: start clock for our arm's time budget (added by src/build_fork954.py; changes nothing below)
 import time as _fork_time0
 _FORK_T0 = _fork_time0.time()
@@ -91,7 +130,7 @@ ANCHOR_GLOBALS = ("T0", "NB_T0", "WORK", "DATA", "TMP", "pred", "env", "rc", "de
                   "ours", "raw", "rsub", "labels", "cols", "test_ids", "out", "pct", "n")
 
 
-def check_anchor(nb, s6_only):
+def check_anchor(nb):
     """The anchor must be heliosli's notebook as pulled on 2026-10-11: seven cells, three stages, the 0.7 / 0.3 blend."""
     cells = nb["cells"]
     if [c["cell_type"] for c in cells] != ANCHOR_CELL_TYPES:
@@ -117,14 +156,15 @@ def check_anchor(nb, s6_only):
             raise SystemExit(f"anchor already uses {name!r}: our arm would collide with it")
 
 
-def render_fork_cells(payload, payload_sha, pipeline_sha, params):
-    md = {"id": "fork-markdown", "cell_type": "markdown", "metadata": {}, "source": f949._fill(FORK_MARKDOWN, params)}
+def render_fork_cells(payload, payload_sha, pipeline_sha, params, mode="blend"):
+    md_t, arm_t = (FORK_MARKDOWN_S6, FORK_ARM_TEMPLATE_S6) if mode == "s6_anchor" else (FORK_MARKDOWN, FORK_ARM_TEMPLATE)
+    md = {"id": "fork-markdown", "cell_type": "markdown", "metadata": {}, "source": f949._fill(md_t, params)}
     pay = {"id": "fork-payload", "cell_type": "code", "metadata": {}, "outputs": [], "execution_count": None,
            "source": f949._fill(f949.FORK_PAYLOAD_TEMPLATE, params,
                                 {"__PAYLOAD__": chunk_literal(payload), "__PAYLOAD_SHA__": payload_sha,
                                  "__PIPELINE_SHA__": pipeline_sha})}
     arm = {"id": "fork-arm", "cell_type": "code", "metadata": {}, "outputs": [], "execution_count": None,
-           "source": f949._fill(FORK_ARM_TEMPLATE, params)}
+           "source": f949._fill(arm_t, params)}
     for c in (pay, arm):
         compile(cell_text(c), c["id"], "exec")
         clash = sorted(module_level_names(cell_text(c)) & set(ANCHOR_GLOBALS))
@@ -172,19 +212,35 @@ def module_level_names(src):
     return names
 
 
-def build_notebook(nb, fork_cells, provenance, s6_only):
+def build_notebook(nb, fork_cells, provenance, mode):
     kept = [json.loads(json.dumps(c)) for c in nb["cells"]]
     for a, b in zip(kept, nb["cells"]):
         if json.dumps(a, sort_keys=True) != json.dumps(b, sort_keys=True):
             raise SystemExit("anchor cell changed during copy")
-    if s6_only:
+    if mode == "s6_only":
         src = cell_text(kept[6]).replace(WEIGHT_LINE, WEIGHT_LINE_S6)
         if WEIGHT_LINE_S6 not in src or WEIGHT_LINE in src:
             raise SystemExit("--s6-only: the weight patch did not apply")
         kept[6]["source"] = src
-    t0 = {"id": "fork-t0", "cell_type": "code", "metadata": {}, "outputs": [], "execution_count": None, "source": T0_CELL}
+    if mode == "s6_anchor":
+        t0 = {"id": "fork-t0", "cell_type": "code", "metadata": {}, "outputs": [], "execution_count": None,
+              "source": T0_CELL_S6}
+        s6a = {"id": "fork-s6-anchor", "cell_type": "code", "metadata": {}, "outputs": [], "execution_count": None,
+               "source": S6_ANCHOR_CELL}
+        compile(S6_ANCHOR_CELL, "fork-s6-anchor", "exec")
+        clash = sorted(module_level_names(S6_ANCHOR_CELL) & set(ANCHOR_GLOBALS))
+        if clash:
+            raise SystemExit(f"fork-s6-anchor binds {clash}")
+        # stage 2 mentions the CoAtNet only in a comment ("the Raptor stage ran first"); it must not use its files
+        for needle in (NARTAA_DATASET.split("/")[1], "raptor_", "RAPTOR_SECONDS", f949.ANCHOR_CKPT):
+            if any(needle in cell_text(c) for c in kept[4:6]):
+                raise SystemExit(f"--s6-anchor: stage 2 uses {needle!r} from the CoAtNet stage")
+        cells = kept[:2] + [t0] + kept[4:6] + [s6a]
+    else:
+        t0 = {"id": "fork-t0", "cell_type": "code", "metadata": {}, "outputs": [], "execution_count": None, "source": T0_CELL}
+        cells = kept[:2] + [t0] + kept[2:]
     return {
-        "cells": kept[:2] + [t0] + kept[2:] + fork_cells,
+        "cells": cells + fork_cells,
         "metadata": {
             "kernelspec": nb["metadata"].get("kernelspec", {"display_name": "Python 3", "language": "python", "name": "python3"}),
             "language_info": nb["metadata"].get("language_info", {"name": "python"}),
@@ -195,7 +251,7 @@ def build_notebook(nb, fork_cells, provenance, s6_only):
     }
 
 
-def build_metadata(params):
+def build_metadata(params, mode="blend"):
     ours = []
     for v in params.members:
         if v not in MEMBER_SOURCES:
@@ -214,7 +270,8 @@ def build_metadata(params):
         "enable_tpu": False,
         "enable_internet": False,
         "keywords": [],
-        "dataset_sources": [*ANCHOR_DATASETS, *f949.LABEL_DATASETS] + sorted(ours),
+        "dataset_sources": [d for d in ANCHOR_DATASETS if not (mode == "s6_anchor" and d == NARTAA_DATASET)]
+                           + [*f949.LABEL_DATASETS] + sorted(ours),
         "kernel_sources": [],
         "competition_sources": [COMPETITION],
         "model_sources": [f949.DINOV2_MODEL],
@@ -223,20 +280,20 @@ def build_metadata(params):
     }
 
 
-def build(params, s6_only, notebook=ANCHOR_NOTEBOOK, pipeline=PIPELINE):
+def build(params, mode, notebook=ANCHOR_NOTEBOOK, pipeline=PIPELINE):
     if sha256_file(notebook) != ANCHOR_NOTEBOOK_SHA256:
         raise SystemExit(f"{notebook}: sha256 differs from the 2026-10-11 pull")
     nb = load_notebook(notebook)
-    check_anchor(nb, s6_only)
+    check_anchor(nb)
     text, pipeline_sha = prepare_pipeline(pipeline, params.members)
     payload = make_payload(text)
-    fork_cells = render_fork_cells(payload, sha256_text(text), pipeline_sha, params)
+    fork_cells = render_fork_cells(payload, sha256_text(text), pipeline_sha, params, mode)
     selftest_blend(fork_cells)
     provenance = {
         "builder": "src/build_fork954.py",
         "source_notebook": os.path.basename(notebook),
         "source_notebook_sha256": ANCHOR_NOTEBOOK_SHA256,
-        "s6_only": s6_only,
+        "s6_only": mode == "s6_only",
         "pipeline_sha256": pipeline_sha,
         "payload_sha256": sha256_text(text),
         "members": list(params.members),
@@ -246,7 +303,9 @@ def build(params, s6_only, notebook=ANCHOR_NOTEBOOK, pipeline=PIPELINE):
         "hard_stop_h": params.hard_stop_h,
         "sec_per_study": params.sec_per_study,
     }
-    return build_notebook(nb, fork_cells, provenance, s6_only), build_metadata(params), payload
+    if mode == "s6_anchor":
+        provenance["s6_anchor"] = True
+    return build_notebook(nb, fork_cells, provenance, mode), build_metadata(params, mode), payload
 
 
 def main(argv=None):
@@ -261,19 +320,25 @@ def main(argv=None):
     ap.add_argument("--hard-stop-hours", type=float, default=8.4)
     ap.add_argument("--sec-per-study", type=float, default=5.5)
     ap.add_argument("--s6-only", action="store_true", help="A14: stage-3 weights 0.0 / 1.0 and beta 0 (S6 alone)")
+    ap.add_argument("--s6-anchor", action="store_true", help="C6: no CoAtNet stage; our arm blends onto S6 alone (OAI-free)")
     ap.add_argument("--check", action="store_true", help="build in memory and compare with the files on disk")
     a = ap.parse_args(argv)
     os.chdir(ROOT)
+    if a.s6_only and a.s6_anchor:
+        raise SystemExit("--s6-only and --s6-anchor are exclusive")
+    mode = "s6_only" if a.s6_only else ("s6_anchor" if a.s6_anchor else "blend")
     beta = 0.0 if a.s6_only else a.beta
     params = f949.ForkParams(members=tuple(a.members), beta=beta, betas_diag=tuple(a.betas_diag), gate_h=a.gate_hours,
                              hard_stop_h=a.hard_stop_hours, sec_per_study=a.sec_per_study)
-    out_nb, meta, payload = build(params, a.s6_only, a.notebook, a.pipeline)
+    out_nb, meta, payload = build(params, mode, a.notebook, a.pipeline)
     nb_text, meta_text = dump_json(out_nb), dump_json(meta)
     nb_path = os.path.join(a.out, "rsna-knee-fork954.ipynb")
     meta_path = os.path.join(a.out, "kernel-metadata.json")
-    summary = (f"{nb_path}: {len(out_nb['cells'])} cells (7 anchor + 1 clock + 3 fork); "
+    summary = (f"{nb_path}: {len(out_nb['cells'])} cells ("
+               + ("4 anchor + 1 clock + 1 S6-anchor + 3 fork" if mode == "s6_anchor" else "7 anchor + 1 clock + 3 fork") + "); "
                f"{len(meta['dataset_sources'])} datasets; payload {len(payload) / 1024:.0f} KB; "
-               f"members {list(params.members)} beta {params.beta}" + (" [S6 ONLY: stage-3 weights 0.0 / 1.0]" if a.s6_only else ""))
+               f"members {list(params.members)} beta {params.beta}" + (" [S6 ONLY: stage-3 weights 0.0 / 1.0]" if a.s6_only else "")
+               + (" [S6 ANCHOR: no CoAtNet stage, OAI-free]" if a.s6_anchor else ""))
     if a.check:
         ok = True
         for path, text in ((nb_path, nb_text), (meta_path, meta_text)):

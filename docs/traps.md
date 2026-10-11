@@ -1271,3 +1271,15 @@ rewrote line 184 **and** line 3556, `infer_members = []          # [(version, fo
 line at column 0, and loudly; a collision that still compiled (a lower-case `mode = …` or `force_smoke = …`) would ship a wrong build
 silently. **Do:** in PowerShell use `-creplace` (and `Select-String -CaseSensitive` for the check), then diff the build against `src/`
 (`git diff --no-index --unified=0 src/kaggle_pipeline.py artifacts/<build>.py`): exactly the intended lines may differ.
+
+### 68. A public anchor notebook can pip-install packages into the shared environment before our fork arm runs: heliosli's 0.954 stage 2 swaps timm 1.0.29 → 1.0.25 and pydicom 3.0.2 → 3.0.1 (`--no-deps`), so our pipeline runs on versions it was never checked on (Tier 1 risk, checked clean 2026-10-11)
+
+Our fork arms (`build_fork949.py`, `build_fork954.py`) launch our pipeline as a subprocess of the **same** Python after the
+anchor's cells. heliosli's notebook (the C5 / A14 / C6 anchor) unpacks `dependencies/wheels/timm-1.0.25` and `pydicom-3.0.1` from
+`heliosli/rsna-orthofoundation-fold0-epoch7-20261004` and installs them over the image's timm 1.0.29 / pydicom 3.0.2 before S6 runs.
+Our members were trained on timm 1.0.26–1.0.29; a model-definition or default change between versions would change our predictions
+with no error, and the fork's validator only checks the schema, ranges and constant columns. **Checked 2026-10-11:** `rsna-knee-fork954`
+v1 logged `timm 1.0.25 convnext_tiny: loaded 180 tensors` / `efficientnet_b3: loaded 572 tensors`, and its `_ours.csv` equals
+`rsna-knee-infer` v75's `submission.csv` (B21 on the image's own timm) to max |diff| 0.0 on the 3 placeholder studies (rank values on
+3 studies: a weak check). **Do:** for every new anchor, grep its cells for `pip install` / `.whl` before building; after the
+placeholder, diff our arm's `_ours.csv` against the same members' solo infer output on the same studies.

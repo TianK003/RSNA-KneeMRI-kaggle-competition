@@ -154,6 +154,7 @@ agreement with the teacher, not truth. A one-seed LB delta needs ≥ 0.004 (P-44
 | 2026-10-11 | **P-82 DINOv2-S pair (`rsna-knee-train-b` v13, 7.35 h) + solos #76 / #77 (`rsna-knee-infer` v72 / v73)**: DINOv2-S/14 @ 280 on `v15c`'s data side, top block 1e-4 / LLRD 0.8 (`v16d1`) vs 3e-4 / 0.75 (`v16d3`) | gold-58 SWA 0.9066 / 0.8604 | **0.932 / 0.893** | **❌ the better arm 0.932 ≤ 0.934 (−0.010 vs `v15c`): DINOv2 stays dropped, no B20; +0.014 over the old `v08r` 0.918; the LR direction is low (3e-4 collapses in the warm-up)** (entry 2026-10-11 "P-82 read") |
 | 2026-10-11 | **A9, submission #78 (`rsna-knee-infer` v74)**: `v15co` = `v15c` + 2,399 OAI knees (masked soft targets on Synovitis / PF OA / Lateral OA; RunPod, 10-10) | 0.9211 | **0.945** | **🔁 +0.003 vs `v15c` 0.942 (✅ needed ≥ 0.946), the top of the band: our best single model on the LB, OAI-trained → pick 2 only. Gold-58 had it −0.0023 (traps 39). A C4b leg on it (B21 → C4c) prices at ≈ +0.0005–0.0007 on the fork; P-81 closed** (entry 2026-10-11 "Submission #78") |
 | 2026-10-11 | **The public frontier moved to 0.954** (no GPU): heliosli's public blend = nartaa's 0.949 CoAtNet 0.7 + S6 (ConvNeXt-S, 4 folds, joint-anchored views, "report-derived targets") 0.3; ≈ 278 teams at 0.954, 432 ≥ 0.953; we are rank 504 at 0.951 | — | — | **✅ a read: C4c dominated and dropped; C5 (the 0.954 blend + B21, pred. 0.954–0.956) and A14 (S6 alone, a pick-1 question) queued** (entry 2026-10-11 "The public frontier moved to 0.954") |
+| 2026-10-11 | **C5, submission #80 (`rsna-knee-fork954` v1, `src/build_fork954.py`)**: heliosli's public 0.954 notebook verbatim + B21 at β 0.20 | — | ⏳ | **⏳ placeholder green (raptor 49 s, S6 PASS, ours rc 0 under timm 1.0.25, output = infer v75); sent 12:13 UTC; pred. 0.954–0.956** (entry 2026-10-11 "C5 built and sent") |
 | 2026-10-11 | **B21, submission #79 (`rsna-knee-infer` v75)**: flat rank-mean `v15co` + `v13b3` (= B18 with the OAI ConvNeXt) | — | **0.946** | **🔁 +0.002 vs B18 0.944 (✅ needed ≥ 0.948); the pre-registered C4c gate (≥ 0.946) fires. Members' mean 0.9425 + 0.0035: the blend rule held a sixth time. Our best own-model number, = C3; OAI-carrying → the C4-family leg only** (entry 2026-10-11 "Submission #79") |
 
 **External reference points** (not ours — for calibrating ambition):
@@ -4625,6 +4626,31 @@ of three "LB 0.954" notebooks as text, nothing executed; `kaggle datasets metada
 **Verdict: ✅ a read (no GPU). The 0.954 plateau is a public two-model blend of the 0.949 CoAtNet and a ConvNeXt-S 4-fold "S6".
 C4c is dropped (dominated); C5 (the 0.954 blend + B21) and A14 (S6 alone, the pick-1 question) enter candidates.md, both needing a
 builder, a placeholder and Tian's go.**
+
+### 2026-10-11 — C5 built and sent: `src/build_fork954.py` (heliosli's 0.954 notebook verbatim + B21 at β 0.20), placeholder green, #80 ⏳ · A14 (S6 alone) and C6 (S6 + B18, OAI-free) builds ready
+
+**On Tian's go** ("lets do C5, then focus on A14"; S6 allowed in pick 1). `src/build_fork954.py` reuses `build_fork949.py`'s arm (same
+fail-soft rules and blend) around `notebook_score_0.954.ipynb` (heliosli's notebook pulled 10-11, sha256 `1dc9a5df…`): its seven cells
+byte-identical, a clock cell after its two markdown cells, the kernel pinned to its Docker image (`…2757e0c7`, the image
+`rsna-knee-fork949` also carries; the push kept the pin and the T4). Three modes:
+- **C5** (default): our arm blends B21 (`v15co` + `v13b3`) at **β 0.20**, chosen a priori: with the diversity gain modelled as
+  k · β(1 − β) (k ≈ 0.0167 from C4b's +0.002 at β 0.35) against a 0.008 leg gap, the lift peaks at β ≈ 0.2–0.26 (≈ +0.001); 0.10 /
+  0.30 are written as diagnostics only.
+- **A14** (`--s6-only`): one changed line, stage 3's `W_RAPTOR, W_OURS = 0.7, 0.3` → `0.0, 1.0`; β 0 (our arm off).
+- **C6** (`--s6-anchor`): stage 1 (the OAI-trained CoAtNet) and stage 3 dropped, nartaa's Dataset not mounted, `NB_T0` set in the
+  clock cell (stage 2 reads it), a cell writes S6's `ours_sub.csv` as the anchor `submission.csv`; stage 2's two cells byte-identical;
+  no `raptor_` file or nartaa reference left in the code (checked in the build).
+
+**C5 placeholder (`rsna-knee-fork954` v1, 12:07–12:12 UTC, 3 test studies):** nartaa's stage 49 s; S6 PASS in 105 s (two T4s,
+per-study decode 38 s / GPU 22 s, cold); heliosli's blend `NOTEBOOK_COMPLETE`; our arm rc 0 in 86 s under timm 1.0.25 (traps 68), `decode-once
+verified`, `constant labels 0`, `FINAL submission.csv = beta0.20`. Our arm's `_ours.csv` = infer v75's output exactly. S6's
+steady-state rate in heliosli's own run (a worker's second study 16 s) puts the hidden test at ≈ 8 s/study wall for S6, so the
+notebook should fit the 9 h with our arm (gate 6 h, hard stop 8.4 h; if S6 runs long, the arm is skipped and C5 = the anchor).
+Sent 12:13:18 UTC as **#80** (ref 57073480), watcher `artifacts/watch_57073480.log`. A14 = v2 pushed 12:13 UTC (queued on Kaggle at
+12:23 UTC); it sends at 00:00 UTC 10-12 (10-11's five slots are used).
+
+**Verdict: ⏳ PENDING (#80). Read rule (candidates.md C5): vs the 0.954 anchor, ✅ ≥ 0.957 / 🔁 0.952–0.956 / ❌ ≤ 0.951; pred.
+0.954–0.956. An exact 0.954 cannot tell a zero gain from a skipped arm; the scoring time is the only hint.**
 
 ## Infrastructure
 
