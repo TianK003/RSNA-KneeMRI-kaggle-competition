@@ -6,6 +6,100 @@ to read first after a break.
 
 ---
 
+## 2026-10-11 (11:45 → 12:30 UTC) — B21 read **0.946** (#79) · the public frontier moved to **0.954** (heliosli = nartaa's CoAtNet + S6) · **C5 built and sent (#80 ⏳)** · A14 (S6 alone) armed for 00:00 UTC · C6 (S6 + B18, OAI-free) built, not pushed
+
+Tian, in order: "pull the results and run /update, what do you suggest next? I think we should still focus on our single model
+performances of smaller CNNs … and then ensemble it into the 0.949/0.950 notebooks"; then "Ok lets do C5, then focus on A14. S6 is
+allowed in pick 1, dont worry about picks 1 and 2 yet because we are far from submitting the final picks"; then "run /update and
+/handoff". Commits `2ba229b` … `3a7c503` plus this one. **No handoff entries exist for 10-09 → 10-11 morning** (sessions after the
+10-08 entry below): their reads are in experiments.md ("Submissions #69 and #73", "Submissions #70–#72", "Sessions A ‖ B read",
+"Submissions #74–#75", "P-82 read", "P-67 session C read", "Submission #78") and CLAUDE.md's state block.
+
+### ⏳ Still in flight as this was written (12:30 UTC)
+
+| In flight | What it is | Started | How to check | How to read it |
+|---|---|---|---|---|
+| **Submission #80 = C5** (ref 57073480) | `rsna-knee-fork954` v1: heliosli's public 0.954 notebook verbatim + B21 (`v15co` + `v13b3`) at β 0.20 | sent 12:13:18 UTC | `kaggle competitions submissions rsna-knee-abnormality-detection` (top row); `artifacts/watch_57073480.log` (its watcher is a background task of this Claude session and dies with it) | pre-registered (candidates.md C5): vs 0.954, **✅ ≥ 0.957 / 🔁 0.952–0.956 / ❌ ≤ 0.951**; pred. 0.954–0.956. Expect ≈ 2–5 h of scoring (nartaa ≈ 1 h + S6 ≈ 3 h + ours ≈ 1 h on a ~1,300-study test). **Suspicious:** an `ERROR` status (a hidden-test crash or the 9 h limit); exactly 0.954 cannot tell a zero gain from a skipped arm (the arm is skipped if the anchor took > 6 h), so note the scoring time |
+| **A14 placeholder** `rsna-knee-fork954` **v2** (`--s6-only`) | the 0.954 notebook with stage 3's weights 0.0 / 1.0 (S6 alone), our arm off | pushed 12:13 UTC; still **QUEUED** at 12:24 | `kaggle kernels status tiankljucanin/rsna-knee-fork954`; then `PYTHONUTF8=1 PYTHONPATH=src .venv/Scripts/python.exe src/watch_kernel.py tiankljucanin/rsna-knee-fork954 --out artifacts/kaggle_out/fork954_v2 --pattern "(\.log\|\.json\|\.csv)$" --key NOTEBOOK_COMPLETE --key "[fork"` | **Green** = `OURS_STAGE_COMPLETE {"status": "PASS"…}`, `NOTEBOOK_COMPLETE {"weights": {"raptor": 0.0, "ours": 1.0}…}`, `[fork] ANCHOR-ONLY CONTROL`, `FINAL submission.csv = anchor_control`, and `submission.csv` = the per-label ranks of `ours_sub.csv`. **Red** (ERROR, a Traceback, a missing NOTEBOOK_COMPLETE) → `Stop-Process -Id 15852` before 00:00 UTC, fix, rebuild |
+| **Auto-submitter, Windows pid 15852** | `src/auto_submit.py --plan artifacts/submit_plan_1012.json --at 2026-10-12T00:00:30Z`: **A14 = `rsna-knee-fork954` v2**, then a watcher. Dry run green 12:24 (API ok) | 12:24 UTC | `Get-Content artifacts/auto_submit_1012.log -Tail 10` (+ `.err`); `Get-Process -Id 15852` | **Green** = `sent 1 / 1` just after 00:00 UTC and a `-> ref …` line. Needs the laptop **on AC with the lid open** through 00:00 (traps 53; on AC at 12:24). **Fallback:** `$env:PYTHONUTF8="1"; .venv/Scripts/python.exe src/auto_submit.py --plan artifacts/submit_plan_1012.json` (sends at once; skips anything already sent that UTC day). A14's read rule: **≥ 0.948 → build C6; ≤ 0.945 → S6 is no pick-1 lever** |
+
+### Where things stand
+
+| | Status |
+|---|---|
+| Public LB | 0.951 (C4b #73), **rank 504 of 5,733** (218 on 10-10): the plateau is now **0.954** (≈ 278 teams; heliosli's public blend) |
+| Reads this session | ✅ **B21 #79 = 0.946** (🔁 +0.002 vs B18; our best own-model number, OAI-carrying); ✅ the frontier read (no GPU). C4c dropped (dominated) |
+| C5 | ✅ `src/build_fork954.py` (C5 / A14 / C6 modes), `notebook_score_0.954.ipynb` (pulled 10-11, sha256 `1dc9a5df…`); ✅ placeholder v1 green; ⏳ #80 scoring |
+| A14 | ⏳ placeholder v2 queued; ⏳ send armed for 00:00:30 UTC 10-12 (pid 15852) |
+| C6 | ✅ dry build green (`--s6-anchor`: 9 cells, stage 2 byte-identical, no CoAtNet stage, nartaa not mounted); not pushed (gated on A14 ≥ 0.948) |
+| Budgets | Kaggle GPU **4.88 h** until 10-17 (25.12 h used); 10-11's 5 slots used (#76–#80); 10-12 has 5 (A14 takes 1); RunPod ≈ $9.5 |
+| Committed renders | `rsna-knee-fork954` = **v2 (A14)**; v1 (C5) rebuilds byte-identical with `--members v15co v13b3 --beta 0.20`; `rsna-knee-infer` = v75 (B21); `rsna-knee-fork949` = v2 (C4b) |
+| Repo | clean except the untracked `discussion.py` / `discussion_*.xml` (not ours) |
+
+### What we talked about and decided
+
+- **Tian's thesis** (improve small single CNNs, then blend into the public notebooks) vs my read: on a 0.954 two-model anchor our leg
+  enters at β ≈ 0.2, so +0.001 on our models is ≈ +0.0002 on pick 2; single-model gains pay in full only on pick 1; our recent
+  recipe reads were flat or down (P-67 lowres / grid, P-68, P-82, A8). S6 itself (ConvNeXt-S, ≈ 0.95 without OAI per its card) shows a
+  small CNN can get there; its named differences from `v15c` are joint-anchored views, ConvNeXt-S, 4 folds, a side classifier.
+  **Decided (Tian):** C5 first, then A14; the single-model work comes after.
+- **S6 is allowed in pick 1** (Tian, brainstorm.md, DECIDED). **The picks are not a concern yet** ("far from submitting the final
+  picks"): no pick bookkeeping until late.
+- **β 0.20 for C5**, a priori (not tuned on the LB): the fork rule with a diversity gain ∝ β(1 − β) peaks at β ≈ 0.2–0.26 against a
+  0.008 leg gap (experiments.md "C5 built and sent").
+- **A14 as a one-line weight patch** (stage 3 → 0.0 / 1.0) rather than a rewrite: the CoAtNet still runs (≈ 1 h of scoring time)
+  and gives the fallback rank for any study S6 fails on. **C6 drops the CoAtNet stage completely** (OAI-free) and uses **B18**
+  (`v15c` + `v13b3`), the C3 / C4b leg, rather than B19 (B19 needs the vote-group sed in the payload; both read 0.944).
+- **Sending A14 unattended at 00:00** before its placeholder was read: its code path is C5's (green) plus one changed weight line,
+  and a red placeholder leaves 11 h to stop pid 15852.
+
+### What we figured out
+
+1. **B21 = 0.946**: the blend rule held a sixth time (+0.0035 over the members' mean); the C4c gate fired, then the frontier read
+   dominated C4c (experiments.md "Submission #79").
+2. **The 0.954 plateau is heliosli's public blend**: nartaa's 0.949 OAI CoAtNet 0.7 + S6 0.3 (ConvNeXt-S, 4 folds, joint-anchored views
+   from SKM-TEA / KneeXNet anatomy weights, "report-derived targets", OAI not mentioned). By our fork rule S6 alone is ≈ 0.948–0.955
+   (experiments.md "The public frontier moved to 0.954").
+3. **heliosli's stage 2 pip-installs timm 1.0.25 / pydicom 3.0.1 over the image** before our arm runs; our output stayed identical to
+   infer v75 on the 3 placeholder studies (traps 68).
+4. **Timing:** S6 runs ≈ 16 s / study per T4 worker in steady state (≈ 8 s / study wall on two T4s); the C5 placeholder took 0.07 h
+   on 3 studies (experiments.md "C5 built and sent").
+
+### ⏭ Next action, in order
+
+1. **Read #80 (C5)** when scored → `/update`: a Submissions-table row #80 (date, `rsna-knee-fork954` v1, B21 at β 0.20, LB, scoring
+   time from `artifacts/watch_57073480.log` or two polls), the Scoreboard row's ⏳ → the verdict by the rule above. If 🔁 / ✅ it is
+   pick 2's new candidate (C4b 0.951 otherwise stays); no pick decisions now (Tian).
+2. **Verify the A14 placeholder** (in-flight row 2) before 00:00 UTC; red → stop pid 15852. **Do not push `rsna-knee-fork954` v3
+   before reading v2's output**: `kaggle kernels output` serves the latest version only (traps 62).
+3. **After 00:00 UTC:** confirm `sent 1 / 1` in `artifacts/auto_submit_1012.log`; read A14 when scored → `/update` (experiments.md
+   entry + rows; candidates.md A14 row deleted).
+4. **If A14 ≥ 0.948: C6.** β = (1 − Δ / 0.0167) / 2 with Δ = A14 − 0.944 (B18), clamped to 0.20–0.45 (A14 0.950 → 0.32; 0.948 →
+   0.38; 0.952 → 0.26). `PYTHONUTF8=1 PYTHONPATH=src .venv/Scripts/python.exe src/build_fork954.py --s6-anchor --members v15c v13b3
+   --beta <β>`, push (`kaggle kernels push -p kaggle/rsna-knee-fork954`), green = `S6_ANCHOR_WRITTEN rows 3`, our arm rc 0,
+   `FINAL submission.csv = beta<β>`, and no `RAPTOR_STAGE_DONE` in the log. The send is Tian's call. Read: vs A14, ✅ ≥ A14 + 0.004 /
+   🔁 ± 0.003 / ❌ ≤ A14 − 0.004.
+5. **Single models (Tian's thesis), after A14:** read heliosli's public S6 / anatomy source (`heliosli/rsna-orthofoundation-fold0-
+   epoch7-20261004`: `cloud_code/training/anatomy.py`, `compact_infer.py` inside the 0.954 notebook's `SOURCES`; no GPU) for what
+   "joint-anchored views" do, and write the cards: (a) a ConvNeXt-S arm on the `v15c` recipe (RunPod ≈ $2–3, critic + go), (b)
+   joint-anchored crops (probably too large for 11 days: a re-cache), (c) the P-67 loop (4.88 Kaggle GPU-h until 10-17).
+
+### Open decisions for Tian
+
+- The C6 send (after A14 ≥ 0.948), and whether C6 should carry B19 (the twins as one vote) instead of B18.
+- The single-model direction after A14: ConvNeXt-S on RunPod, joint-anchored crops, or the P-67 loop (budget: 4.88 Kaggle GPU-h until
+  10-17, then 30 h; RunPod ≈ $9.5).
+
+### Things that will bite if forgotten
+
+- **pid 15852 sends at 00:00:30 UTC only if the laptop is awake** (AC + lid open; traps 53). The two background watchers of this
+  session (C5 #80, A14 placeholder) die when the session ends.
+- `kaggle/rsna-knee-fork954/` on disk is **A14 (v2)**; C5 is v1. Rebuild C5 with `--members v15co v13b3 --beta 0.20` (byte-identical,
+  checked).
+- heliosli's notebook changes the environment under our arm (traps 68); recheck `_ours.csv` against a solo infer output for any new
+  member set.
+- The fork arm is skipped if the anchor stages take > 6 h (`--gate-hours`); then the submission is the anchor alone and reads 0.954.
+
 ## 2026-10-08 (12:10 → 19:55 UTC) — C4 read **0.950** (rank 157) · **OAI access granted and P-81 built end to end** (`v15co`, local smokes green, critic GO WITH CHANGES applied) · `v15c2` pod **ended early, cause unknown** · label-split + vote-group infer options built
 
 Tian, in order: "pull the submissions and run /update … explain how we got .950 … what work we should do now"; started the NDA
