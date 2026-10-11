@@ -154,7 +154,7 @@ agreement with the teacher, not truth. A one-seed LB delta needs ≥ 0.004 (P-44
 | 2026-10-11 | **P-82 DINOv2-S pair (`rsna-knee-train-b` v13, 7.35 h) + solos #76 / #77 (`rsna-knee-infer` v72 / v73)**: DINOv2-S/14 @ 280 on `v15c`'s data side, top block 1e-4 / LLRD 0.8 (`v16d1`) vs 3e-4 / 0.75 (`v16d3`) | gold-58 SWA 0.9066 / 0.8604 | **0.932 / 0.893** | **❌ the better arm 0.932 ≤ 0.934 (−0.010 vs `v15c`): DINOv2 stays dropped, no B20; +0.014 over the old `v08r` 0.918; the LR direction is low (3e-4 collapses in the warm-up)** (entry 2026-10-11 "P-82 read") |
 | 2026-10-11 | **A9, submission #78 (`rsna-knee-infer` v74)**: `v15co` = `v15c` + 2,399 OAI knees (masked soft targets on Synovitis / PF OA / Lateral OA; RunPod, 10-10) | 0.9211 | **0.945** | **🔁 +0.003 vs `v15c` 0.942 (✅ needed ≥ 0.946), the top of the band: our best single model on the LB, OAI-trained → pick 2 only. Gold-58 had it −0.0023 (traps 39). A C4b leg on it (B21 → C4c) prices at ≈ +0.0005–0.0007 on the fork; P-81 closed** (entry 2026-10-11 "Submission #78") |
 | 2026-10-11 | **The public frontier moved to 0.954** (no GPU): heliosli's public blend = nartaa's 0.949 CoAtNet 0.7 + S6 (ConvNeXt-S, 4 folds, joint-anchored views, "report-derived targets") 0.3; ≈ 278 teams at 0.954, 432 ≥ 0.953; we are rank 504 at 0.951 | — | — | **✅ a read: C4c dominated and dropped; C5 (the 0.954 blend + B21, pred. 0.954–0.956) and A14 (S6 alone, a pick-1 question) queued** (entry 2026-10-11 "The public frontier moved to 0.954") |
-| 2026-10-11 | **C5, submission #80 (`rsna-knee-fork954` v1, `src/build_fork954.py`)**: heliosli's public 0.954 notebook verbatim + B21 at β 0.20 | — | ⏳ | **⏳ placeholder green (raptor 49 s, S6 PASS, ours rc 0 under timm 1.0.25, output = infer v75); sent 12:13 UTC; pred. 0.954–0.956** (entry 2026-10-11 "C5 built and sent") |
+| 2026-10-11 | **C5, submission #80 (`rsna-knee-fork954` v1, `src/build_fork954.py`)**: heliosli's public 0.954 notebook verbatim + B21 at β 0.20 | — | **0.954** | **🔁 Δ 0.000 vs the anchor (✅ needed ≥ 0.957), but 9th of 425 in the 0.954 tie, above the blend's verbatim copies: the arm ran, a sub-tick lift. Fork-rule gain +0.0014–0.0026 (its low end); our best public number (rank 147), pick 2's candidate by its rule; C6 re-priced to ≈ A14** (entries 2026-10-11 "C5 built and sent", "Submission #80") |
 | 2026-10-11 | **B21, submission #79 (`rsna-knee-infer` v75)**: flat rank-mean `v15co` + `v13b3` (= B18 with the OAI ConvNeXt) | — | **0.946** | **🔁 +0.002 vs B18 0.944 (✅ needed ≥ 0.948); the pre-registered C4c gate (≥ 0.946) fires. Members' mean 0.9425 + 0.0035: the blend rule held a sixth time. Our best own-model number, = C3; OAI-carrying → the C4-family leg only** (entry 2026-10-11 "Submission #79") |
 
 **External reference points** (not ours — for calibrating ambition):
@@ -4652,6 +4652,61 @@ Sent 12:13:18 UTC as **#80** (ref 57073480), watcher `artifacts/watch_57073480.l
 **Verdict: ⏳ PENDING (#80). Read rule (candidates.md C5): vs the 0.954 anchor, ✅ ≥ 0.957 / 🔁 0.952–0.956 / ❌ ≤ 0.951; pred.
 0.954–0.956. An exact 0.954 cannot tell a zero gain from a skipped arm; the scoring time is the only hint.**
 
+**READ 2026-10-11:** #80 = 0.954 (🔁); see the next entry.
+
+### 2026-10-11 — Submission #80: C5 = the public 0.954 blend + B21 at β 0.20 **0.954** · 🔁 = the anchor at three decimals, but above it in the tie (rank 147, 9th of 425 at 0.954) · the fork rule's diversity gain +0.0014–0.0026, its low end · our best public number · A14 placeholder green
+
+**Read** (17:48 UTC; `kaggle competitions submissions`, `kaggle competitions leaderboard -d` at 17:49 UTC): #80 (ref 57073480,
+`rsna-knee-fork954` v1, sent 12:13:18 UTC) **COMPLETE, 0.954**. The watcher died with the session after its first poll, so the scoring
+time is only bounded: ≤ 335.7 min (5.6 h), first seen COMPLETE at ≈ 17:49 UTC.
+
+| # | what | parts (weight) | LB | pre-registered read (candidates.md C5) | verdict |
+|---|---|---|---|---|---|
+| 80 | C5 = heliosli's public 0.954 blend + B21 (`v15co` + `v13b3`) at β 0.20 (`rsna-knee-fork954` v1) | anchor 0.954 (0.8) / B21 0.946 (0.2); weighted mean 0.9524 | **0.954** | vs 0.954: ✅ ≥ 0.957 / 🔁 0.952–0.956 / ❌ ≤ 0.951; pred. 0.954–0.956 | **🔁 Δ 0.000 at three decimals, the bottom of the prediction** |
+
+- **Did our arm run? Almost certainly yes.**
+  - **The gate did not fire.** The arm is skipped only if the anchor stages take more than 6 h, and the whole scoring took at most 5.6 h.
+  - **The tie position.** Kaggle orders a tie by the unrounded score, not by submission time: 332 of the 338 tied teams that last
+    submitted before us rank below us (Spearman of rank vs. last-submission date −0.15 inside the 0.954 tie; −0.34 / −0.15 inside the
+    0.950 / 0.943 ties). C5 is rank 147, **9th of the 425 teams at 0.954**. It sits above the verbatim copies of the blend
+    (`jenillangaliya` 378; `matterhorn3838` 262, `nartaa` 280 and `rabari9999` 305, whose best entries are likely the blend too). It
+    also sits just above `goodpjw2008`'s version (150), which adds two private 0.930–0.933 readers and ranked above the plain blend.
+  - **What that implies.** A fail-soft fallback (submission = the anchor) would score like those copies. So C5's unrounded score is
+    above the plain blend's, and our leg lifted it by more than 0 and less than 0.001. Caveat: those teams' best entries may not be
+    the exact blend.
+- **The fork rule, a fifth time:** read − weighted mean of the parts = 0.954 − 0.9524 ≈ +0.0016. With read > anchor (the tie) and the
+  three roundings, the diversity gain is **g ∈ (+0.0014, +0.0026): the low end of the four earlier forks' +0.002–0.004** (mean +0.003).
+  As k = g / β(1 − β), k ≈ 0.009–0.016 against C4b's ≈ 0.012–0.021: overlapping, so direction only. The risk the C5 row named ("the gain
+  may shrink on a two-model anchor") is weakly confirmed. A plausible mechanism, not tested: this anchor already carries both of our
+  leg's ingredients, a ConvNeXt (S6, ConvNeXt-S; `v15co` is a ConvNeXt-T) and the same 2,399 OAI knees (nartaa's CoAtNet), while the
+  earlier anchors (the 0.942 stack, the 0.949 CoAtNet) had no ConvNeXt: the blend rule's "a family already present adds little".
+- **What it decides:**
+  - **β cannot buy a tick on this anchor.** Against a 0.008 gap the lift (k − Δ)² / 4k is ≤ +0.001 even at the top of k (β ≈ 0.25),
+    and ≈ 0 at its bottom. No C5 β variant (already "not planned").
+  - **Our leg on this anchor:** each +0.001 on the leg is ≈ +0.0002 on C5 (as priced on 10-11). A readable tick needs a leg near the
+    anchor's level, or a family the anchor lacks.
+  - **Pick 2, by the pre-registered rule** (no pick decision now, Tian 10-11): C5 ≥ 0.953 → C5 replaces C4b (0.951) as pick 2's
+    candidate. It equals the public blend at three decimals and sits above it in the tie.
+  - **C6 (S6 + B18) re-priced:** its β formula assumed k ≈ 0.0167, and S6 is the very ConvNeXt this anchor carries. With k 0.009–0.0167
+    and A14 at 0.950 (Δ 0.006 over B18), the best lift is (k − Δ)² / 4k ≈ +0.0003–0.0017 at β ≈ 0.17–0.32. So C6 most likely reads
+    = A14 at three decimals, and its ✅ band (≥ A14 + 0.004) is out of reach. Its use is pick-1 content (our models inside an OAI-free
+    pick 1), not a public tick (candidates.md C6).
+- **A14 placeholder** (`rsna-knee-fork954` v2, COMPLETE; output pulled 17:48 UTC to `artifacts/kaggle_out/fork954_v2/`): nartaa's stage
+  63 s (it still runs: A14 is a one-line weight patch); S6 `OURS_STAGE_COMPLETE {"status": "PASS", "rows": 3, "scored": 3,
+  "fallback_studies": 0, "seconds": 110.1}` (two T4s; per study decode 47.8 s, GPU 20.3 s); `NOTEBOOK_COMPLETE {"weights": {"raptor":
+  0.0, "ours": 1.0}, "raptor_failed": 0, "ours_failed": 0, "total_seconds": 197.6}`; `[fork] ANCHOR-ONLY CONTROL` → `FINAL
+  submission.csv = anchor_control` (sha256 `5cb97fbe…`, the anchor's), our arm not run. `submission.csv` = the per-label ranks (/3) of
+  S6's `ours_sub.csv` on all 12 labels (checked by hand). **Green:** the auto-submitter (pid 15852, alive at 17:48 UTC) sends it at
+  00:00:30 UTC 10-12.
+- **The board at 17:49 UTC** (5,768 teams): top 0.966, 10th 0.963; 138 ≥ 0.955; **563 ≥ 0.954 (425 at exactly 0.954)**; 600 ≥ 0.953;
+  745 ≥ 0.951; 1,190 ≥ 0.950. heliosli's own team reads **0.956** (rank 82; that version is unpublished). **We are rank 147 at 0.954**
+  (504 at 0.951 this morning).
+
+**Verdict: 🔁 INCONCLUSIVE by the pre-registered band (Δ 0.000 vs the 0.954 anchor; ✅ needed ≥ 0.957), at the bottom of the
+prediction (0.954–0.956). The tie position says the arm ran and added a positive sub-tick lift. C5 is our best public number and, by
+its rule, pick 2's candidate in place of C4b. The fork rule's diversity gain held at its low end (+0.0014–0.0026) on a two-model anchor
+that already carries a ConvNeXt; C6 is re-priced to ≈ A14.**
+
 ## Infrastructure
 
 ### 2026-09-27 — The "0.943 Speedy Raptors CoAtNet D4" notebook is our anchor **plus two CoAt readers**, not a faster graph; its "< 30 min" is a 3-study commit run · P-41 (threaded scan + 8 decode workers) smoke-green and byte-identical
@@ -5178,6 +5233,7 @@ and public LB score, so a public/private divergence can be traced to a specific 
 | 77 | 2026-10-11 | rsna-knee-infer v73 (+ Dataset `rsna-knee-ckpt-v16d3`) | **A13 / P-82, `v16d3` solo**: = A12 with top block 3e-4, LLRD 0.75 | none; gold-58 0.8604 | **0.893** | **read 08:06:36 UTC → −0.039 vs `v16d1`: the LR direction is low; scored within [27.3, 28.8] min.** sent 07:37:50 UTC, ref 57066748 |
 | 78 | 2026-10-11 | rsna-knee-infer v74 (`rsna-knee-ckpt-v15co`, mounted since v70) | **A9 / P-81, `v15co` solo**: `INFER_MEMBERS = ["v15co"]` (`v15c` + 2,399 OAI knees, masked soft targets on Synovitis / PF OA / Lateral OA, 20 epochs, SWA 3; RunPod 10-10) | none; gold-58 0.9211 | **0.945** | **read by 10:04:25 UTC → 🔁 +0.003 vs `v15c` 0.942 (✅ needed ≥ 0.946): our best single model, OAI-trained → pick 2 only; P-81 closed; scored within [21.2, 49.1] min (two manual polls).** sent 09:15:20 UTC, ref 57069333 |
 | 79 | 2026-10-11 | rsna-knee-infer v75 | **B21**: `INFER_MEMBERS = ["v15co", "v13b3"]` (`artifacts/infer_b21.py`) | none | **0.946** | **read by 11:47 UTC → 🔁 +0.002 vs B18 0.944; "≥ 0.946 → build C4c" fires; the blend rule held (+0.0035 over the members' mean); no watcher, scored within ≤ 91 min.** sent 10:16:28 UTC, ref 57070831 |
+| 80 | 2026-10-11 | rsna-knee-fork954 v1 (`src/build_fork954.py --members v15co v13b3 --beta 0.20`) | **C5**: heliosli's public 0.954 blend (nartaa's 0.949 CoAtNet 0.7 + S6 0.3, cells verbatim) + B21 (`v15co` + `v13b3`) at β 0.20 | none | **0.954** | **read by 17:49 UTC → 🔁 Δ 0.000 vs the 0.954 anchor (✅ needed ≥ 0.957); rank 147, 9th of 425 in the 0.954 tie, above the blend's verbatim copies (the arm ran: a sub-tick lift); fork-rule gain +0.0014–0.0026; our best public number, pick 2's candidate by its rule; scored within ≤ 335.7 min (the watcher died after its first poll).** sent 12:13:18 UTC, ref 57073480 |
 
 ## Closed cards index (moved here from proposals.md on 2026-10-05)
 
