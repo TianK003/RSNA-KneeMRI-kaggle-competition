@@ -152,6 +152,7 @@ agreement with the teacher, not truth. A one-seed LB delta needs ≥ 0.004 (P-44
 | 2026-10-10 | **P-68 solos, submissions #74 / #75 (`rsna-knee-infer` v68 / v69)**: `v13ex` / `v13ex2` alone | 0.9044 / 0.9190 (not readable) | **0.937 / 0.936** | **🔁 pair mean 0.9365 = the B0 seed mean 0.9365 (Δ 0.000; ✅ needed ≥ 0.9410); vs the same-seed parents +0.002 / −0.002. The cross-family CoAtNet OOF mix lifts nothing readable: P-68 closed, not adopted; Raptor 0.5 stays the target, and the label side is closed** (entry 2026-10-10 "Submissions #74–#75") |
 | 2026-10-11 | **P-67 session C (`rsna-knee-train` v51, 7.56 h)**: the proxy + one augmentation each: `v14lr` (low-resolution simulation) ‖ `v14gd` (grid distortion), seed 42, five folds | pooled 5-fold OOF **0.8609 / 0.8607** vs `v14p` 0.8628; gold 0.8981 / 0.8928 (not read) | — | **❌ `v14gd` −0.0021 (all five folds down) / 🔁 `v14lr` −0.0019 (mixed): neither clears the +0.002 bar, no transfer arm** (entry 2026-10-11 "P-67 session C read") |
 | 2026-10-11 | **P-82 DINOv2-S pair (`rsna-knee-train-b` v13, 7.35 h) + solos #76 / #77 (`rsna-knee-infer` v72 / v73)**: DINOv2-S/14 @ 280 on `v15c`'s data side, top block 1e-4 / LLRD 0.8 (`v16d1`) vs 3e-4 / 0.75 (`v16d3`) | gold-58 SWA 0.9066 / 0.8604 | **0.932 / 0.893** | **❌ the better arm 0.932 ≤ 0.934 (−0.010 vs `v15c`): DINOv2 stays dropped, no B20; +0.014 over the old `v08r` 0.918; the LR direction is low (3e-4 collapses in the warm-up)** (entry 2026-10-11 "P-82 read") |
+| 2026-10-11 | **A9, submission #78 (`rsna-knee-infer` v74)**: `v15co` = `v15c` + 2,399 OAI knees (masked soft targets on Synovitis / PF OA / Lateral OA; RunPod, 10-10) | 0.9211 | **0.945** | **🔁 +0.003 vs `v15c` 0.942 (✅ needed ≥ 0.946), the top of the band: our best single model on the LB, OAI-trained → pick 2 only. Gold-58 had it −0.0023 (traps 39). A C4b leg on it (B21 → C4c) prices at ≈ +0.0005–0.0007 on the fork; P-81 closed** (entry 2026-10-11 "Submission #78") |
 
 **External reference points** (not ours — for calibrating ambition):
 
@@ -4518,6 +4519,44 @@ one member, `decode-once verified`, `constant labels 0`, inference 0.6 min on 3 
 **Verdict: ❌ DEAD END for P-82: the better arm reads 0.932 ≤ 0.934 (−0.010 vs `v15c`, 2.5 × the one-seed band). DINOv2 stays in
 Dropped directions with the reason measured on our recipe; the quota goes to the P-67 loop (the card's fail branch).**
 
+### 2026-10-11 — Submission #78: A9 = `v15co` solo (P-81, `v15c` + 2,399 OAI knees) **0.945** · 🔁 +0.003 vs `v15c` 0.942, the top of the band · our best single model on the LB, OAI-trained → pick 2 only · P-81 closed
+
+**Run:** on Tian's go ("Send it", 10-11). Infer v74 (`INFER_MEMBERS = ["v15co"]`, `MODE = "infer"`, `FORCE_SMOKE = False`; the build
+diffed against src at exactly those three lines, `-creplace`, traps 67; `rsna-knee-ckpt-v15co` mounted since v70, 49 sources) ran green in
+2.2 min: `v15co/fold0 … [epoch 19, score 0.9211, ema True]`, `decode-once verified`, `constant labels 0`. Sent 09:15:20 UTC (ref
+57069333); PENDING at 09:36:35, COMPLETE by 10:04:25 → scored within [21.2, 49.1] min (the `watch_submission.py` watcher was stopped
+by Claude Code for low laptop memory; the bounds are two manual polls).
+
+| # | what | gold-58 | LB | pre-registered read (candidates.md A9) | verdict |
+|---|---|---|---|---|---|
+| 78 | A9 = `v15co` (infer v74) | 0.9211 | **0.945** | vs `v15c` 0.942: ✅ ≥ 0.946 / 🔁 0.939–0.945 / ❌ ≤ 0.938 (one seed, s = 0.003) | **🔁 +0.003, the top of the band** |
+
+- **What it measures:** OAI as masked external labels on our strongest recipe reads **+0.003 vs `v15c`** and +0.0035 vs the ConvNeXt
+  two-seed level 0.9415 (`v15c` 0.942, `v15c2` 0.941). Under the pre-registered one-seed bar (0.004, s = 0.003) it is 🔁. Against
+  the measured ConvNeXt spread s_c = 0.001 it looks larger, but s_c comes from a single pair and the LB rounds to 0.001.
+- **Against the 0.949 author's step** (+0.005 at 224 px, one seed): the same direction and a little smaller. Both are confounded the
+  same way: OAI adds +55 % optimizer steps per epoch (`v15co` 1,687 vs `v15c` 1,087 steps per epoch; 20 epochs each).
+- **Gold-58 called the direction wrong again** (traps 39): macro −0.0023 vs `v15c`, LB +0.003, both under their floors. Its three
+  OAI-label columns (0.849 vs 0.841) pointed the way the LB went.
+- **It can only enter pick 2.** Our best single model on the public LB (above `v15c` 0.942 and B18 / B19 0.944), but OAI-trained, so
+  pick 1 (B19) and C3 stay OAI-free (Tian, 10-09).
+- **What a C4b leg would gain:**
+  - On the blend rule, B21 = `v15co` + `v13b3` ≈ the members' mean 0.9425 + B18's cross-family pair gain +0.003 ≈ **0.945–0.946**, i.e.
+    +0.0015–0.002 over B18.
+  - On the fork rule (C4b at β 0.35, ≈ +0.00035 per +0.001 on the leg), that is ≈ **+0.0005–0.0007** → C4c ≈ 0.951–0.952 (C4b 0.951):
+    a tick at best.
+  - The leg–anchor diversity gain may also shrink, since the 0.949 anchor learned from the same OAI knees.
+  - The cheap read first is B21's own LB (one slot, a ≈ 5-GPU-min placeholder); C4c is worth a fork send only if B21 ≥ 0.946
+    (candidates.md B21 / C4c, on Tian's go).
+- **The label split** (`v15co` on its three OAI labels, `v15c` on the other nine) loses its rationale: the LB shows `v15co` as the
+  stronger whole model. Gold-58 already put it under the flat pair (0.9255 vs 0.9271). Held.
+- **OAI on further members** (e.g. an OAI EfficientNet-B3 on RunPod, ≈ $2–3) is priced out: pick 2 only, ≈ +0.0015 on B21 →
+  ≈ +0.0005 on the fork, from ≈ a quarter of the last RunPod budget. Not proposed.
+
+**Verdict: 🔁 INCONCLUSIVE for P-81: +0.003 vs `v15c` (pre-registered ✅ needed ≥ 0.946; one-seed bar 0.004). The direction matches the
+0.949 author's table; the size buys at most one tick on pick 2. P-81 is closed (closed-cards index); its follow-up is the B21 → C4c
+read in candidates.md. The OAI access / table / package reference moved from the card to research.md 2.7.11.**
+
 ## Infrastructure
 
 ### 2026-09-27 — The "0.943 Speedy Raptors CoAtNet D4" notebook is our anchor **plus two CoAt readers**, not a faster graph; its "< 30 min" is a 3-study commit run · P-41 (threaded scan + 8 decode workers) smoke-green and byte-identical
@@ -5042,6 +5081,7 @@ and public LB score, so a public/private divergence can be traced to a specific 
 | 75 | 2026-10-10 | rsna-knee-infer v69 (+ Dataset `rsna-knee-ckpt-v13ex2`) | **A11 / P-68, `v13ex2` solo**: `INFER_MEMBERS = ["v13ex2"]` (`v13ex` at seed 43) | none; gold-58 0.9190 (not readable) | **0.936** | **read 09:16:27 UTC → the pair read above; scored within [19.7, 21.2] min.** sent 08:55:13 UTC, ref 57037349 |
 | 76 | 2026-10-11 | rsna-knee-infer v72 (+ Dataset `rsna-knee-ckpt-v16d1`) | **A12 / P-82, `v16d1` solo**: `INFER_MEMBERS = ["v16d1"]` (DINOv2-S/14 @ 280 on `v15c`'s data side, top block 1e-4, LLRD 0.8, wd 0.05, 20 epochs, SWA 3; Kaggle `rsna-knee-train-b` v13) | none; gold-58 0.9066 | **0.932** | **read 08:06:07 UTC → the better P-82 arm ≤ 0.934 → ❌, DINOv2 stays dropped, no B20; scored within [30.5, 32.0] min.** sent 07:34:06 UTC, ref 57066631 (Tian: "submit these notebooks") |
 | 77 | 2026-10-11 | rsna-knee-infer v73 (+ Dataset `rsna-knee-ckpt-v16d3`) | **A13 / P-82, `v16d3` solo**: = A12 with top block 3e-4, LLRD 0.75 | none; gold-58 0.8604 | **0.893** | **read 08:06:36 UTC → −0.039 vs `v16d1`: the LR direction is low; scored within [27.3, 28.8] min.** sent 07:37:50 UTC, ref 57066748 |
+| 78 | 2026-10-11 | rsna-knee-infer v74 (`rsna-knee-ckpt-v15co`, mounted since v70) | **A9 / P-81, `v15co` solo**: `INFER_MEMBERS = ["v15co"]` (`v15c` + 2,399 OAI knees, masked soft targets on Synovitis / PF OA / Lateral OA, 20 epochs, SWA 3; RunPod 10-10) | none; gold-58 0.9211 | **0.945** | **read by 10:04:25 UTC → 🔁 +0.003 vs `v15c` 0.942 (✅ needed ≥ 0.946): our best single model, OAI-trained → pick 2 only; P-81 closed; scored within [21.2, 49.1] min (two manual polls).** sent 09:15:20 UTC, ref 57069333 |
 
 ## Closed cards index (moved here from proposals.md on 2026-10-05)
 
@@ -5113,4 +5153,5 @@ proposals.md holds live cards only (Tian, 2026-10-05). One line per measured or 
 | P-69 | ConvNeXt-T with its own recipe (`v15c`: timm `convnext_tiny.in12k_ft_in1k` @ 288, AdamW 1e-4, per-stage decay 0.9, 20 ep; RunPod, ≈ $1.46) | ✅ KEEP — #64 `v15c` **0.942** = our best solo (+0.0062 over B6's members' mean, 1.5× the floor; = B6) with the clip-rate tripwire fired; #65 B17 (B6 + it) **0.943** (🔁 +0.001; pick 1 by convention, C3's gate open, the seed twin `v15c2` is week 2's first ConvNeXt arm). The family's own optimiser was the lever (traps 46) | experiments.md 2026-10-07 "P-69 on RunPod"; 2026-10-08 "Submissions #64–#66" |
 | P-80 | ConvNeXt as the lead family: the seed twin `v15c2` (RunPod, ≈ $1.41), then the twins as one vote | ✅ measured: #70 `v15c2` **0.941** vs `v15c` 0.942 → s_c = 0.001, the bands stand, family level ≈ 0.9415; #71 B19 (the twins as one vote + `v13b3`) **0.944** = B18 → pick 1 by the tie rule. The proposed 336 px training probe was not run (A8 #72: `v15c` scored at 320 px read 0.000; proposals.md Dropped directions) | experiments.md 2026-10-08 "P-80 on RunPod", "The 10-09 placeholders"; 2026-10-09 "Submissions #70–#72" |
 | P-68 | Different-family OOF image teacher as a pseudo-label mix (`v13ex` / `v13ex2`: B0 on 0.5 LLM + 0.25 Raptor + 0.25 `xfit_v09k`, the CoAtNet cross-fit OOF; Kaggle `rsna-knee-train-b` v10) | 🔁 not adopted: #74 `v13ex` **0.937** / #75 `v13ex2` **0.936** → pair mean 0.9365 = the B0 seed mean (Δ 0.000; ✅ needed ≥ 0.9410); same-seed deltas +0.002 / −0.002. Raptor 0.5 stays; `v11o` / `v13eo` / `cnnoof_v1` not run; the label side is closed | experiments.md 2026-10-10 "Sessions A ‖ B read", "Submissions #74–#75" |
+| P-81 | OAI knees as masked external labels for our own members (`v15co` = `v15c` + 2,399 OAI knees, masked soft targets on Synovitis / PF OA / Lateral OA; NDA access 10-08; RunPod secure 4090, $2.64) | 🔁 measured: #78 `v15co` **0.945** vs `v15c` 0.942 (+0.003, ✅ needed ≥ 0.946) = our best single model, OAI-trained → pick 2 only; gold-58 had it −0.0023 (traps 39). As a C4b leg (B21 → C4c) it prices at ≈ +0.0005–0.0007 on the fork; the label split is held; OAI on further members priced out. The OAI data reference moved to research.md 2.7.11 | experiments.md 2026-10-08 "The 0.949 / 0.950 public notebooks, read"; 2026-10-10 "P-81 on RunPod"; 2026-10-11 "Submission #78" |
 | P-82 | DINOv2-S retrained on our recipe (`v16d1` ‖ `v16d3`: 280 px, `v15c`'s data side, AdamW wd 0.05, drop path 0.1, 20 ep; an LR bracket, top block 1e-4 / LLRD 0.8 vs 3e-4 / 0.75; Kaggle `rsna-knee-train-b` v13) | ❌ DEAD END: #76 `v16d1` **0.932** / #77 `v16d3` **0.893** → the better arm ≤ 0.934 (−0.010 vs `v15c` 0.942); +0.014 over the old `v08r` 0.918 but no member grade; no B20; the LR direction is low (3e-4 collapses in the warm-up). DINOv2 stays in Dropped directions | experiments.md 2026-10-11 "P-82 read" |

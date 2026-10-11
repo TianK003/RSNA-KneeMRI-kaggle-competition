@@ -100,7 +100,6 @@ everything else is decided later.** (The ConvNeXt half is superseded by the nigh
 
 | rank | id | title | status | expected value | cost | depends on |
 |---|---|---|---|---|---|---|
-| 2 | P-81 | OAI knees as masked external labels for our own members | ⏳ **10-10: `v15co` TRAINED and shipped** (RunPod secure 4090, 2.2 h, $2.64; `v15co` = `v15c` + 2,399 OAI knees, masked targets for Synovitis / PF OA / Lateral OA): gold-58 0.9211 (`v15c` 0.9234), its three OAI labels 0.849 vs 0.841 (direction only); **the read is the A9 LB solo**. NDA access granted 10-08 (auto-approved: Login.gov + email, Spain). **10-09: Tian accepted an OAI-trained pick 2**, so `v15co` can be the C4 leg at no new risk; pick 1 stays OAI-free. Rule risk open (host 741819; no ruling since 746792; NIH blocks some countries). **10-08 C4 read 0.950 (#68):** if the C4 family becomes pick 2, an OAI-trained leg adds no new risk to it, and the leg–anchor gap is that fork's only lever. **10-09 C4b read 0.951 (#73) = pick 2:** a leg at ≈ 0.949 (+0.005 over B18, about this card's step) lifts it to ≈ 0.953 only; a ✅ (≥ 0.954) needs a leg above the anchor. An OAI-trained leg cannot enter pick 1 or C3 (both OAI-free), so this card is worth ≈ +0.001–0.002 on pick 2 only; an OAI-free gain of the same size (P-68, P-67) lands on all three candidates and is worth more | +0.003–0.005 solo if the 0.949 author's step transfers (one seed, confounded); on the C4 fork ≈ +0.0015 for a leg 0.004 stronger (β × the gap it closes) | ≈ 3–5 days of data and label work + a CPU pod with ≈ 300–500 GB for the download and cache + one arm ≈ $1.5–2.5 (RunPod ≈ $2.3 after `v15c2`: needs a top-up) | a host ruling (access: done) |
 | 3 | P-71 | An independently trained public reader as a blend member (B16: goodpjw2008's 2.5D ConvNeXt-T, Apache-2.0) | 💡 new 2026-10-06; **recommended DROP (pending Tian), 10-08:** our own ConvNeXt-T `v15c` reads 0.942 solo (#64), so B16 would add a second, weaker (0.929) ConvNeXt vote, plus third-party code at the rerun. Was: recommended DEMOTE (≈ +0.0005 LB) | B16 ≈ 0.941–0.943 vs B6 0.942; upside if its independence beats our families' (gold ρ 0.83–0.89) | ≈ 60 lines + 1 placeholder (≈ 0.2 GPU-h) + 1 send; ≈ 20 min more scoring | — |
 | 4 | P-72 | A seventh family on the `v13h` recipe (`eca_nfnet_l0` by default) + a family-diversity ruler on the proxy OOF (Δ_div) | 💡 new 2026-10-06; **recommended DROP (pending Tian): no read on this task, in1k only** | B6 + 0.001–0.003 if member-grade (≥ 0.933 solo); the ruler ranks families on 4,349 studies, not LB slots | weight Dataset + loader check; 1 Kaggle arm ≈ 6 h; ≈ 1 proxy per screened family | the 10-10 quota; the P-67 floor for Δ_div |
 | 5 | P-67 | Fast-proxy 5-fold CV ruler + single-variable recipe ablation loop | 🔧 **2026-10-11, session C read: `v14lr` (lowres) −0.0019 🔁, `v14gd` (grid) −0.0021 ❌ (5/5 folds down) vs `v14p` 0.8628 → neither clears +0.002, no transfer arm (experiments.md 2026-10-11 "P-67 session C read"). With P-82 closed ❌ this is the one OAI-free lever left; next `v14mx` / `v14r288` / `v14ep20` …; 5.0 Kaggle GPU-h until 10-17 (a two-variant session took 7.56 h), on Tian's go.** ✅ **floor measured 2026-10-10 (`rsna-knee-train` v49, 5.63 h): 0.0014 from four fold pairs (`v14p2` fold 0 diverged to NaN, traps 63) → ablation bar ≈ 0.002; `v14p` pooled 0.8628; the 12-epoch curve still rising at epoch 11 (experiments.md 2026-10-10 "Sessions A ‖ B read"). Next: session C, two variants per session in the evidence order, on Tian's go.** **10-10: Tian's go for session C (`v14lr` ‖ `v14gd`) beside P-82; traps 63's guard is coded (`4faecd0`); smoke `rsna-knee-train` v50 pushed 13:43 UTC.** Was: 🔧 **implemented, effect pending: the floor pair `v14p` / `v14p2` and, since 10-05 (Tian: "focus on these"), ten one-variable arms `v14lr` / `v14th` / `v14gd` / `v14bl` / `v14ns` / `v14sh` (augmentation components), `v14mx` (mixup), `v14r288` (B0 @ 288), `v14db` (blank windows), `v14ep20` (longer schedule); unit checks, a local CPU smoke and a Kaggle GPU smoke (v46) green; the floor run starts at the 10-10 reset** — approved by Tian (research.md 2.7.6 / 2.7.7 / 2.10) | + 0.003–0.005 per production member if ≥ half transfers → B6 ≈ 0.945–0.947 | ≈ 16 proxy variants per 30-h Kaggle week, or ≈ $0.6 each on a 4090; + 1 transfer arm | a measured pooled-OOF floor (2 seeds) |
@@ -183,135 +182,6 @@ If it works:  the winning stack goes into every final retrain (P-50 week of 10-1
 If it fails:  nothing clears 1.5 × the floor, or the proxy's wins do not transfer in the production check → week 2 = plain retrains
               with more seeds / families (blend rule: + 0.001–0.003).
 Depends on:   Tian's go on the 10-10 week; the P-62 read does not block it (image-side only).
-
-### P-81 OAI knees as masked external labels for our own members
-Status:       ⏳ **2026-10-10: `v15co` TRAINED** (RunPod secure 4090, 13:46–15:57 UTC, $2.64; experiments.md "P-81 on RunPod"):
-              gold-58 SWA 0.9211 (`v15c` 0.9234, `v15c2` 0.9180); the three OAI labels 0.849 vs 0.841 / 0.838 (direction only).
-              Shipped `rsna-knee-ckpt-v15co`, backed up, pod deleted. **The read is A9's LB solo** (candidates.md), then the
-              label split and the C4b leg if it earns one.
-              Was: 🔧 **implemented 2026-10-08, local smokes green; the pod run waits on the critic check + a RunPod top-up.**
-              **2026-10-10, priced by the C4b read (#73 0.951; experiments.md "Submissions #69 and #73"):** a `v15co` leg can
-              only enter pick 2 (pick 1 and C3 stay OAI-free). There a leg +0.005 over B18 lifts the fork to ≈ 0.953, i.e.
-              ≈ +0.001–0.002, and a ✅ (≥ 0.954) would need a leg above the 0.949 anchor. Still the only lever on pick 2, but
-              behind the OAI-free legs (P-68, P-67), which lift all three candidates.
-              **2026-10-09: Tian accepted an OAI-trained pick 2** (brainstorm.md): pick 2 is the C4 family, so an OAI-trained
-              leg (`v15co`) adds no new risk there; pick 1 (B19) stays OAI-free.
-              Code: `src/build_oai_targets.py` (2,399 knees -> artifacts/oai/oai_targets.csv), `src/build_oai_cache.py` (shard 90,
-              c03 format; 6 sample knees built: 3 slots each, planes / side / orientation checked), arm `v15co` = `v15c` + `oai`; **labels: the author's three (Synovitis, PF OA, Lateral OA), Lateral Meniscus masked** (Tian, after
-              the critic's GO WITH CHANGES 10-08: replicate first; the critic's other changes are in candidates.md T12)
-              (`apply_oai` in training_manifest; non-OAI arms drop OAI studies: guard smoke green), `runpod_chain.sh` OAI=1.
-              Earlier the same day: **access granted (gate 1 cleared).** Tian's NDA request was **auto-approved**:
-              a Login.gov account (email only), country Spain, no institutional sign-off, no Data Use Certification, approval at
-              once. For us the host's condition "without an escalated (institutional) review" (741819) is met. The open half of the
-              rule risk is "generally accessible to all participants": NIH blocks some countries (China; on 10-08 a Singapore user
-              who had access got 403s). Next: the tables (step 5a), then the image subset (5b), which needs a pod (critic + Tian's go).
-              Was: 💡 new 2026-10-08. **Two gates: Tian's own NDA access request
-              (a person must accept the terms; it cannot be done for him) and the rule risk** (the host allows OAI only "if generally
-              accessible to all participants without an escalated (institutional) review", 741819; a participant in China reports
-              access fails; no ruling since the 0.949 post, 746792). Anything trained on OAI carries that risk into every pick it
-              enters, so a clean pick 1 must stay OAI-free.
-              **10-08, C4 read (#68, 0.950):** the fork on the OAI-trained public checkpoint is already the strongest pick-2
-              candidate. If Tian accepts it, an OAI-trained leg adds no new risk to that pick. It is also the leg's best lever:
-              the fork lifts ≈ β × the leg–anchor gap it closes, so a leg 0.004 stronger moves the fork ≈ +0.0015
-              (experiments.md "Submission #68").
-Hypothesis:   adding OAI baseline knees with labels for the findings our report targets read worst lifts a member's solo, as it
-              did for the 0.949 author (+0.005 at 224 px; one seed; confounded with +55 % optimizer steps).
-Origin:       experiments.md 2026-10-08 "The 0.949 / 0.950 public notebooks, read" (the author's table and write-up, 746792).
-Access (Tian does steps 1–4 himself: they accept terms in his name; written up 2026-10-08 from the NYU data-catalog entry
-              for OAI and the 10-08 forum thread 746792; the NDA pages render only in a browser, so check each step there):
-              1. Open https://nda.nih.gov and choose Login. Sign in through the Research Auth Service (RAS) with a **Login.gov**
-                 account (create one with an email + a second factor; forum users on 10-08 needed nothing more), or eRA Commons / PIV.
-              2. Create a new NDA account, or link an existing one, when NDA asks after the first RAS login.
-              3. Open the OAI collection (NDA's OAI page, nda.nih.gov/oai, or search "Osteoarthritis Initiative" under Get Data),
-                 choose **Request Data Access**, and accept the **OAI data-access terms** (non-commercial research use, cite the
-                 OAI acknowledgement, no redistribution of the data). The NYU catalog lists OAI as "Free to All · Application
-                 Required".
-              4. Write down what NDA actually asked for (only the terms, or an institutional signature / Data Use Certification?)
-                 and how long approval took. That is our own evidence on the host's "generally accessible" test (741819).
-              5. After approval (rewritten 10-08 from the NDA OAI page as Tian saw it, the nda-tools README and the 746792 thread):
-                 a. **Tables first, on the laptop.** OAI page, Option Two ("Full Downloads", ASCII; OAI subject IDs, the same IDs
-                    the image packages use). Options Three / Four key everything by NDA subject IDs instead. Needed: the MRI
-                    image metadata (every series per participant, visit and knee), the MRI semi-quantitative readings (MOAKS /
-                    BLOKS / WORMS), the X-ray semi-quantitative readings (KL and joint-space grades per knee), and the enrolment
-                    file. Tens to hundreds of MB, into `data/oai/` (gitignored; never committed, uploaded or shared).
-                 b. **Claude, on the tables (no GPU):** count the baseline knees with readings per finding, fix the label map
-                    and the knee list, choose the series, and estimate the download size.
-                 c. **Images: only that subset, only on a pod.** Option Two's OAI Image Dashboard, using its predefined queries
-                    (compressed files, subset by scan type and visit). **Not** Option Three: those packages are uncompressed and
-                    cannot be split by scan type. The laptop has 118 GB free, and the subset is ≈ 150–300 GB (estimate: ≈ 100–130
-                    MB per knee for five series × ≈ 2,400 knees). Pull it on a CPU pod with `pip install nda-tools keyrings.alt`,
-                    then `downloadcmd -dp <package id> -d /workspace/oai_raw --workerThreads 16`. NDA caps transfers at 20 TB a month.
-                 d. **Credentials:** nda-tools takes the **NDA username and an NDA password, not Login.gov**. A Login.gov user sets
-                    one under NDA profile → **UPDATE PASSWORD**. Tian types it himself on the pod (`keyring set nda-tools
-                    <username>` in his own SSH session); it never goes into chat, a file or a commit.
-                 e. Keep every byte of OAI data and its derived cache off GitHub, Kaggle and every public place (the terms
-                    forbid redistribution). Build the cache on the pod, delete the raw DICOMs, and train the OAI arms there.
-              Biospecimens are a separate NIAMS process (6–10 weeks) and are not needed.
-What we have (read 10-08 from `data/oai/`: GENERAL, MRI METAANALYSIS and X-RAY METAANALYSIS, ASCII; `MeasInventory.csv` is
-              the key, one row per participant, 4,796 rows):
-              - **Images, baseline:** the five core series (SAG IW TSE FS, COR IW TSE, SAG DESS, COR MPR, AX MPR) for 4,722 right
-                + 4,703 left knees; COR FLASH and the T2 map almost only right knees (4,697 / 84).
-              - **X-ray labels:** the overall KL grade for ≈ 4,470 right + 4,480 left knees (`V00XRKLR/L` in the inventory).
-                Per-compartment grades (OARSI joint-space narrowing and osteophytes) are project 15 (Boston University,
-                8,982 baseline knees), dataset `kXR_SQ_BU00` in the X-RAY ASSESSMENTS zip, **not downloaded yet**.
-              - **MRI labels:** MOAKS is project 22 (FNIH, 600 knees) in the 2016 overview. Projects 63 / 65 / 66 (660 / 1,145 /
-                630 baseline knees) are newer and unexplained there. Every MRI-read baseline knee together: 3,360. The 0.949
-                author's 2,399 = projects 22 + 30 + 63 + 65 (2,400), suggestive only. The readings themselves (`kMRI_SQ_MOAKS_BICL00`
-                and the rest) are in the MRI ASSESSMENTS zip, **not downloaded yet**: the METAANALYSIS zips hold only the
-                exam summaries (`MRIxx` / `XRayxx`: barcode, side, date per knee), not the readings.
-Read 2026-10-08 (MRI ASSESSMENTS + X-RAY ASSESSMENTS zips; counts only, nothing leaves `data/oai/`):
-              - **`kMRI_SQ_MOAKS_BICL00` = 3,017 baseline readings of exactly 2,400 knees** (projects 65 / 22 / 30 / 63A–F;
-                1,292 right, 1,108 left; 544 knees read in 2–4 projects). That is the 0.949 author's 2,399: we have their source.
-                The two POMA MOAKS files are other visits of the same projects. The X-ray grades (`KXR_SQ_BU00`, project 15)
-                cover 8,982 knees, including 2,392 of the 2,400.
-              - **Coverage per score:** cartilage, bone marrow lesions and menisci for ≈ all 2,400; effusion-synovitis,
-                Hoffa-synovitis and the ACL for 1,660; popliteal (Baker's) cyst and osteophytes for 600 (project 22 only).
-                MOAKS has **no MCL**, and its bone marrow lesions in OA knees are not trauma contusions: MCL, Contusion and
-                Fracture stay masked.
-              - **Draft map** (knee-level, positive rate): ACL partial or complete tear 0.09 (1,660) · Medial Meniscus tear or
-                maceration in any horn, or root tear, 0.41 · Lateral Meniscus 0.21 · Medial / Lateral / PF OA as max cartilage
-                grade ≥ 2 (10–75 % area) 0.47 / 0.37 / 0.74, or with full-thickness loss 0.20 / 0.15 / 0.40 · Effusion ≥ 1
-                0.57, ≥ 2 0.20 · Hoffa-synovitis ≥ 1 0.58, ≥ 2 0.11 · Baker's 0.42 (600). Graded soft targets (grade / 3)
-                instead of thresholds keep the rank information the metric reads.
-              - **Which labels:** the 0.949 author supervised PF OA, Lateral OA and Synovitis = our three weakest gold-58 labels
-                (`v09t` SWA: Synovitis 0.754, PF OA 0.799, Lateral OA 0.803; next Lateral Meniscus 0.839, every other ≥ 0.93).
-                Proposed for one arm: those three + Lateral Meniscus, the rest masked (strong report labels gain little from
-                a shifted cohort and protocol).
-              - **Images:** 2,398 of the 2,400 knees have all five baseline core series (`MeasInventory`); `MRI00.txt` lists
-                every baseline series with its own barcode and type (77,224 rows), so the download list is exact. Proposed
-                series: SAG IW TSE FS, COR IW TSE, COR MPR, AX MPR (≈ 74 MB per knee → ≈ 180 GB), + SAG 3D DESS if a slot
-                wants it (≈ 120 MB per knee → ≈ 290 GB). COR FLASH (right knees only) and the T2 map are skipped.
-The image package, read 2026-10-08 (no images downloaded):
-              - Shared package `OAIBaselineImages` (1228997) → Tian's personal copy **1249779**: 186,189 files, 974.6 GB (NDA
-                units), **one `.tar.gz` per series** (`image03/00m/<release>/<participant>/<date>/<series>.tar.gz`) plus
-                preview JPEGs and six metadata files. The metadata (`image03.txt`, one row per series: OAI ID, series name
-                such as `SAG_IW_TSE_RIGHT`, S3 link; `oai_enrollee01.txt`) is in `data/oai/nda_pkg_meta/`; the file list with
-                sizes is nda-tools' `package_file_metadata_1249779.txt` (`--verify` writes it, downloads nothing).
-              - **Our subset, exact:** the 2,400 MOAKS knees match all 2,030 OAI IDs. Core 4 series (SAG IW TSE FS, COR IW TSE,
-                COR MPR, AX MPR) = **9,642 files, 76.4 GB** for 2,398 knees; + SAG 3D DESS = 12,053 files, 137.6 GB; every
-                series of those knees = 231.7 GB. 184 knee-series have a repeat scan (keep one).
-              - Access: `scripts/nda_run.py` (the .env credentials held in memory; NDA_USERNAME = the NDA account username,
-                not the Login.gov email; NDA_PASSWORD = the one set under "Update Password", the Login.gov one gets a 401).
-                A download is `downloadcmd -dp 1249779 -t <our s3 links> -wt 16`, on the training pod (US datacenter,
-                minutes for 76 GB), never committed or uploaded anywhere public.
-What it needs (our estimate, ≈ 3–5 working days before the first arm):
-              (1) the baseline knee MRIs of ≈ 2,400 knees (≈ 150–300 GB, our estimate); (2) a sequence map onto our c03 slots
-              (OAI is one 3 T Siemens protocol). Proposed: SAG IW TSE fat-sat → `SAG_FLUID_FS`; the coronal / axial MPR reformats
-              of the water-excited DESS → `COR_FLUID_FS` / `AX_FLUID_FS` (fluid-bright and fat-suppressed, but a gradient-echo
-              contrast, not a PD-FS); COR IW TSE (no fat-sat) → the relaxed coronal fluid fallback, or unused; COR 3D FLASH WE
-              (right knee only) → `COR_T1`; `SAG_FLUID_NOFS` and `SAG_T1` empty (the presence mask). That is 3–4 of 6 slots,
-              plus a scanner and contrast shift; (3) per-knee labels from the OAI readings: X-ray KL / compartment joint-space grades for Medial / Lateral /
-              PF OA, MRI semi-quantitative readings (MOAKS-style: effusion-synovitis, bone marrow lesions, menisci) where they
-              exist, every other cell masked; (4) a masked-BCE path in `src/kaggle_pipeline.py` (soft targets + a per-cell mask),
-              a unit check and a smoke; (5) a c03-style cache of the OAI knees uploaded as a private Dataset (≈ 28 GB by
-              proportion to c03's 51 GB) or trained on a pod.
-Measure:      one member retrained with OAI vs its OAI-free twin on the solo LB (the `v15c` ConvNeXt first: our strongest).
-Noise floor:  one seed 0.004 (s = 0.003).
-Cost:         the days above, a pod with ≥ 1 TB of disk for the download and preprocessing (≈ $1–3 beyond training), one
-              training arm ≈ $1.5–2.5 on a 4090 (RunPod has ≈ $3.5 left), 1–2 sends. Week 2's retrains start 10-17.
-If it works:  OAI joins the final members of a second, OAI-carrying pick; pick 1 stays OAI-free.
-If it fails:  closed; C4 (their public checkpoint) is the only OAI exposure.
-Depends on:   Tian's access request; ideally a host ruling first (watch 746792 / 743416).
 
 ### P-71 An independently trained public reader as a blend member (B16 first)
 Status:       **Recommended DROP 2026-10-08 (pending Tian):** our own ConvNeXt-T `v15c` reads 0.942 solo (#64), so B16 would add a
@@ -635,8 +505,8 @@ any of these must answer its row with a new reason.** The 2026-10-06 brainstorm 
 | **MIL / bag-of-slices / all-slice transformers** | forum: Tom @392 bag-of-32 0.915, Pand ConvNeXt-T MIL 0.935, nobody ≥ 0.94; coverage saturates (Ziad flat after ≈ 31 windows); 2025 3rd place: "MIL and LSTMs did not help" | research.md 2.7.6 / 2.7.7 |
 | **DINOv3 / RadImageNet / BiomedCLIP / medical foundation backbones as members** | at ≤ 288 px ImageNet timm init ≥ any SSL or radiology init: DINOv2 weaker on clinical MRI [2402.07595], DINOv3 frozen at parity [2509.06467], RadiologyNET ≈ ImageNet [s41598-025-05009-w]; RadImageNet's licence is unclear (CLAUDE.md); the only large pretraining effect found anywhere is in-task dense pretraining (2025 1st) which needs labels we lack | research.md 2.7.7 (d) |
 | **More seeds of the same recipe as a *score* lever** | blend rule 10-05: same-recipe members add +0.001–0.003, cross-family +0.004–0.006 (#26 / #29 / #32 / #36 vs #47 / #48 / #52 / #53); seeds are for the final members' robustness (P-50), not for the LB. **10-06:** two more CoAtNet-recipe votes on B6 lost 0.002 (B13 #55 0.940), the EfficientNet-only triple 0.001 (B11 #56 0.941): extra members of a family already in the blend do not pay. **10-10:** the forum's five-fold "single models" (0.954–0.959, 735304) are this same-recipe averaging; ours as one vote added +0.000 (B19 = B18) | experiments.md 2026-10-05 "Submissions #49–#53"; 2026-10-06 "Submissions #54–#58"; 2026-10-09 "Submissions #70–#72" |
-| **External datasets** (OAI, MRNet, fastMRI+, SKM-TEA, KneeCoT) | KneeCoT banned; OAI needs institutional sign-off ("a no", 741819); the one forum user who tried external data: "not really" (743416); none carries our 12 labels; the licence fit is a winners' problem. **10-08: the counter-example is public.** The 0.949 single model was trained with 2,399 OAI knees as masked labels for PF OA / Lateral OA / Synovitis: +0.005 in its author's table, the whole public gap above 0.943. Legality is still open: login.gov access with an email worked for some, failed from China; no host ruling since (experiments.md 2026-10-08 "The 0.949 / 0.950 public notebooks, read"). Stays dropped for our own training (NDA access + a new pipeline with 14 days left); using their public checkpoint is candidates.md C4, Tian's call | CLAUDE.md Rules, research.md 2.7.6 |
-| **The public 0.949 checkpoint as a teacher table for our members; reproducing its recipe without OAI** (10-08) | Teacher: our one read of a second public CoAtNet-2 @ 384 teacher, D4 (also in-sample on these 4,349 studies), was −0.002 on the LB (#43 `v11d` 0.930 vs `v11a` 0.932, P-45 🔁) although it gained +0.006 at gold target level. The 0.949 model was fitted on the same studies, its OAI signal touches three labels, and every member trained on it would carry the OAI risk into pick 1. The recipe without OAI read 0.942 for its own author, = our `v15c`, and a CoAtNet-2 leg would share the anchor's family (B18 has none: the more independent leg). The route to the OAI signal for our own members is P-81 (the data itself) | experiments.md 2026-10-03 "Submissions #41–#43", 2026-10-08 "The 0.949 / 0.950 public notebooks, read", "Submission #68" |
+| **External datasets** (OAI, MRNet, fastMRI+, SKM-TEA, KneeCoT) | KneeCoT banned; OAI needs institutional sign-off ("a no", 741819); the one forum user who tried external data: "not really" (743416); none carries our 12 labels; the licence fit is a winners' problem. **10-08: the counter-example is public.** The 0.949 single model was trained with 2,399 OAI knees as masked labels for PF OA / Lateral OA / Synovitis: +0.005 in its author's table, the whole public gap above 0.943. Legality is still open: login.gov access with an email worked for some, failed from China; no host ruling since (experiments.md 2026-10-08 "The 0.949 / 0.950 public notebooks, read"). Using their public checkpoint is pick 2 (C4b, Tian accepted the OAI risk on 10-09). **OAI for our own training was then measured (P-81, closed 10-11):** `v15co` (`v15c` + the same 2,399 knees, three masked labels) read **0.945 vs `v15c` 0.942** (#78, +0.003, 🔁), so it can only enter pick 2, where a leg on it prices at ≈ +0.0005–0.0007 (B21 → C4c, candidates.md). OAI on further members is priced out; MRNet / fastMRI+ / SKM-TEA / KneeCoT stay dropped | CLAUDE.md Rules, research.md 2.7.6 / 2.7.11; experiments.md 2026-10-11 "Submission #78" |
+| **The public 0.949 checkpoint as a teacher table for our members; reproducing its recipe without OAI** (10-08) | Teacher: our one read of a second public CoAtNet-2 @ 384 teacher, D4 (also in-sample on these 4,349 studies), was −0.002 on the LB (#43 `v11d` 0.930 vs `v11a` 0.932, P-45 🔁) although it gained +0.006 at gold target level. The 0.949 model was fitted on the same studies, its OAI signal touches three labels, and every member trained on it would carry the OAI risk into pick 1. The recipe without OAI read 0.942 for its own author, = our `v15c`, and a CoAtNet-2 leg would share the anchor's family (B18 has none: the more independent leg). The route to the OAI signal for our own members was P-81 (the data itself; closed 10-11: #78 `v15co` 0.945, +0.003 vs `v15c`, 🔁, pick 2 only) | experiments.md 2026-10-03 "Submissions #41–#43", 2026-10-08 "The 0.949 / 0.950 public notebooks, read", "Submission #68" |
 | **Multimodal-LLM / VLM labelling of the images** (hengck23 745861, Deotte) | we never download the images in bulk (570 GB, hard constraint 2), inference has no internet, 18 days; OmerZalman: 80–90 % correct on 800 studies | research.md 2.7.6, CLAUDE.md |
 | **Gold-58 as a member or recipe judge** | it inverted the LB direction several times for us (traps 39) and for SpeedSci / Lê / Raymond on the forum; direction only. The ruler for image-side changes is the pooled 5-fold report-label OOF (P-67) | traps 39, research.md 2.7.6 (B) |
 | Text branch at inference | `test.csv` has no `Report`; nothing to read | CLAUDE.md |

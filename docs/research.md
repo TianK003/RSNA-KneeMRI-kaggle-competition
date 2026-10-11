@@ -977,6 +977,102 @@ data side (c03 150 mm, heavy aug, 20–30 epochs, drop path) that took them from
 0.8 (`v16d1`) and 3e-4 with LLRD 0.75 (`v16d3`) — at 280 px for ≈ 20 epochs, on `v15c`'s data side, AdamW wd 0.05, drop path ramped
 0 → 0.1, head 1e-3, CLS into our window head. The low-LR / LP-FT option and a resolution pair were offered and not chosen.
 
+#### 2.7.11 OAI as masked external labels: access, tables and the image package (moved from the P-81 card, 2026-10-11)
+
+P-81 closed on 10-11 (experiments.md "Submission #78": `v15co` 0.945 vs `v15c` 0.942, 🔁; OAI-trained, so pick 2 only). The card's
+reference sections are kept here verbatim for any later OAI arm. The code is `src/build_oai_targets.py`, `src/build_oai_cache.py`,
+`scripts/nda_run.py` and `runpod_chain.sh` `OAI=1`; the run itself is experiments.md 2026-10-10 "P-81 on RunPod". Every byte of OAI
+data and its derived cache stays off GitHub, Kaggle and every public place (the terms forbid redistribution).
+
+Access (Tian does steps 1–4 himself: they accept terms in his name; written up 2026-10-08 from the NYU data-catalog entry
+              for OAI and the 10-08 forum thread 746792; the NDA pages render only in a browser, so check each step there):
+              1. Open https://nda.nih.gov and choose Login. Sign in through the Research Auth Service (RAS) with a **Login.gov**
+                 account (create one with an email + a second factor; forum users on 10-08 needed nothing more), or eRA Commons / PIV.
+              2. Create a new NDA account, or link an existing one, when NDA asks after the first RAS login.
+              3. Open the OAI collection (NDA's OAI page, nda.nih.gov/oai, or search "Osteoarthritis Initiative" under Get Data),
+                 choose **Request Data Access**, and accept the **OAI data-access terms** (non-commercial research use, cite the
+                 OAI acknowledgement, no redistribution of the data). The NYU catalog lists OAI as "Free to All · Application
+                 Required".
+              4. Write down what NDA actually asked for (only the terms, or an institutional signature / Data Use Certification?)
+                 and how long approval took. That is our own evidence on the host's "generally accessible" test (741819).
+              5. After approval (rewritten 10-08 from the NDA OAI page as Tian saw it, the nda-tools README and the 746792 thread):
+                 a. **Tables first, on the laptop.** OAI page, Option Two ("Full Downloads", ASCII; OAI subject IDs, the same IDs
+                    the image packages use). Options Three / Four key everything by NDA subject IDs instead. Needed: the MRI
+                    image metadata (every series per participant, visit and knee), the MRI semi-quantitative readings (MOAKS /
+                    BLOKS / WORMS), the X-ray semi-quantitative readings (KL and joint-space grades per knee), and the enrolment
+                    file. Tens to hundreds of MB, into `data/oai/` (gitignored; never committed, uploaded or shared).
+                 b. **Claude, on the tables (no GPU):** count the baseline knees with readings per finding, fix the label map
+                    and the knee list, choose the series, and estimate the download size.
+                 c. **Images: only that subset, only on a pod.** Option Two's OAI Image Dashboard, using its predefined queries
+                    (compressed files, subset by scan type and visit). **Not** Option Three: those packages are uncompressed and
+                    cannot be split by scan type. The laptop has 118 GB free, and the subset is ≈ 150–300 GB (estimate: ≈ 100–130
+                    MB per knee for five series × ≈ 2,400 knees). Pull it on a CPU pod with `pip install nda-tools keyrings.alt`,
+                    then `downloadcmd -dp <package id> -d /workspace/oai_raw --workerThreads 16`. NDA caps transfers at 20 TB a month.
+                 d. **Credentials:** nda-tools takes the **NDA username and an NDA password, not Login.gov**. A Login.gov user sets
+                    one under NDA profile → **UPDATE PASSWORD**. Tian types it himself on the pod (`keyring set nda-tools
+                    <username>` in his own SSH session); it never goes into chat, a file or a commit.
+                 e. Keep every byte of OAI data and its derived cache off GitHub, Kaggle and every public place (the terms
+                    forbid redistribution). Build the cache on the pod, delete the raw DICOMs, and train the OAI arms there.
+              Biospecimens are a separate NIAMS process (6–10 weeks) and are not needed.
+What we have (read 10-08 from `data/oai/`: GENERAL, MRI METAANALYSIS and X-RAY METAANALYSIS, ASCII; `MeasInventory.csv` is
+              the key, one row per participant, 4,796 rows):
+              - **Images, baseline:** the five core series (SAG IW TSE FS, COR IW TSE, SAG DESS, COR MPR, AX MPR) for 4,722 right
+                + 4,703 left knees; COR FLASH and the T2 map almost only right knees (4,697 / 84).
+              - **X-ray labels:** the overall KL grade for ≈ 4,470 right + 4,480 left knees (`V00XRKLR/L` in the inventory).
+                Per-compartment grades (OARSI joint-space narrowing and osteophytes) are project 15 (Boston University,
+                8,982 baseline knees), dataset `kXR_SQ_BU00` in the X-RAY ASSESSMENTS zip, **not downloaded yet**.
+              - **MRI labels:** MOAKS is project 22 (FNIH, 600 knees) in the 2016 overview. Projects 63 / 65 / 66 (660 / 1,145 /
+                630 baseline knees) are newer and unexplained there. Every MRI-read baseline knee together: 3,360. The 0.949
+                author's 2,399 = projects 22 + 30 + 63 + 65 (2,400), suggestive only. The readings themselves (`kMRI_SQ_MOAKS_BICL00`
+                and the rest) are in the MRI ASSESSMENTS zip, **not downloaded yet**: the METAANALYSIS zips hold only the
+                exam summaries (`MRIxx` / `XRayxx`: barcode, side, date per knee), not the readings.
+Read 2026-10-08 (MRI ASSESSMENTS + X-RAY ASSESSMENTS zips; counts only, nothing leaves `data/oai/`):
+              - **`kMRI_SQ_MOAKS_BICL00` = 3,017 baseline readings of exactly 2,400 knees** (projects 65 / 22 / 30 / 63A–F;
+                1,292 right, 1,108 left; 544 knees read in 2–4 projects). That is the 0.949 author's 2,399: we have their source.
+                The two POMA MOAKS files are other visits of the same projects. The X-ray grades (`KXR_SQ_BU00`, project 15)
+                cover 8,982 knees, including 2,392 of the 2,400.
+              - **Coverage per score:** cartilage, bone marrow lesions and menisci for ≈ all 2,400; effusion-synovitis,
+                Hoffa-synovitis and the ACL for 1,660; popliteal (Baker's) cyst and osteophytes for 600 (project 22 only).
+                MOAKS has **no MCL**, and its bone marrow lesions in OA knees are not trauma contusions: MCL, Contusion and
+                Fracture stay masked.
+              - **Draft map** (knee-level, positive rate): ACL partial or complete tear 0.09 (1,660) · Medial Meniscus tear or
+                maceration in any horn, or root tear, 0.41 · Lateral Meniscus 0.21 · Medial / Lateral / PF OA as max cartilage
+                grade ≥ 2 (10–75 % area) 0.47 / 0.37 / 0.74, or with full-thickness loss 0.20 / 0.15 / 0.40 · Effusion ≥ 1
+                0.57, ≥ 2 0.20 · Hoffa-synovitis ≥ 1 0.58, ≥ 2 0.11 · Baker's 0.42 (600). Graded soft targets (grade / 3)
+                instead of thresholds keep the rank information the metric reads.
+              - **Which labels:** the 0.949 author supervised PF OA, Lateral OA and Synovitis = our three weakest gold-58 labels
+                (`v09t` SWA: Synovitis 0.754, PF OA 0.799, Lateral OA 0.803; next Lateral Meniscus 0.839, every other ≥ 0.93).
+                Proposed for one arm: those three + Lateral Meniscus, the rest masked (strong report labels gain little from
+                a shifted cohort and protocol).
+              - **Images:** 2,398 of the 2,400 knees have all five baseline core series (`MeasInventory`); `MRI00.txt` lists
+                every baseline series with its own barcode and type (77,224 rows), so the download list is exact. Proposed
+                series: SAG IW TSE FS, COR IW TSE, COR MPR, AX MPR (≈ 74 MB per knee → ≈ 180 GB), + SAG 3D DESS if a slot
+                wants it (≈ 120 MB per knee → ≈ 290 GB). COR FLASH (right knees only) and the T2 map are skipped.
+The image package, read 2026-10-08 (no images downloaded):
+              - Shared package `OAIBaselineImages` (1228997) → Tian's personal copy **1249779**: 186,189 files, 974.6 GB (NDA
+                units), **one `.tar.gz` per series** (`image03/00m/<release>/<participant>/<date>/<series>.tar.gz`) plus
+                preview JPEGs and six metadata files. The metadata (`image03.txt`, one row per series: OAI ID, series name
+                such as `SAG_IW_TSE_RIGHT`, S3 link; `oai_enrollee01.txt`) is in `data/oai/nda_pkg_meta/`; the file list with
+                sizes is nda-tools' `package_file_metadata_1249779.txt` (`--verify` writes it, downloads nothing).
+              - **Our subset, exact:** the 2,400 MOAKS knees match all 2,030 OAI IDs. Core 4 series (SAG IW TSE FS, COR IW TSE,
+                COR MPR, AX MPR) = **9,642 files, 76.4 GB** for 2,398 knees; + SAG 3D DESS = 12,053 files, 137.6 GB; every
+                series of those knees = 231.7 GB. 184 knee-series have a repeat scan (keep one).
+              - Access: `scripts/nda_run.py` (the .env credentials held in memory; NDA_USERNAME = the NDA account username,
+                not the Login.gov email; NDA_PASSWORD = the one set under "Update Password", the Login.gov one gets a 401).
+                A download is `downloadcmd -dp 1249779 -t <our s3 links> -wt 16`, on the training pod (US datacenter,
+                minutes for 76 GB), never committed or uploaded anywhere public.
+What it needs (our estimate, ≈ 3–5 working days before the first arm):
+              (1) the baseline knee MRIs of ≈ 2,400 knees (≈ 150–300 GB, our estimate); (2) a sequence map onto our c03 slots
+              (OAI is one 3 T Siemens protocol). Proposed: SAG IW TSE fat-sat → `SAG_FLUID_FS`; the coronal / axial MPR reformats
+              of the water-excited DESS → `COR_FLUID_FS` / `AX_FLUID_FS` (fluid-bright and fat-suppressed, but a gradient-echo
+              contrast, not a PD-FS); COR IW TSE (no fat-sat) → the relaxed coronal fluid fallback, or unused; COR 3D FLASH WE
+              (right knee only) → `COR_T1`; `SAG_FLUID_NOFS` and `SAG_T1` empty (the presence mask). That is 3–4 of 6 slots,
+              plus a scanner and contrast shift; (3) per-knee labels from the OAI readings: X-ray KL / compartment joint-space grades for Medial / Lateral /
+              PF OA, MRI semi-quantitative readings (MOAKS-style: effusion-synovitis, bone marrow lesions, menisci) where they
+              exist, every other cell masked; (4) a masked-BCE path in `src/kaggle_pipeline.py` (soft targets + a per-cell mask),
+              a unit check and a smoke; (5) a c03-style cache of the OAI knees uploaded as a private Dataset (≈ 28 GB by
+              proportion to c03's 51 GB) or trained on a pod.
+
 ### 2.8 Data-pipeline engineering
 
 **What we learned**
