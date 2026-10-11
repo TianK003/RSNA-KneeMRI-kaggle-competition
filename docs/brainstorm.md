@@ -30,6 +30,7 @@ entries.
 
 | Question | Why it matters | How to answer |
 |---|---|---|
+| **Reopen training above 288 px (ConvNeXt-S at 384, or knee-centred crops) if A14 ≥ 0.950? (added 2026-10-11)** | Both public ≥ 0.949 single models run at 384 px with bigger backbones than ours (nartaa's CoAtNet-2; heliosli's S6 ConvNeXt-S, crop 352, knee-centred views), which challenges the dropped "bigger CNNs / > 288 px" direction. Neither isolates resolution (OAI; views, 176 windows, 3.5 mm resampling, labels), our own resolution reads are small (P-43 +0.002 🔁; A8 = 0), and **Tian dropped training at 336 px on 10-09**. P-83 tests only the size step, at 288 (experiments.md 2026-10-11 "Model families") | **Tian decides, after A14 (and P-83 if it runs).** A 384 px ConvNeXt-S arm needs a c03 re-cache or upsampling (the c03 cache is 336 px) plus ≈ 2× P-83's GPU time |
 | ~~**Which two submissions go to the final private scoring?**~~ | **Moved 2026-10-04 to proposals.md P-50** (final selection, by 10-15; candidates #48 0.938 and the fork with our trio at β 0.45) | P-50 |
 | ~~**Does the 0.942 anchor reproduce 0.942 from our account?**~~ | **ANSWERED 2026-09-22: yes** — #15 (anchor only) = 0.942; #13 (β 0.10) = 0.942, #12 (β 0.20) = 0.939, #14 = 0.941 | experiments.md 2026-09-22 P-27 read-out |
 | ~~**Do 16 epochs over-train the soft targets?**~~ | **ANSWERED 2026-09-22: yes** — P-29 `v09p` OOF peaks at epoch 8 (0.8731), epoch 15 0.8607, 11/12 labels down | experiments.md 2026-09-22 P-29 |

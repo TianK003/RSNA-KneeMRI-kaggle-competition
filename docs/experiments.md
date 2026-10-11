@@ -155,6 +155,7 @@ agreement with the teacher, not truth. A one-seed LB delta needs ≥ 0.004 (P-44
 | 2026-10-11 | **A9, submission #78 (`rsna-knee-infer` v74)**: `v15co` = `v15c` + 2,399 OAI knees (masked soft targets on Synovitis / PF OA / Lateral OA; RunPod, 10-10) | 0.9211 | **0.945** | **🔁 +0.003 vs `v15c` 0.942 (✅ needed ≥ 0.946), the top of the band: our best single model on the LB, OAI-trained → pick 2 only. Gold-58 had it −0.0023 (traps 39). A C4b leg on it (B21 → C4c) prices at ≈ +0.0005–0.0007 on the fork; P-81 closed** (entry 2026-10-11 "Submission #78") |
 | 2026-10-11 | **The public frontier moved to 0.954** (no GPU): heliosli's public blend = nartaa's 0.949 CoAtNet 0.7 + S6 (ConvNeXt-S, 4 folds, joint-anchored views, "report-derived targets") 0.3; ≈ 278 teams at 0.954, 432 ≥ 0.953; we are rank 504 at 0.951 | — | — | **✅ a read: C4c dominated and dropped; C5 (the 0.954 blend + B21, pred. 0.954–0.956) and A14 (S6 alone, a pick-1 question) queued** (entry 2026-10-11 "The public frontier moved to 0.954") |
 | 2026-10-11 | **C5, submission #80 (`rsna-knee-fork954` v1, `src/build_fork954.py`)**: heliosli's public 0.954 notebook verbatim + B21 at β 0.20 | — | **0.954** | **🔁 Δ 0.000 vs the anchor (✅ needed ≥ 0.957), but 9th of 425 in the 0.954 tie, above the blend's verbatim copies: the arm ran, a sub-tick lift. Fork-rule gain +0.0014–0.0026 (its low end); our best public number (rank 147), pick 2's candidate by its rule; C6 re-priced to ≈ A14** (entries 2026-10-11 "C5 built and sent", "Submission #80") |
+| 2026-10-11 | **Model families read** (no GPU): the 0.954 notebook = nartaa's CoAtNet-2 @ 384 (OAI) + heliosli's S6 = ConvNeXt-S `in22k_ft_in1k` @ 384, 4 folds, 16 ep, knee-centred views, 176 windows, 3.5 mm slices, `opusv11b` targets; nartaa's CV CoAtNet-2 0.9025 > Swin-B 0.8825 > EffNetV2-L 0.8716; our best per family 0.931–0.942 vs 0.949–0.954 elsewhere | — | — | **✅ a read: the gap is the recipe, not the family; the "bigger CNNs / > 288 px" drop is challenged (both public ≥ 0.949 singles are bigger and at 384, confounded); P-83 (ConvNeXt-S at 288) written, gated on A14 ≥ 0.950** (entry 2026-10-11 "Model families") |
 | 2026-10-11 | **B21, submission #79 (`rsna-knee-infer` v75)**: flat rank-mean `v15co` + `v13b3` (= B18 with the OAI ConvNeXt) | — | **0.946** | **🔁 +0.002 vs B18 0.944 (✅ needed ≥ 0.948); the pre-registered C4c gate (≥ 0.946) fires. Members' mean 0.9425 + 0.0035: the blend rule held a sixth time. Our best own-model number, = C3; OAI-carrying → the C4-family leg only** (entry 2026-10-11 "Submission #79") |
 
 **External reference points** (not ours — for calibrating ambition):
@@ -4706,6 +4707,66 @@ time is only bounded: ≤ 335.7 min (5.6 h), first seen COMPLETE at ≈ 17:49 UT
 prediction (0.954–0.956). The tie position says the arm ran and added a positive sub-tick lift. C5 is our best public number and, by
 its rule, pick 2's candidate in place of C4b. The fork rule's diversity gain held at its low end (+0.0014–0.0026) on a two-model anchor
 that already carries a ConvNeXt; C6 is re-priced to ≈ A14.**
+
+### 2026-10-11 — Model families: what the 0.954 notebook's two models are (read from their files), our best score per family, and the forum's · every family we use reaches 0.949–0.954 elsewhere, so the gap is the recipe, not the family · the "bigger CNNs / > 288 px" drop is challenged, not reopened · ✅ a read (no GPU)
+
+**Asked by Tian** ("which kind of model families are in this notebook and which ones have we trained ourselves + our results … so I
+decide where to focus next"). **Read** (18:00–18:30 UTC, nothing executed): `notebook_score_0.954.ipynb` cell by cell (text only); S6's
+`manifest.json` (2.4 KB, `kaggle datasets download heliosli/rsna-knee-compact-v1 -f manifest.json`, into a scratch folder);
+`kaggle datasets files` of the same Dataset; our arms in `src/kaggle_pipeline.py`; the solo table (candidates.md "Baselines"); the
+forum claimants (research.md 2.7.6).
+
+**The 0.954 notebook holds two models, two families:**
+
+| Part | Family | What its files say | Score |
+|---|---|---|---|
+| Stage 1, weight 0.7: nartaa's model | **CoAtNet-2** (`coatnet_rmlp_2_rw_384.sw_in12k_ft_in1k`) @ 384 | one checkpoint (`raptor_ft_alldata_t16_blendjev_oai_d96_r384_swa.pt`): 96 slices per study at native 384 px (code `SLOT_SIZES = [26, 22, 18, 12, 18]`: sag-fluid / sag / cor-fluid / cor / ax; the notebook's own markdown still says 18 / 14 / 12 / 8 / 12), slices spread over 6–94 % of each stack, 3-slice windows at all 94 positions, per-finding attention over all windows, a true L/R mirror TTA; trained on all 4,349 studies + the 2,399 OAI knees, labels = the public sets (stevenleehans, pilkwang, riadmohamed42's JEV) blended with their own, SWA. Built on dreaddevelopment's Raptor recipe | **0.949** alone (0.942 without OAI, its author's table) |
+| Stage 2, weight 0.3: heliosli's S6 (arm `E_lrprior`, bundle `209a32c8b50a6b1c`, built 10-09) | **ConvNeXt-Small** (`convnext_small_in22k_ft_in1k`) @ 384, crop 352 | 4 folds × 1 seed, 16 epochs, batch 2, `lr` 1e-4, head 1e-3, wd 0.05 (the optimiser shape of our `v15c`); **176 training windows per study**; 3-slice windows resampled to **3.5 mm** physical spacing; eval stride 1; views `v4` = **knee-centred**, anchors rebuilt per study from the DICOM headers + an SKM-TEA anatomy checkpoint; a left/right side classifier (`side_cls.pt`) re-renders mirrored studies; trained on 4,344 studies, `gold_in_training` 0; targets file `probe_targets_opusv11b_rr3_plv21_cdr.csv` (the name suggests Claude-Opus report labels: not confirmed); no second architecture (`models2` null) | unpublished; ≈ 0.948–0.955 by the fork rule; **A14 (sends 00:00 UTC 10-12) measures it** |
+
+- **nartaa's own family comparison** (a code comment in stage 1, "selected 2026-08-19 by greedy forward selection and exhaustive subset
+  search over a 7-arm" pool, their CV): **CoAtNet-2 @ 384 0.9025 > Swin-B @ 384 0.8825 > EfficientNetV2-L @ 480 0.8716**; the 3-arm blend
+  0.9068 (+0.004 over CoAtNet alone). On their LB, CoAtNet alone beat the 3-arm blend, so they shipped one arm. Their pipeline also
+  routes MaxViT / ConvNeXt as hybrids (no measurement given).
+- S6's code (`compact_infer.py`) can also run a frozen **"OFL-L"** foundation encoder (Dataset `heliosli/rsna-knee-ofl-ssl-weights`),
+  but S6 does not use it (backbone `convnext_small`).
+
+**Our families, best solo LB (OAI-free unless marked):**
+
+| Family | Best arm | Best solo LB | Other reads | How much we tuned it |
+|---|---|---|---|---|
+| **ConvNeXt-T** @ 288 (`in12k_ft_in1k`) | `v15c` (#64) | **0.942** | seed twin `v15c2` 0.941; **with OAI `v15co` 0.945** (#78); `v15c` scored at 320 px 0.942 (#72) | 4 arms; its own optimiser was the lever (P-69) |
+| **EfficientNet-B3** @ 288 | `v13b3` (#50) | **0.940** | — | 1 arm (the CNN recipe) |
+| EfficientNet-B0 @ 224 | `v13e2` (#51) | 0.938 | seed mean 0.9365 over `v13e` 0.935 / `v13e2` 0.938 / `v13ex` 0.937 / `v13ex2` 0.936; target variants 0.932–0.937 | the most tuned (P-62, P-68, the P-67 proxy) |
+| ResNet-50 @ 224 | `v13rs` | 0.937 | `v13r` 0.934 | 3 arms |
+| ResNet-34 @ 224 | `v13h` | 0.931 | `v13c` (older recipe) 0.921 | 4 arms; the CNN recipe was built on it (P-59 / P-64) |
+| CoAtNet-1 @ 224 | `v11a` / `v11n` | 0.932 | `v09a` 0.918 | ≈ 15 arms in August–September (LR, aug, epochs, SWA, density, targets) |
+| DINOv2-S/14 | `v16d1` @ 280 (#76) | 0.932 | `v08r` @ 224 0.918; `v16d3` 0.893 | ≈ 6 arms; dropped 10-11 (P-82 ❌) |
+| CoAtNet-2 @ 384 | `v10c` | not submitted | fold-0 OOF 0.8641 vs CoAtNet-1 0.8683 at 3× the cost | 1 fold-0 run |
+| DINOv2, 16 slices as channels | `v07s` | — | fold-0 OOF 0.7366 | dead end |
+
+Best blends: 0.944 (B18 / B19: ConvNeXt-T + EfficientNet-B3), 0.946 with the OAI ConvNeXt (B21).
+
+**The same families elsewhere** (forum claims, research.md 2.7.6; recipes mostly unstated): ResNet-50 5-fold @ 224 **0.954**
+(CoolinLai); small ResNet / EfficientNet 0.949 one fold (Scott) and "low 0.95s" 5-fold (Tucker); CoAtNet 0.950 @ 224 (Archit, OOF-mixed
+targets) and 0.949 @ 288 (Raymond, teacher pseudo-labels); DINOv2 0.942 and EfficientNet-B4 0.940 (SpeedSci, 5-fold); a Qwen 3.5-2B VLM
+0.950 one fold (dropped direction); the public ConvNeXt-T 2.5D reader 0.929; goodpjw2008's MIL ConvNeXt-T / CoAtNet-2 0.930–0.933.
+
+**What the read says:**
+1. **The gap is the recipe, not the family.** Every family we run reaches 0.949–0.954 somewhere; our best per family is 0.931–0.942.
+   ResNet-50 has the widest same-family gap (0.937 vs a claimed 0.954, recipe undisclosed).
+2. **ConvNeXt is our best family and the one where tuning paid** (its own optimiser made it our best solo).
+3. **Both public ≥ 0.949 single models are bigger backbones at 384 px** (CoAtNet-2, ConvNeXt-S). That challenges the dropped direction
+   "EfficientNet-B4-class or larger CNNs; any resolution above 288" (proposals.md), whose evidence was the forum's 224–288 claimants
+   and our own capacity ladder. Neither public model isolates size or resolution: nartaa adds OAI; S6 adds knee-centred views,
+   176 windows, 3.5 mm resampling and possibly Opus labels. Our own resolution reads stay small (P-43 CoAtNet-1 trained at 320 +0.002 🔁;
+   A8 `v15c` scored at 320 = at 288), and Tian dropped training at 336 px on 10-09.
+4. **The sizes we never trained:** ConvNeXt-S, and a production CoAtNet-2. New families (Swin, MaxViT, EfficientNetV2, DINOv3) stay out by
+   the blend rule; nartaa's CV ranks Swin-B and EfficientNetV2-L below CoAtNet too.
+
+**Verdict: ✅ a read (no GPU).** No family is missing; the next single-model step is a size step inside our best family. **P-83**
+(ConvNeXt-S on the `v15c` recipe at 288 px; proposals.md, candidates.md T14) is written, gated on A14 ≥ 0.950 (S6 alone) and a
+critic-checked RunPod case with Tian's go. Training above 288 px stays Tian's call (brainstorm.md); the dropped row carries a
+"challenged" note, not a reversal.
 
 ## Infrastructure
 

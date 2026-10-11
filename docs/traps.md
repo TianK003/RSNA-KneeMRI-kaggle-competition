@@ -1071,6 +1071,29 @@ were corrected by hand.
 user is logged on or not") survives reboots, which the waiting process cannot. Whether wake timers fire with the lid closed depends on
 the laptop's standby mode (Modern Standby often ignores them), so it does not replace AC power with the lid open.
 
+**Addendum 2026-10-11: the fix is built for the A14 night, and the lid slept the machine again that afternoon.** The A14 submitter (pid
+15852, armed 12:24 UTC) survived a lid sleep from 15:05 to 15:49 UTC 10-11 (Kernel-Power 42 "Button or Lid"; woken by the power
+button). Its hourly lines resumed, so it would have sent if woken before 00:00 UTC, but nothing guaranteed that. Two facts from
+`powercfg` decided the fix:
+- This laptop has **S3 standby, not Modern Standby** (`powercfg /a`), so wake timers can fire.
+- "Allow wake timers" on AC was **2 = important wake timers only**, which blocks a user task's wake (`powercfg /q SCHEME_CURRENT
+  SUB_SLEEP RTCWAKE`). The lid action is a hidden setting: `powercfg /qh SCHEME_CURRENT SUB_BUTTONS LIDACTION` shows it, `/q` does not.
+
+Set at 18:30 UTC 10-11 (on Tian's "make sure A14 is submitted tonight"):
+- `powercfg /setacvalueindex SCHEME_CURRENT SUB_BUTTONS LIDACTION 0` (lid close on AC does nothing; it was 1 = sleep),
+  `… SUB_SLEEP RTCWAKE 1` (was 2), `powercfg /setactive SCHEME_CURRENT`. On battery both stay as they were (the lid sleeps, no wake
+  timers): **keep it plugged in.**
+- Task Scheduler task **`RSNA-A14-backup-send`**: once at 02:20 local = 00:20 UTC 10-12, `WakeToRun`, `StartWhenAvailable` (runs at
+  the next chance if the time is missed), battery allowed, 16 h limit. It runs `artifacts/backup_send_1012.cmd` = `auto_submit.py --plan
+  artifacts/submit_plan_1012.json` with no `--at` (sends at once), log `artifacts/auto_submit_1012_backup.log`. It is a no-op if pid 15852
+  already sent: `find()` matches the same description since 00:00 UTC. It runs only while Tian is logged on (registered without a
+  password), so after a reboot it waits for a login. Whether the wake fires was not verified: `powercfg /waketimers` needs an elevated
+  prompt.
+
+**Undo after the send:** `powercfg /setacvalueindex SCHEME_CURRENT SUB_BUTTONS LIDACTION 1`, `… SUB_SLEEP RTCWAKE 2`,
+`powercfg /setactive SCHEME_CURRENT`, `Unregister-ScheduledTask -TaskName RSNA-A14-backup-send -Confirm:$false`. For the next unattended
+night, copy the pattern: a new plan file, a new `.cmd`, a task at 00:20 UTC.
+
 ### 54. The two training slots run different Kaggle images, and a GPU session can end `ERROR` with an empty log that a re-push fixes (Tier 3, 2026-10-06)
 
 Each kernel keeps the Docker image pinned when it was created (`kaggle kernels pull -m` shows its `docker_image`; our
