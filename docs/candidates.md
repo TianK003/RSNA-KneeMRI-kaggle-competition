@@ -52,7 +52,7 @@ GPU-min each; ≈ 2.3 h of Kaggle GPU is left until 10-10).
 | Prio | Day | Candidate | What it decides | Gate | Status |
 |---|---|---|---|---|---|
 | **P1** | 10-11 → | **The P-67 loop** (T7: next `v14mx`, `v14r288`, `v14ep20`, …; session C read 10-11: lowres 🔁 −0.0019, grid ❌ −0.0021; with P-68 and P-82 closed this is the one OAI-free lever left) | the single-model recipe on a measured ruler (bar ≈ 0.002) | **Tian's go per session**; 5.0 Kaggle GPU-h until 10-17 (a two-variant session took 7.56 h), or RunPod ≈ $0.6 per proxy (critic + go) | session D's slot and image are free; no session queued |
-| **P1** | 10-11 → | **C5 + A14** (sections A, C; the public frontier moved to 0.954 on 10-11) | pick 2's anchor (C5 = the 0.954 blend + B21, pred. 0.954–0.956) and whether S6 can carry pick 1 (A14 = S6 alone) | **Tian's go**; A14 before any pick-1 use of S6 also needs Tian's ruling on its external anatomy weights (brainstorm.md) | **needs a builder**: heliosli's notebook cells verbatim + our arm as a payload (the `build_fork949.py` pattern); A14 = the same build with the S6 stage only |
+| **P1** | 10-11 → | **C5 → A14** (sections A, C; the public frontier moved to 0.954 on 10-11) | pick 2's anchor (C5 = the 0.954 blend + B21) and whether S6 can carry pick 1 (A14 = S6 alone; **Tian 10-11: S6 is allowed in pick 1**) | Tian's go (10-11: "lets do C5, then focus on A14") | **C5 sent 12:13 UTC as #80** (`rsna-knee-fork954` v1, green; ⏳ scoring, watcher `artifacts/watch_57073480.log`); **A14 = `rsna-knee-fork954` v2** (`--s6-only`), placeholder pushed 12:13 UTC; send at 00:00 UTC 10-12 (10-11's five slots are used) |
 | P5 | dropped 10-11 | **C4c** (section C; B21 read 0.946 on 10-11, the gate fired; **dominated by the public 0.954 blend the same day**) | a better pick-2 leg: ≈ +0.0007 on pick 2 (pred. 0.951–0.952 vs C4b 0.951), a tick at best; replaces C4b only at ≥ 0.952 | **Tian's go** (1 slot left on 10-11; send it first in a day otherwise) | build: `src/build_fork949.py --members v15co v13b3 --beta 0.35` → `rsna-knee-fork949` placeholder (the C4b v2 build is the template), then send |
 | P5 | hold | **B16** (P-71) | — | **recommended DROP 10-08:** `v15c` 0.942 makes the 0.929 public reader a second, weaker ConvNeXt | hold |
 | P5 | hold | B1, B2, B7, B8, B9, B10, B12, B15 | — | B14 / B13 supersede B1 / B2; B7 / B10 predict under B6; **B8 and B15 closed by B13**; **B9 closed 10-07**; **B12 read 0.941 on 10-08 (closed)** | hold |
@@ -86,7 +86,7 @@ A10 / A11 (the P-68 solos `v13ex` 0.937 / `v13ex2` 0.936, #74 / #75: pair = the 
 
 | # | Candidate | What it tests / contributes | Decides | Read rule | Placeholder | Gold-58 |
 |---|---|---|---|---|---|---|
-| **A14** | **S6 alone** (heliosli's compact model: ConvNeXt-S, 4 folds, joint-anchored views, side classifier; "report-derived targets", OAI not mentioned) | its solo LB from our account (≈ 0.948–0.955 by the fork rule) | whether S6 + B19 can be pick 1 (if OAI-free and Tian accepts its SKM-TEA / KneeXNet anatomy weights) | ≥ 0.948 → build C6 = S6 + B19 (pick-1 candidate, pred. ≈ 0.950); ≤ 0.945 → S6 is no pick-1 lever | needs the C5 builder with the S6 stage only | — |
+| **A14** | **S6 alone** (heliosli's compact model: ConvNeXt-S, 4 folds, joint-anchored views, side classifier; "report-derived targets", OAI not mentioned) | its solo LB from our account (≈ 0.948–0.955 by the fork rule) | whether S6 + B19 can be pick 1 (if OAI-free and Tian accepts its SKM-TEA / KneeXNet anatomy weights) | ≥ 0.948 → build C6 = S6 + B19 (pick-1 candidate, pred. ≈ 0.950); ≤ 0.945 → S6 is no pick-1 lever | **`rsna-knee-fork954` v2** (`build_fork954.py --s6-only`: stage-3 weights 0.0 / 1.0, the one changed line; β 0); send 10-12 00:00 UTC | — |
 
 ## B. Submission candidates — ensembles of members we have
 
@@ -148,7 +148,7 @@ A C3-type fork scores in ≈ 6.7 h, a C4b-type in ≈ 1.75 h.
 
 | # | Prio | Candidate | What it tests / contributes | Read rule | Placeholder |
 |---|---|---|---|---|---|
-| **C5** | P1 (Tian's go; needs a builder) | heliosli's public 0.954 blend (`heliosli/rsna-knee-blend-gold-dataset-restored`: nartaa's 0.949 CoAtNet 0.7 + S6 0.3, cells verbatim) + B21 (`v15co` + `v13b3`) as our leg at β 0.15–0.20 | the new pick 2: fork rule lift ≈ g − β × (0.954 − 0.946) ≈ +0.001–0.002 → pred. 0.954–0.956; the gain may shrink on a two-model anchor. Scoring time unknown (nartaa ≈ 1.75 h + S6's 4 folds) | vs the 0.954 anchor: ✅ ≥ 0.957 / 🔁 0.952–0.956 / ❌ ≤ 0.951; replaces C4b as pick 2 at ≥ 0.953 (C4b 0.951) | build: a `build_fork954.py` (the `build_fork949.py` pattern); FORCE_SMOKE placeholder first |
+| **C5** | P1 (**sent 10-11 as #80**, ⏳) | heliosli's public 0.954 blend (`heliosli/rsna-knee-blend-gold-dataset-restored`: nartaa's 0.949 CoAtNet 0.7 + S6 0.3, cells verbatim) + B21 (`v15co` + `v13b3`) as our leg at β 0.15–0.20 | the new pick 2: fork rule lift ≈ g − β × (0.954 − 0.946) ≈ +0.001–0.002 → pred. 0.954–0.956; the gain may shrink on a two-model anchor. Scoring time unknown (nartaa ≈ 1.75 h + S6's 4 folds) | vs the 0.954 anchor: ✅ ≥ 0.957 / 🔁 0.952–0.956 / ❌ ≤ 0.951; replaces C4b as pick 2 at ≥ 0.953 (C4b 0.951) | **`rsna-knee-fork954` v1** (`build_fork954.py --members v15co v13b3 --beta 0.20`): placeholder green 12:12 UTC (raptor 49 s, S6 PASS, ours rc 0 in 86 s under timm 1.0.25, output = infer v75's, `FINAL = beta0.20`); sent 12:13 UTC, ref 57073480 |
 | ~~C4c~~ | P5 (dropped 10-11: dominated by the public 0.954) | the public OAI-trained 0.949 model + B21 (`v15co` + `v13b3`) at β 0.35 (`build_fork949.py --members v15co v13b3 --beta 0.35`) | a better pick-2 leg: on the fork rule ≈ +0.00035 per +0.001 on the leg → pred. ≈ 0.951–0.952. The anchor learned from the same OAI knees, so the leg–anchor diversity gain may shrink | vs C4b 0.951: ✅ ≥ 0.954 / 🔁 0.949–0.953 / ❌ ≤ 0.948; replaces C4b as pick 2 only at ≥ 0.952 | **build on Tian's go** (B21 read 0.946 ≥ 0.946); ≈ 1.75 h to score |
 | — | — | Fork at other β | **Not planned:** it tunes a weight to the public LB, and on #68's arithmetic it is worth < 0.0002 | — | — |
 
@@ -182,7 +182,9 @@ A C3-type fork scores in ≈ 6.7 h, a C4b-type in ≈ 1.75 h.
   #76 → **0.932**, A13 07:37 UTC as #77 → **0.893**: P-82 ❌, no B20. Session C: `v14lr` −0.0019 / `v14gd` −0.0021 → no transfer arm.
   Then, on Tian's go ("Send it"): A9 placeholder infer v74 (green, 2.2 min), sent 09:15 UTC as #78 → **0.945**: 🔁 +0.003 vs `v15c`,
   pick 2 only, P-81 closed. Then B21 placeholder infer v75 (green, 0.02 h), sent 10:16 UTC as #79 → **0.946**: 🔁 +0.002 vs B18,
-  the C4c gate fires. At 11:50 UTC the frontier read (a public 0.954 = nartaa + S6) drops C4c for C5 / A14. 1 slot of 10-11 left.
+  the C4c gate fires. At 11:50 UTC the frontier read (a public 0.954 = nartaa + S6) drops C4c for C5 / A14. Tian: "lets do C5, then focus on A14"; S6 allowed in pick 1. `src/build_fork954.py` written; C5 placeholder
+  `rsna-knee-fork954` v1 green (12:07–12:12 UTC), sent 12:13 UTC as #80 (⏳); A14 placeholder v2 pushed 12:13 UTC, sends at 00:00 UTC
+  10-12. All 5 slots of 10-11 used.
 
 ## D. Training candidates (GPU) — open since the 10-10 reset
 
