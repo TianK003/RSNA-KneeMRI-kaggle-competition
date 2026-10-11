@@ -153,6 +153,7 @@ agreement with the teacher, not truth. A one-seed LB delta needs ≥ 0.004 (P-44
 | 2026-10-11 | **P-67 session C (`rsna-knee-train` v51, 7.56 h)**: the proxy + one augmentation each: `v14lr` (low-resolution simulation) ‖ `v14gd` (grid distortion), seed 42, five folds | pooled 5-fold OOF **0.8609 / 0.8607** vs `v14p` 0.8628; gold 0.8981 / 0.8928 (not read) | — | **❌ `v14gd` −0.0021 (all five folds down) / 🔁 `v14lr` −0.0019 (mixed): neither clears the +0.002 bar, no transfer arm** (entry 2026-10-11 "P-67 session C read") |
 | 2026-10-11 | **P-82 DINOv2-S pair (`rsna-knee-train-b` v13, 7.35 h) + solos #76 / #77 (`rsna-knee-infer` v72 / v73)**: DINOv2-S/14 @ 280 on `v15c`'s data side, top block 1e-4 / LLRD 0.8 (`v16d1`) vs 3e-4 / 0.75 (`v16d3`) | gold-58 SWA 0.9066 / 0.8604 | **0.932 / 0.893** | **❌ the better arm 0.932 ≤ 0.934 (−0.010 vs `v15c`): DINOv2 stays dropped, no B20; +0.014 over the old `v08r` 0.918; the LR direction is low (3e-4 collapses in the warm-up)** (entry 2026-10-11 "P-82 read") |
 | 2026-10-11 | **A9, submission #78 (`rsna-knee-infer` v74)**: `v15co` = `v15c` + 2,399 OAI knees (masked soft targets on Synovitis / PF OA / Lateral OA; RunPod, 10-10) | 0.9211 | **0.945** | **🔁 +0.003 vs `v15c` 0.942 (✅ needed ≥ 0.946), the top of the band: our best single model on the LB, OAI-trained → pick 2 only. Gold-58 had it −0.0023 (traps 39). A C4b leg on it (B21 → C4c) prices at ≈ +0.0005–0.0007 on the fork; P-81 closed** (entry 2026-10-11 "Submission #78") |
+| 2026-10-11 | **The public frontier moved to 0.954** (no GPU): heliosli's public blend = nartaa's 0.949 CoAtNet 0.7 + S6 (ConvNeXt-S, 4 folds, joint-anchored views, "report-derived targets") 0.3; ≈ 278 teams at 0.954, 432 ≥ 0.953; we are rank 504 at 0.951 | — | — | **✅ a read: C4c dominated and dropped; C5 (the 0.954 blend + B21, pred. 0.954–0.956) and A14 (S6 alone, a pick-1 question) queued** (entry 2026-10-11 "The public frontier moved to 0.954") |
 | 2026-10-11 | **B21, submission #79 (`rsna-knee-infer` v75)**: flat rank-mean `v15co` + `v13b3` (= B18 with the OAI ConvNeXt) | — | **0.946** | **🔁 +0.002 vs B18 0.944 (✅ needed ≥ 0.948); the pre-registered C4c gate (≥ 0.946) fires. Members' mean 0.9425 + 0.0035: the blend rule held a sixth time. Our best own-model number, = C3; OAI-carrying → the C4-family leg only** (entry 2026-10-11 "Submission #79") |
 
 **External reference points** (not ours — for calibrating ambition):
@@ -4584,6 +4585,46 @@ poll, so it scored within ≤ 91 min.
 
 **Verdict: 🔁 INCONCLUSIVE as a blend delta (+0.002 vs B18; ✅ needed ≥ 0.948), and the pre-registered action gate (≥ 0.946 → build
 C4c) fires. B21 is the C4-family leg from now on; C4c is the one queued send it unlocks (candidates.md, on Tian's go).**
+
+**CORRECTED 2026-10-11 (11:55 UTC):** the same day's frontier read (next entry) shows a public 0.954 notebook on the same anchor, so
+C4c (pred. 0.951–0.952) is dominated and dropped; B21 stays the C4-family leg, now for C5.
+
+### 2026-10-11 — The public frontier moved to **0.954**: heliosli's public blend = `nartaa`'s 0.949 CoAtNet (0.7) + heliosli's compact model **S6** (0.3) · we fell to rank 504 at 0.951 · C4c is dominated · ✅ a read (no GPU)
+
+**Read** (11:50 UTC; `kaggle competitions leaderboard -d`, `kaggle kernels list --competition … --sort-by dateRun`, `kaggle kernels pull`
+of three "LB 0.954" notebooks as text, nothing executed; `kaggle datasets metadata` / `files` of the two `heliosli` Datasets):
+
+- **The board:** 5,733 teams; top 0.965, 10th 0.963. 125 teams ≥ 0.955, **432 ≥ 0.953, of which ≈ 278 sit at exactly 0.954** (the new
+  plateau), 486 ≥ 0.952, 594 ≥ 0.951, 1,107 ≥ 0.950 (513 at exactly 0.950). **We are rank 504 at 0.951** (C4b #73; rank 218 on 10-10).
+- **What the 0.954 is:** `heliosli/rsna-knee-blend-gold-dataset-restored`, copied cell for cell into `goodpjw2008/rsna-knee-coatnet-s6-2-5d-mil-lb-0-954`
+  and `jenillangaliya/rsna-knee-lb-0-954-dual-sota-ensemble`: nartaa's notebook run unchanged as a subprocess (the 0.949 OAI-trained
+  CoAtNet-2 @ 384, the same anchor C4 / C4b fork) and **S6**, per label `0.7 · rank_pct(raptor) + 0.3 · rank_pct(S6)`, weights "fixed
+  before any run, not fitted". goodpjw2008's version adds two private 2.5D MIL readers (ConvNeXt-T / CoAtNet-2, "0.930–0.933 each family
+  alone", competition data only) at private weights: the same 0.954 at three decimals, ranked above the plain blend. A third
+  "0.954" notebook (`rabari9999/rsna-knee-lb-0-954-rank-127-silver`) mounts only the 0.949 checkpoint and the public 0.929 reader (not read).
+- **S6** (Dataset `heliosli/rsna-knee-compact-v1`, created 10-10 19:50 UTC, licence "other", "private inference bundle … a compact image
+  model fine-tuned on report-derived targets"): **ConvNeXt-small, 4 folds** (`E_lrprior_s0_f0…f3.pt`, 200 MB each) + a left/right
+  **side classifier** (`side_cls.pt`), "views anchored on the knee joint (SKM-TEA segmentation)", per-class attention. The anatomy model
+  comes from `heliosli/rsna-orthofoundation-fold0-epoch7-20261004` (licence "other": "unchanged SKM-TEA / KneeXNet auxiliary weights;
+  upstream weights retain their original licensing"; it also ships the project's source, `cloud_code/training/anatomy.py` …). **OAI is
+  not mentioned anywhere for S6; its solo LB is not published.**
+- **What S6 must be worth, on our fork rule:** a 0.3 leg that lifts a 0.949 anchor by +0.005 has to sit near the anchor: with a
+  diversity gain of +0.003–0.005, 0.005 = g − 0.3 × (0.949 − S6) gives **S6 ≈ 0.948–0.955**. Our B18 leg at 0.35 lifted the same
+  anchor by +0.002 (C4b).
+- **What it changes for us:**
+  - **C4c is dominated** (pred. 0.951–0.952, below a public notebook anyone can submit). Pick 2's natural anchor is now the 0.954 blend.
+  - **A fork on the 0.954 blend** (C5) with B21 as our leg: lift ≈ g − β × (0.954 − 0.946). At β 0.15–0.20 that is ≈ +0.001–0.002 if g
+    holds at +0.003 → **pred. 0.954–0.956**. The gain may shrink on an anchor that is already a two-model blend; goodpjw2008's 0.930–0.933
+    readers added < 0.0005, but our leg is 0.013 stronger. On this anchor each +0.001 on our leg is worth only ≈ +0.0002 on pick 2.
+  - **If S6 is OAI-free, it is a pick-1 lever:** S6 (≈ 0.948–0.955) + B19 (0.944) would put pick 1 near 0.950 instead of 0.944 / 0.946.
+    That needs S6's solo LB from our account and Tian's ruling on its external anatomy weights (brainstorm.md).
+  - **For our own single models:** S6 is a "smaller CNN" (ConvNeXt-S) at or near 0.95 without OAI (as far as its card says), on
+    report-derived targets. Its named differences from `v15c`: joint-anchored views from a segmentation model, 4 folds, a side
+    classifier, ConvNeXt-S instead of -T.
+
+**Verdict: ✅ a read (no GPU). The 0.954 plateau is a public two-model blend of the 0.949 CoAtNet and a ConvNeXt-S 4-fold "S6".
+C4c is dropped (dominated); C5 (the 0.954 blend + B21) and A14 (S6 alone, the pick-1 question) enter candidates.md, both needing a
+builder, a placeholder and Tian's go.**
 
 ## Infrastructure
 
