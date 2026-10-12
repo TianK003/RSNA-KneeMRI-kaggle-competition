@@ -159,6 +159,7 @@ agreement with the teacher, not truth. A one-seed LB delta needs ≥ 0.004 (P-44
 | 2026-10-11 | **B21, submission #79 (`rsna-knee-infer` v75)**: flat rank-mean `v15co` + `v13b3` (= B18 with the OAI ConvNeXt) | — | **0.946** | **🔁 +0.002 vs B18 0.944 (✅ needed ≥ 0.948); the pre-registered C4c gate (≥ 0.946) fires. Members' mean 0.9425 + 0.0035: the blend rule held a sixth time. Our best own-model number, = C3; OAI-carrying → the C4-family leg only** (entry 2026-10-11 "Submission #79") |
 | 2026-10-12 | **A14, submission #81 (`rsna-knee-fork954` v2, `--s6-only`)**: heliosli's S6 alone (ConvNeXt-S @ 384, 4 folds, knee-centred views), the 0.954 notebook with stage-3 weights 0.0 / 1.0 | — | **0.944** | **🔁 = B19 0.944 (+0.002 vs `v15c`, under the floor). By its rule (≤ 0.945) S6 is no pick-1 lever by itself, and the C6 (≥ 0.948) and P-83 (≥ 0.950) gates fail: P-83 dropped. New: the 0.954 blend's diversity gain is +0.0055–0.0075, against +0.0027–0.0047 for B18 on the same anchor (C4b), so C6 (S6 + B18) is re-priced to 0.946–0.953: Tian's call** (entry 2026-10-12 "Submission #81") |
 | 2026-10-12 | **P-84, submission #83 (`rsna-knee-infer` v76)**: `v15cb` = `v15c` + `trim_ends 1` (the ≈ 6–94 % slice band on the 24-slice slots, train = infer; RunPod L40S, $1.75) | 0.9229 (`v15c` 0.9234) | **0.943** | **🔁 +0.001 vs `v15c` 0.942 (✅ needed ≥ 0.946): at unchanged density the band is not our lever (Dread's +0.009 came with a denser band); P-84 closed, `trim_ends` stays off** (entry 2026-10-12 "P-84 on RunPod + Submission #83") |
+| 2026-10-12 | **C6, submission #82 (`rsna-knee-fork954` v3, `--s6-anchor`)**: heliosli's S6 alone as the anchor (no CoAtNet stage, OAI-free) + B18 (`v15c` + `v13b3`) at β 0.45 | — | **0.950** | **✅ +0.006 vs A14 / B19 0.944 (rule ✅ ≥ 0.948): our best OAI-free number (C3 0.946), the pick-1 candidate by its rule. All of it is diversity gain (both parts 0.944): k ≈ 0.020–0.028, between our legs' 0.009–0.021 and S6-on-nartaa's 0.026–0.036. The two picks would now share S6 (brainstorm.md). The P-85 gate fires** (entry 2026-10-12 "Submission #82") |
 
 **External reference points** (not ours — for calibrating ambition):
 
@@ -4933,6 +4934,45 @@ infer lines, diffed; 49 sources) green in 0.02 h: `v15cb/fold0 … [epoch 19, sc
 **Verdict: 🔁 INCONCLUSIVE (+0.001 vs `v15c`, under the 0.004 one-seed bar; ✅ needed ≥ 0.946).** P-84 is closed (closed-cards index):
 the slice band at unchanged density is not a lever for us.
 
+### 2026-10-12 — Submission #82: C6 = S6 alone + B18 at β 0.45 (OAI-free) **0.950** · ✅ +0.006 vs A14 / B19 0.944 (✅ needed ≥ 0.948) → the OAI-free pick-1 candidate, +0.004 over C3 · S6's diversity carries to our models (k ≈ 0.020–0.028) · the P-85 gate fires
+
+**Read** (11:42 UTC, `watch_submission.py`): #82 (ref 57100370) = `rsna-knee-fork954` v3 (`build_fork954.py --s6-anchor --members v15c
+v13b3 --beta 0.45`). It runs heliosli's S6 stage verbatim, with no CoAtNet stage and nartaa's Dataset not mounted, then our B18 arm,
+and rank-blends the two at β 0.45. Sent 07:53:26 UTC, **COMPLETE 0.950**, scored within [226.6, 228.6] min (A14, with the CoAtNet stage,
+took 206–208 min).
+
+| # | what | LB | pre-registered read (candidates.md C6) | verdict |
+|---|---|---|---|---|
+| 82 | C6 = S6 (0.55) + B18 (`v15c` + `v13b3`, 0.45), OAI-free | **0.950** | vs A14 / B19 0.944: ✅ ≥ 0.948 → the pick-1 candidate / 🔁 0.945–0.947 ≈ C3 / ❌ ≤ 0.944 | **✅ +0.006** |
+
+- **The fork rule on two parts at the same level.** The weighted mean is 0.55 × 0.944 + 0.45 × 0.944 = 0.944, so all of the +0.006 is
+  diversity gain: g ∈ (+0.005, +0.007) with the roundings, and k = g / β(1 − β) = g / 0.2475 ≈ **0.020–0.028**.
+  - Our legs on public anchors read k 0.009–0.021; S6 on nartaa's CoAtNet read 0.026–0.036 (#81). C6 sits between them: the top of our
+    range and the bottom of S6's.
+  - The 10-12 price was 0.946–0.953. The read is the floor of its upper ("S6-like") half.
+- **S6 is nearly as different from our models as from nartaa's.** Both of those are Raptor-lineage: our targets are 0.5 Raptor, and
+  nartaa's checkpoint is a Raptor fine-tune. S6 is not, and its input differs too (knee-centred views, 3.5 mm slabs, 384 px). The read
+  keeps both explanations. The critic's gate for P-85 (C6 ≥ 0.950) required S6 to gain on our models before testing the lineage half;
+  it fires.
+- **What it decides:**
+  - **Pick 1:** by its rule C6 is the pick-1 candidate. It is OAI-free at 0.950, against B19 0.944 and C3 0.946, and 0.004 under pick 2
+    (C5 0.954). The picks stay Tian's call by 10-22 (no pick decisions yet).
+  - **New risk: the two picks would share S6.** C5 = nartaa 0.7 + S6 0.3 + B21 at 0.2; C6 = S6 + B18. If S6 is ruled out, both fall.
+    - heliosli pulled S6's Dataset once ("I'd been told it wasn't allowed") and restored it (entry "Single-model levers").
+    - S6's views come from SKM-TEA / KneeXNet anatomy weights.
+    - Tian allowed S6 in pick 1 on 10-11, before it was a candidate there; the shared-component question goes to brainstorm.md.
+    - C3 (0.946) stays the S6-free, OAI-free fallback.
+  - **Our leg now counts at 0.45 on pick 1.** With anchor = leg, +0.001 on B18 lifts C6 by ≈ +0.00045. A more *different* own leg can
+    move it more than a stronger one: +0.004 of k is ≈ +0.001.
+  - **β stays 0.45** (the pre-written clamp). With Δ = 0 the optimum is 0.5, a difference under 0.0001; it is not tuned on the LB.
+  - **P-85 fires:** `v15cr` (`v15c` on `claude_v1` alone, no Raptor) launched on Tian's go (the session's opening message). A caveat for
+    its use here: `v15cr` trains on Opus report labels and S6 on Opus report states (`opusv11b`), so on the S6 anchor it may be *less*
+    different than B18. Its pre-registered read is k on nartaa's 0.949 anchor.
+  - 3.8 h of scoring leaves margin under the 9-h limit.
+
+**Verdict: ✅ KEEP: +0.006 vs A14 / B19 (✅ needed ≥ 0.948; 1.5× the 0.004 one-seed floor).** Our best OAI-free number and the pick-1
+candidate by its rule. S6's diversity carries to our models (k ≈ 0.020–0.028), and the P-85 gate fires.
+
 ## Infrastructure
 
 ### 2026-09-27 — The "0.943 Speedy Raptors CoAtNet D4" notebook is our anchor **plus two CoAt readers**, not a faster graph; its "< 30 min" is a 3-study commit run · P-41 (threaded scan + 8 decode workers) smoke-green and byte-identical
@@ -5461,7 +5501,7 @@ and public LB score, so a public/private divergence can be traced to a specific 
 | 79 | 2026-10-11 | rsna-knee-infer v75 | **B21**: `INFER_MEMBERS = ["v15co", "v13b3"]` (`artifacts/infer_b21.py`) | none | **0.946** | **read by 11:47 UTC → 🔁 +0.002 vs B18 0.944; "≥ 0.946 → build C4c" fires; the blend rule held (+0.0035 over the members' mean); no watcher, scored within ≤ 91 min.** sent 10:16:28 UTC, ref 57070831 |
 | 80 | 2026-10-11 | rsna-knee-fork954 v1 (`src/build_fork954.py --members v15co v13b3 --beta 0.20`) | **C5**: heliosli's public 0.954 blend (nartaa's 0.949 CoAtNet 0.7 + S6 0.3, cells verbatim) + B21 (`v15co` + `v13b3`) at β 0.20 | none | **0.954** | **read by 17:49 UTC → 🔁 Δ 0.000 vs the 0.954 anchor (✅ needed ≥ 0.957); rank 147, 9th of 425 in the 0.954 tie, above the blend's verbatim copies (the arm ran: a sub-tick lift); fork-rule gain +0.0014–0.0026; our best public number, pick 2's candidate by its rule; scored within ≤ 335.7 min (the watcher died after its first poll).** sent 12:13:18 UTC, ref 57073480 |
 | 81 | 2026-10-12 | rsna-knee-fork954 v2 (`src/build_fork954.py --s6-only`) | **A14**: heliosli's S6 alone (the 0.954 notebook with stage-3 weights 0.0 / 1.0; the CoAtNet still runs as the per-study fallback; our arm off) | none | **0.944** | **read 03:28:22 UTC → 🔁 = B19 0.944; S6 is no pick-1 lever by itself (≤ 0.945), and the C6 / P-83 gates fail. The 0.954 blend's diversity gain is +0.0055–0.0075 (B18 on the same anchor: +0.0027–0.0047), so C6 is re-priced to 0.946–0.953; scored within [206.3, 207.8] min.** sent 00:00:34 UTC by `auto_submit.py` (pid 15852), ref 57088196 |
-| 82 | 2026-10-12 | rsna-knee-fork954 v3 (`src/build_fork954.py --s6-anchor --members v15c v13b3 --beta 0.45`) | **C6**: heliosli's S6 alone as the anchor (no CoAtNet stage, nartaa not mounted: OAI-free) + B18 (`v15c` + `v13b3`) at β 0.45 | none | ⏳ | sent 07:53:26 UTC on Tian's go, ref 57100370; read rule vs 0.944: ✅ ≥ 0.948 / 🔁 0.945–0.947 / ❌ ≤ 0.944 |
+| 82 | 2026-10-12 | rsna-knee-fork954 v3 (`src/build_fork954.py --s6-anchor --members v15c v13b3 --beta 0.45`) | **C6**: heliosli's S6 alone as the anchor (no CoAtNet stage, nartaa not mounted: OAI-free) + B18 (`v15c` + `v13b3`) at β 0.45 | none | **0.950** | **read 11:42 UTC → ✅ +0.006 vs A14 / B19 0.944 (rule ✅ ≥ 0.948): our best OAI-free number, the pick-1 candidate by its rule; the fork rule's k ≈ 0.020–0.028 (S6 is nearly as different from our models as from nartaa's); the P-85 gate (≥ 0.950) fires; scored within [226.6, 228.6] min.** sent 07:53:26 UTC on Tian's go, ref 57100370 |
 | 83 | 2026-10-12 | rsna-knee-infer v76 (+ Dataset `rsna-knee-ckpt-v15cb`) | **P-84, `v15cb` solo**: `INFER_MEMBERS = ["v15cb"]` (`v15c` + `trim_ends 1`: the ≈ 6–94 % band on the 24-slice slots, train = infer; RunPod L40S 10-12) | none; gold-58 0.9229 | **0.943** | **read 11:32 UTC → 🔁 +0.001 vs `v15c` 0.942 (✅ needed ≥ 0.946); P-84 closed, `trim_ends` stays off; scored within [28.8, 30.3] min.** sent 11:01:46 UTC, ref 57105105 |
 
 ## Closed cards index (moved here from proposals.md on 2026-10-05)
