@@ -1094,6 +1094,11 @@ Set at 18:30 UTC 10-11 (on Tian's "make sure A14 is submitted tonight"):
 `powercfg /setactive SCHEME_CURRENT`, `Unregister-ScheduledTask -TaskName RSNA-A14-backup-send -Confirm:$false`. For the next unattended
 night, copy the pattern: a new plan file, a new `.cmd`, a task at 00:20 UTC.
 
+**Outcome 2026-10-12:** pid 15852 sent A14 at 00:00:32 UTC (`sent 1 / 1`; its hourly lines ran without a gap, so the machine stayed
+awake). The backup task fired at 00:20:01 UTC and logged `already submitted (ref 57088196) -- not resubmitting`: the no-op path works.
+The wake path stays untested, because the laptop never slept. **Undone at 07:35 UTC:** LIDACTION AC 1 and RTCWAKE AC 2 (read back
+with `/qh` / `/q`), the task unregistered, pid 15852 exited.
+
 ### 54. The two training slots run different Kaggle images, and a GPU session can end `ERROR` with an empty log that a re-push fixes (Tier 3, 2026-10-06)
 
 Each kernel keeps the Docker image pinned when it was created (`kaggle kernels pull -m` shows its `docker_image`; our
