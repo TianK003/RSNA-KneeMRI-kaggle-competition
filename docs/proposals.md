@@ -108,7 +108,6 @@ everything else is decided later.** (The ConvNeXt half is superseded by the nigh
 
 | rank | id | title | status | expected value | cost | depends on |
 |---|---|---|---|---|---|---|
-| 1 | P-84 | Slice band ≈ 6–94 % instead of 2–98 % (`v15cb` = `v15c` + `trim_ends 1` on the 24-slice slots) | 🔧 **training 10-12** (RunPod secure L40S `zd2092m8b98ago`, started 08:35 UTC, ≈ 2 h; Tian's go, critic GO WITH CHANGES applied) | ✅ needs ≥ 0.946 solo (+0.004 on `v15c`); Dread's +0.009 was measured with a denser band, so 🔁 is the likely read | ≈ $2.6 (L40S $1.09/h; no 4090 in stock) + a placeholder + 1 slot | — |
 | 2 | P-85 | Report-only targets (`v15cr` = `v15c` on `claude_v1` alone, no Raptor): the diversity leg | 💡 **gated on C6 (#82) ≥ 0.950** (critic, 10-12); code and smoke done | read as k on nartaa's 0.949 anchor at β 0.35 (C4b-type fork): k 0.012–0.021 → 0.947–0.949 (no lineage effect) / k ≥ 0.026 → 0.950–0.953 (S6-like) | ≈ $1.5–2.6 + 1 fork slot (≈ 1.75 h to score) | C6's read |
 | 3 | P-71 | An independently trained public reader as a blend member (B16: goodpjw2008's 2.5D ConvNeXt-T, Apache-2.0) | 💡 new 2026-10-06; **recommended DROP (pending Tian), 10-08:** our own ConvNeXt-T `v15c` reads 0.942 solo (#64), so B16 would add a second, weaker (0.929) ConvNeXt vote, plus third-party code at the rerun. Was: recommended DEMOTE (≈ +0.0005 LB) | B16 ≈ 0.941–0.943 vs B6 0.942; upside if its independence beats our families' (gold ρ 0.83–0.89) | ≈ 60 lines + 1 placeholder (≈ 0.2 GPU-h) + 1 send; ≈ 20 min more scoring | — |
 | 4 | P-72 | A seventh family on the `v13h` recipe (`eca_nfnet_l0` by default) + a family-diversity ruler on the proxy OOF (Δ_div) | 💡 new 2026-10-06; **recommended DROP (pending Tian): no read on this task, in1k only** | B6 + 0.001–0.003 if member-grade (≥ 0.933 solo); the ruler ranks families on 4,349 studies, not LB slots | weight Dataset + loader check; 1 Kaggle arm ≈ 6 h; ≈ 1 proxy per screened family | the 10-10 quota; the P-67 floor for Δ_div |
@@ -128,27 +127,6 @@ everything else is decided later.** (The ConvNeXt half is superseded by the nigh
 | 19 | P-51 | Teacher-aware confidence weights | 💡 low, label-side (parked by the 10-06 focus) | 0..+0.002 | ≈ 20 lines + 2.8 h; 1 solo | P-44 floor |
 
 ## Cards
-
-### P-84 Slice band ≈ 6–94 % instead of 2–98 % (`v15cb`)
-Status:       🔧 **training 2026-10-12** on RunPod (secure L40S `zd2092m8b98ago`, $1.09/h, chain started 08:35 UTC, AUTO_STOP + stopper
-              11:46 UTC); Tian's go 10-12 ("Band trim + Claude-only targets"); critic GO WITH CHANGES, all applied (trim only the
-              24-slice slots, window-count log lines, unit checks + local smokes, stopper ≥ 3 h).
-Hypothesis:   dropping the windows that touch the first / last cached slice of each 24-slice slot (the c03 2–98 % band → ≈ 6.2–93.8 %)
-              lifts `v15c` (0.942) by ≥ 0.004 solo.
-Origin:       forum 737696 (Dread Development, measured public LB, CoAtNet + attention pooling): 44 slices over 6–94 % read 0.926 vs
-              0.917 over 2–98 %; nartaa's public 0.949 uses 6–94 % (experiments.md 2026-10-12 "Single-model levers: the forum and the
-              public notebooks").
-Evidence:     For: the one image-side change with a measured LB delta we have not made. Against: Dread's 6–94 % also made the band's
-              middle denser (44 slices in a narrower band); ours removes 2 of 22 windows per 24-slice slot at unchanged density, and
-              the window-attention head may already ignore edge windows. The 14- and 8-slice slots stay whole (an 8-slice slot would
-              keep 29–71 % only).
-Measure:      `trim_ends: 1` (`trim_end_windows`, TRIM_MIN_SLICES 20; an INFER_MEMBER_KEY, so train = infer), `v15c` otherwise, seed
-              42; solo on the LB vs `v15c` 0.942: ✅ ≥ 0.946 / 🔁 0.939–0.945 / ❌ ≤ 0.938.
-Noise floor:  a one-seed solo delta needs ≥ 0.004 (P-44); ConvNeXt seed spread s_c = 0.001 (#70).
-Cost:         ≈ 2.4 pod-h ≈ $2.6 (no 4090 in stock on 10-12), a placeholder (≈ 0.05 GPU-h), one slot.
-If it works:  `trim_ends 1` goes into every final member (week of 10-17) and the own blends / fork legs are rebuilt on it.
-If it fails:  the band stays 2–98 %; a denser re-cache (Dread's real change) does not fit the days left.
-Depends on:   —
 
 ### P-85 Report-only targets for a diversity leg (`v15cr`)
 Status:       💡 code + local smoke done 2026-10-12 (`3eac809`); **gated on C6 (#82) ≥ 0.950** (critic: if S6 + B18 does not gain on our

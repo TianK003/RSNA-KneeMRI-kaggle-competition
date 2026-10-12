@@ -158,6 +158,7 @@ agreement with the teacher, not truth. A one-seed LB delta needs ≥ 0.004 (P-44
 | 2026-10-11 | **Model families read** (no GPU): the 0.954 notebook = nartaa's CoAtNet-2 @ 384 (OAI) + heliosli's S6 = ConvNeXt-S `in22k_ft_in1k` @ 384, 4 folds, 16 ep, knee-centred views, 176 windows, 3.5 mm slices, `opusv11b` targets; nartaa's CV CoAtNet-2 0.9025 > Swin-B 0.8825 > EffNetV2-L 0.8716; our best per family 0.931–0.942 vs 0.949–0.954 elsewhere | — | — | **✅ a read: the gap is the recipe, not the family; the "bigger CNNs / > 288 px" drop is challenged (both public ≥ 0.949 singles are bigger and at 384, confounded); P-83 (ConvNeXt-S at 288) written, gated on A14 ≥ 0.950** (entry 2026-10-11 "Model families") |
 | 2026-10-11 | **B21, submission #79 (`rsna-knee-infer` v75)**: flat rank-mean `v15co` + `v13b3` (= B18 with the OAI ConvNeXt) | — | **0.946** | **🔁 +0.002 vs B18 0.944 (✅ needed ≥ 0.948); the pre-registered C4c gate (≥ 0.946) fires. Members' mean 0.9425 + 0.0035: the blend rule held a sixth time. Our best own-model number, = C3; OAI-carrying → the C4-family leg only** (entry 2026-10-11 "Submission #79") |
 | 2026-10-12 | **A14, submission #81 (`rsna-knee-fork954` v2, `--s6-only`)**: heliosli's S6 alone (ConvNeXt-S @ 384, 4 folds, knee-centred views), the 0.954 notebook with stage-3 weights 0.0 / 1.0 | — | **0.944** | **🔁 = B19 0.944 (+0.002 vs `v15c`, under the floor). By its rule (≤ 0.945) S6 is no pick-1 lever by itself, and the C6 (≥ 0.948) and P-83 (≥ 0.950) gates fail: P-83 dropped. New: the 0.954 blend's diversity gain is +0.0055–0.0075, against +0.0027–0.0047 for B18 on the same anchor (C4b), so C6 (S6 + B18) is re-priced to 0.946–0.953: Tian's call** (entry 2026-10-12 "Submission #81") |
+| 2026-10-12 | **P-84, submission #83 (`rsna-knee-infer` v76)**: `v15cb` = `v15c` + `trim_ends 1` (the ≈ 6–94 % slice band on the 24-slice slots, train = infer; RunPod L40S, $1.75) | 0.9229 (`v15c` 0.9234) | **0.943** | **🔁 +0.001 vs `v15c` 0.942 (✅ needed ≥ 0.946): at unchanged density the band is not our lever (Dread's +0.009 came with a denser band); P-84 closed, `trim_ends` stays off** (entry 2026-10-12 "P-84 on RunPod + Submission #83") |
 
 **External reference points** (not ours — for calibrating ambition):
 
@@ -4877,6 +4878,61 @@ targets, `claude_v1` alone; gated on C6 ≥ 0.950, read as k on the 0.949 anchor
 **Verdict: ✅ a read (no GPU).** The slice band is the strongest untested image-side lever (+0.009, measured by its author, partly
 density); report-only targets are the diversity lever suggested by S6. Both are cards (P-84 running, P-85 gated).
 
+### 2026-10-12 — P-84 on RunPod + Submission #83: `v15cb` = `v15c` + the ≈ 6–94 % slice band **0.943** · 🔁 +0.001 vs `v15c` 0.942 (✅ needed ≥ 0.946) · at unchanged density the band is not our lever · gold-58 SWA 0.9229 (`v15c` 0.9234) · $1.75 · P-84 closed
+
+**Run** (Tian's go 10-12, "Band trim + Claude-only targets"; critic GO WITH CHANGES, all applied; candidates.md T15):
+- Pod `zd2092m8b98ago` (SECURE L40S, US-MO-1, $1.09/h: no 4090 in stock; a CUDA 13.0 host that worked, traps 65 addendum; 40 GB disk +
+  80 GB persistent `/workspace`; proxy-only SSH), created 08:28:09 UTC. Chain `runpod_chain.sh v15cb` (c03, 0.5 LLM + 0.5 Raptor)
+  started 08:35 UTC with AUTO_STOP and a stopper deadline of 11:46 UTC.
+- Shipped by 10:12 UTC: Dataset `rsna-knee-ckpt-v15cb` = `v15cb_fold0_best.pt` (112,204,320 bytes), the OOF csv and the log (created
+  10:12:38–39 UTC), ≈ 97 min after the chain started, cache pulls included. AUTO_STOP stopped the pod (`EXITED` at 10:50 UTC).
+- Backup: per-file downloads from the Dataset into `artifacts/kaggle_out/pod_v15cb/` (same sizes; `_best.pt` sha256 `032d6240…d561`).
+  `_lastema.pt` stayed on the stopped pod's volume and went with it (unused, as for `v15c2`). Pod deleted ≈ 10:52 UTC after the ship
+  and the backup were confirmed; `list-pods` is empty.
+- Cost: RunPod billing for 10-12 = **$1.75** (GPU $1.73 + disk $0.03; the case said ≈ $2.6). $4.51 billed since Tian's 10-10 top-up
+  of $12.15, so **≈ $7.6 is left**.
+- Config confirmed in the log: `RSNA_ARM: running only v15cb`, `timm:convnext_tiny` @ 288, 20 epochs, SWA 3, `train_all`, seed 42,
+  targets 0.5 LLM + 0.5 quantile-matched Raptor, peak GPU memory 7.02 GiB (= `v15c`), and `trim_ends 1 [v15cb train]: windows per slot
+  [22, 22, 22, 12, 6, 0] -> [20, 20, 20, 12, 6, 0]` (only the slots of ≥ 20 cached slices trimmed).
+
+**Training curve, beside `v15c`** (gold-58):
+
+| epoch | `v15cb` loss / gold | `v15c` loss / gold |
+|---|---|---|
+| 0 | 0.5512 / 0.8031 | 0.5502 / 0.8154 |
+| 4 | 0.4275 / 0.9213 | 0.4297 / 0.9182 |
+| 9 | 0.3930 / 0.9222 | 0.3926 / 0.9220 |
+| 12 | 0.3756 / **0.9284** (peak) | — (peak 0.9272 at epoch 11) |
+| 14 | 0.3668 / 0.9275 | 0.3674 / 0.9259 |
+| 19 | 0.3557 / 0.9221 | 0.3567 / 0.9233 |
+| SWA 17–19 | — / **0.9229** | — / 0.9234 |
+
+**Infer and send** (on Tian's go in the session's opening message): `rsna-knee-infer` v76 (`artifacts/infer_v15cb.py` = src + the three
+infer lines, diffed; 49 sources) green in 0.02 h: `v15cb/fold0 … [epoch 19, score 0.9229, ema True]`, `trim_ends 1` applied at inference
+(22 → 20 windows on the 24-slice slots), `decode-once verified`, `constant labels 0`. Sent 11:01:46 UTC (ref 57105105), scored within
+[28.8, 30.3] min.
+
+| # | what | gold-58 | LB | pre-registered read (P-84) | verdict |
+|---|---|---|---|---|---|
+| 83 | `v15cb` solo (infer v76) | 0.9229 | **0.943** | vs `v15c` 0.942: ✅ ≥ 0.946 / 🔁 0.939–0.945 / ❌ ≤ 0.938 | **🔁 +0.001** |
+
+- **What it measures:** dropping the two edge windows of each 24-slice slot reads +0.001. It keeps slice density unchanged and moves the
+  c03 2–98 % band to ≈ 6–94 %. That is under the one-seed bar (0.004) and inside the ConvNeXt seed spread (s_c = 0.001: `v15c2` read
+  0.941). Dread's +0.009 (737696) came with 44 slices packed into the narrower band, so it was denser. The card's Against line expected
+  🔁: on our input the band alone is not that lever. Gold-58 moved −0.0005, which is noise.
+- **0.943 is our best OAI-free solo at three decimals,** within noise of `v15c`.
+- **What it decides:**
+  - P-84 closes 🔁. `trim_ends` stays off by default and does not go into the final members (the card's "if it works" branch does not
+    fire).
+  - The denser re-cache (Dread's actual change) does not fit the days left.
+  - `v15cb` is a shipped, mountable ConvNeXt-T vote whose window set differs from `v15c`'s. By the blend rule a third vote of a family
+    already present adds nothing readable on the public LB, so no blend is queued on it.
+- **Cosmetic:** the `trim_ends` window-count line meant to print once per version and phase (`20ae67e`) prints once per DataLoader worker
+  process, and is tagged with the base config's version (`[v03 eval]`) at inference (traps 70).
+
+**Verdict: 🔁 INCONCLUSIVE (+0.001 vs `v15c`, under the 0.004 one-seed bar; ✅ needed ≥ 0.946).** P-84 is closed (closed-cards index):
+the slice band at unchanged density is not a lever for us.
+
 ## Infrastructure
 
 ### 2026-09-27 — The "0.943 Speedy Raptors CoAtNet D4" notebook is our anchor **plus two CoAt readers**, not a faster graph; its "< 30 min" is a 3-study commit run · P-41 (threaded scan + 8 decode workers) smoke-green and byte-identical
@@ -5405,6 +5461,8 @@ and public LB score, so a public/private divergence can be traced to a specific 
 | 79 | 2026-10-11 | rsna-knee-infer v75 | **B21**: `INFER_MEMBERS = ["v15co", "v13b3"]` (`artifacts/infer_b21.py`) | none | **0.946** | **read by 11:47 UTC → 🔁 +0.002 vs B18 0.944; "≥ 0.946 → build C4c" fires; the blend rule held (+0.0035 over the members' mean); no watcher, scored within ≤ 91 min.** sent 10:16:28 UTC, ref 57070831 |
 | 80 | 2026-10-11 | rsna-knee-fork954 v1 (`src/build_fork954.py --members v15co v13b3 --beta 0.20`) | **C5**: heliosli's public 0.954 blend (nartaa's 0.949 CoAtNet 0.7 + S6 0.3, cells verbatim) + B21 (`v15co` + `v13b3`) at β 0.20 | none | **0.954** | **read by 17:49 UTC → 🔁 Δ 0.000 vs the 0.954 anchor (✅ needed ≥ 0.957); rank 147, 9th of 425 in the 0.954 tie, above the blend's verbatim copies (the arm ran: a sub-tick lift); fork-rule gain +0.0014–0.0026; our best public number, pick 2's candidate by its rule; scored within ≤ 335.7 min (the watcher died after its first poll).** sent 12:13:18 UTC, ref 57073480 |
 | 81 | 2026-10-12 | rsna-knee-fork954 v2 (`src/build_fork954.py --s6-only`) | **A14**: heliosli's S6 alone (the 0.954 notebook with stage-3 weights 0.0 / 1.0; the CoAtNet still runs as the per-study fallback; our arm off) | none | **0.944** | **read 03:28:22 UTC → 🔁 = B19 0.944; S6 is no pick-1 lever by itself (≤ 0.945), and the C6 / P-83 gates fail. The 0.954 blend's diversity gain is +0.0055–0.0075 (B18 on the same anchor: +0.0027–0.0047), so C6 is re-priced to 0.946–0.953; scored within [206.3, 207.8] min.** sent 00:00:34 UTC by `auto_submit.py` (pid 15852), ref 57088196 |
+| 82 | 2026-10-12 | rsna-knee-fork954 v3 (`src/build_fork954.py --s6-anchor --members v15c v13b3 --beta 0.45`) | **C6**: heliosli's S6 alone as the anchor (no CoAtNet stage, nartaa not mounted: OAI-free) + B18 (`v15c` + `v13b3`) at β 0.45 | none | ⏳ | sent 07:53:26 UTC on Tian's go, ref 57100370; read rule vs 0.944: ✅ ≥ 0.948 / 🔁 0.945–0.947 / ❌ ≤ 0.944 |
+| 83 | 2026-10-12 | rsna-knee-infer v76 (+ Dataset `rsna-knee-ckpt-v15cb`) | **P-84, `v15cb` solo**: `INFER_MEMBERS = ["v15cb"]` (`v15c` + `trim_ends 1`: the ≈ 6–94 % band on the 24-slice slots, train = infer; RunPod L40S 10-12) | none; gold-58 0.9229 | **0.943** | **read 11:32 UTC → 🔁 +0.001 vs `v15c` 0.942 (✅ needed ≥ 0.946); P-84 closed, `trim_ends` stays off; scored within [28.8, 30.3] min.** sent 11:01:46 UTC, ref 57105105 |
 
 ## Closed cards index (moved here from proposals.md on 2026-10-05)
 
@@ -5478,4 +5536,5 @@ proposals.md holds live cards only (Tian, 2026-10-05). One line per measured or 
 | P-68 | Different-family OOF image teacher as a pseudo-label mix (`v13ex` / `v13ex2`: B0 on 0.5 LLM + 0.25 Raptor + 0.25 `xfit_v09k`, the CoAtNet cross-fit OOF; Kaggle `rsna-knee-train-b` v10) | 🔁 not adopted: #74 `v13ex` **0.937** / #75 `v13ex2` **0.936** → pair mean 0.9365 = the B0 seed mean (Δ 0.000; ✅ needed ≥ 0.9410); same-seed deltas +0.002 / −0.002. Raptor 0.5 stays; `v11o` / `v13eo` / `cnnoof_v1` not run; the label side is closed | experiments.md 2026-10-10 "Sessions A ‖ B read", "Submissions #74–#75" |
 | P-81 | OAI knees as masked external labels for our own members (`v15co` = `v15c` + 2,399 OAI knees, masked soft targets on Synovitis / PF OA / Lateral OA; NDA access 10-08; RunPod secure 4090, $2.64) | 🔁 measured: #78 `v15co` **0.945** vs `v15c` 0.942 (+0.003, ✅ needed ≥ 0.946) = our best single model, OAI-trained → pick 2 only; gold-58 had it −0.0023 (traps 39). As a C4b leg (B21 → C4c) it prices at ≈ +0.0005–0.0007 on the fork; the label split is held; OAI on further members priced out. The OAI data reference moved to research.md 2.7.11 | experiments.md 2026-10-08 "The 0.949 / 0.950 public notebooks, read"; 2026-10-10 "P-81 on RunPod"; 2026-10-11 "Submission #78" |
 | P-82 | DINOv2-S retrained on our recipe (`v16d1` ‖ `v16d3`: 280 px, `v15c`'s data side, AdamW wd 0.05, drop path 0.1, 20 ep; an LR bracket, top block 1e-4 / LLRD 0.8 vs 3e-4 / 0.75; Kaggle `rsna-knee-train-b` v13) | ❌ DEAD END: #76 `v16d1` **0.932** / #77 `v16d3` **0.893** → the better arm ≤ 0.934 (−0.010 vs `v15c` 0.942); +0.014 over the old `v08r` 0.918 but no member grade; no B20; the LR direction is low (3e-4 collapses in the warm-up). DINOv2 stays in Dropped directions | experiments.md 2026-10-11 "P-82 read" |
+| P-84 | Slice band ≈ 6–94 % instead of 2–98 % (`v15cb` = `v15c` + `trim_ends 1` on the 24-slice slots; RunPod L40S, $1.75) | 🔁 measured: #83 `v15cb` **0.943** vs `v15c` 0.942 (+0.001, ✅ needed ≥ 0.946); gold-58 0.9229 vs 0.9234. At unchanged density the band is not our lever (Dread's +0.009 came with a denser band; a re-cache does not fit the days left); `trim_ends` stays off by default and out of the final members | experiments.md 2026-10-12 "Single-model levers", "P-84 on RunPod + Submission #83" |
 | P-83 | ConvNeXt-S on the `v15c` recipe at 288 px (`v15s`, the size step inside our best family; RunPod ≈ $2.5–3.5) | retired 2026-10-12, never built: its gate (A14 ≥ 0.950) failed. #81 A14 = heliosli's S6 alone (ConvNeXt-S @ 384, knee-centred views, 4 folds) **0.944** = our ConvNeXt-T level, so a ConvNeXt-S at 288 on our recipe predicts ≈ `v15c` ± 0.002, under the 0.004 bar. A row in Dropped directions | experiments.md 2026-10-12 "Submission #81"; 2026-10-11 "Model families" |

@@ -1331,3 +1331,12 @@ failed: the submission scores on Kaggle and the pod's chain, AUTO_STOP and stopp
 not be restarted unasked. **Do:** make every unattended job self-sufficient on its own side (the on-pod AUTO_STOP + `runpod_stopper.sh`,
 the chain's ship retries); from the laptop, poll in the foreground in bounded loops (≤ 10 min per call), or close memory-hungry apps
 before leaving background watchers. A submission's timing row then comes from two manual polls, as for #79 / #80.
+
+### 70. A module-level "log once" set inside Dataset code logs once per DataLoader worker process, not once per run (Tier 3, 2026-10-12)
+
+`trim_end_windows` (`src/kaggle_pipeline.py`, `_TRIM_LOGGED`) was meant to print its windows-per-slot line once per (version, phase)
+(`20ae67e`). It runs inside `__getitem__`, so each DataLoader worker holds its own copy of the set (fork / spawn), and workers are
+rebuilt every epoch: the `v15cb` training log repeats the line ≈ 8 workers × 20 epochs × 2 phases. At inference the key carried the
+base config's version (`[v03 eval]`), not the member's. Harmless (`v15cb` trained and inferred correctly, 22 → 20 windows), but it
+buries the log. **Do:** log a once-only fact from the main process (the Dataset's `__init__` or the caller), not from code that runs in
+workers, and key it by the member's name.
