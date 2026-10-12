@@ -428,6 +428,69 @@ Plausibility on the report-only rows (no ground truth; direction only):
 Claude) **0.935**, `v13ec` (0.25 Claude, the design above) **0.932**, vs the B0 seed mean 0.9365. P-65 closed (entry "Submissions
 #54–#58").
 
+### 2026-10-12 — The public label sets re-surveyed (≈ 15 new since 08-28; JEV taken apart) and the label weightings priced on gold-58 with a bootstrap · none is clearly better than our blend; same-seed LB: Opus + Raptor = LLM + Raptor · ✅ a read (no GPU) → P-86
+
+**Asked by Tian** ("have there been newer LLM labels … should we try JEV labels or a more recent LLM combination"). There were two
+read-only research agents, one inventorying Kaggle Datasets and scoring them on gold-58, one reading the forum (refreshed 10-12
+afternoon) and the public notebooks. On top of them, a bootstrap of our own weightings. Scripts and aggregates are in the session
+scratchpad (`labels_research/`, `forum_labels/`, `gold_mixes.py`). Some downloaded tables carry study IDs and report text, so they stay
+local.
+
+**Our sources are unchanged since August.** pilkwang (files dated 08-06), stevenleehans (08-09) and lixin73 (08-08) have no newer
+versions.
+
+**New public tables, scored on gold-58.** Mixes are rank averages within the 58; that method reproduces our 0.9324 / 0.9397 to
+±0.0005. ρ = Spearman with our blend over the 4,349 report-only studies (median over labels). ρ measures similarity, not quality.
+
+| table | date | gold-58 | ρ | 0.5 + Raptor | note |
+|---|---|---|---|---|---|
+| our LLM blend | 08-28 | 0.8948 | — | 0.9320 | the production LLM half |
+| our Opus relabel `claude_v1` | 10-04 | 0.9062 | 0.79 | 0.9398 | P-65 |
+| riadmohamed42 JEV hybrid | 09-21 | 0.9037 | 0.965 | 0.9333 | 0.95 × a per-finding pick between hans_v4 and pilkwang, chosen on gold, + 0.05 × an OpenJev text ensemble |
+| riadmohamed42 OpenJev ensemble (`FINAL2`) | 09-21 | 0.8745 | 0.65 | 0.9327 | member weights fitted on 67 gold; **(LLM + it) / 2 + Raptor: 0.9394** |
+| tonylin1026 refined soft labels | 09-09 | 0.9027 | 0.96 | 0.9378 | undocumented; its plain columns carry the official gold labels |
+| nartaa Gemini-3-flash re-read | 09-25 | 0.8876 | 0.84 | 0.9343 | read against the host's definitions; not tuned on gold |
+| nartaa Gemini + hans_v4 blend | 09-25 | 0.8984 | 0.88 | 0.933 | the labels behind nartaa's 0.949 (+ JEV) |
+| Qwen3-8B, Qwen2.5-32B, GPT-5.6-luna, MedGemma / Mistral, consensus sets | 09-14 → 10-08 | 0.83–0.89 | 0.69–0.996 | ≤ 0.933 | |
+
+- About ten more tables carry the official labels in their gold rows (gold AUC 1.000) or have no gold rows, so they cannot be scored.
+  heliosli's `opusv11b` targets are not public.
+- The leaders' edge over our blend is mostly **Fracture**: our blend counts old fractures, 0.815, against 0.88–0.92 for the others.
+  Raptor already fixes most of that in our mixed target (0.916).
+- **JEV** is, by its Dataset description, TypeSafe AI's open "OpenJev" decision model. nartaa's "blend + JEV" step read +0.002 LB, but as
+  one step of a sequence (746792). hengck23 posted "I made a mistake in using JEV!" on 10-12, with no details.
+- **Forum, measured on the LB by the authors:**
+  - label + image teacher 50/50: Raymond 0.938 → 0.949;
+  - a GPT + Claude + Gemini vote plus teacher refinement: SpeedSci, DINOv2 0.931 → 0.942;
+  - fixing extraction errors: no change (Tucker);
+  - 50/50 soft bootstrap: no change (Karcher).
+  - Nothing new on labels was posted on 10-12.
+
+**Our own weightings on gold-58** (rank space; paired bootstrap SD of the difference vs production, 2,000 resamples):
+
+| target | gold-58 | vs production | trained as | LB |
+|---|---|---|---|---|
+| 0.5 LLM + 0.5 Raptor (production) | 0.9320 | — | `v13e` (B0, seed 42) | **0.935** |
+| 0.5 Opus + 0.5 Raptor | 0.9398 | +0.0078 (SD 0.0056) | `v13ecp` (B0, seed 42) | **0.935** |
+| 0.25 LLM + 0.25 Opus + 0.5 Raptor | 0.9377 | +0.0057 (SD 0.0031) | `v13ec` (B0, seed 42) | **0.932** |
+| 0.4 LLM + 0.2 Opus + 0.4 Raptor | 0.9346 | +0.0026 (SD 0.0031) | — | — |
+| 1/3 each | 0.9341 | +0.0021 (SD 0.0050) | — | — |
+| 0.5 LLM + 0.5 Opus (no image teacher) | 0.9093 | −0.0228 (SD 0.0093) | — | — |
+| Opus alone | 0.9062 | −0.0258 (SD 0.0117) | `v15cr` (ConvNeXt) | ⏳ |
+
+- **The same-seed LB read settles the first question.** `v13ecp` is `v13e` exactly (B0, seed 42) with only the targets changed. It
+  reads 0.935 = 0.935, so the +0.008 gold edge of Opus + Raptor did not reach the LB. Production stays on LLM + Raptor as the
+  incumbent, not as a proven winner. Opus + Raptor was never trained on ConvNeXt.
+- Without the image teacher, every report-only target scores 0.02–0.03 under production on gold, because Raptor carries Effusion, Baker's
+  and Fracture.
+
+**Verdict: ✅ a read (no GPU).**
+- No public table is clearly better than our blend. JEV's hybrid and tonylin's are near-copies of our sources (ρ ≥ 0.96), and their
+  gold edge was chosen on gold or is undocumented.
+- The one candidate with a genuinely different reader and a gold mix level with Opus + Raptor is **0.25 LLM + 0.25 OpenJev + 0.5 Raptor
+  (0.9394)**. Tian wants one JEV arm, so it is card P-86, on the `v13ec` construction with ConvNeXt.
+- Swapping in the newer public sets wholesale is a dropped direction (proposals.md).
+
 ## Folds and validation
 
 ### 2026-08-28 — Group folds by report text ✅ KEEP
@@ -4973,6 +5036,43 @@ took 206–208 min).
 **Verdict: ✅ KEEP: +0.006 vs A14 / B19 (✅ needed ≥ 0.948; 1.5× the 0.004 one-seed floor).** Our best OAI-free number and the pick-1
 candidate by its rule. S6's diversity carries to our models (k ≈ 0.020–0.028), and the P-85 gate fires.
 
+### 2026-10-12 — P-85 on RunPod: `v15cr` = `v15c` on `claude_v1` alone (Opus report labels, no Raptor, no LLM blend) trained on a secure A40 in 2.3 h · gold-58 SWA **0.9121** (`v15c` 0.9234) · ✅ run green, shipped, backed up, pod deleted, ≈ $1.86 · LB ⏳ (solo + the 0.949-anchor fork)
+
+**Run** (the P-85 gate fired with C6 #82 = 0.950; Tian's go in the session's opening message; critic GO WITH CHANGES 10-12):
+- Every secure 4090 / L40S / 5090 was out (`get-capacity`, 11:43 UTC). The pod `w42jyaoosn8ej2` was a **secure A40** (CA-MTL-1, CUDA 13.0,
+  driver 580.159.04, `cuInit` 0). The capacity listing showed $0.35/h; the pod bills **$0.59/h**. Its quota was 7.65 CPUs (cgroup v1
+  `cpu.cfs_quota_us` 765000) and 50 GB of memory, while `nproc` reports 96 (traps 66). Storage: `/workspace` on NFS (VAST, 94 GB;
+  sequential writes 1.2 GB/s, reads 0.9 GB/s), `/dev/shm` 24 GB and a 40 GB container disk.
+- The c03 cache was split by traps 55: shard a in `/dev/shm`, shards b and d on the container disk (about 11 GB left for pip), and
+  shard c on NFS. The NFS shard did not slow training: the GPU stayed at 96 %.
+- Created 11:43 UTC. The chain was held until the Kaggle token was fresh (Tian re-authenticated at ≈ 12:03; the new token expired
+  15:03 UTC). Inputs and the four cache pulls took 12:04 → 12:07:31 (71 blobs, 0 bad, 4,407 studies). Training ran 12:07:33 →
+  14:26 UTC at 6.9 min / epoch (L40S ≈ 6, 4090 ≈ 4.5). The ship landed 14:26:40 UTC and AUTO_STOP stopped the pod.
+- The log confirms the targets: `RSNA_ARM: running only v15cr`, `training targets = (1 - 1.0) * LLM + 1.0 * quantile-matched
+  ['claude_v1']`. Peak GPU memory 7.02 GiB (= `v15c`).
+- Backup: Dataset `rsna-knee-ckpt-v15cr` = `_best.pt` (112,204,320 bytes), the OOF csv and the log; downloaded to
+  `artifacts/kaggle_out/pod_v15cr/`, same sizes (`_best.pt` sha256 `ca9f6e3e…6352`). The pod was deleted at 15:57 UTC, after the ship
+  and the backup were confirmed.
+- Cost: RunPod billing for 10-12 = $3.61, of which ≈ $1.86 was this pod; **≈ $5.8 is left** of the 10-10 $12.15.
+
+**Training curve** (gold-58):
+
+| epoch | `v15cr` loss / gold | `v15c` gold |
+|---|---|---|
+| 0 | 0.5642 / 0.7901 | 0.8154 |
+| 2 | 0.4943 / 0.8850 | 0.9100 |
+| 4 | 0.4602 / 0.9053 | 0.9182 |
+| 9 | 0.4198 / 0.9075 | 0.9220 |
+| 12 | 0.3968 / 0.9116 | — |
+| 19 | 0.3648 / 0.9116 | 0.9233 |
+| SWA 17–19 | — / **0.9121** | 0.9234 |
+
+- Gold-58 trails `v15c` by 0.011 all the way (direction only, floor 0.05). The card predicted a weaker solo (0.933–0.940).
+  P-85's read is not the solo but **k on nartaa's 0.949 anchor**.
+
+**Verdict: ✅ run green and shipped; 🔁 direction only on gold.** The reads are the solo (infer v77) and the C4b-type fork
+(`rsna-knee-fork949` v3, `v15cr` at β 0.35), both on 10-12.
+
 ## Infrastructure
 
 ### 2026-09-27 — The "0.943 Speedy Raptors CoAtNet D4" notebook is our anchor **plus two CoAt readers**, not a faster graph; its "< 30 min" is a 3-study commit run · P-41 (threaded scan + 8 decode workers) smoke-green and byte-identical
@@ -5503,6 +5603,8 @@ and public LB score, so a public/private divergence can be traced to a specific 
 | 81 | 2026-10-12 | rsna-knee-fork954 v2 (`src/build_fork954.py --s6-only`) | **A14**: heliosli's S6 alone (the 0.954 notebook with stage-3 weights 0.0 / 1.0; the CoAtNet still runs as the per-study fallback; our arm off) | none | **0.944** | **read 03:28:22 UTC → 🔁 = B19 0.944; S6 is no pick-1 lever by itself (≤ 0.945), and the C6 / P-83 gates fail. The 0.954 blend's diversity gain is +0.0055–0.0075 (B18 on the same anchor: +0.0027–0.0047), so C6 is re-priced to 0.946–0.953; scored within [206.3, 207.8] min.** sent 00:00:34 UTC by `auto_submit.py` (pid 15852), ref 57088196 |
 | 82 | 2026-10-12 | rsna-knee-fork954 v3 (`src/build_fork954.py --s6-anchor --members v15c v13b3 --beta 0.45`) | **C6**: heliosli's S6 alone as the anchor (no CoAtNet stage, nartaa not mounted: OAI-free) + B18 (`v15c` + `v13b3`) at β 0.45 | none | **0.950** | **read 11:42 UTC → ✅ +0.006 vs A14 / B19 0.944 (rule ✅ ≥ 0.948): our best OAI-free number, the pick-1 candidate by its rule; the fork rule's k ≈ 0.020–0.028 (S6 is nearly as different from our models as from nartaa's); the P-85 gate (≥ 0.950) fires; scored within [226.6, 228.6] min.** sent 07:53:26 UTC on Tian's go, ref 57100370 |
 | 83 | 2026-10-12 | rsna-knee-infer v76 (+ Dataset `rsna-knee-ckpt-v15cb`) | **P-84, `v15cb` solo**: `INFER_MEMBERS = ["v15cb"]` (`v15c` + `trim_ends 1`: the ≈ 6–94 % band on the 24-slice slots, train = infer; RunPod L40S 10-12) | none; gold-58 0.9229 | **0.943** | **read 11:32 UTC → 🔁 +0.001 vs `v15c` 0.942 (✅ needed ≥ 0.946); P-84 closed, `trim_ends` stays off; scored within [28.8, 30.3] min.** sent 11:01:46 UTC, ref 57105105 |
+| 84 | 2026-10-12 | rsna-knee-fork949 v3 (`src/build_fork949.py --members v15cr --member v15cr=…ckpt-v15cr:…timm-convnext-tiny-in12k --beta 0.35`) | **P-85 read**: nartaa's public 0.949 CoAtNet + `v15cr` (`v15c` on Opus report labels only, no Raptor) at β 0.35; placeholder green (anchor saved, our arm = the solo's output exactly, `FINAL submission.csv = beta0.35`) | none | ⏳ | sent 16:08:28 UTC, ref 57112516; read: k = (LB − (0.65 × 0.949 + 0.35 × #85)) / 0.2275 — k 0.012–0.021 = no lineage effect / ≥ 0.026 = S6-like |
+| 85 | 2026-10-12 | rsna-knee-infer v77 (+ Dataset `rsna-knee-ckpt-v15cr`, replacing the dead `v16d1` mount) | **P-85, `v15cr` solo**: `INFER_MEMBERS = ["v15cr"]` (RunPod A40 10-12) | none; gold-58 0.9121 | ⏳ | sent 16:08:36 UTC, ref 57112523; the level k needs; pred. 0.933–0.940 vs `v15c` 0.942 |
 
 ## Closed cards index (moved here from proposals.md on 2026-10-05)
 

@@ -14,10 +14,8 @@
   "pilkwang/rsna-knee-llm-labels",
   "stevenleehans/rsna-knee-llm-report-labels",
   "lixin73/rsna-knee-llm-report-labels-sol56",
-  "tiankljucanin/rsna-knee-ckpt-v13b3",
-  "tiankljucanin/rsna-knee-ckpt-v15c",
-  "tiankljucanin/timm-convnext-tiny-in12k",
-  "tiankljucanin/timm-efficientnet-b3-ra2"
+  "tiankljucanin/rsna-knee-ckpt-v15cr",
+  "tiankljucanin/timm-convnext-tiny-in12k"
  ],
  "kernel_sources": [],
  "competition_sources": [

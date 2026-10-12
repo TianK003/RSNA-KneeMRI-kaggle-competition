@@ -1340,3 +1340,12 @@ rebuilt every epoch: the `v15cb` training log repeats the line ≈ 8 workers × 
 base config's version (`[v03 eval]`), not the member's. Harmless (`v15cb` trained and inferred correctly, 22 → 20 windows), but it
 buries the log. **Do:** log a once-only fact from the main process (the Dataset's `__init__` or the caller), not from code that runs in
 workers, and key it by the member's name.
+
+### 71. A proxy-SSH poll that greps for a word sees the PTY's echo of its own command: it "finds" the word at once (Tier 3, 2026-10-12)
+
+Over the RunPod proxy, commands are piped into `ssh -tt`, and the PTY echoes every line it receives (traps 60). A laptop loop that ran
+`grep -E 'training targets|job exit|!!' …` on the pod and stopped when its output matched one of those words stopped on its first poll:
+the match was the echoed command line, not the log. **Do:** make the success / failure marker something the command line does not
+contain, e.g. `grep -q 'training targets' <log> && echo TR""AIN_STARTED`, and match `^TRAIN_STARTED` in the output (the echo shows
+`TR""AIN_STARTED`). Related friction on the same pod: `get-capacity` priced a secure A40 at $0.35/h, while the created pod billed $0.59/h
+(`get-pod` `cost`). Read the price from the created pod, and say so before the run.

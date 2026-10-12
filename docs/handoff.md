@@ -6,6 +6,111 @@ to read first after a break.
 
 ---
 
+## 2026-10-12 (10:49 → 16:15 UTC) — **C6 = 0.950** (OAI-free pick-1 candidate) · P-84 `v15cb` 0.943 (🔁, closed) · P-85 `v15cr` trained on an A40 and both its reads sent (#84 / #85 ⏳) · the public labels re-surveyed (no better set; one JEV arm = card P-86)
+
+Tian, in order:
+1. Opening message (the previous session's last three steps): confirm the `v15cb` ship and delete the pod; push the `v15cb` placeholder
+   and send the solo; read C6, and if ≥ 0.950 launch `v15cr` and read it as a leg on nartaa's 0.949.
+2. Questions on gold-58, OAI and how the public models differ from ours (answered in chat; no new numbers).
+3. Refreshed the Kaggle token by hand at ≈ 12:03. Asked whether newer LLM labels exist, about JEV and label combinations
+   (experiments.md "The public label sets re-surveyed").
+4. "Why LLM + Raptor if Opus + Raptor is better? … tonylin? … at least one JEV blend would be worth it; 0.004 is a high bar, 0.001 is
+   already a success"; then "run the submission, check RunPod for idling containers, then /handoff".
+
+Commits `06b9a18`, `f5272f2` and this one.
+
+### ⏳ Still in flight as this was written (16:15 UTC)
+
+| In flight | What it is | Started | How to check | How to read it |
+|---|---|---|---|---|
+| **#85 = `v15cr` solo** (ref 57112523) | `rsna-knee-infer` v77: `v15c` on Opus report labels only (`claude_v1`, TEACHER_MIX 1.0, no Raptor), gold-58 0.9121 | sent 16:08:36 UTC | `kaggle competitions submissions rsna-knee-abnormality-detection`; `artifacts/watch_57112523.log` (its watcher dies with this session) | ≈ 30 min to score. Pred. 0.933–0.940 vs `v15c` 0.942. Not a pick lever on its own: it is the level that the fork's k needs |
+| **#84 = `v15cr` fork** (ref 57112516) | `rsna-knee-fork949` v3: nartaa's public 0.949 CoAtNet + `v15cr` at β 0.35; placeholder green (our arm = the solo's output, max diff 0.0) | sent 16:08:28 UTC | same; `artifacts/watch_57112516.log` | ≈ 1.75 h. **k = (#84 − (0.65 × 0.949 + 0.35 × #85)) / 0.2275** (the 0.949 is nartaa's own score). **k 0.012–0.021 = no lineage effect** (our B18 legs' range): report-only targets do not make our model more complementary. **k ≥ 0.026 = S6-like**: the Raptor lineage explains part of S6's diversity. **Suspicious:** exactly 0.949 with a slow scoring time means the arm was skipped (`--gate-hours`) |
+
+No RunPod pod exists (`list-pods` empty, 16:09). No Kaggle kernel is running. All 5 slots of 10-12 are used.
+
+### Where things stand
+
+| | Status |
+|---|---|
+| Public LB | Our best is still **0.954** (C5 #80, pick 2). **OAI-free best 0.950** (C6 #82; was C3 0.946) |
+| Reads this session | ✅ **C6 #82 = 0.950** (S6 + B18 at β 0.45: +0.006 vs A14 / B19, all diversity gain, k ≈ 0.020–0.028). 🔁 **P-84 `v15cb` #83 = 0.943** (+0.001 vs `v15c`; closed). ✅ the labels survey (no GPU) |
+| P-85 `v15cr` | ✅ trained (secure A40, 12:07–14:26 UTC, 6.9 min / epoch), shipped `rsna-knee-ckpt-v15cr`, backed up (`artifacts/kaggle_out/pod_v15cr/`), pod deleted 15:57, ≈ $1.86. ⏳ #84 / #85 |
+| P-86 `v15cj` (one JEV arm) | 💡 card only (proposals.md P-86, candidates.md T17) |
+| Budgets | RunPod **≈ $5.8** left (10-12: $1.75 + $1.86). Kaggle GPU **4.59 h** until 10-17. 10-13 has 5 slots. Kaggle token valid to 10-13 03:56 UTC |
+| Committed renders | `rsna-knee-infer` = **v77** (`v15cr` solo; mounts `v15cr` in place of the dead `v16d1`, 49 sources). `rsna-knee-fork949` = **v3** (`v15cr` at β 0.35); C4b rebuilds with `--members v15c v13b3 --beta 0.35`. `rsna-knee-fork954` = **v3** (C6); C5 rebuilds with `--members v15co v13b3 --beta 0.20` |
+| Repo | clean except the untracked `discussion.py` / `discussion_*.xml` (not ours; never `git add -A`) |
+
+### What we talked about and decided
+
+- **Gold-58 is not "below 0.9" for our models.** The 0.8948 is the LLM labels' own score; our models read ≈ 0.92. Gold can't be
+  optimised directly (per-label SE ≈ 0.09; it called the LB direction wrong again with `v15co`).
+- **OAI:** +0.003 for us and +0.005 for nartaa, from image-read MOAKS labels on our three weakest gold labels. It can only go into pick 2,
+  where our leg weighs about 0.2, so no more OAI spending unless Tian lets OAI into pick 1. Follow-up MOAKS visits (V01–V10) and more
+  MOAKS labels exist locally if that changes.
+- **Labels (Tian's questions):**
+  - Production stays on 0.5 LLM + 0.5 Raptor as the incumbent, not as a proven winner. Same seed on B0: Opus + Raptor 0.935 = LLM + Raptor
+    0.935, despite +0.008 on gold.
+  - tonylin's ρ 0.96 means it is a near-copy of our blend (similarity, not quality). Its gold edge is undocumented.
+  - JEV's hybrid is 95 % our own sources picked on gold. Tian wants **one JEV arm** anyway. The informative one is OpenJev as a quarter
+    of the target (P-86), not the hybrid.
+- **Tian's bar (10-12): "0.001 is already a success."** Agreed compromise, written into CLAUDE.md: on a same-seed ConvNeXt pair,
+  ≥ +0.002 is a win and +0.001 is "leaning" (the ConvNeXt seed spread is 0.001). A +0.001 change is adopted only when it is free.
+  By that rule **`v15cb` (+0.001) is "leaning"**, and putting the slice band into the finals is Tian's call.
+- **Pod choice:** every secure 4090 / L40S / 5090 was out, so a secure A40 at **$0.59/h** (the capacity listing said $0.35). It ran at
+  6.9 min / epoch with the c03 cache split over shm / container / NFS. The chain waited for a fresh Kaggle token (traps 20).
+
+### What we figured out
+
+1. **C6 = 0.950:** S6 is nearly as complementary to our models as to nartaa's (k ≈ 0.020–0.028). It is the OAI-free pick-1 candidate,
+   but **pick 1 (C6) and pick 2 (C5) would both contain S6** (brainstorm.md; heliosli once pulled S6 as "not allowed").
+   (experiments.md "Submission #82")
+2. **The slice band at unchanged density is +0.001:** Dread's +0.009 needed the denser band. (experiments.md "P-84 on RunPod +
+   Submission #83")
+3. **No public label set beats our blend** (≈ 15 new since 08-28, gold 0.83–0.904). The one different reader worth an arm is OpenJev
+   (ρ 0.65; its mix scores 0.9394 on gold, gold-fitted). (experiments.md "The public label sets re-surveyed")
+4. **`v15cr` reads 0.011 under `v15c` on gold all the way** (direction only). (experiments.md "P-85 on RunPod")
+5. Two traps: a "log once" flag inside Dataset code logs once per worker (traps 70); a proxy-SSH poll matches the PTY echo of its own
+   grep (traps 71).
+
+### ⏭ Next action, in order
+
+1. **Read #85 and #84** when scored, then `/update`:
+   - Submissions rows #84 / #85 (⏳ → scores and scoring times) and the P-85 card's result.
+   - Compute k = (#84 − (0.65 × 0.949 + 0.35 × #85)) / 0.2275; with three roundings, give a range.
+   - k ≥ 0.026: `v15cr` is a diversity leg. Its next read is a C6-type blend of S6 + B18 + `v15cr` (`build_fork954.py --s6-anchor
+     --members v15c v13b3 v15cr --beta 0.45`). Caveat: S6 also trains on Opus report states, so `v15cr` may add less there than on nartaa.
+   - k ≤ 0.021: the lineage idea is dead, P-85 closes, and the label side stays closed.
+2. **P-86 (one JEV arm), if Tian confirms:**
+   - (a) Build `artifacts/teacher/jevf_rap_v1.csv` = 2/3 Raptor rank + 1/3 OpenJev rank, as `artifacts/claude_labels/merge_full.py`
+     built `claude_rap_v1`. OpenJev = `riadmohamed42/jev-knee-labels` `FINAL2_labels_scores.csv` (the research copy is in the 10-12 session
+     scratchpad `labels_research/dl/`; re-download into `data/llm_labels/jev/`).
+   - (b) Add `"v15cj"` (= `v15c`) to the arms, `DISTILLED_ARMS["v15cj"] = ("jevf_rap_v1",)`, `DISTILLED_MIX["v15cj"] = 0.75` and a
+     `TEACHER_PATHS` entry.
+   - (c) Publish the table as a new version of the private `rsna-knee-teacher-tables`.
+   - (d) Local smoke.
+   - (e) A critic-checked pod case, then Tian's go (≈ $1.8 on an A40). Run it with `RSNA_TEACHER_TABLES='("jevf_rap_v1",)'
+     RSNA_TEACHER_MIX=0.75`.
+   - Read: solo vs `v15c` 0.942 (same seed), on Tian's bar.
+3. **Then the OAI-free own leg for C6** (it counts at 0.45 on pick 1): the P-67 loop, or the finals' ConvNeXt pair. Kaggle quota
+   resets 10-17 (30 h).
+
+### Open decisions for Tian
+
+- **Pick 1: C6 (0.950, shares S6 with pick 2) or C3 (0.946, shares no public model with C5)?** (brainstorm.md, by 10-22)
+- **The slice band (`v15cb`, +0.001, "leaning") in the final ConvNeXt members?** It is free at train and inference time.
+- **The P-86 pod** (≈ $1.8 of the ≈ $5.8 left), after its smoke and the critic.
+
+### Things that will bite if forgotten
+
+- **The two submission watchers die with this session.** Read #84 / #85 with `kaggle competitions submissions`.
+- **The Kaggle token expires 10-13 03:56 UTC.** Calls fail for the next 30 min, then the CLI renews it itself (traps 20). A pod needs
+  a token valid for its whole run: check the expiry before copying it.
+- **RunPod prices:** the capacity listing can understate the price ($0.35 listed vs $0.59 billed). Read `cost` from the created pod.
+  4090 / L40S / 5090 stock was out all day.
+- **`[IO.File]::WriteAllLines` and `Add-Content` write CRLF** on this laptop, while the docs are LF. Write docs with `WriteAllText`
+  plus `\n`, and check that `git diff --stat` stays small.
+- **`kaggle/rsna-knee-fork949/` is now the `v15cr` fork**, not C4b. Rebuild C4b with `--members v15c v13b3 --beta 0.35`.
+
 ## 2026-10-11 (11:45 → 12:30 UTC) — B21 read **0.946** (#79) · the public frontier moved to **0.954** (heliosli = nartaa's CoAtNet + S6) · **C5 built and sent (#80 ⏳)** · A14 (S6 alone) armed for 00:00 UTC · C6 (S6 + B18, OAI-free) built, not pushed
 
 Tian, in order: "pull the results and run /update, what do you suggest next? I think we should still focus on our single model
