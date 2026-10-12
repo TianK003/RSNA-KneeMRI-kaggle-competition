@@ -864,6 +864,39 @@ def main():
           and "v13ex2" not in dm and "v13ex2" not in K["DISTILLED_SILENT_MIX"],
           f"v13ex2 = v13ex at seed 43 = v13e2's recipe, on raptor_teacher + xfit_v09k, flat 0.5 ({sorted(diff)})")
 
+    # ---- 2026-10-12: v15cb (trim_ends, the ~6-94 % slice band) and v15cr (claude_v1 alone) ---------------------------
+    print("\n== 2026-10-12: trim_end_windows, v15cb, v15cr")
+    cs, ss = K["valid_windows"](mask, c03)
+    ct, st_ = K["trim_end_windows"](cs, ss, c03, 1)
+    per_slot = {k: sorted(ct[st_ == k].tolist()) for k in range(6)}
+    check(per_slot[0] == list(range(2, 22)) and per_slot[3] == list(range(2, 12)) and per_slot[4] == [2, 3, 4, 5]
+          and per_slot[5] == [2, 3, 4, 5] and len(ct) == len(cs) - 12,
+          f"trim_end_windows k=1: every slot loses exactly the two windows touching its first / last slice "
+          f"({len(cs)} -> {len(ct)}; 24-slice slot keeps centres 2..21, 8-slice slot 2..5)")
+    ct0, st0 = K["trim_end_windows"](cs, ss, c03, 0)
+    check(np.array_equal(ct0, cs) and np.array_equal(st0, ss), "trim_end_windows k=0 is the identity")
+    ct9, st9 = K["trim_end_windows"](cs, ss, c03, 9)
+    check(all(int((st9 == k).sum()) >= 1 for k in range(6)), "trim_end_windows never empties a present slot (keeps its middle window)")
+    mask_part = np.array([1, 0, 1, 1, 0, 1], np.float32)
+    cp_, sp_ = K["valid_windows"](mask_part, c03)
+    ctp, stp = K["trim_end_windows"](cp_, sp_, c03, 1)
+    check(set(stp.tolist()) == {0, 2, 3, 5} and len(ctp) == len(cp_) - 8, "trim_end_windows on absent slots: only present slots, 2 windows each")
+    imk = ast.literal_eval(re.search(r"^INFER_MEMBER_KEYS = (\(.*?\))", src_txt, re.S | re.M).group(1))
+    check("trim_ends" in imk, "trim_ends is an INFER_MEMBER_KEY (train = infer)")
+    try:
+        Config(trim_ends=1)
+        check(False, "Config refuses trim_ends on a fixed-window arm")
+    except SystemExit:
+        check(True, "Config refuses trim_ends on a fixed-window arm")
+    cv = Config(smoke=False, **arms["v15c"])
+    for a, keys, tables, mix in (("v15cb", {"trim_ends"}, ("raptor_teacher",), 0.5), ("v15cr", set(), ("claude_v1",), 1.0)):
+        ca = Config(smoke=False, **arms[a])
+        diff = {k for k in K["asdict"](ca) if getattr(ca, k) != getattr(cv, k)} - {"version"}
+        check(diff == keys and da[a] == tables and abs(dm.get(a, 0.5) - mix) < 1e-9 and a not in K["DISTILLED_SILENT_MIX"]
+              and all(t in K["TEACHER_PATHS"] for t in tables) and ca.seed == cv.seed,
+              f"{a} = v15c + {sorted(keys)} only (same seed), on {' + '.join(tables)} at mix {mix} ({sorted(diff)})")
+    check(Config(smoke=False, **arms["v15cb"]).trim_ends == 1, "v15cb trims one slice at each end")
+
     print("\n" + ("UNIT CHECKS PASSED" if not fails else f"UNIT CHECKS FAILED ({len(fails)}):\n  - " + "\n  - ".join(fails)))
     sys.exit(1 if fails else 0)
 

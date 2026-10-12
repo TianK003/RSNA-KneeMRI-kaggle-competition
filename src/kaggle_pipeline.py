@@ -466,6 +466,14 @@ SHIPPED_ARMS = [
     # `v15c`, so the read is the OAI rows. Off Kaggle only (the OAI data never goes to Kaggle): RunPod, RSNA_OAI_TARGETS.
     ("v15co", {**PROD, **V09R_KW, **C03_KW, "backbone": "timm:convnext_tiny", "img_size": 288, "lr_backbone": 1e-4,
                "llrd_decay": 0.9, "aug": "heavy", "drop_path": 0.1, "epochs": 20, "oai": True}),
+    # 2026-10-12 (Tian's go; RunPod, one pod each): `v15c` with ONE change, same seed. `v15cb` = the slice band trimmed to
+    # ~6-94 % (trim_ends 1; Dread 737696 read 6-94 % +0.009 LB over 2-98 % on a CoAtNet, nartaa uses 6-94 %). `v15cr` =
+    # report-only targets: our Opus relabel `claude_v1` alone at TEACHER_MIX 1.0, no Raptor and no public LLM tables --
+    # S6's lineage, the diversity read (experiments.md 2026-10-12 "Submission #81"; DISTILLED_ARMS / DISTILLED_MIX pin it).
+    ("v15cb", {**PROD, **V09R_KW, **C03_KW, "backbone": "timm:convnext_tiny", "img_size": 288, "lr_backbone": 1e-4,
+               "llrd_decay": 0.9, "aug": "heavy", "drop_path": 0.1, "epochs": 20, "trim_ends": 1}),
+    ("v15cr", {**PROD, **V09R_KW, **C03_KW, "backbone": "timm:convnext_tiny", "img_size": 288, "lr_backbone": 1e-4,
+               "llrd_decay": 0.9, "aug": "heavy", "drop_path": 0.1, "epochs": 20}),
     # 2026-10-10 (P-82, Tian's go; recipe from the literature + forum review): DINOv2-S/14 retrained on the CNNs' data side
     # (c03, heavy aug, Raptor 0.5, SWA of the last 3), which the 0.918 `v08r` never had, with a ViT optimiser: AdamW wd 0.05
     # (MAE / BEiT / iBOT), drop path ramped 0 -> 0.1, head 1e-3, 280 px (20 x 20 tokens of ~7.5 mm; Tian), 20 epochs.
@@ -629,9 +637,10 @@ DISTILLED_ARMS = {"v09s": ("selfdistill_v1",), "v09t": ("selfdistill_v1",),
                   "v11o": ("raptor_teacher", "cnnoof_v1"),
                   "v13eo": ("raptor_teacher", "cnnoof_v1"),
                   "v15c": ("raptor_teacher",), "v15c2": ("raptor_teacher",), "v15c320": ("raptor_teacher",),
-                  "v15co": ("raptor_teacher",), "v16d1": ("raptor_teacher",), "v16d3": ("raptor_teacher",)}
+                  "v15co": ("raptor_teacher",), "v16d1": ("raptor_teacher",), "v16d3": ("raptor_teacher",),
+                  "v15cb": ("raptor_teacher",), "v15cr": ("claude_v1",)}
 # 2026-09-28 (traps 40's second gap): the mix a distilled arm must train with; every other distilled arm trains at 0.5.
-DISTILLED_MIX = {"v09o": 0.75, "v09o2": 0.75, "v13ec": 0.75, "v13rc": 0.75, "v13ecp": 1.0}
+DISTILLED_MIX = {"v09o": 0.75, "v09o2": 0.75, "v13ec": 0.75, "v13rc": 0.75, "v13ecp": 1.0, "v15cr": 1.0}
 # P-62: the silent-cell mix an arm must train with; every arm not listed trains without one (TEACHER_SILENT_MIX = None).
 DISTILLED_SILENT_MIX = {"v11s": 0.75, "v11s2": 0.75, "v13es": 0.75, "v13rs": 0.75}
 if TEACHER_SILENT_MIX is not None and not TEACHER_TABLES:
@@ -767,6 +776,11 @@ class Config:
     # below drop_blank_frac x the median centre-slice mean of its slot, keeping >= 2 per slot (drop_blank_windows).
     # Training AND inference: an INFER_MEMBER_KEY, so the member sees the same windows at both. 0 = off.
     drop_blank_frac: float = 0.0
+    # 2026-10-12 (`v15cb`; Dread 737696: 44 slices spread over 6-94 % of the stack read 0.926 vs 0.917 over 2-98 %, and
+    # nartaa's 0.949 uses 6-94 %): drop every window that touches the first or last `trim_ends` cached slices of its slot,
+    # so the c02 / c03 cache's 2-98 % band reads as ~6-94 % (trim_end_windows). Training AND inference: an
+    # INFER_MEMBER_KEY, so the member sees the same windows at both. 0 = off.
+    trim_ends: int = 0
     # Slice-offset TTA for fixed-window members (P-12): the K centres are shifted by each offset
     # (clipped to the stack), one forward per offset, probabilities pooled per label.
     # tta_pool "mean" = average; "focal" = the 0.936 notebook's rule: max over views for
@@ -919,6 +933,11 @@ class Config:
             raise SystemExit("drop_blank_frac must be in [0, 1)")
         if self.drop_blank_frac > 0 and self.cache_scheme != "c02":
             raise SystemExit("drop_blank_frac needs the flat c02 / c03 cache layout")
+        if self.trim_ends < 0:
+            raise SystemExit("trim_ends must be >= 0")
+        if self.trim_ends > 0 and (self.window_mode != "random" or self.cache_scheme != "c02"):
+            raise SystemExit("trim_ends is wired into the window path of the flat c02 / c03 cache only: set "
+                             "window_mode='random' on a c02 / c03 arm")
         if self.train_gold and not self.train_all:
             raise SystemExit("train_gold adds the gold rows to a train_all arm (a k-fold arm already trains on the "
                              "gold rows of its other folds)")
@@ -2112,6 +2131,8 @@ class KneeStudyDataset(Dataset):
                 # resizes on the GPU (60 float windows per study would otherwise cross the
                 # DataLoader shared-memory boundary at ~80-100 MB each).
                 centres, slot_id = valid_windows(mask_np, self.cfg)
+                if getattr(self.cfg, "trim_ends", 0) > 0:               # v15cb: train AND eval / infer
+                    centres, slot_id = trim_end_windows(centres, slot_id, self.cfg, self.cfg.trim_ends)
                 if getattr(self.cfg, "drop_blank_frac", 0.0) > 0:       # P-67: train AND eval / infer
                     centres, slot_id = drop_blank_windows(arr, centres, slot_id, self.cfg, self.cfg.drop_blank_frac)
                 if self.train:
@@ -2543,6 +2564,24 @@ def mixup_studies(b, alpha, device):
             v = b[k]
             out[k] = lam * v + (1.0 - lam) * v[perm.to(v.device)]
     return out
+
+
+def trim_end_windows(centres, slot_id, cfg, k):
+    """`v15cb` (2026-10-12): keep only the windows whose three slices all lie inside slices k .. n-1-k of their slot, i.e.
+    drop every window touching the first or last k cached slices. A c02 / c03 slot of n slices is spread over 2-98 % of
+    the stack, so k = 1 leaves ~6-94 % (n = 24: 6.2-93.8 %; n = 8: 15.7-84.3 %). centres / slot_id as valid_windows
+    returns them (centre = the middle slice of the triplet). A slot that would lose every window keeps its middle one.
+    Applied in training AND evaluation / inference (trim_ends is an INFER_MEMBER_KEY)."""
+    if k <= 0 or len(centres) == 0:
+        return centres, slot_id
+    _, _, slot_slices, _ = cache_geom(cfg)
+    n = np.asarray(slot_slices, dtype=np.int64)[slot_id]
+    keep = (centres - 1 >= k) & (centres + 1 <= n - 1 - k)
+    for si in np.unique(slot_id):
+        ix = np.flatnonzero(slot_id == si)
+        if not keep[ix].any():
+            keep[ix[len(ix) // 2]] = True
+    return centres[keep], slot_id[keep]
 
 
 def drop_blank_windows(arr, centres, slot_id, cfg, frac):
@@ -3514,7 +3553,8 @@ INFER_MEMBER_KEYS = ("slices_per_slot", "triplet_gap", "img_size", "stack_mode",
                      "window_mode", "eval_windows", "tta_offsets", "tta_pool", "head_type",
                      "backbone", "slot_embed", "dropout", "slot_dropout",
                      "spatial_reader", "slot_count_norm",       # P-63: model structure, from the checkpoint
-                     "drop_blank_frac")                         # P-67: the window population, train = infer
+                     "drop_blank_frac",                         # P-67: the window population, train = infer
+                     "trim_ends")                               # v15cb: the slice band, train = infer
 
 
 def _norm_val(v):
