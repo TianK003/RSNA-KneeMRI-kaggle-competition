@@ -777,9 +777,9 @@ class Config:
     # Training AND inference: an INFER_MEMBER_KEY, so the member sees the same windows at both. 0 = off.
     drop_blank_frac: float = 0.0
     # 2026-10-12 (`v15cb`; Dread 737696: 44 slices spread over 6-94 % of the stack read 0.926 vs 0.917 over 2-98 %, and
-    # nartaa's 0.949 uses 6-94 %): drop every window that touches the first or last `trim_ends` cached slices of its slot,
-    # so the c02 / c03 cache's 2-98 % band reads as ~6-94 % (trim_end_windows). Training AND inference: an
-    # INFER_MEMBER_KEY, so the member sees the same windows at both. 0 = off.
+    # nartaa's 0.949 uses 6-94 %): drop every window that touches the first or last `trim_ends` cached slices of a slot of
+    # >= TRIM_MIN_SLICES slices, so the c03 cache's 2-98 % band reads as ~6-94 % on its 24-slice slots (trim_end_windows).
+    # Training AND inference: an INFER_MEMBER_KEY, so the member sees the same windows at both. 0 = off.
     trim_ends: int = 0
     # Slice-offset TTA for fixed-window members (P-12): the K centres are shifted by each offset
     # (clipped to the stack), one forward per offset, probabilities pooled per label.
@@ -2132,7 +2132,8 @@ class KneeStudyDataset(Dataset):
                 # DataLoader shared-memory boundary at ~80-100 MB each).
                 centres, slot_id = valid_windows(mask_np, self.cfg)
                 if getattr(self.cfg, "trim_ends", 0) > 0:               # v15cb: train AND eval / infer
-                    centres, slot_id = trim_end_windows(centres, slot_id, self.cfg, self.cfg.trim_ends)
+                    centres, slot_id = trim_end_windows(centres, slot_id, self.cfg, self.cfg.trim_ends,
+                                                        tag="train" if self.train else "eval")
                 if getattr(self.cfg, "drop_blank_frac", 0.0) > 0:       # P-67: train AND eval / infer
                     centres, slot_id = drop_blank_windows(arr, centres, slot_id, self.cfg, self.cfg.drop_blank_frac)
                 if self.train:
@@ -2566,21 +2567,34 @@ def mixup_studies(b, alpha, device):
     return out
 
 
-def trim_end_windows(centres, slot_id, cfg, k):
-    """`v15cb` (2026-10-12): keep only the windows whose three slices all lie inside slices k .. n-1-k of their slot, i.e.
-    drop every window touching the first or last k cached slices. A c02 / c03 slot of n slices is spread over 2-98 % of
-    the stack, so k = 1 leaves ~6-94 % (n = 24: 6.2-93.8 %; n = 8: 15.7-84.3 %). centres / slot_id as valid_windows
-    returns them (centre = the middle slice of the triplet). A slot that would lose every window keeps its middle one.
-    Applied in training AND evaluation / inference (trim_ends is an INFER_MEMBER_KEY)."""
+TRIM_MIN_SLICES = 20       # trim_end_windows trims only slots with at least this many cached slices (the c03 24-slice slots)
+_TRIM_LOGGED = set()
+
+
+def trim_end_windows(centres, slot_id, cfg, k, tag=""):
+    """`v15cb` (2026-10-12): in every slot of >= TRIM_MIN_SLICES cached slices, keep only the windows whose three slices
+    all lie inside slices k .. n-1-k, i.e. drop every window touching the first or last k cached slices. A c02 / c03 slot
+    of n slices is spread over 2-98 % of the stack, so k = 1 leaves ~6-94 % on the c03 24-slice slots (6.2-93.8 %). The
+    short slots (14 / 8 slices) stay whole: on an 8-slice slot k = 1 would keep centres at 29-71 % only, a far narrower
+    band than Dread's or nartaa's 6-94 % (critic, 10-12). centres / slot_id as valid_windows returns them (centre = the
+    middle slice of the triplet). A slot that would lose every window keeps its middle one. Applied in training AND
+    evaluation / inference (trim_ends is an INFER_MEMBER_KEY); the first call per (version, tag) logs the windows per slot."""
     if k <= 0 or len(centres) == 0:
         return centres, slot_id
     _, _, slot_slices, _ = cache_geom(cfg)
     n = np.asarray(slot_slices, dtype=np.int64)[slot_id]
-    keep = (centres - 1 >= k) & (centres + 1 <= n - 1 - k)
+    keep = (n < TRIM_MIN_SLICES) | ((centres - 1 >= k) & (centres + 1 <= n - 1 - k))
     for si in np.unique(slot_id):
         ix = np.flatnonzero(slot_id == si)
         if not keep[ix].any():
             keep[ix[len(ix) // 2]] = True
+    key = (getattr(cfg, "version", ""), tag)
+    if key not in _TRIM_LOGGED:
+        _TRIM_LOGGED.add(key)
+        before = [int((slot_id == s).sum()) for s in range(len(slot_slices))]
+        after = [int((slot_id[keep] == s).sum()) for s in range(len(slot_slices))]
+        print(f"  trim_ends {k} [{key[0]} {tag}]: windows per slot {before} -> {after} "
+              f"(slots of >= {TRIM_MIN_SLICES} slices trimmed)", flush=True)
     return centres[keep], slot_id[keep]
 
 

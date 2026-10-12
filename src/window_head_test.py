@@ -869,10 +869,10 @@ def main():
     cs, ss = K["valid_windows"](mask, c03)
     ct, st_ = K["trim_end_windows"](cs, ss, c03, 1)
     per_slot = {k: sorted(ct[st_ == k].tolist()) for k in range(6)}
-    check(per_slot[0] == list(range(2, 22)) and per_slot[3] == list(range(2, 12)) and per_slot[4] == [2, 3, 4, 5]
-          and per_slot[5] == [2, 3, 4, 5] and len(ct) == len(cs) - 12,
-          f"trim_end_windows k=1: every slot loses exactly the two windows touching its first / last slice "
-          f"({len(cs)} -> {len(ct)}; 24-slice slot keeps centres 2..21, 8-slice slot 2..5)")
+    check(all(per_slot[s] == list(range(2, 22)) for s in (0, 1, 2)) and per_slot[3] == list(range(1, 13))
+          and per_slot[4] == list(range(1, 7)) and per_slot[5] == list(range(1, 7)) and len(ct) == len(cs) - 6,
+          f"trim_end_windows k=1: each 24-slice slot loses the two windows touching its first / last slice (centres 2..21), "
+          f"the 14- and 8-slice slots stay whole ({len(cs)} -> {len(ct)})")
     ct0, st0 = K["trim_end_windows"](cs, ss, c03, 0)
     check(np.array_equal(ct0, cs) and np.array_equal(st0, ss), "trim_end_windows k=0 is the identity")
     ct9, st9 = K["trim_end_windows"](cs, ss, c03, 9)
@@ -880,7 +880,8 @@ def main():
     mask_part = np.array([1, 0, 1, 1, 0, 1], np.float32)
     cp_, sp_ = K["valid_windows"](mask_part, c03)
     ctp, stp = K["trim_end_windows"](cp_, sp_, c03, 1)
-    check(set(stp.tolist()) == {0, 2, 3, 5} and len(ctp) == len(cp_) - 8, "trim_end_windows on absent slots: only present slots, 2 windows each")
+    check(set(stp.tolist()) == {0, 2, 3, 5} and len(ctp) == len(cp_) - 4,
+          "trim_end_windows on absent slots: only the present 24-slice slots (0, 2) lose 2 windows each")
     imk = ast.literal_eval(re.search(r"^INFER_MEMBER_KEYS = (\(.*?\))", src_txt, re.S | re.M).group(1))
     check("trim_ends" in imk, "trim_ends is an INFER_MEMBER_KEY (train = infer)")
     try:
