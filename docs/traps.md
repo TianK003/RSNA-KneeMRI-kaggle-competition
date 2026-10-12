@@ -1203,6 +1203,11 @@ setup session started the stopper but not the chain.
 
 **Do:** with no `ssh.direct`, send one short session per step (setup; then the launch alone with `setsid nohup … &`), and verify
 each with a fresh session (`pgrep -fa runpod_`). Plan the local backup from the shipped Dataset, since scp is not available.
+**10-12 (Windows laptop):** the Bash tool's Git Bash here has no coreutils (`head`, `grep`, `tr`, `which`: "command not found"), so
+drive the proxy from PowerShell: `$cmds | ssh -tt -o StrictHostKeyChecking=no -o UserKnownHostsFile=NUL <pod>-<hash>@ssh.runpod.io`,
+with `echo MARK_BEGIN … echo MARK_END` around the wanted output (the PTY echoes every piped line, prompts included). The Kaggle
+credentials went as a line-wrapped base64 heredoc (`[Convert]::ToBase64String(…, InsertLineBreaks)`, CR stripped) between
+`stty -echo` / `stty echo`, checked on the pod by size and expiry only.
 
 ### 61. A RunPod pod without a volume loses its container on stop, so an AUTO_STOP early failure leaves no log — run the chain's first step in the foreground (Tier 3, 2026-10-08)
 
@@ -1280,6 +1285,12 @@ handing out the same broken host. Cost of the three tries: ≈ 11 pod-min ≈ $0
 the pod at once. Prefer `gpu.allowedCudaVersions: ["12.8"]` for 4090s. Shred anything copied to a pod you abandon (`shred -u`).
 **10-10 afternoon:** community 4090 and 5090 stock on CUDA 12.8 read `NONE` / refused (also with a smaller volume); the P-81 pod went
 to a **secure** 4090 on CUDA 12.8 (driver 570.195.03, `cuInit` 0 at once) at $0.89/h.
+**10-12:** every 4090 and 5090 was out (secure and community, every CUDA version; `create-pod` refused community 12.8 / 13.0 and
+secure 12.8 at 100 / 70 / 20 GB volumes although `get-capacity` showed "Low"). A **secure L40S on CUDA 13.0** (driver 580.159.03,
+US-MO-1, $1.09/h) came at once and ran the cu128 image cleanly (`cuInit` 0, a fp16 matmul, torch 2.8.0+cu128): the 999 failure is
+the community 4090 hosts', not CUDA 13.0's. The L40S trained `v15cb` (ConvNeXt-T @ 288) at ≈ 6 min / epoch (the 4090: ≈ 4.6).
+Its `/workspace` was MooseFS and the container disk 40 GB, so the c03 cache went to `/dev/shm` (58 GB) with shard d linked onto
+the container disk (traps 55).
 
 ### 66. On a RunPod pod `nproc` reports the host's CPUs, not the pod's: a worker count from `nproc` oversubscribes the quota (Tier 2, 2026-10-10)
 
@@ -1311,3 +1322,12 @@ v1 logged `timm 1.0.25 convnext_tiny: loaded 180 tensors` / `efficientnet_b3: lo
 `rsna-knee-infer` v75's `submission.csv` (B21 on the image's own timm) to max |diff| 0.0 on the 3 placeholder studies (rank values on
 3 studies: a weak check). **Do:** for every new anchor, grep its cells for `pip install` / `.whl` before building; after the
 placeholder, diff our arm's `_ours.csv` against the same members' solo infer output on the same studies.
+
+### 69. Claude Code reaps its own background shells when the laptop runs low on memory: watchers die while the session is idle (Tier 3, 2026-10-12)
+
+On 10-12 at ≈ 08:33 UTC both background watchers of the session, `watch_submission.py` for C6 (#82) and a PowerShell pod poller for
+`v15cb`, were stopped by the harness itself ("stopped because the system is running low on memory"; 4.9 of 15.3 GB free). Nothing
+failed: the submission scores on Kaggle and the pod's chain, AUTO_STOP and stopper run on the pod. The harness asks that such a task
+not be restarted unasked. **Do:** make every unattended job self-sufficient on its own side (the on-pod AUTO_STOP + `runpod_stopper.sh`,
+the chain's ship retries); from the laptop, poll in the foreground in bounded loops (≤ 10 min per call), or close memory-hungry apps
+before leaving background watchers. A submission's timing row then comes from two manual polls, as for #79 / #80.

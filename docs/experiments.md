@@ -4836,6 +4836,47 @@ CoAtNet stage included. The backup task fired at 00:20 UTC and logged `already s
 - **New:** S6's diversity gain on the 0.949 CoAtNet (+0.0055–0.0075) is ≈ 1.6× our B18's on the same anchor, and family does not explain
   it. On that, C6 is re-priced to 0.946–0.953 and its send is Tian's call.
 
+**C6 sent 2026-10-12** on Tian's go ("send C6 to see how it blends with our models"): `rsna-knee-fork954` v3 (`--s6-anchor --members
+v15c v13b3 --beta 0.45`); placeholder green 07:48–07:52 UTC (`S6_ANCHOR_WRITTEN rows 3`, our arm rc 0, `FINAL submission.csv =
+beta0.45`, no CoAtNet stage; its anchor = A14's S6 ranks exactly); sent 07:53:26 UTC as **#82** (ref 57100370). ⏳ Read rule
+(candidates.md C6): vs 0.944, ✅ ≥ 0.948 / 🔁 0.945–0.947 / ❌ ≤ 0.944.
+
+### 2026-10-12 — Single-model levers: the forum (refreshed) and the public notebooks (S6's trainer read) · the slice band is the one measured image-side change we have not made · S6 = report-only Opus targets, LR loss, knee-centred 3.8 px/mm views · ✅ a read (no GPU) → P-84 / P-85
+
+**Asked by Tian** ("which smaller single models should we focus on … look through publicly available notebooks for hints"). Two
+research agents, nothing executed: the forum harvest refreshed (`artifacts/forum/`, 132 topics, 21 new or re-downloaded; list in
+`refresh_1012.tsv`), and ≈ 800 public notebooks' `bestPublicScore` plus ≈ 10 pulled as text; S6's trainer read from the code embedded in
+`notebook_score_0.954.ipynb` (hash = its manifest's `src_sha256`). Notes in the session scratchpad.
+
+**Forum, single models (LB = the poster's public score; A = assertion):**
+- Claimed singles far above ours, recipes undisclosed: azamat1ch (#4) ConvNeXt-T 5-fold 0.959, EfficientNetV2-S 0.956, CoAtNet 0.952
+  ("only the competition data"); colum2131 (#52) ConvNeXt-T 0.953 with soft labels from an LLM reading the report **and the MRI slices**;
+  CoolinLai's team ResNet-50 5-fold 0.954; Scott Willis small ResNet one fold 0.949; Tucker "low 0.95s" (ResNet-34 / B0, Qwen labels).
+- **Slice band (LB, Dread 737696):** 44 slices over 2–98 % 0.917 vs 6–94 % 0.926 (+0.009); 64 / 80 slices 0.928 / 0.932; the same
+  weights scored at 62 windows instead of 42 +0.003. nartaa: 94 → 24 windows 0.940 → 0.934.
+- Null or ≤ 0.002: bigger backbones / > 288 px (several), mirror TTA +0.001 (nartaa), centre crops 0 to −0.002, 5-fold vs all-data even
+  (three authors), report auxiliary losses negative, attention → mean pooling −0.014 CV / ≈ −0.02 LB.
+- Soft targets mixed with a *different* model's predictions are the most-cited lever (Archit, Raymond, colum2131); the same-family
+  versions read nothing (Nicolai, Myo; our P-68).
+- Rules: no host post since 09-21 on OAI; 748276 (10-11) argues NIH's 2025 country restrictions make OAI unequally accessible.
+  heliosli's S6 Dataset was pulled and restored ("I'd been told it wasn't allowed"); it is public again (README read 10-12).
+
+**S6's trainer (code read):** targets = Opus report *states* (5–8 graded categories per finding, certainty-weighted), no Raptor and no
+teacher predictions, gold never trained; loss `−log(p·lr + (1−p))` with the report's likelihood ratio (a silent cell, lr = 1, gives no
+gradient) + a state cross-entropy at 0.5 + yes/no auxiliaries; input = every slice, thin stacks averaged to 3.5 mm slabs, full field +
+100 mm local views at 384 px (≈ 3.8 px/mm vs our 1.9) centred on the joint by an SKM-TEA segmenter; 176 random windows per study per
+step; AdamW 1e-4 / head 1e-3 / wd 0.05, 16 epochs, 4 hash folds. heliosli's 0.956 = the same S6 at weight 0.5 (a verbatim copy reads
+0.954: unconfirmed).
+
+**What it decides:** two `v15c` arms, one change each (Tian 10-12: "Band trim + Claude-only targets"; critic GO WITH CHANGES):
+**P-84 `v15cb`** (the band, ≈ 6–94 % on the 24-slice slots; training on RunPod since 08:35 UTC) and **P-85 `v15cr`** (report-only
+targets, `claude_v1` alone; gated on C6 ≥ 0.950, read as k on the 0.949 anchor). Image-aware LLM labels (colum2131) stay out of reach
+(a labelling pass over 4,349 image studies; "multimodal-LLM image labelling" is in Dropped directions). Mirror TTA stays dropped
+(+0.001 at best, and it undoes our laterality normalisation).
+
+**Verdict: ✅ a read (no GPU).** The slice band is the strongest untested image-side lever (+0.009, measured by its author, partly
+density); report-only targets are the diversity lever suggested by S6. Both are cards (P-84 running, P-85 gated).
+
 ## Infrastructure
 
 ### 2026-09-27 — The "0.943 Speedy Raptors CoAtNet D4" notebook is our anchor **plus two CoAt readers**, not a faster graph; its "< 30 min" is a 3-study commit run · P-41 (threaded scan + 8 decode workers) smoke-green and byte-identical
