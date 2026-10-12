@@ -160,11 +160,13 @@ agreement with the teacher, not truth. A one-seed LB delta needs ≥ 0.004 (P-44
 | 2026-10-12 | **A14, submission #81 (`rsna-knee-fork954` v2, `--s6-only`)**: heliosli's S6 alone (ConvNeXt-S @ 384, 4 folds, knee-centred views), the 0.954 notebook with stage-3 weights 0.0 / 1.0 | — | **0.944** | **🔁 = B19 0.944 (+0.002 vs `v15c`, under the floor). By its rule (≤ 0.945) S6 is no pick-1 lever by itself, and the C6 (≥ 0.948) and P-83 (≥ 0.950) gates fail: P-83 dropped. New: the 0.954 blend's diversity gain is +0.0055–0.0075, against +0.0027–0.0047 for B18 on the same anchor (C4b), so C6 (S6 + B18) is re-priced to 0.946–0.953: Tian's call** (entry 2026-10-12 "Submission #81") |
 | 2026-10-12 | **P-84, submission #83 (`rsna-knee-infer` v76)**: `v15cb` = `v15c` + `trim_ends 1` (the ≈ 6–94 % slice band on the 24-slice slots, train = infer; RunPod L40S, $1.75) | 0.9229 (`v15c` 0.9234) | **0.943** | **🔁 +0.001 vs `v15c` 0.942 (✅ needed ≥ 0.946): at unchanged density the band is not our lever (Dread's +0.009 came with a denser band); P-84 closed, `trim_ends` stays off** (entry 2026-10-12 "P-84 on RunPod + Submission #83") |
 | 2026-10-12 | **C6, submission #82 (`rsna-knee-fork954` v3, `--s6-anchor`)**: heliosli's S6 alone as the anchor (no CoAtNet stage, OAI-free) + B18 (`v15c` + `v13b3`) at β 0.45 | — | **0.950** | **✅ +0.006 vs A14 / B19 0.944 (rule ✅ ≥ 0.948): our best OAI-free number (C3 0.946), the pick-1 candidate by its rule. All of it is diversity gain (both parts 0.944): k ≈ 0.020–0.028, between our legs' 0.009–0.021 and S6-on-nartaa's 0.026–0.036. The two picks would now share S6 (brainstorm.md). The P-85 gate fires** (entry 2026-10-12 "Submission #82") |
+| 2026-10-12 | **P-85, submissions #85 / #84 (`rsna-knee-infer` v77 / `rsna-knee-fork949` v3)**: `v15cr` = `v15c` on `claude_v1` alone (Opus report labels, no Raptor; RunPod A40, ≈ $1.86) solo, and nartaa's 0.949 CoAtNet + it at β 0.35 | 0.9121 (`v15c` 0.9234) | **0.932 / 0.950** | **✅ the mechanism: k ≈ 0.026–0.035 = S6's range (B18 on the same anchor 0.012–0.021), so without Raptor our ConvNeXt is as complementary to nartaa's Raptor fine-tune as S6 is; the decorrelation sits on the Raptor-carried labels (gold, direction only). 🔁 as a leg: 0.950 = C4b − 0.001; ❌ as a member (−0.010). P-85 closed; pick 1 keeps B18 as C6's leg** (entry 2026-10-12 "Submissions #84–#85") |
 
 **External reference points** (not ours — for calibrating ambition):
 
 | Score | What |
 |---|---|
+| 0.966 | Public LB #1 (2026-10-12 17:34 UTC); 10th 0.963; **955 teams ≥ 0.954 of 5,846 (745 at exactly 0.954)**, 210 ≥ 0.955, 1,089 ≥ 0.951, 1,404 ≥ 0.950. **Our C5 #80 = 0.954, rank 238** (28th in the tie, which keeps growing: 620 → 745 in 10 h). heliosli 0.956 (rank 99), goodpjw2008 0.954 (270) |
 | 0.966 | Public LB #1 (2026-10-12 07:27 UTC); 10th 0.963; **802 teams ≥ 0.954 of 5,808 (620 at exactly 0.954)**, 1,304 ≥ 0.950, 182 ≥ 0.955. **Our C5 #80 = 0.954, rank 200** (18th in the tie). **heliosli's S6 alone = 0.944 from our account (#81)**, so the 0.954 public blend = nartaa 0.949 (0.7) + S6 0.944 (0.3) + a +0.0065 diversity gain (entry 2026-10-12 "Submission #81") |
 | 0.964 | Public LB #1 (2026-10-10 00:50 UTC); 10th 0.962; **797 teams ≥ 0.950 of 5,626** (485 at exactly 0.950), 312 ≥ 0.951 (114 at exactly 0.951), 198 ≥ 0.952, 90 ≥ 0.955. **Our C4b #73 = 0.951, rank 218** (the front of the 0.951 tie; entry 2026-10-09 "Submissions #69 and #73") |
 | 0.964 | Public LB #1 (2026-10-08 12:12 UTC); 10th 0.961; **392 teams ≥ 0.950 of 5,487** (338 at 09:39 UTC, 123 on 10-06); 145 ≥ 0.951, 73 ≥ 0.955 |
@@ -476,7 +478,7 @@ versions.
 | 0.4 LLM + 0.2 Opus + 0.4 Raptor | 0.9346 | +0.0026 (SD 0.0031) | — | — |
 | 1/3 each | 0.9341 | +0.0021 (SD 0.0050) | — | — |
 | 0.5 LLM + 0.5 Opus (no image teacher) | 0.9093 | −0.0228 (SD 0.0093) | — | — |
-| Opus alone | 0.9062 | −0.0258 (SD 0.0117) | `v15cr` (ConvNeXt) | ⏳ |
+| Opus alone | 0.9062 | −0.0258 (SD 0.0117) | `v15cr` (ConvNeXt) | **0.932** (`v15c` 0.942; #85) |
 
 - **The same-seed LB read settles the first question.** `v13ecp` is `v13e` exactly (B0, seed 42) with only the targets changed. It
   reads 0.935 = 0.935, so the +0.008 gold edge of Opus + Raptor did not reach the LB. Production stays on LLM + Raptor as the
@@ -5073,6 +5075,64 @@ candidate by its rule. S6's diversity carries to our models (k ≈ 0.020–0.028
 **Verdict: ✅ run green and shipped; 🔁 direction only on gold.** The reads are the solo (infer v77) and the C4b-type fork
 (`rsna-knee-fork949` v3, `v15cr` at β 0.35), both on 10-12.
 
+### 2026-10-12 — Submissions #84–#85: the P-85 read · `v15cr` solo **0.932** (−0.010 vs `v15c`) · its fork on nartaa's 0.949 at β 0.35 **0.950** · k ≈ **0.026–0.035** = S6's range (B18 on the same anchor 0.012–0.021): without Raptor in the targets our ConvNeXt is as complementary to nartaa's CoAtNet as S6 is · as a leg it buys nothing (0.950 vs C4b 0.951) · ✅ the mechanism, 🔁 as a leg · P-85 closed
+
+**Read** (17:31 UTC, `kaggle competitions submissions`; both watchers died with the 10-12 session, so the scoring times are bounds):
+#85 (ref 57112523, `rsna-knee-infer` v77) and #84 (ref 57112516, `rsna-knee-fork949` v3 = `build_fork949.py --members v15cr --beta
+0.35`), sent 16:08:36 / 16:08:28 UTC, both COMPLETE within ≤ 83 min. The fork's ≤ 83 min is under the 1.75 h C4b took, and its score is
+not the anchor's 0.949, so the arm ran.
+
+| # | what | LB | pre-registered read (proposals.md P-85) | verdict |
+|---|---|---|---|---|
+| 85 | `v15cr` solo (`v15c` on `claude_v1` alone: Opus report labels, no Raptor) | **0.932** | the level k needs; pred. 0.933–0.940 | −0.010 vs `v15c` 0.942 (2.5× the 0.004 floor), 0.001 under the prediction |
+| 84 | nartaa's 0.949 CoAtNet + `v15cr` at β 0.35 | **0.950** | k 0.012–0.021 = no lineage effect (pred. 0.947–0.949) / k ≥ 0.026 = S6-like (pred. 0.950–0.953) | **k ≈ 0.026–0.035: S6-like** |
+
+- **The arithmetic.** Weighted mean 0.65 × 0.949 + 0.35 × 0.932 = 0.94305, so the diversity gain is g = +0.0070, range (+0.0060,
+  +0.0080) with the three roundings, and **k = g / 0.2275 ≈ 0.031 (0.026–0.035)**.
+  - On the same anchor: B18 (C4b #73, β 0.35) k 0.012–0.021; S6 (heliosli's blend, β 0.3) k 0.026–0.036. `v15cr` lands on S6's range
+    and does not overlap B18's.
+  - **A weaker leg does not explain it.** A toy model (binormal scores, one label, AUC = Φ(d/√2)): at the error correlation that gives
+    B18's k (ρ ≈ 0.91), a 0.932 leg gets k 0.018, so weakness alone adds ≈ +0.001 of k. Reaching 0.031 needs ρ ≈ 0.84. That is a
+    model, not a measurement, but most of the rise is decorrelation.
+- **Where the decorrelation is** (gold-58, SWA predictions; direction only, per-label SE ≈ 0.09):
+
+  | label | `v15c` | `v15cr` | Δ | within-class ρ |
+  |---|---|---|---|---|
+  | Baker's | 0.976 | 0.949 | −0.027 | **0.67** |
+  | Fracture | 0.900 | 0.896 | −0.004 | **0.67** |
+  | Effusion | 0.937 | 0.921 | −0.016 | **0.70** |
+  | Synovitis | 0.807 | 0.779 | −0.028 | **0.73** |
+  | MCL | 0.952 | 0.934 | −0.018 | 0.80 |
+  | Contusion | 0.960 | 0.946 | −0.014 | 0.82 |
+  | the other six | | | −0.002 … −0.010 | 0.81–0.90 |
+  | macro | 0.9234 | 0.9121 | −0.011 | 0.79 |
+
+  The four least-correlated labels are the ones the Raptor image teacher carries in our targets: Effusion, Baker's and Fracture (entry
+  "The public label sets re-surveyed"), and Synovitis (the Raptor table moved its gold 0.744 → 0.823, P-07 / P-39). Three of the four
+  largest level losses (Synovitis, Baker's, Effusion) sit on the same labels. Rank-mean of the two on gold: 0.9246 (+0.001 over
+  `v15c`).
+- **What it decides:**
+  - **Hypothesis (a) of #81 holds on nartaa's anchor.** Taking Raptor out of the targets is enough to move our leg's k from B18's range
+    into S6's. Most of S6's extra complementarity to nartaa's Raptor fine-tune can be its label lineage (Opus report states, no
+    Raptor); its knee-centred input (b) is not needed to explain it, though it is not excluded.
+  - **As a leg it buys nothing.** The fork reads 0.950 against C4b 0.951 (B18) and against ≈ 0.949–0.951 predicted for `v15c` alone
+    (0.65 × 0.949 + 0.35 × 0.942 + 0.2275 × k 0.012–0.021). The decorrelation (≈ +0.003 over a same-ρ 0.932 leg) pays back the
+    0.010 of lost level (× 0.35 ≈ −0.0035), and no more.
+  - **A per-label hybrid would not keep both.** Raptor on Effusion / Baker's / Fracture / Synovitis and Opus elsewhere would return the
+    decorrelation together with the level, because both sit mostly on the same labels. Not carded (proposals.md Dropped directions).
+  - **Pick 1 (C6 = S6 + B18) keeps B18.** S6 is itself Opus-report-trained. On S6, B18's Raptor share is what makes it different
+    (k 0.020–0.028 on C6), and `v15cr` is more likely to resemble S6 than to add to it. The direct read is C6′ (candidates.md), predicted
+    0.947–0.951 against C6 0.950: no expected lift.
+  - **Pick 2 (C5) is 70 % nartaa.** There a leg with `v15cr` inside could raise C5's low k (0.009–0.016), but at β 0.20 each +0.004
+    of k is ≈ +0.0006: a sub-tick read, visible only as a rank inside the 0.954 tie (C5′, candidates.md).
+  - **The label side:** report-only targets are a lever for diversity against Raptor-lineage anchors, not for level. The card's "if it
+    works" action (a report-only leg in the pick-2 fork) is priced by C5′, not adopted on this read. The final retrains keep 0.5 LLM +
+    0.5 Raptor.
+
+**Verdict: ✅ KEEP the finding** (pre-registered "S6-like" fires: k 0.026–0.035 vs B18's 0.012–0.021, disjoint ranges);
+**🔁 as a leg** (fork 0.950 = C4b − 0.001, under the floor); **❌ as a member** (solo −0.010 vs `v15c`). P-85 is closed
+(closed-cards index).
+
 ## Infrastructure
 
 ### 2026-09-27 — The "0.943 Speedy Raptors CoAtNet D4" notebook is our anchor **plus two CoAt readers**, not a faster graph; its "< 30 min" is a 3-study commit run · P-41 (threaded scan + 8 decode workers) smoke-green and byte-identical
@@ -5603,8 +5663,8 @@ and public LB score, so a public/private divergence can be traced to a specific 
 | 81 | 2026-10-12 | rsna-knee-fork954 v2 (`src/build_fork954.py --s6-only`) | **A14**: heliosli's S6 alone (the 0.954 notebook with stage-3 weights 0.0 / 1.0; the CoAtNet still runs as the per-study fallback; our arm off) | none | **0.944** | **read 03:28:22 UTC → 🔁 = B19 0.944; S6 is no pick-1 lever by itself (≤ 0.945), and the C6 / P-83 gates fail. The 0.954 blend's diversity gain is +0.0055–0.0075 (B18 on the same anchor: +0.0027–0.0047), so C6 is re-priced to 0.946–0.953; scored within [206.3, 207.8] min.** sent 00:00:34 UTC by `auto_submit.py` (pid 15852), ref 57088196 |
 | 82 | 2026-10-12 | rsna-knee-fork954 v3 (`src/build_fork954.py --s6-anchor --members v15c v13b3 --beta 0.45`) | **C6**: heliosli's S6 alone as the anchor (no CoAtNet stage, nartaa not mounted: OAI-free) + B18 (`v15c` + `v13b3`) at β 0.45 | none | **0.950** | **read 11:42 UTC → ✅ +0.006 vs A14 / B19 0.944 (rule ✅ ≥ 0.948): our best OAI-free number, the pick-1 candidate by its rule; the fork rule's k ≈ 0.020–0.028 (S6 is nearly as different from our models as from nartaa's); the P-85 gate (≥ 0.950) fires; scored within [226.6, 228.6] min.** sent 07:53:26 UTC on Tian's go, ref 57100370 |
 | 83 | 2026-10-12 | rsna-knee-infer v76 (+ Dataset `rsna-knee-ckpt-v15cb`) | **P-84, `v15cb` solo**: `INFER_MEMBERS = ["v15cb"]` (`v15c` + `trim_ends 1`: the ≈ 6–94 % band on the 24-slice slots, train = infer; RunPod L40S 10-12) | none; gold-58 0.9229 | **0.943** | **read 11:32 UTC → 🔁 +0.001 vs `v15c` 0.942 (✅ needed ≥ 0.946); P-84 closed, `trim_ends` stays off; scored within [28.8, 30.3] min.** sent 11:01:46 UTC, ref 57105105 |
-| 84 | 2026-10-12 | rsna-knee-fork949 v3 (`src/build_fork949.py --members v15cr --member v15cr=…ckpt-v15cr:…timm-convnext-tiny-in12k --beta 0.35`) | **P-85 read**: nartaa's public 0.949 CoAtNet + `v15cr` (`v15c` on Opus report labels only, no Raptor) at β 0.35; placeholder green (anchor saved, our arm = the solo's output exactly, `FINAL submission.csv = beta0.35`) | none | ⏳ | sent 16:08:28 UTC, ref 57112516; read: k = (LB − (0.65 × 0.949 + 0.35 × #85)) / 0.2275 — k 0.012–0.021 = no lineage effect / ≥ 0.026 = S6-like |
-| 85 | 2026-10-12 | rsna-knee-infer v77 (+ Dataset `rsna-knee-ckpt-v15cr`, replacing the dead `v16d1` mount) | **P-85, `v15cr` solo**: `INFER_MEMBERS = ["v15cr"]` (RunPod A40 10-12) | none; gold-58 0.9121 | ⏳ | sent 16:08:36 UTC, ref 57112523; the level k needs; pred. 0.933–0.940 vs `v15c` 0.942 |
+| 84 | 2026-10-12 | rsna-knee-fork949 v3 (`src/build_fork949.py --members v15cr --member v15cr=…ckpt-v15cr:…timm-convnext-tiny-in12k --beta 0.35`) | **P-85 read**: nartaa's public 0.949 CoAtNet + `v15cr` (`v15c` on Opus report labels only, no Raptor) at β 0.35; placeholder green (anchor saved, our arm = the solo's output exactly, `FINAL submission.csv = beta0.35`) | none | **0.950** | **read 17:31 UTC → k ≈ 0.026–0.035 (central 0.031) = S6-like (B18 on this anchor 0.012–0.021): without Raptor our ConvNeXt is as complementary to nartaa's CoAtNet as S6 is; as a leg 0.950 = C4b − 0.001 (🔁); P-85 closed; scored within ≤ 83 min (the watcher died with the session).** sent 16:08:28 UTC, ref 57112516 |
+| 85 | 2026-10-12 | rsna-knee-infer v77 (+ Dataset `rsna-knee-ckpt-v15cr`, replacing the dead `v16d1` mount) | **P-85, `v15cr` solo**: `INFER_MEMBERS = ["v15cr"]` (RunPod A40 10-12) | none; gold-58 0.9121 | **0.932** | **read 17:31 UTC → −0.010 vs `v15c` 0.942 (pred. 0.933–0.940): ❌ as a member; the level the fork's k needs; scored within ≤ 83 min.** sent 16:08:36 UTC, ref 57112523 |
 
 ## Closed cards index (moved here from proposals.md on 2026-10-05)
 
@@ -5680,3 +5740,4 @@ proposals.md holds live cards only (Tian, 2026-10-05). One line per measured or 
 | P-82 | DINOv2-S retrained on our recipe (`v16d1` ‖ `v16d3`: 280 px, `v15c`'s data side, AdamW wd 0.05, drop path 0.1, 20 ep; an LR bracket, top block 1e-4 / LLRD 0.8 vs 3e-4 / 0.75; Kaggle `rsna-knee-train-b` v13) | ❌ DEAD END: #76 `v16d1` **0.932** / #77 `v16d3` **0.893** → the better arm ≤ 0.934 (−0.010 vs `v15c` 0.942); +0.014 over the old `v08r` 0.918 but no member grade; no B20; the LR direction is low (3e-4 collapses in the warm-up). DINOv2 stays in Dropped directions | experiments.md 2026-10-11 "P-82 read" |
 | P-84 | Slice band ≈ 6–94 % instead of 2–98 % (`v15cb` = `v15c` + `trim_ends 1` on the 24-slice slots; RunPod L40S, $1.75) | 🔁 measured: #83 `v15cb` **0.943** vs `v15c` 0.942 (+0.001, ✅ needed ≥ 0.946); gold-58 0.9229 vs 0.9234. At unchanged density the band is not our lever (Dread's +0.009 came with a denser band; a re-cache does not fit the days left); `trim_ends` stays off by default and out of the final members | experiments.md 2026-10-12 "Single-model levers", "P-84 on RunPod + Submission #83" |
 | P-83 | ConvNeXt-S on the `v15c` recipe at 288 px (`v15s`, the size step inside our best family; RunPod ≈ $2.5–3.5) | retired 2026-10-12, never built: its gate (A14 ≥ 0.950) failed. #81 A14 = heliosli's S6 alone (ConvNeXt-S @ 384, knee-centred views, 4 folds) **0.944** = our ConvNeXt-T level, so a ConvNeXt-S at 288 on our recipe predicts ≈ `v15c` ± 0.002, under the 0.004 bar. A row in Dropped directions | experiments.md 2026-10-12 "Submission #81"; 2026-10-11 "Model families" |
+| P-85 | Report-only targets for a diversity leg (`v15cr` = `v15c` on `claude_v1` alone, no Raptor; RunPod A40, ≈ $1.86) | ✅ the mechanism / 🔁 as a leg / ❌ as a member: #85 solo **0.932** (−0.010 vs `v15c`); #84 nartaa's 0.949 + it at β 0.35 **0.950** → k ≈ 0.026–0.035 = S6's range (B18 on the same anchor 0.012–0.021): without Raptor our ConvNeXt is as complementary to nartaa's Raptor fine-tune as S6 is, but the fork = C4b − 0.001. The decorrelation and the level loss sit on the Raptor-carried labels (Effusion, Baker's, Fracture, Synovitis; gold, direction only), so a per-label hybrid is dropped; pick 1 keeps B18 | experiments.md 2026-10-12 "P-85 on RunPod", "Submissions #84–#85" |

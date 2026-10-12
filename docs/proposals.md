@@ -82,6 +82,12 @@ without) and S6 0.944, so our `v15c` / `v15co` sit at the measured public level,
 same anchor, and family does not explain it (lineage from the Raptor teacher, or S6's knee-centred input, are the candidates). It
 re-prices C6 (candidates.md), not a training card.
 
+**Read 2026-10-12 evening (P-85, #84 / #85; experiments.md "Submissions #84–#85"): P-85 closed.** `v15cr` (`v15c` on Opus report
+labels alone, no Raptor) reads **0.932** solo (−0.010) and **0.950** on nartaa's anchor at β 0.35: k ≈ 0.026–0.035, S6's range
+(B18 0.012–0.021). Label lineage is what makes a leg complementary to the Raptor-lineage CoAtNet, but the level it costs eats the
+gain (0.950 = C4b − 0.001), and the decorrelation and the loss sit on the same Raptor-carried labels. The final targets stay 0.5 LLM +
+0.5 Raptor; the cheap follow-ups (B22, C6′, C5′: existing checkpoints only) are candidates.md rows, not cards.
+
 **Read 2026-10-10: P-68 closed 🔁, P-67's floor measured.** The pseudo-label pair `v13ex` / `v13ex2` (B0 on 0.5 LLM + 0.25
 Raptor + 0.25 `xfit_v09k`) reads **0.937 / 0.936**, pair mean 0.9365 = the B0 seed mean: not adopted, Raptor 0.5 stays, the label
 side is closed (experiments.md "Submissions #74–#75"). The P-67 floor pair gives a seed floor of **0.0014** on the pooled 5-fold
@@ -108,8 +114,7 @@ everything else is decided later.** (The ConvNeXt half is superseded by the nigh
 
 | rank | id | title | status | expected value | cost | depends on |
 |---|---|---|---|---|---|---|
-| 2 | P-85 | Report-only targets (`v15cr` = `v15c` on `claude_v1` alone, no Raptor): the diversity leg | 🔧 **training 10-12 (RunPod A40): the gate fired, C6 #82 = 0.950**; code and smoke done | read as k on nartaa's 0.949 anchor at β 0.35 (C4b-type fork): k 0.012–0.021 → 0.947–0.949 (no lineage effect) / k ≥ 0.026 → 0.950–0.953 (S6-like) | ≈ $1.5–2.6 + 1 fork slot (≈ 1.75 h to score) | C6's read |
-| 3 | P-86 | One JEV arm (`v15cj` = `v15c` on 0.25 LLM + 0.25 OpenJev + 0.5 Raptor) | 💡 new 10-12 (Tian: one JEV blend); composite table + smoke, then critic + go for a pod | gold-58 of the target 0.9394 vs 0.9320 (gold-fitted); LB expectation 0 to +0.002 | ≈ $1.8 + a placeholder + 1 slot | — |
+| 2 | P-86 | One JEV arm (`v15cj` = `v15c` on 0.25 LLM + 0.25 OpenJev + 0.5 Raptor) | 💡 new 10-12 (Tian: one JEV blend); composite table + smoke, then critic + go for a pod. **After P-85 (10-12 evening): a level read only** (it keeps Raptor 0.5, so its lineage, and its complementarity to the anchors, stays B18's) | gold-58 of the target 0.9394 vs 0.9320 (gold-fitted); LB expectation 0 to +0.002 | ≈ $1.8 + a placeholder + 1 slot | — |
 | 3 | P-71 | An independently trained public reader as a blend member (B16: goodpjw2008's 2.5D ConvNeXt-T, Apache-2.0) | 💡 new 2026-10-06; **recommended DROP (pending Tian), 10-08:** our own ConvNeXt-T `v15c` reads 0.942 solo (#64), so B16 would add a second, weaker (0.929) ConvNeXt vote, plus third-party code at the rerun. Was: recommended DEMOTE (≈ +0.0005 LB) | B16 ≈ 0.941–0.943 vs B6 0.942; upside if its independence beats our families' (gold ρ 0.83–0.89) | ≈ 60 lines + 1 placeholder (≈ 0.2 GPU-h) + 1 send; ≈ 20 min more scoring | — |
 | 4 | P-72 | A seventh family on the `v13h` recipe (`eca_nfnet_l0` by default) + a family-diversity ruler on the proxy OOF (Δ_div) | 💡 new 2026-10-06; **recommended DROP (pending Tian): no read on this task, in1k only** | B6 + 0.001–0.003 if member-grade (≥ 0.933 solo); the ruler ranks families on 4,349 studies, not LB slots | weight Dataset + loader check; 1 Kaggle arm ≈ 6 h; ≈ 1 proxy per screened family | the 10-10 quota; the P-67 floor for Δ_div |
 | 5 | P-67 | Fast-proxy 5-fold CV ruler + single-variable recipe ablation loop | 🔧 **2026-10-11, session C read: `v14lr` (lowres) −0.0019 🔁, `v14gd` (grid) −0.0021 ❌ (5/5 folds down) vs `v14p` 0.8628 → neither clears +0.002, no transfer arm (experiments.md 2026-10-11 "P-67 session C read"). With P-82 closed ❌ this is the one OAI-free lever left; next `v14mx` / `v14r288` / `v14ep20` …; 5.0 Kaggle GPU-h until 10-17 (a two-variant session took 7.56 h), on Tian's go.** ✅ **floor measured 2026-10-10 (`rsna-knee-train` v49, 5.63 h): 0.0014 from four fold pairs (`v14p2` fold 0 diverged to NaN, traps 63) → ablation bar ≈ 0.002; `v14p` pooled 0.8628; the 12-epoch curve still rising at epoch 11 (experiments.md 2026-10-10 "Sessions A ‖ B read"). Next: session C, two variants per session in the evidence order, on Tian's go.** **10-10: Tian's go for session C (`v14lr` ‖ `v14gd`) beside P-82; traps 63's guard is coded (`4faecd0`); smoke `rsna-knee-train` v50 pushed 13:43 UTC.** Was: 🔧 **implemented, effect pending: the floor pair `v14p` / `v14p2` and, since 10-05 (Tian: "focus on these"), ten one-variable arms `v14lr` / `v14th` / `v14gd` / `v14bl` / `v14ns` / `v14sh` (augmentation components), `v14mx` (mixup), `v14r288` (B0 @ 288), `v14db` (blank windows), `v14ep20` (longer schedule); unit checks, a local CPU smoke and a Kaggle GPU smoke (v46) green; the floor run starts at the 10-10 reset** — approved by Tian (research.md 2.7.6 / 2.7.7 / 2.10) | + 0.003–0.005 per production member if ≥ half transfers → B6 ≈ 0.945–0.947 | ≈ 16 proxy variants per 30-h Kaggle week, or ≈ $0.6 each on a 4090; + 1 transfer arm | a measured pooled-OOF floor (2 seeds) |
@@ -148,32 +153,6 @@ Cost:         the composite table, published to the private `rsna-knee-teacher-t
 If it works:  the OpenJev share goes into the final ConvNeXt members' targets (week of 10-17) and the C6 leg.
 If it fails:  JEV is dropped and the label side stays closed.
 Depends on:   — (the JEV Dataset is CC0; the composite is competition-derived and stays private).
-### P-85 Report-only targets for a diversity leg (`v15cr`)
-Status:       🔧 **training 2026-10-12: the gate fired** (C6 #82 = 0.950, experiments.md "Submission #82"; k ≈ 0.020–0.028 on our models).
-              RunPod secure A40 `w42jyaoosn8ej2` ($0.59/h; no 4090 / L40S / 5090 in stock), created 11:43 UTC, chain after the Kaggle token
-              renews (≈ 12:31), AUTO_STOP, stopper 16:43 UTC; Tian's go in the 10-12 opening message. Caveat from C6: `v15cr` trains on
-              Opus report labels and S6 on Opus report states, so on the S6 anchor (pick 1) it may be less different than B18; the
-              pre-registered read stays k on nartaa's anchor. Was: 💡 code + local smoke done 2026-10-12 (`3eac809`); **gated on C6 (#82) ≥ 0.950** (critic: if S6 + B18 does not gain on our
-              models, neither lineage nor input explains S6's diversity against them, and the run is ≈ $1.5–2.6 for a 🔁).
-Hypothesis:   our members train on 0.5 LLM + 0.5 Raptor teacher, and nartaa's 0.949 is a Raptor fine-tune; a `v15c` trained without
-              Raptor is more complementary to it, as S6 (report-only Opus targets) is: S6 0.944 adds +0.0055–0.0075 over the weighted
-              mean on nartaa at 0.3, B18 (0.944) only +0.0027–0.0047 at 0.35 (experiments.md 2026-10-12 "Submission #81").
-Origin:       the A14 read; S6's trainer (embedded in `notebook_score_0.954.ipynb`): Opus report states, no Raptor, silent cells give no
-              gradient (experiments.md 2026-10-12 "Single-model levers").
-Evidence:     For: S6's gain; the forum's "a teacher from a different model works, the same family does not" (P-68's null was a
-              same-lineage mix). Against: no ablation exists; S6 also differs in input (knee-centred views) and loss. The targets are
-              not fully report-only: `quantile_match` puts Claude's ranks on the LLM blend's value scale and the loss weights `w__`
-              stay the public LLMs' agreement weights (critic); Raptor is fully out, which is what the hypothesis needs.
-Measure:      `v15cr` = `v15c` on `claude_v1` alone (TEACHER_MIX 1.0; pinned in DISTILLED_ARMS / DISTILLED_MIX), seed 42. **Read k, not a
-              score:** a C4b-type fork, the 0.949 anchor + `v15cr` at β 0.35 (OAI anchor: diagnostic only); k = (read − weighted mean)
-              / 0.2275: k 0.012–0.021 = no lineage effect (pred. 0.947–0.949), k ≥ 0.026 = S6-like (pred. 0.950–0.953). Its solo
-              (pred. 0.933–0.940) and B18 + it are secondary (a ✅ there cannot fire: B19 = B18).
-Noise floor:  one tick on the fork ≈ a k step of 0.004; the read separates the two k ranges only at their ends.
-Cost:         ≈ $1.5–2.6 RunPod + a fork placeholder + one slot (≈ 1.75 h to score).
-If it works:  a report-only leg goes into the pick-2 fork and an OAI-free own blend; the final retrains get one report-only member.
-If it fails:  S6's diversity is its input or loss, not the missing Raptor; the label side stays closed.
-Depends on:   C6 (#82) ≥ 0.950.
-
 ### P-67 Fast-proxy 5-fold CV ruler + single-variable recipe ablation loop
 Status:       🔧 **2026-10-11: session C read** (`rsna-knee-train` v51, 7.56 h; experiments.md 2026-10-11 "P-67 session C read"): `v14lr`
               (lowres) **−0.0019** (mixed folds, 🔁) and `v14gd` (grid) **−0.0021** (all five folds down, ❌) on the pooled proxy OOF vs
@@ -547,6 +526,7 @@ any of these must answer its row with a new reason.** The 2026-10-06 brainstorm 
 
 | Direction | Why it is closed | Source |
 |---|---|---|
+| **A per-label lineage target** (Raptor only on Effusion / Baker's / Fracture / Synovitis, report-only Opus elsewhere) to keep `v15cr`'s complementarity at `v15c`'s level (10-12) | on gold-58 `v15cr`'s decorrelation from `v15c` (within-class ρ 0.67–0.73) and its level loss (−0.016 … −0.028) sit mostly on the same four Raptor-carried labels, so a hybrid would hand the decorrelation back with the level; a pod is ≈ $1.9 of the ≈ $5.8 left, and on the fork a 0.932 Raptor-free leg only matched a 0.944 Raptor-lineage one | experiments.md 2026-10-12 "Submissions #84–#85" |
 | **Newer public LLM label sets as a wholesale swap of the LLM half** (JEV hybrid, tonylin refined soft labels, nartaa Gemini-3-flash, Qwen / GPT-5.6-luna / MedGemma / consensus sets; surveyed 2026-10-12) | none is clearly better than our blend on gold-58 (0.83–0.904 vs 0.8948; with Raptor ≤ 0.938 vs 0.932); the best are near-copies of our sources (ρ ≥ 0.96) whose edge was chosen on gold or is undocumented; target-level gold gains have not reached the LB (same seed: Opus + Raptor 0.935 = LLM + Raptor 0.935). The one different reader worth an arm is P-86 | experiments.md 2026-10-12 "The public label sets re-surveyed" |
 | **ConvNeXt-S on the `v15c` recipe at 288 px (P-83, `v15s`; retired 2026-10-12, never built)** | its gate (A14 ≥ 0.950) failed: heliosli's S6 alone, a ConvNeXt-S at 384 px with knee-centred views, 4 folds and its own labels, reads **0.944** (#81), our ConvNeXt-T level (`v15c` 0.942, B18 0.944). A ConvNeXt-S at 288 on our recipe predicts ≈ `v15c` ± 0.002, under the 0.004 one-seed bar, for $2.5–3.5 of the ≈ $9.5 RunPod left | experiments.md 2026-10-12 "Submission #81"; 2026-10-11 "Model families" |
 | **Fixing the ConvNeXt clip rate** (≈ 80 % of steps clipped at the last epoch, `v15c` and `v15c2`; moved here from the closed P-80 card, 10-09) | AdamW divides each step by a running RMS of the gradients, so scaling the global gradient by a near-constant factor (clipping a 1.5 norm to 1.0) leaves the update almost unchanged: the clip rate is the gradient's scale, not a brake. Both seeds clip the same way and read 0.942 / 0.941, our best singles | experiments.md 2026-10-08 "P-80 on RunPod", 2026-10-09 "Submissions #70–#72" |
