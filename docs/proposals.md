@@ -62,6 +62,8 @@ result*, per unit of cost. "Depends on" lists hard blockers only. EVs are solo-L
 
 ### Live cards, ranked by expected value per cost
 
+**Focus (Tian, 2026-10-13): improve the labels.** After rank 6 (azamat1ch, 0.964) attributed the top edge to AI labels "not from reports alone" (748295), the first step is the multimodal gold-58 pilot P-87; the 10-06 focus below is superseded where it de-emphasises labels.
+
 **Focus (Tian, 2026-10-06): single-model strength and new family members for the blend; labels are de-emphasised.** The 10-06
 reads back it: every target change except Raptor read flat or worse (P-65 closed), and the blend gain grows with the number of
 families (B13 / B11). Label-side cards (P-47, P-51) run only on an otherwise idle slot; P-62 read 🔁 on 10-07
@@ -116,6 +118,7 @@ everything else is decided later.** (The ConvNeXt half is superseded by the nigh
 
 | rank | id | title | status | expected value | cost | depends on |
 |---|---|---|---|---|---|---|
+| 1 | P-87 | Multimodal-LLM labels, gold-58 pilot: Opus on report + slice grids vs Opus on the report alone | 🔧 **started 10-13 on Tian's go** ("do the cheap gold-58 pilot first"): slice-grid kernel `rsna-knee-vlm-slices` v1 running; other models (OpenRouter) when Tian has a key | a label lever the top-10 names (748295); gold paired Δ is the read; LB value only via a full pass + an arm | kernel (CPU) + ≈ 10 subagents; $0 for the Opus arm | — |
 | 2 | P-86 | One JEV arm (`v15cj` = `v15c` on 0.25 LLM + 0.25 OpenJev + 0.5 Raptor) | 💡 new 10-12 (Tian: one JEV blend); composite table + smoke, then critic + go for a pod. **After P-85 (10-12 evening): a level read only** (it keeps Raptor 0.5, so its lineage, and its complementarity to the anchors, stays B18's) | gold-58 of the target 0.9394 vs 0.9320 (gold-fitted); LB expectation 0 to +0.002 | ≈ $1.8 + a placeholder + 1 slot | — |
 | 3 | P-71 | An independently trained public reader as a blend member (B16: goodpjw2008's 2.5D ConvNeXt-T, Apache-2.0) | 💡 new 2026-10-06; **recommended DROP (pending Tian), 10-08:** our own ConvNeXt-T `v15c` reads 0.942 solo (#64), so B16 would add a second, weaker (0.929) ConvNeXt vote, plus third-party code at the rerun. Was: recommended DEMOTE (≈ +0.0005 LB) | B16 ≈ 0.941–0.943 vs B6 0.942; upside if its independence beats our families' (gold ρ 0.83–0.89) | ≈ 60 lines + 1 placeholder (≈ 0.2 GPU-h) + 1 send; ≈ 20 min more scoring | — |
 | 4 | P-72 | A seventh family on the `v13h` recipe (`eca_nfnet_l0` by default) + a family-diversity ruler on the proxy OOF (Δ_div) | 💡 new 2026-10-06; **recommended DROP (pending Tian): no read on this task, in1k only** | B6 + 0.001–0.003 if member-grade (≥ 0.933 solo); the ruler ranks families on 4,349 studies, not LB slots | weight Dataset + loader check; 1 Kaggle arm ≈ 6 h; ≈ 1 proxy per screened family | the 10-10 quota; the P-67 floor for Δ_div |
@@ -135,6 +138,37 @@ everything else is decided later.** (The ConvNeXt half is superseded by the nigh
 | 19 | P-51 | Teacher-aware confidence weights | 💡 low, label-side (parked by the 10-06 focus) | 0..+0.002 | ≈ 20 lines + 2.8 h; 1 solo | P-44 floor |
 
 ## Cards
+
+### P-87 Multimodal-LLM labels: gold-58 pilot (report + slice grids)
+Status:       🔧 started 2026-10-13 on Tian's go ("do the cheap gold-58 pilot first, then we take it from there"). Pre-registered here
+              before any read; the prompt is not iterated on gold.
+Hypothesis:   a frontier multimodal LLM that sees the images as well as the report labels the 12 findings closer to the gold image read
+              than the same LLM on the report alone, most on the image-visible, report-silent findings (Effusion size, Baker's size,
+              Synovitis, Contusion, Fracture, compartment OA).
+Origin:       748295 (10-13): rank 6 azamat1ch, "labels … AI, not by hand. And don't rely on reports alone", no external data. colum2131
+              (745949): a multimodal LLM on report + MRI lifted gold Effusion / Synovitis from 0.835 / 0.799 to ≈ 0.91–0.92 / 0.84–0.86.
+              Our P-65 pilot: the report-only Opus relabel lost Effusion (−0.030) and Baker's (−0.092) to size thresholds the report
+              cannot settle (39 effusions `sub`, 30 Baker's `unk`).
+Measure:      inputs = `src/vlm_slices.py` on Kaggle (`rsna-knee-vlm-slices`): per series one 3×3 grid of nine slices over the central
+              8–92 % band, ordered by position (sagittal medial → lateral, coronal anterior → posterior, axial superior → inferior),
+              radiological display, ≤ 8 series per study, with a sidecar giving plane, sequence text, knee side and which image side is
+              medial. Labeller = Opus 5.5 subagents, blind (shuffled index of `artifacts/claude_labels/gold_key.csv`, no UIDs, no labels),
+              prompt = P-65's `prompt_v1.md` (same definitions, same output) + an image section. Scored by a paired study bootstrap
+              (2,000 resamples) against P-65's report-only Opus on the same 58 studies (macro 0.9062), the LLM blend (0.8948), Raptor
+              (0.9254) and the production target 0.5 LLM + 0.5 Raptor (0.9324). Other models (Gemini, GPT, Mistral Large 4, Qwen-VL via
+              OpenRouter) get the identical inputs and prompt, one arm each.
+Read rule:    ✅ promising (price a full pass): paired macro Δ vs report-only Opus ≥ +0.020 with the 90 % CI above 0, OR 0.5 VLM + 0.5
+              Raptor ≥ 0.945 (production 0.9324, Opus + Raptor 0.9397). 🔁 flat: |Δ| < 0.010 and the mix < 0.940. ❌ Δ ≤ −0.010.
+              Per-label reads (Effusion, Baker's, Synovitis, Contusion, Fracture) are reported, never picked from.
+Noise floor:  gold-58: per-label Hanley–McNeil SE ≈ 0.09, an unpaired macro difference < 0.05 is direction only. The paired bootstrap on
+              the same studies is tighter and is the read. Target-level gold gains of +0.006–0.011 (D4, cross-fit, P-65) never reached the
+              LB; Raptor's (+0.038 in the mix) did (traps 39).
+Cost:         the CPU kernel (minutes, no GPU quota); ≈ 10 parallel Opus subagents (≈ 6 studies × ≤ 8 grids each); $0 API for this
+              arm. Other models: API spend per arm ≈ 58 × ≈ 6 grids, a few dollars at most at frontier prices.
+If it works:  price a full pass over 4,349 studies (grids from a Kaggle kernel, ≈ 35k images; subagent tokens or API dollars; the
+              "minimal cost" rule binds), then one `v15c`-type arm on the new target (the label side's only LB judge), before 10-22.
+If it fails:  multimodal labelling stays dropped; the label side stays closed to report-only rewording.
+Depends on:   — (host rule 2.6.b permits sending competition data to a hosted LLM for processing; the grids and labels stay private).
 
 ### P-86 One JEV arm: 0.25 LLM + 0.25 OpenJev + 0.5 Raptor (`v15cj`)
 Status:       💡 new 2026-10-12 (Tian: "at least one blend would be worth it"). Needs the composite table, a local smoke, a critic-checked
