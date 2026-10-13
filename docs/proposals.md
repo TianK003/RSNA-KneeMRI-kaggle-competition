@@ -118,7 +118,7 @@ everything else is decided later.** (The ConvNeXt half is superseded by the nigh
 
 | rank | id | title | status | expected value | cost | depends on |
 |---|---|---|---|---|---|---|
-| 1 | P-87 | Multimodal-LLM labels, gold-58 pilot: Opus on report + slice grids vs Opus on the report alone | 🔧 **started 10-13 on Tian's go** ("do the cheap gold-58 pilot first"): slice-grid kernel `rsna-knee-vlm-slices` v1 running; other models (OpenRouter) when Tian has a key | a label lever the top-10 names (748295); gold paired Δ is the read; LB value only via a full pass + an arm | kernel (CPU) + ≈ 10 subagents; $0 for the Opus arm | — |
+| 1 | P-87 | Multimodal-LLM labels, gold-58 pilot: Opus on report + slice grids vs Opus on the report alone | 🔧 **Opus arm read 10-13: 🔁 flat** (0.9140 vs 0.9062, paired +0.008 [−0.005, +0.020]; with Raptor 0.9374 vs 0.9397); other models (OpenRouter, same inputs) wait on Tian's key | a label lever the top-10 names (748295); gold paired Δ is the read; LB value only via a full pass + an arm | kernel (CPU) + ≈ 10 subagents; $0 for the Opus arm | — |
 | 2 | P-86 | One JEV arm (`v15cj` = `v15c` on 0.25 LLM + 0.25 OpenJev + 0.5 Raptor) | 💡 new 10-12 (Tian: one JEV blend); composite table + smoke, then critic + go for a pod. **After P-85 (10-12 evening): a level read only** (it keeps Raptor 0.5, so its lineage, and its complementarity to the anchors, stays B18's) | gold-58 of the target 0.9394 vs 0.9320 (gold-fitted); LB expectation 0 to +0.002 | ≈ $1.8 + a placeholder + 1 slot | — |
 | 3 | P-71 | An independently trained public reader as a blend member (B16: goodpjw2008's 2.5D ConvNeXt-T, Apache-2.0) | 💡 new 2026-10-06; **recommended DROP (pending Tian), 10-08:** our own ConvNeXt-T `v15c` reads 0.942 solo (#64), so B16 would add a second, weaker (0.929) ConvNeXt vote, plus third-party code at the rerun. Was: recommended DEMOTE (≈ +0.0005 LB) | B16 ≈ 0.941–0.943 vs B6 0.942; upside if its independence beats our families' (gold ρ 0.83–0.89) | ≈ 60 lines + 1 placeholder (≈ 0.2 GPU-h) + 1 send; ≈ 20 min more scoring | — |
 | 4 | P-72 | A seventh family on the `v13h` recipe (`eca_nfnet_l0` by default) + a family-diversity ruler on the proxy OOF (Δ_div) | 💡 new 2026-10-06; **recommended DROP (pending Tian): no read on this task, in1k only** | B6 + 0.001–0.003 if member-grade (≥ 0.933 solo); the ruler ranks families on 4,349 studies, not LB slots | weight Dataset + loader check; 1 Kaggle arm ≈ 6 h; ≈ 1 proxy per screened family | the 10-10 quota; the P-67 floor for Δ_div |
@@ -141,7 +141,9 @@ everything else is decided later.** (The ConvNeXt half is superseded by the nigh
 
 ### P-87 Multimodal-LLM labels: gold-58 pilot (report + slice grids)
 Status:       🔧 started 2026-10-13 on Tian's go ("do the cheap gold-58 pilot first, then we take it from there"). Pre-registered here
-              before any read; the prompt is not iterated on gold.
+              before any read; the prompt is not iterated on gold. **Opus arm read 10-13: 🔁 flat** (report + grids 0.9140 vs report-only
+              0.9062, paired Δ +0.008 [−0.005, +0.020]; 0.5 + Raptor 0.9374 vs 0.9397; experiments.md "P-87 gold-58 pilot, Opus arm").
+              Other-model arms wait on an OpenRouter key (Tian); runner `artifacts/vlm_pilot/run_openrouter.py`.
 Hypothesis:   a frontier multimodal LLM that sees the images as well as the report labels the 12 findings closer to the gold image read
               than the same LLM on the report alone, most on the image-visible, report-silent findings (Effusion size, Baker's size,
               Synovitis, Contusion, Fracture, compartment OA).

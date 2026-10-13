@@ -499,6 +499,67 @@ versions.
   (0.9394)**. Tian wants one JEV arm, so it is card P-86, on the `v13ec` construction with ConvNeXt.
 - Swapping in the newer public sets wholesale is a dropped direction (proposals.md).
 
+### 2026-10-13 — P-87 gold-58 pilot, Opus arm: multimodal labels (report + slice grids) read **0.9140** vs the same Opus on the report alone 0.9062 · paired Δ +0.008 [90 % CI −0.005, +0.020] · in the Raptor mix 0.9374 vs 0.9397 · 🔁 flat by the pre-registered rule
+
+On Tian's go ("do the cheap gold-58 pilot first"). The card (proposals.md P-87) and the read rule were written before the read; the
+prompt was not iterated.
+- **Inputs:**
+  - `src/vlm_slices.py` on Kaggle (`rsna-knee-vlm-slices` v1, CPU, ≈ 2.5 min): one 3 × 3 grid of nine slices per series over the
+    central 8–92 % band, ≤ 8 series per study, in radiological display.
+  - Tile order: sagittal medial → lateral, coronal anterior → posterior, axial superior → inferior. A sidecar states the plane,
+    the sequence text, the knee side and which image side is medial.
+  - 58 studies → 330 grids (4–8 per study), 0 failed slices, knee side unknown on 4.
+  - The orientation was checked by eye on three grids (fibula lateral, patella anterior).
+- **Labeller:** Opus 5.5 subagents, blind (`artifacts/vlm_pilot/AGENT_TASK.md`).
+  - Ten batches of 5–6 studies on P-65's shuffled index; no UIDs, no labels.
+  - The prompt is `prompt_v2img.md` = P-65's `prompt_v1.md` + an image section + a per-finding image-evidence field `v`.
+  - Cost: ≈ 2–3 min wall per batch in parallel, ≈ 1.42 M subagent tokens in all (≈ 24 k per study, 10× P-65's report-only
+    2.4 k), no API spend.
+- **Scorer:** `artifacts/vlm_pilot/score_vlm.py`, a paired study bootstrap of 2,000 resamples (output: `score_opus.txt`).
+
+| label | LLM blend | Raptor | Opus report-only (P-65) | **Opus report + images** | 0.5 LLM + 0.5 Rap (production) | 0.5 Opus-txt + 0.5 Rap | **0.5 Opus-img + 0.5 Rap** |
+|---|---|---|---|---|---|---|---|
+| ACL | 0.990 | 0.980 | 0.993 | 0.994 | 0.991 | 0.994 | 0.994 |
+| MCL | 0.980 | 0.993 | 0.977 | 0.991 | 1.000 | 1.000 | 0.998 |
+| Medial Meniscus | 0.955 | 0.969 | 0.953 | 0.957 | 0.974 | 0.982 | 0.981 |
+| Lateral Meniscus | 0.881 | 0.863 | 0.904 | 0.893 | 0.911 | 0.921 | 0.915 |
+| Medial OA | 0.931 | 0.984 | 0.913 | 0.936 | 0.974 | 0.960 | 0.981 |
+| Lateral OA | 0.808 | 0.836 | 0.849 | 0.838 | 0.825 | 0.867 | 0.839 |
+| PF OA | 0.903 | 0.835 | 0.967 | 0.955 | 0.905 | 0.929 | 0.914 |
+| Effusion | 0.880 | 0.973 | 0.850 | 0.887 | 0.955 | 0.946 | 0.947 |
+| Synovitis | 0.788 | 0.824 | 0.806 | 0.815 | 0.842 | 0.875 | 0.866 |
+| Baker's | 0.947 | 0.978 | 0.855 | 0.903 | 0.976 | 0.933 | 0.946 |
+| Contusion | 0.861 | 0.931 | 0.883 | 0.887 | 0.920 | 0.926 | 0.925 |
+| Fracture | 0.815 | 0.938 | 0.924 | 0.911 | 0.916 | 0.945 | 0.944 |
+| **macro** | **0.8948** | **0.9254** | **0.9062** | **0.9140** | **0.9324** | **0.9397** | **0.9374** |
+
+Paired bootstrap (macro Δ [90 % CI], P(Δ > 0)): report + images − report-only Opus **+0.0078 [−0.0046, +0.0203], 0.83**; − the LLM
+blend +0.0192 [+0.0036, +0.0349], 0.98. In the mix: 0.5 Opus-img + 0.5 Rap − production +0.0050 [−0.0037, +0.0136], 0.84; − 0.5
+Opus-txt + 0.5 Rap −0.0023 [−0.0099, +0.0047], 0.30.
+
+- **Per label (reported, never picked from):**
+  - The images fixed part of what P-65's size thresholds broke: Effusion +0.037 (0.850 → 0.887), Baker's +0.048 (0.855 → 0.903).
+  - Also up: Medial OA +0.023 and MCL +0.014.
+  - Down: Fracture −0.013, PF OA −0.012, Lateral OA −0.011 and Lateral Meniscus −0.011.
+  - Raptor still reads those image labels far better: Effusion 0.973, Baker's 0.978, Medial OA 0.984. So in the 0.5 Raptor mix the
+    image gain is absorbed, and the mix ends 0.002 under the report-only Opus mix.
+- **What the labeller says it could see (`v`):**
+  - Mostly assessable: Effusion (8 of 58 "not assessable"), Baker's (3), Contusion (11).
+  - Mostly not: Synovitis (43 of 58), the menisci (37–39) and Fracture (22).
+  - Nine low-resolution slices per series show fluid and marrow; tears and synovium are beyond them.
+- **Reading:**
+  - A frontier multimodal LLM on nine-slice grids adds about +0.008 over its own report read: the direction is positive, the size
+    is under the bar.
+  - The information it adds (fluid and cyst size, marrow) is what our 0.5 Raptor share already carries better.
+  - So "don't rely on reports alone" (748295) is already true of our target. The top teams' label edge, if any, is not this
+    construction: a general model reading coarse grids.
+  - It does not test denser inputs (more slices, single slices at full resolution) or other models.
+- **Verdict: 🔁 flat for the Opus arm** (Δ +0.008 < 0.010, the mix 0.9374 < 0.940; the ✅ bar was Δ ≥ +0.020 with the CI above 0, or
+  the mix ≥ 0.945). Under the card's own rule multimodal labelling stays dropped for Opus on grids.
+- **Still open (Tian's call):** the card's other-model arms (OpenRouter, the identical inputs and scorer:
+  `artifacts/vlm_pilot/run_openrouter.py`). They cost a few dollars, and only a ✅-sized read (≥ +0.020 paired) would change the
+  conclusion.
+
 ## Folds and validation
 
 ### 2026-08-28 — Group folds by report text ✅ KEEP
