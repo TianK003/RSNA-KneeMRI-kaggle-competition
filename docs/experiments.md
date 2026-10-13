@@ -594,6 +594,52 @@ arm's, unchanged.
     likelier explanation than a weak Opus.
 - **Verdict: 🔁 flat** (Δ < 0.010, mix 0.9390 < 0.940). The Mistral Large 4 arm is still running.
 
+### 2026-10-13 — P-87, Mistral Large 4 arm (OpenRouter, high reasoning effort, zero-data-retention endpoints only): **0.8786** · paired Δ vs report-only Opus −0.028 [90 % CI −0.043, −0.014] · in the Raptor mix 0.9273 vs 0.9397 · ❌ for this arm · $1.36
+
+The third arm of the card, on Tian's go (the same message as Gemini). The inputs, prompt (`prompt_v2img.md`), routing and scorer are
+the Gemini arm's, unchanged.
+- **Runner:** `artifacts/vlm_pilot/run_openrouter.py mistral4 mistralai/mistral-large-4-0 --effort high --workers 3`.
+- **Cost and time:**
+  - Smoke of 2 studies $0.048, then 56 studies in 6,050 s; 713 k input + 395 k output tokens, $1.307. ≈ $1.36 in all.
+  - The slow run (Gemini took 300 s) came from Mistral's upstream rate limit: 23 × HTTP 429. No study failed and no output was
+    unparseable.
+  - The runner gained `--attempts` / `--backoff` for such endpoints (defaults 4 / 10 s, so the earlier arms are unchanged). A resume
+    chain with 2 workers, 6 attempts and 60 s × k backoff was armed but was not needed.
+  - The key has $2.29 spent of its $13 cap.
+  - Output: `artifacts/vlm_pilot/out/mistral4_00.jsonl`, `score_mistral4.txt`.
+
+| macro (gold-58) | alone | 0.5 + 0.5 Raptor |
+|---|---|---|
+| LLM blend (production half) | 0.8948 | 0.9324 (production) |
+| Opus, report only (P-65) | 0.9062 | 0.9397 |
+| Opus, report + grids | 0.9140 | 0.9374 |
+| Gemini 3.7 Flash, report + grids | 0.9119 | 0.9390 |
+| **Mistral Large 4, report + grids** | **0.8786** | **0.9273** |
+
+- **Paired** (2,000 study resamples):
+  - Mistral-img − Opus-txt: **−0.0276 [−0.0431, −0.0135]**, P(Δ > 0) 0.00.
+  - Mistral-img − LLM blend: −0.0162 [−0.0345, +0.0022].
+  - Mistral mix − production: −0.0051 [−0.0147, +0.0045].
+  - Mistral mix − Opus-txt mix: −0.0124 [−0.0209, −0.0046].
+  - A third mix, 1/3 LLM + 1/3 Mistral + 1/3 Raptor: 0.9258.
+- **Per label vs report-only Opus** (direction only):
+  - It loses most where the report alone settles the label: PF OA 0.892 (−0.075), Lateral OA 0.793 (−0.056), Fracture 0.878
+    (−0.046), Contusion 0.839 (−0.044).
+  - The image-size labels the grids helped Opus on went the other way: Effusion 0.825 (−0.025), Baker's 0.788 (−0.067).
+  - Up: MCL 0.991 (+0.014) and Medial OA 0.923 (+0.010).
+- **Its `v` field:** 130 of 696 cells "not assessable", between Opus (270) and Gemini (1). Synovitis is 41 of 58, like Opus's 43.
+- **Reading:**
+  - Mistral is a weaker reader of the report itself, not a model the images hurt. Its largest losses are on labels the report text
+    settles (PF OA, Lateral OA, Fracture).
+  - It does not change the card's picture: the two stronger vision models are flat, a weaker one is worse, and none comes near the
+    ✅ bar (Δ ≥ +0.020 or the mix ≥ 0.945).
+  - Three arms from three model families now say that a general multimodal LLM on nine-slice grids adds nothing on top of our 0.5
+    Raptor share.
+- **Verdict: ❌ for the Mistral arm** (Δ −0.028 ≤ −0.010 by the pre-registered rule). P-87 as a whole stays open only for Tian's two
+  pending calls: the Fable 5.1 arm (free via subagents) and a Qwen 3.8 Max arm. Qwen has no zero-data-retention endpoint, so it would
+  need an exception to Tian's 10-13 rule. It would cost ≈ $2–4 for the pilot and ≈ $150–300 for a full pass at `qwen3.8-max-0902`'s
+  $2 / $6 per M tokens.
+
 ## Folds and validation
 
 ### 2026-08-28 — Group folds by report text ✅ KEEP
