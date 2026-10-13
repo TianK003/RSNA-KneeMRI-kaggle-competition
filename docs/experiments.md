@@ -5220,6 +5220,45 @@ with #84's k, and it is the first own blend where a member 0.009 under the other
 **Verdict: ✅ a read** (no GPU): the frontier moved by a public notebook we can fork. R7's level is a fork-rule estimate, not a
 measurement.
 
+### 2026-10-13 — C7 and C8 built and sent: `src/build_fork954.py --anchor 0956` (heliosli's 0.956 notebook verbatim + our arm), both placeholders green · #87 C7 = the 0.956 blend + B21 at β 0.20 · #88 C8 = R7 alone + B18 at β 0.45 (OAI-free) · ⏳ PENDING
+
+**On Tian's go** ("do C7 and submit it, then build C8 as well and submit it"; C6′ held).
+
+**The builder.** `src/build_fork954.py` gains `--anchor {0954,0956}`, an `ANCHORS` table holding per anchor the notebook and its
+sha256, the compact model's Dataset, the bundle id, the stage-3 weights and the kernel slug. `--compact-anchor` is the general name
+of `--s6-anchor`. The C5 / A14 / C6 renders are byte-identical before and after the change (both rendered with today's pipeline).
+- `notebook_score_0.956.ipynb` (pulled 10-13, sha256 `cb2a0f57…`) shares cells 1–3 with the 0.954 notebook byte for byte.
+- Cell 4 differs in the bundle, the embedded sources and the stacker / compile / `crop2` switches. Its wheel install is unchanged
+  (timm 1.0.25, pydicom 3.0.1; traps 68).
+- Cell 5 adds `--max-fallback-fraction 1.0`. Cell 6 has the 0.5 / 0.5 weights, per-finding `W_RAPTOR_C`, and ranks each model over
+  its own scored studies.
+- New kernel `rsna-knee-fork956`: image pinned (`…2757e0c7`), T4.
+- `--s6-only` refuses `--anchor 0956`, because a one-line weight patch would leave `W_RAPTOR_C` on the three OA labels. An R7-alone
+  read (A15) would need its own patch.
+- **C8's anchor cell.** Stage 2 now mean-fills a study R7 fails on (stage 3 used to give it the CoAtNet's rank). With no stage 3
+  in C8, the cell counts unscored studies by stage 3's own rule, prints `R7_FALLBACK`, and raises above 50 % (stage 3's guard).
+
+**The placeholders** (3 test studies; outputs in `artifacts/kaggle_out/fork956_v1/`, `fork956_v2/`):
+
+| | C7 = `rsna-knee-fork956` v1 (pushed 09:53 UTC) | C8 = v2 (pushed 10:06 UTC) |
+|---|---|---|
+| nartaa's CoAtNet stage | 44 s | not run (no `raptor_*` file; nartaa not mounted) |
+| R7 stage | PASS 3 / 3 in 320 s, cold (decode 35.9 s / GPU 9.6 s per study, 529 windows) | PASS 3 / 3 in 330 s; `R7_FALLBACK unscored 0 of 3` |
+| anchor | heliosli's stage 3 `NOTEBOOK_COMPLETE` (both models scored all 3) | `R7_ANCHOR_WRITTEN` = R7's `ours_sub.csv` exactly |
+| our arm | B21, rc 0 in 142 s, timm 1.0.25, `decode-once verified`, `constant labels 0`; `_ours.csv` = infer v75 (B21 solo) exactly | B18, rc 0, timm 1.0.25; `_ours.csv` = the C6 placeholder's B18 exactly |
+| final | `FINAL submission.csv = beta0.20` | `FINAL submission.csv = beta0.45` |
+| elapsed | 0.148 h | 0.133 h (+ 3.2 min queued) |
+
+- **Runtime at rerun.** R7's 320 s for 3 studies includes the `torch.compile` warm-up (S6 took 105 s cold in C5's placeholder).
+  heliosli's own notebook fits the 9 h. Our arm's gate (6 h) skips the arm if the anchor runs long: C7 would then equal the public
+  anchor, and C8 would equal R7 alone (an A15).
+- **Sent:** #87 C7 at 10:05:59 UTC (ref 57139166), #88 C8 at 10:19:19 UTC (ref 57139528). No watcher (manual polls).
+- Kaggle GPU: 4.35 h left until 10-17 (`kaggle quota` 10:20 UTC).
+
+**Verdict: ⏳ PENDING.** Read rules (candidates.md): **C7** vs the anchor 0.956, ✅ ≥ 0.958 / 🔁 0.955–0.957 (a sub-tick lift shows
+only as our rank inside the 0.956 tie) / ❌ ≤ 0.954, replacing C5 as pick 2 at ≥ 0.955; pred. 0.955–0.957. **C8** vs C6 0.950,
+✅ ≥ 0.952 → the pick-1 candidate / 🔁 0.949–0.951 / ❌ ≤ 0.948; pred. 0.950–0.954.
+
 ## Infrastructure
 
 ### 2026-09-27 — The "0.943 Speedy Raptors CoAtNet D4" notebook is our anchor **plus two CoAt readers**, not a faster graph; its "< 30 min" is a 3-study commit run · P-41 (threaded scan + 8 decode workers) smoke-green and byte-identical
@@ -5753,6 +5792,8 @@ and public LB score, so a public/private divergence can be traced to a specific 
 | 84 | 2026-10-12 | rsna-knee-fork949 v3 (`src/build_fork949.py --members v15cr --member v15cr=…ckpt-v15cr:…timm-convnext-tiny-in12k --beta 0.35`) | **P-85 read**: nartaa's public 0.949 CoAtNet + `v15cr` (`v15c` on Opus report labels only, no Raptor) at β 0.35; placeholder green (anchor saved, our arm = the solo's output exactly, `FINAL submission.csv = beta0.35`) | none | **0.950** | **read 17:31 UTC → k ≈ 0.026–0.035 (central 0.031) = S6-like (B18 on this anchor 0.012–0.021): without Raptor our ConvNeXt is as complementary to nartaa's CoAtNet as S6 is; as a leg 0.950 = C4b − 0.001 (🔁); P-85 closed; scored within ≤ 83 min (the watcher died with the session).** sent 16:08:28 UTC, ref 57112516 |
 | 85 | 2026-10-12 | rsna-knee-infer v77 (+ Dataset `rsna-knee-ckpt-v15cr`, replacing the dead `v16d1` mount) | **P-85, `v15cr` solo**: `INFER_MEMBERS = ["v15cr"]` (RunPod A40 10-12) | none; gold-58 0.9121 | **0.932** | **read 17:31 UTC → −0.010 vs `v15c` 0.942 (pred. 0.933–0.940): ❌ as a member; the level the fork's k needs; scored within ≤ 83 min.** sent 16:08:36 UTC, ref 57112523 |
 | 86 | 2026-10-13 | rsna-knee-infer v78 (`artifacts/infer_b22.py`) | **B22**: `INFER_MEMBERS = ["v15c", "v13b3", "v15cr"]`, flat rank-mean (does a member on different targets count as a new family?) | none; gold-58 0.9273 | **0.945** | **read by 09:17 UTC → 🔁 +0.001 vs B18 0.944 (✅ needed ≥ 0.946), above both predicted bands; +0.007 over the members' mean; our best own-model number; the C6′ gate (≥ 0.945) fires; scored within ≤ 69 min (no watcher).** Armed for 10-13 00:00:30 UTC (`auto_submit.py` pid 27732), which died when the laptop was shut down overnight; sent by hand 08:07:55 UTC, ref 57136143 |
+| 87 | 2026-10-13 | rsna-knee-fork956 v1 (`src/build_fork954.py --anchor 0956 --members v15co v13b3 --beta 0.20`) | **C7**: heliosli's public 0.956 blend (nartaa's 0.949 CoAtNet 0.5 + R7 0.5, cells verbatim) + B21 (`v15co` + `v13b3`) at β 0.20 | none | ⏳ | placeholder green (R7 PASS 3 / 3, `_ours.csv` = infer v75 exactly, `FINAL = beta0.20`); read rule vs 0.956: ✅ ≥ 0.958 / 🔁 0.955–0.957 / ❌ ≤ 0.954. sent 10:05:59 UTC on Tian's go, ref 57139166 |
+| 88 | 2026-10-13 | rsna-knee-fork956 v2 (`src/build_fork954.py --anchor 0956 --compact-anchor --members v15c v13b3 --beta 0.45`) | **C8**: heliosli's R7 alone as the anchor (no CoAtNet stage, nartaa not mounted: OAI-free; R7 = S6's recipe + a fastMRI auxiliary loss) + B18 (`v15c` + `v13b3`) at β 0.45 | none | ⏳ | placeholder green (`R7_FALLBACK unscored 0 of 3`, `_ours.csv` = C6's B18 exactly, `FINAL = beta0.45`); read rule vs C6 0.950: ✅ ≥ 0.952 / 🔁 0.949–0.951 / ❌ ≤ 0.948. sent 10:19:19 UTC on Tian's go, ref 57139528 |
 
 ## Closed cards index (moved here from proposals.md on 2026-10-05)
 
