@@ -6,6 +6,115 @@ to read first after a break.
 
 ---
 
+## 2026-10-13 (16:55 → 18:35 UTC) — **C7 = 0.956 / C8 = 0.953** read and checked for external data · the top-10 label hint · **labels focus: P-87 multimodal gold-58 pilot** (Opus 🔁, Gemini 3.7 Flash 🔁, Mistral Large 4 running)
+
+Tian, in order:
+1. "Pull the results and run /update after checking if these last 2 submissions are even legit (outside data?)".
+2. Added `discussion_748295.xml`: two top-10 teams say labels made the difference.
+3. "Do the cheap gold-58 pilot first … focus on improving the labels; other models than Opus? OpenRouter?"
+4. Added an OpenRouter key (≈ $14 credit). "What are the current LLM labels made of? I don't want to duplicate work."
+5. Raised the key cap to $13 and pasted the vision-arena top 10. "Start with Gemini 3.7 Flash and Mistral Large 4, I decide about
+   Fable later", and asked what the rules say about data retention.
+6. "Then don't use those [providers without zero retention]; if I change my mind we do it later", then /handoff.
+
+Commits `259022f`, `98a6a3d`, `6a85269` and this one.
+
+### ⏳ Still in flight as this was written (18:35 UTC)
+
+| In flight | What it is | Started | How to check | How to read it |
+|---|---|---|---|---|
+| **P-87 Mistral Large 4 arm** | `.venv\Scripts\python.exe -I artifacts\vlm_pilot\run_openrouter.py mistral4 mistralai/mistral-large-4-0 --effort high --workers 3`, a background task of this session (dies with it). Same inputs, prompt and zero-retention routing as Gemini | ≈ 18:05 UTC (smoke of 2 studies done earlier: $0.048) | `wc -l artifacts/vlm_pilot/out/mistral4_00.jsonl` (58 = done); last line of `artifacts/vlm_pilot/run_mistral4.log` ("done in … failed [...] … cost $…"); spend on the key via `GET https://openrouter.ai/api/v1/key` | **Under 58 and no python process running:** rerun the same command; it resumes and skips the studies already written. **Then** `PYTHONUTF8=1 .venv/Scripts/python.exe artifacts/vlm_pilot/score_vlm.py mistral4`. **Read rule (P-87, pre-registered):** ✅ paired Δ vs report-only Opus ≥ +0.020 with the 90 % CI above 0, or 0.5 arm + 0.5 Raptor ≥ 0.945. 🔁 abs(Δ) < 0.010 and mix < 0.940. Expect ≈ $1.4. **Watch for:** the preview model returns 503s (retried 4× per study). Results are written in study order, so the line count lags, and a killed run loses finished-but-unwritten studies (≈ $0.03 each) |
+
+No Kaggle kernel or RunPod pod is running. 10-13 had 2 submission slots left; none is staged.
+
+### Where things stand
+
+| | Status |
+|---|---|
+| Public LB | ✅ **0.956 = C7 #87**, rank 159 of 5,930 (14th of 547 in the tie, above the verbatim copies) → pick 2 by its rule. ✅ **OAI-free 0.953 = C8 #88** (R7 + B18) → pick 1 by its rule if fastMRI is accepted (experiments.md "Submissions #87 / #88") |
+| Legitimacy | C8 has no OAI. Its fastMRI (inside R7) is NYU click-through and likely passes the host's 08-27 test. C7 carries OAI on two paths and likely fails the host's 09-21 test (NIH country bar). Neither is ruled; no host post since 09-21 |
+| P-87 (labels) | 🔁 Opus report + grids 0.9140 (report-only 0.9062). 🔁 Gemini 3.7 Flash 0.9119. Both mixes with Raptor 0.937–0.939 vs report-only Opus + Raptor 0.9397. ⏳ Mistral Large 4 (experiments.md "P-87 gold-58 pilot, Opus arm", "P-87, Gemini 3.7 Flash arm") |
+| Budgets | OpenRouter: ≈ $0.94 used of the key's $13 cap (account ≈ $14). Kaggle GPU 4.35 h until 10-17. RunPod ≈ $5.8. Submissions: 5 per UTC day to 10-22 |
+| Committed renders | `rsna-knee-fork956` v1 = C7, v2 = C8. New kernel **`rsna-knee-vlm-slices` v1** (CPU, the 58 gold studies' grids; `src/vlm_slices.py`) |
+| Repo | Clean except the untracked `discussion*.{py,xml}` (Tian's; never `git add -A`). `artifacts/vlm_pilot/` (gold reports, gold grids, runner, scorer, outputs) is gitignored and must stay private |
+
+### What we talked about and decided
+
+- **Legitimacy of C7 / C8.** The host's two tests:
+  - 08-27: click-through is fine; institutional approval may not be.
+  - 09-21: OAI only "if generally accessible to all participants without institutional review".
+  - fastMRI passes the first, OAI likely fails the second. The pick decisions stay Tian's.
+- **Labels focus (Tian).** The first step was the gold-58 multimodal pilot, read once against a rule written before the read (P-87).
+- **What the labels are now** (answered for Tian):
+  - production = 0.5 × LLM blend + 0.5 × Raptor (quantile-matched image teacher), gold 0.9324;
+  - LLM blend = the mean of `hans_v4`, `pilkwang` and `sol56` (GPT-5.6-Sol), ≈ 1.5 effective votes.
+  - Report-only relabels with more LLMs would duplicate flat work: Opus relabel, public Gemini / GPT / Qwen / JEV sets. The images were
+    the untested part.
+- **Models.**
+  - Every model on the arena list Tian pasted is on OpenRouter except `gpt-6.1-sol-max`, which is listed as `gpt-6.1-sol` with an
+    effort setting.
+  - Zero-retention endpoints exist for Gemini 3.7 Flash, Mistral Large 4, GPT-6.1 Sol and Opus 4.6 / 4.7. Qwen 3.8 Max (Alibaba) and
+    Muse Spark (Meta) have none.
+  - Fable has none on OpenRouter and costs $10 / $50 per million tokens, but it can run for free as subagents (Agent `model: "fable"`).
+  - Opus 4.x is skipped: older than the Opus 5.5 we ran.
+- **Data retention (Tian's rule, 10-13):** only zero-retention endpoints. The rules do not require it. §2.4.b and the MIRA agreement
+  argue for it (CLAUDE.md "Rules"). Qwen and Muse stay unused unless Tian changes his mind.
+
+### What we figured out
+
+1. **C7 = 0.956 and C8 = 0.953.** C7's tie position shows our leg lifted the public notebook by a sub-tick. C8's +0.003 over C6 prices
+   R7 alone at ≈ 0.948–0.951 (experiments.md "Submissions #87 / #88").
+2. **Rank 6 (azamat1ch, 0.964) says the top edge is labels**: "AI, not by hand … don't rely on reports alone", no external data
+   (experiments.md "Top-10 hints on labels").
+3. **Two independent vision models add the same small amount over a report-only read** (+0.006 / +0.008, CIs across 0) and nothing on
+   top of Raptor. The grids help effusion and Baker's size, which Raptor already carries (0.973 / 0.978). Synovitis and the menisci
+   are mostly unreadable on nine-slice grids. "Not from reports alone" already describes our 0.5 Raptor target.
+4. **The rules on retention:** the host carved out processing "by itself"; retention is unaddressed (CLAUDE.md "Rules").
+
+### ⏭ Next action, in order
+
+1. **Finish and score Mistral**: the in-flight row above. Log it with `/update`: a new experiments.md entry after "P-87, Gemini 3.7
+   Flash arm", plus the P-87 card's status and index row.
+2. **If Mistral is flat too, close P-87:**
+   - the card leaves proposals.md;
+   - its row goes to experiments.md's closed-cards index;
+   - "Multimodal-LLM / VLM labelling" in Dropped directions gets "pilot read 10-13: Opus / Gemini / Mistral flat".
+   - Exception: Tian wants the Fable arm.
+3. **The Fable arm (only on Tian's go; free):**
+   - copy `artifacts/vlm_pilot/AGENT_TASK.md` to `AGENT_TASK_fable.md` with the output name `out/fable_NN.jsonl`;
+   - launch 10 Agent calls with `model: "fable"` and the same batch lists (`artifacts/vlm_pilot/batches.json`);
+   - score with `score_vlm.py fable`, same rule.
+4. **If any arm reads ✅:**
+   - confirm it once: re-run that arm on the same 58 and check that Δ stays ≥ +0.015;
+   - then price a full pass: `src/vlm_slices.py` over all train studies (a kernel edit: `STUDIES` = all, sharded) is ≈ 75× the
+     pilot's tokens;
+   - one `v15c`-type arm on the new target is the only LB judge.
+5. **Otherwise back to the model side** (Kaggle quota resets 10-17):
+   - P-86 (one JEV arm, a card);
+   - the P-67 loop;
+   - C6′ / C8′ (held);
+   - picks by 10-22.
+
+### Open decisions for Tian
+
+- **fastMRI in pick 1:** C8 0.953 (shares R7 with C7) vs C6 0.950 (S6) vs C3 0.946 (no heliosli model). brainstorm.md.
+- **Keeping the OAI risk in pick 2 (C7):** accepted 10-09. A host ruling before 10-22 would leave time to swap.
+- **A Fable 5.1 arm:** free, Tian decides later.
+- **Providers without zero retention** (Qwen 3.8 Max, Muse Spark): no for now.
+- **The remaining OpenRouter credit** (≈ $12 under the cap): GPT-6.1 Sol arm (≈ $4–8) only if wanted.
+
+### Things that will bite if forgotten
+
+- **A new Kaggle kernel's slug comes from its title, not the `id` in `kernel-metadata.json`.** "RSNA Knee VLM Slices" became
+  `rsna-knee-vlm-slices` while the id said `rsna-knee-vlmslices`, so status calls on the id failed. Read the URL `push` prints. The
+  folder and id are fixed now.
+- **`python -I` ignores `PYTHONIOENCODING`** on this laptop: non-ASCII prints crash under cp1252. Use `sys.stdout.reconfigure(encoding="utf-8")`.
+- **`score_vlm.py`'s first bootstrap used sklearn per resample and took > 10 min.** It now uses a rank AUC (seconds).
+- **`run_openrouter.py` writes results in study order:** see the in-flight row. Mistral's preview endpoint 503s often.
+- **`artifacts/vlm_pilot/` holds gold report text and gold images.** Keep it out of git and out of any public Dataset.
+
+---
+
 ## 2026-10-12 (10:49 → 16:15 UTC) — **C6 = 0.950** (OAI-free pick-1 candidate) · P-84 `v15cb` 0.943 (🔁, closed) · P-85 `v15cr` trained on an A40 and both its reads sent (#84 / #85 ⏳) · the public labels re-surveyed (no better set; one JEV arm = card P-86)
 
 Tian, in order:

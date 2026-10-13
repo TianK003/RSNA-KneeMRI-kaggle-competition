@@ -560,6 +560,40 @@ Opus-txt + 0.5 Rap −0.0023 [−0.0099, +0.0047], 0.30.
   `artifacts/vlm_pilot/run_openrouter.py`). They cost a few dollars, and only a ✅-sized read (≥ +0.020 paired) would change the
   conclusion.
 
+### 2026-10-13 — P-87, Gemini 3.7 Flash arm (OpenRouter, high reasoning effort, zero-data-retention endpoints only): **0.9119** · paired Δ vs report-only Opus +0.006 [90 % CI −0.007, +0.018] · in the Raptor mix 0.9390 vs 0.9397 · 🔁 flat · $0.93
+
+On Tian's go ("start with gemini 3.7 flash and mistral large 4"). The inputs, prompt (`prompt_v2img.md`) and scorer are the Opus
+arm's, unchanged.
+- **Runner:** `artifacts/vlm_pilot/run_openrouter.py gemini37 google/gemini-3.7-flash --effort high`. It routes with
+  `provider.data_collection = "deny"` and `zdr = true` (Google's endpoint).
+- **Cost and time:** smoke 2 studies $0.036, then 56 studies in 300 s (4 workers). 485 k input + 142 k output tokens, $0.895;
+  ≈ $0.93 in all. Output: `artifacts/vlm_pilot/out/gemini37_00.jsonl`, `score_gemini37.txt`.
+
+| macro (gold-58) | alone | 0.5 + 0.5 Raptor |
+|---|---|---|
+| LLM blend (production half) | 0.8948 | 0.9324 (production) |
+| Opus, report only (P-65) | 0.9062 | 0.9397 |
+| Opus, report + grids | 0.9140 | 0.9374 |
+| **Gemini 3.7 Flash, report + grids** | **0.9119** | **0.9390** |
+
+- **Paired** (2,000 study resamples):
+  - Gemini-img − Opus-txt: **+0.0057 [−0.0071, +0.0176]**, P(Δ > 0) 0.77.
+  - Gemini-img − LLM blend: +0.0171 [+0.0002, +0.0347].
+  - Gemini mix − production: +0.0067 [−0.0022, +0.0155].
+  - Gemini mix − Opus-txt mix: −0.0007 [−0.0087, +0.0065].
+- **Per label vs Opus-img** (direction only):
+  - Synovitis 0.830 (Opus-img 0.815, report-only 0.806).
+  - Medial Meniscus 0.970 (0.957), Effusion 0.897 (0.887).
+  - Baker's 0.880 (0.903).
+- **Its `v` field:** Gemini called almost every cell assessable (1 "not assessable" of 696, Opus 270). That is overconfidence about
+  nine-slice grids, not a better view.
+- **Reading:**
+  - A second, independent vision model lands where Opus did: about +0.006–0.008 over a report-only frontier read, and nothing once
+    mixed with Raptor.
+  - The pattern holds across two model families, which makes "a general model on coarse grids adds what Raptor already carries" the
+    likelier explanation than a weak Opus.
+- **Verdict: 🔁 flat** (Δ < 0.010, mix 0.9390 < 0.940). The Mistral Large 4 arm is still running.
+
 ## Folds and validation
 
 ### 2026-08-28 — Group folds by report text ✅ KEEP
