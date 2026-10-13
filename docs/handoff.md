@@ -6,7 +6,7 @@ to read first after a break.
 
 ---
 
-## 2026-10-13 (18:30 → 20:50 UTC) — **P-87 Mistral Large 4 arm read ❌ (0.8786)** · a Qwen 3.8 Max arm priced (Tian undecided) · the Fable arm waits for the Claude quota reset · today's last 2 slots: C8′ / C7′ buildable, not sent
+## 2026-10-13 (18:30 → 21:15 UTC) — **P-87 Mistral Large 4 arm read ❌ (0.8786)** · a Qwen 3.8 Max arm priced (Tian undecided) · the Fable arm waits for the Claude quota reset · **C8′ (#89) and C7′ (#90) sent** in 10-13's last two slots
 
 Tian, in order:
 1. "Read handoff file and then track progress of mistral model".
@@ -15,21 +15,28 @@ Tian, in order:
 3. "Wait for mistral to finish, give it some backoff time if it needs it."
 4. "I will do it [the Fable arm] once the weekly Claude quota resets. Run /handoff; is there anything else we could try to
    commit/submit for scoring?"
+5. "Send both of these now, I will let you know once they score so no need for a watcher." Then: "Send it as soon as possible."
 
-Commits `f4f286d` and this one.
+Commits `f4f286d`, `afe4079` and this one.
 
-**Nothing is running** (20:50 UTC). The Mistral runner and its resume chain both ended; no Kaggle kernel or RunPod pod is running.
-**10-13 still has 2 submission slots, which expire at 00:00 UTC; none is staged.**
+### ⏳ Still in flight as this was written (21:15 UTC)
+
+| In flight | What it is | Started | How to check | How to read it |
+|---|---|---|---|---|
+| **#89 = C8′** (ref 57156069) | `rsna-knee-fork956` v3: R7 alone + B22 (`v15c` + `v13b3` + `v15cr`) at β 0.45, OAI-free; placeholder green (our arm = the B22 solo, max diff 0.0) | sent 20:58:08 UTC | Tian reports the score (no watcher, his call); or `kaggle competitions submissions rsna-knee-abnormality-detection` | ≈ 6.5 h to score. vs C8 0.953: ✅ ≥ 0.955 / 🔁 0.952–0.954 / ❌ ≤ 0.951. A 0.954 meets Tian's "+0.001 worth considering" for pick 1's leg (B22 instead of B18), if fastMRI is accepted |
+| **#90 = C7′** (ref 57156272) | `rsna-knee-fork956` v4: the public 0.956 blend + `v15co` + `v13b3` + `v15cr` at β 0.20; placeholder green (anchor = C7's exactly) | sent 21:08:30 UTC | as above; plus `kaggle competitions leaderboard rsna-knee-abnormality-detection -d -p artifacts/lb_1014/` after it scores | Expect 0.956. **Sign read only:** the baseline is 19th of 620 in the 0.956 tie (rank 179; `artifacts/lb_1013c/`, 21:08 UTC). If we move up against the same neighbours, C7′ > C7 and pick 2's leg takes `v15cr`. No move means C7′ ≤ C7; keep B21. Teams keep entering the tie above us (14th → 19th in 4 h), so compare neighbours, not the raw position. Suspicious: a slow score exactly at the anchor can mean the arm was skipped (`--gate-hours`) |
+
+No Kaggle kernel or RunPod pod is running. **All 5 slots of 10-13 are used.**
 
 ### Where things stand
 
 | | Status |
 |---|---|
-| Public LB | Unchanged: **0.956 = C7 #87** (pick 2), **OAI-free 0.953 = C8 #88** (pick 1 if fastMRI is accepted) |
+| Public LB | Unchanged: **0.956 = C7 #87** (pick 2), **OAI-free 0.953 = C8 #88** (pick 1 if fastMRI is accepted). ⏳ #89 C8′ / #90 C7′ (in-flight table) |
 | P-87 (labels) | Opus 🔁 0.9140 · Gemini 3.7 Flash 🔁 0.9119 · **Mistral Large 4 ❌ 0.8786** (paired −0.028 vs report-only Opus; with Raptor 0.9273; experiments.md "P-87, Mistral Large 4 arm"). The card is open only for Tian's Fable / Qwen calls |
-| Send-ready | `src/build_fork954.py` now maps `v15cr` (the one-line `MEMBER_SOURCES` entry). C8′, C7′ and C6′ build with the existing flags. The committed C8 render (`rsna-knee-fork956` v2) is byte-identical (`--check` ok). Dry builds of C8′ and C7′ (scratchpad) mount `rsna-knee-ckpt-v15cr` |
-| Budgets | OpenRouter **$2.29 spent of the key's $13 cap**. Kaggle GPU 4.35 h until 10-17 (a fork placeholder ≈ 0.2 h). RunPod ≈ $5.8. Submissions: 2 left on 10-13, 5 per day after |
-| Committed renders | `rsna-knee-fork956` v1 = C7, v2 = C8 (the folder holds v2). `artifacts/vlm_pilot/run_openrouter.py` gained `--attempts` / `--backoff` (gitignored; defaults unchanged) |
+| Builder | `src/build_fork954.py` now maps `v15cr` (the one-line `MEMBER_SOURCES` entry); the C8 render stayed byte-identical (`--check` ok). C6′ builds with the existing flags |
+| Budgets | OpenRouter **$2.29 spent of the key's $13 cap**. Kaggle GPU 4.35 h until 10-17 (a fork placeholder ≈ 0.2 h). RunPod ≈ $5.8. Kaggle GPU now ≈ 4.0 h (two placeholders, ≈ 0.35 h). Submissions: all 5 of 10-13 used; 5 per day after |
+| Committed renders | `rsna-knee-fork956` v1 = C7, v2 = C8, **v3 = C8′, v4 = C7′ (the folder holds v4)**. `artifacts/vlm_pilot/run_openrouter.py` gained `--attempts` / `--backoff` (gitignored; defaults unchanged) |
 | Repo | Clean except Tian's untracked `discussion*.{py,xml}` (never `git add -A`) |
 
 ### What we talked about and decided
@@ -51,7 +58,8 @@ Commits `f4f286d` and this one.
     - Mistral's ❌ makes a fourth vision arm likely flat.
 - **Fable 5.1 arm:** Tian runs it after the weekly Claude quota resets (subagents draw on it).
 - **"Anything else to submit?":** nothing queued is expected to move a full tick. The two worth a free slot are C8′ (pick 1's leg)
-  and C7′ (pick 2's leg, new: candidates.md). Both are built and checked, but neither is sent: that needs Tian's go.
+  and C7′ (pick 2's leg, new: candidates.md). On Tian's go both were built, placeholder-checked and sent (#89 20:58, #90 21:08 UTC).
+  I did not push C7′'s placeholder while C8′'s was running: a second push to the same kernel could cancel the first.
 
 ### What we figured out
 
@@ -64,22 +72,13 @@ Commits `f4f286d` and this one.
 
 ### ⏭ Next action, in order
 
-1. **On Tian's go, send C8′ and / or C7′** (today before 00:00 UTC, or on 10-14). One build at a time: both write
-   `kaggle/rsna-knee-fork956/`.
-   - **Build:**
-     - C8′: `PYTHONUTF8=1 PYTHONPATH=src .venv/Scripts/python.exe src/build_fork954.py --anchor 0956 --compact-anchor --members v15c v13b3 v15cr --beta 0.45`
-     - C7′: `... --anchor 0956 --members v15co v13b3 v15cr --beta 0.20`
-   - **Placeholder:** `kaggle kernels push -p kaggle/rsna-knee-fork956` (v3, then v4). Wait for COMPLETE (≈ 12 min;
-     `src/watch_kernel.py`). Check its log line that our arm equals the members' solo outputs, as for v1 / v2.
-   - **Send:** `kaggle competitions submit rsna-knee-abnormality-detection -k tiankljucanin/rsna-knee-fork956 -v <v> -f submission.csv -m "<what + read rule>"`.
-     Time it with `src/watch_submission.py --ref <ref>`. Scoring takes ≈ 6.5 h (C7 / C8 on 10-13).
-   - **Read rules** (candidates.md):
-     - C8′ vs C8 0.953: ✅ ≥ 0.955 / 🔁 0.952–0.954 / ❌ ≤ 0.951.
-     - C7′: pull the LB (`kaggle competitions leaderboard rsna-knee-abnormality-detection -d -p artifacts/lb_<date>/`) right before
-       sending and again after the read. A higher rank inside the 0.956 tie means C7′ > C7, so the pick-2 leg takes `v15cr`. No move
-       means C7′ ≤ C7; keep B21.
-     - Suspicious: a slow score exactly equal to the anchor means the arm was skipped (`--gate-hours`).
-   - **C6′** (S6 + B22) builds with `--anchor 0954 --s6-anchor --members v15c v13b3 v15cr --beta 0.45` → `kaggle/rsna-knee-fork954/`.
+1. **Read #89 / #90 when Tian reports them** (or `kaggle competitions submissions rsna-knee-abnormality-detection`), then `/update`:
+   - the Submissions rows #89 / #90 (⏳ → scores) and the entry "C8′ and C7′ built and sent" (a READ line);
+   - C8′ by its rule (in-flight table); C7′ from a fresh LB pull vs `artifacts/lb_1013c/` (19th of 620 in the 0.956 tie, same
+     neighbours);
+   - if C8′ ≥ 0.954 or C7′ moved up, the pick's leg takes `v15cr` (rebuild commands: candidates.md C7′ / C8′); delete the read rows
+     from candidates.md.
+   - **C6′** (S6 + B22) still builds with `--anchor 0954 --s6-anchor --members v15c v13b3 v15cr --beta 0.45` → `kaggle/rsna-knee-fork954/`.
      It matters only if Tian keeps fastMRI out of pick 1.
 2. **The Fable arm, after the Claude quota reset (Tian):**
    - copy `artifacts/vlm_pilot/AGENT_TASK.md` to `AGENT_TASK_fable.md`, writing `out/fable_NN.jsonl`;
@@ -99,8 +98,7 @@ Commits `f4f286d` and this one.
 
 ### Open decisions for Tian
 
-- **Today's 2 slots** (gone at 00:00 UTC): C8′ + C7′ (my suggestion: one leg read per pick), C6′, or leave them empty. All three are
-  sub-tick by the leg arithmetic.
+- **Whether `v15cr` enters the picks' legs**, once #89 / #90 read (sub-tick either way; Tian's bar: +0.001 is worth considering).
 - **A Qwen 3.8 Max arm** and whether to ask the organisers first. It is an exception to the zero-retention rule.
 - **The Fable arm**, after the Claude quota reset.
 - Unchanged: fastMRI in pick 1 (C8 vs C6 vs C3); keeping the OAI risk in pick 2 (C7).

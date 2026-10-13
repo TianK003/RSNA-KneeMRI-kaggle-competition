@@ -5532,6 +5532,26 @@ scoring times are only bounded: C7 ≤ 6.9 h, C8 ≤ 6.7 h.
 - **Verdict: ✅ a read.** It is evidence for one lever (image-informed AI labels), not a measurement. Re-opening the dropped direction
   is Tian's call, because it is API spend plus a pass, a retrain and a read in 9 days (brainstorm.md).
 
+### 2026-10-13 — C8′ and C7′ built and sent (10-13's last two slots, Tian: "send both of these now"): B22's extra member `v15cr` in each pick's leg, both placeholders green · #89 C8′ = R7 alone + B22 at β 0.45 (OAI-free) · #90 C7′ = the 0.956 blend + `v15co` + `v13b3` + `v15cr` at β 0.20 · ⏳ PENDING
+
+- **Builder:** `src/build_fork954.py` had no Dataset mapping for `v15cr`. One `MEMBER_SOURCES` line was added; the committed C8
+  render stayed byte-identical (`--check` ok).
+- **#89 C8′** = `rsna-knee-fork956` v3: `--anchor 0956 --compact-anchor --members v15c v13b3 v15cr --beta 0.45`.
+  - Placeholder COMPLETE in 10.6 min. `_ours.csv` = infer v78 (the B22 solo) exactly (max diff 0.0); decode-once verified, constant
+    labels 0.
+  - Sent 20:58:08 UTC (ref 57156069). Read vs C8 0.953: ✅ ≥ 0.955 / 🔁 0.952–0.954 / ❌ ≤ 0.951.
+  - C8 is not our best entry, so this reads at three decimals only.
+- **#90 C7′** = `rsna-knee-fork956` v4: `--anchor 0956 --members v15co v13b3 v15cr --beta 0.20`.
+  - Placeholder COMPLETE in 9.6 min. `_anchor_0956.csv` = C7's (v1) exactly; our arm infers `v15co`, `v13b3` and `v15cr` (it differs
+    from C7's B21 by up to 0.167 on the 3 studies, as it should); decode-once verified, constant labels 0.
+  - Sent 21:08:30 UTC (ref 57156272).
+  - Sign read: the LB just before the read (`artifacts/lb_1013c/`, 21:08 UTC) has us at rank 179 of 5,943, **19th of 620 in the 0.956
+    tie**. If C7′ beats C7 unrounded it becomes our best entry, and our tie position rises against the teams around us. No move means
+    C7′ ≤ C7, and B21 stays pick 2's leg.
+  - Caveat: teams enter the tie above us between the two pulls (14th of 547 at 17:02 → 19th of 620 at 21:08). Judge the move against
+    the same neighbours, not the raw position.
+- **Scoring:** ≈ 6.5 h each (C7 / C8 on 10-13). Tian reads them himself (no watcher). All 5 slots of 10-13 are used.
+
 ## Infrastructure
 
 ### 2026-09-27 — The "0.943 Speedy Raptors CoAtNet D4" notebook is our anchor **plus two CoAt readers**, not a faster graph; its "< 30 min" is a 3-study commit run · P-41 (threaded scan + 8 decode workers) smoke-green and byte-identical
@@ -6067,6 +6087,8 @@ and public LB score, so a public/private divergence can be traced to a specific 
 | 86 | 2026-10-13 | rsna-knee-infer v78 (`artifacts/infer_b22.py`) | **B22**: `INFER_MEMBERS = ["v15c", "v13b3", "v15cr"]`, flat rank-mean (does a member on different targets count as a new family?) | none; gold-58 0.9273 | **0.945** | **read by 09:17 UTC → 🔁 +0.001 vs B18 0.944 (✅ needed ≥ 0.946), above both predicted bands; +0.007 over the members' mean; our best own-model number; the C6′ gate (≥ 0.945) fires; scored within ≤ 69 min (no watcher).** Armed for 10-13 00:00:30 UTC (`auto_submit.py` pid 27732), which died when the laptop was shut down overnight; sent by hand 08:07:55 UTC, ref 57136143 |
 | 87 | 2026-10-13 | rsna-knee-fork956 v1 (`src/build_fork954.py --anchor 0956 --members v15co v13b3 --beta 0.20`) | **C7**: heliosli's public 0.956 blend (nartaa's 0.949 CoAtNet 0.5 + R7 0.5, cells verbatim) + B21 (`v15co` + `v13b3`) at β 0.20 | none | **0.956** | **read by 16:57 UTC → 🔁 Δ 0.000 vs the 0.956 anchor (✅ needed ≥ 0.958), but 14th of 547 in the 0.956 tie (rank 159 of 5,930), above the notebook's verbatim copies: the arm ran, a sub-tick lift; fork-rule gain ≈ +0.002–0.003; our best public number, pick 2's candidate by its rule (≥ 0.955), in place of C5. Carries OAI twice (nartaa's CoAtNet, our `v15co`) + R7's fastMRI (entry "Submissions #87 / #88"); scored within ≤ 6.9 h (no watcher).** placeholder green (R7 PASS 3 / 3, `_ours.csv` = infer v75 exactly, `FINAL = beta0.20`). sent 10:05:59 UTC on Tian's go, ref 57139166 |
 | 88 | 2026-10-13 | rsna-knee-fork956 v2 (`src/build_fork954.py --anchor 0956 --compact-anchor --members v15c v13b3 --beta 0.45`) | **C8**: heliosli's R7 alone as the anchor (no CoAtNet stage, nartaa not mounted: OAI-free; R7 = S6's recipe + a fastMRI auxiliary loss) + B18 (`v15c` + `v13b3`) at β 0.45 | none | **0.953** | **read by 16:57 UTC → ✅ +0.003 vs C6 0.950 (rule ✅ ≥ 0.952): our best OAI-free number, the pick-1 candidate by its rule if fastMRI is accepted (Tian's call). With C6's k (0.020–0.028), R7 alone ≈ 0.948–0.951, +0.004–0.007 over S6 (entry "Submissions #87 / #88"); scored within ≤ 6.7 h (no watcher).** placeholder green (`R7_FALLBACK unscored 0 of 3`, `_ours.csv` = C6's B18 exactly, `FINAL = beta0.45`). sent 10:19:19 UTC on Tian's go, ref 57139528 |
+| 89 | 2026-10-13 | rsna-knee-fork956 v3 (`src/build_fork954.py --anchor 0956 --compact-anchor --members v15c v13b3 v15cr --beta 0.45`) | **C8′**: R7 alone as the anchor (OAI-free; fastMRI inside R7) + B22 (`v15c` + `v13b3` + `v15cr`) at β 0.45 | none | ⏳ | sent 20:58:08 UTC (ref 57156069); vs C8 0.953: ✅ ≥ 0.955 / 🔁 0.952–0.954 / ❌ ≤ 0.951 (entry 2026-10-13 "C8′ and C7′ built and sent") |
+| 90 | 2026-10-13 | rsna-knee-fork956 v4 (`src/build_fork954.py --anchor 0956 --members v15co v13b3 v15cr --beta 0.20`) | **C7′**: heliosli's public 0.956 blend (cells verbatim) + `v15co` + `v13b3` + `v15cr` at β 0.20 | none | ⏳ | sent 21:08:30 UTC (ref 57156272); sign read only: a better position inside the 0.956 tie than 19th of 620 (21:08 UTC, `artifacts/lb_1013c/`) = C7′ > C7; no move = keep B21 (same entry) |
 
 ## Closed cards index (moved here from proposals.md on 2026-10-05)
 
