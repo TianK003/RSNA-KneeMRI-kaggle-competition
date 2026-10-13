@@ -6,6 +6,116 @@ to read first after a break.
 
 ---
 
+## 2026-10-13 (18:30 → 20:50 UTC) — **P-87 Mistral Large 4 arm read ❌ (0.8786)** · a Qwen 3.8 Max arm priced (Tian undecided) · the Fable arm waits for the Claude quota reset · today's last 2 slots: C8′ / C7′ buildable, not sent
+
+Tian, in order:
+1. "Read handoff file and then track progress of mistral model".
+2. "How much would it cost to run qwen-3.8-max?" He is considering running it, keeping it out of the final picks even if it scores
+   well, and asking the organisers about it himself.
+3. "Wait for mistral to finish, give it some backoff time if it needs it."
+4. "I will do it [the Fable arm] once the weekly Claude quota resets. Run /handoff; is there anything else we could try to
+   commit/submit for scoring?"
+
+Commits `f4f286d` and this one.
+
+**Nothing is running** (20:50 UTC). The Mistral runner and its resume chain both ended; no Kaggle kernel or RunPod pod is running.
+**10-13 still has 2 submission slots, which expire at 00:00 UTC; none is staged.**
+
+### Where things stand
+
+| | Status |
+|---|---|
+| Public LB | Unchanged: **0.956 = C7 #87** (pick 2), **OAI-free 0.953 = C8 #88** (pick 1 if fastMRI is accepted) |
+| P-87 (labels) | Opus 🔁 0.9140 · Gemini 3.7 Flash 🔁 0.9119 · **Mistral Large 4 ❌ 0.8786** (paired −0.028 vs report-only Opus; with Raptor 0.9273; experiments.md "P-87, Mistral Large 4 arm"). The card is open only for Tian's Fable / Qwen calls |
+| Send-ready | `src/build_fork954.py` now maps `v15cr` (the one-line `MEMBER_SOURCES` entry). C8′, C7′ and C6′ build with the existing flags. The committed C8 render (`rsna-knee-fork956` v2) is byte-identical (`--check` ok). Dry builds of C8′ and C7′ (scratchpad) mount `rsna-knee-ckpt-v15cr` |
+| Budgets | OpenRouter **$2.29 spent of the key's $13 cap**. Kaggle GPU 4.35 h until 10-17 (a fork placeholder ≈ 0.2 h). RunPod ≈ $5.8. Submissions: 2 left on 10-13, 5 per day after |
+| Committed renders | `rsna-knee-fork956` v1 = C7, v2 = C8 (the folder holds v2). `artifacts/vlm_pilot/run_openrouter.py` gained `--attempts` / `--backoff` (gitignored; defaults unchanged) |
+| Repo | Clean except Tian's untracked `discussion*.{py,xml}` (never `git add -A`) |
+
+### What we talked about and decided
+
+- **Mistral's backoff (Tian: "give it some backoff time"):**
+  - The upstream returned 23 × HTTP 429. The runner now takes `--attempts` and `--backoff`.
+  - A resume chain (2 workers, 6 attempts, 60 s × k) was armed for skipped studies. It was not needed: 58 / 58 on the first run,
+    0 failed.
+- **Qwen 3.8 Max, priced (no decision):**
+  - Price: `qwen/qwen3.8-max-0902`, $2 / $6 per M tokens (the "Prime" SKU is the same model at $4 / $12). Pilot ≈ $2–4: ≈ 11 k input
+    tokens per study with ≈ 5.7 grids at 1152², and 2.5–8 k output. Full pass ≈ 76× the pilot ≈ $150–300; Qwen 3.8 Flash ≈ $15–25,
+    also Alibaba.
+  - Retention: OpenRouter lists only Alibaba endpoints (default, `us-east-1`), none zero-retention. It would need a `--no-zdr` switch
+    in the runner (not written).
+  - Points raised to Tian:
+    - keeping it out of the picks does not undo sending the gold reports and images; asking the organisers first is the reversible
+      order;
+    - even a ✅ pilot could not be scaled on the remaining credit;
+    - Mistral's ❌ makes a fourth vision arm likely flat.
+- **Fable 5.1 arm:** Tian runs it after the weekly Claude quota resets (subagents draw on it).
+- **"Anything else to submit?":** nothing queued is expected to move a full tick. The two worth a free slot are C8′ (pick 1's leg)
+  and C7′ (pick 2's leg, new: candidates.md). Both are built and checked, but neither is sent: that needs Tian's go.
+
+### What we figured out
+
+1. **Mistral Large 4 is a weaker report reader, not a model the images hurt.** It loses most on report-settled labels: PF OA −0.075,
+   Lateral OA −0.056, Fracture −0.046. Three model families now agree that nine-slice grids add nothing over the 0.5 Raptor share
+   (experiments.md "P-87, Mistral Large 4 arm").
+2. **C7′ is readable by sign alone.** C7 is our best entry, so a better C7′ shows as a higher rank inside the 0.956 tie (14th of 547
+   on 10-13 17:02), and a worse one shows nothing. C8′ is not our best entry, so it reads only at three decimals (candidates.md C7′,
+   C8′).
+
+### ⏭ Next action, in order
+
+1. **On Tian's go, send C8′ and / or C7′** (today before 00:00 UTC, or on 10-14). One build at a time: both write
+   `kaggle/rsna-knee-fork956/`.
+   - **Build:**
+     - C8′: `PYTHONUTF8=1 PYTHONPATH=src .venv/Scripts/python.exe src/build_fork954.py --anchor 0956 --compact-anchor --members v15c v13b3 v15cr --beta 0.45`
+     - C7′: `... --anchor 0956 --members v15co v13b3 v15cr --beta 0.20`
+   - **Placeholder:** `kaggle kernels push -p kaggle/rsna-knee-fork956` (v3, then v4). Wait for COMPLETE (≈ 12 min;
+     `src/watch_kernel.py`). Check its log line that our arm equals the members' solo outputs, as for v1 / v2.
+   - **Send:** `kaggle competitions submit rsna-knee-abnormality-detection -k tiankljucanin/rsna-knee-fork956 -v <v> -f submission.csv -m "<what + read rule>"`.
+     Time it with `src/watch_submission.py --ref <ref>`. Scoring takes ≈ 6.5 h (C7 / C8 on 10-13).
+   - **Read rules** (candidates.md):
+     - C8′ vs C8 0.953: ✅ ≥ 0.955 / 🔁 0.952–0.954 / ❌ ≤ 0.951.
+     - C7′: pull the LB (`kaggle competitions leaderboard rsna-knee-abnormality-detection -d -p artifacts/lb_<date>/`) right before
+       sending and again after the read. A higher rank inside the 0.956 tie means C7′ > C7, so the pick-2 leg takes `v15cr`. No move
+       means C7′ ≤ C7; keep B21.
+     - Suspicious: a slow score exactly equal to the anchor means the arm was skipped (`--gate-hours`).
+   - **C6′** (S6 + B22) builds with `--anchor 0954 --s6-anchor --members v15c v13b3 v15cr --beta 0.45` → `kaggle/rsna-knee-fork954/`.
+     It matters only if Tian keeps fastMRI out of pick 1.
+2. **The Fable arm, after the Claude quota reset (Tian):**
+   - copy `artifacts/vlm_pilot/AGENT_TASK.md` to `AGENT_TASK_fable.md`, writing `out/fable_NN.jsonl`;
+   - launch 10 Agent calls with `model: "fable"` on the batches in `artifacts/vlm_pilot/batches.json`;
+   - score with `PYTHONUTF8=1 .venv/Scripts/python.exe artifacts/vlm_pilot/score_vlm.py fable`;
+   - read by P-87's rule: ✅ paired Δ vs report-only Opus ≥ +0.020 with the 90 % CI above 0, or the Raptor mix ≥ 0.945; 🔁 |Δ| < 0.010
+     and the mix < 0.940; ❌ Δ ≤ −0.010.
+3. **Qwen, only on Tian's explicit go** (ideally after the organisers answer):
+   - add a `--no-zdr` flag to `run_openrouter.py` that drops `provider.data_collection` / `zdr` for that arm only;
+   - run `.venv/Scripts/python.exe -I artifacts/vlm_pilot/run_openrouter.py qwen38 qwen/qwen3.8-max-0902 --effort high --no-zdr --workers 3 --attempts 6 --backoff 30`;
+   - score `score_vlm.py qwen38` by the same rule.
+4. **If neither Fable nor Qwen reads ✅ (or neither is run), close P-87:**
+   - the card leaves proposals.md;
+   - a row goes to experiments.md's closed-cards index;
+   - add "Multimodal-LLM / VLM labelling on grids: pilot read 10-13, Opus / Gemini flat, Mistral ❌" to Dropped directions.
+5. **Model side after the Kaggle reset on 10-17:** P-86 (one JEV arm; card, critic and pod go), then the P-67 loop. Picks by 10-22.
+
+### Open decisions for Tian
+
+- **Today's 2 slots** (gone at 00:00 UTC): C8′ + C7′ (my suggestion: one leg read per pick), C6′, or leave them empty. All three are
+  sub-tick by the leg arithmetic.
+- **A Qwen 3.8 Max arm** and whether to ask the organisers first. It is an exception to the zero-retention rule.
+- **The Fable arm**, after the Claude quota reset.
+- Unchanged: fastMRI in pick 1 (C8 vs C6 vs C3); keeping the OAI risk in pick 2 (C7).
+
+### Things that will bite if forgotten
+
+- **Mistral's OpenRouter endpoint rate-limits upstream** (23 × 429 in 100 min; Gemini took 5 min). Use `--workers 2 --attempts 6
+  --backoff 60` on such endpoints. 429s are not billed.
+- **`build_fork954.py` refuses an unmapped member** ("no Dataset mapping for member"). A new arm needs a `MEMBER_SOURCES` line there;
+  it has no `--member` flag (fork949 does).
+- **`kaggle/rsna-knee-fork956/` holds one build at a time.** Pushing C7′ after building C8′ without a push in between ships C7′ only.
+- **Background tasks die with the session.** An unattended send needs the laptop on AC with the lid open (traps 53).
+
+---
+
 ## 2026-10-13 (16:55 → 18:35 UTC) — **C7 = 0.956 / C8 = 0.953** read and checked for external data · the top-10 label hint · **labels focus: P-87 multimodal gold-58 pilot** (Opus 🔁, Gemini 3.7 Flash 🔁, Mistral Large 4 running)
 
 Tian, in order:
