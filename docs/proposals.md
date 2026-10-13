@@ -88,6 +88,8 @@ labels alone, no Raptor) reads **0.932** solo (−0.010) and **0.950** on nartaa
 gain (0.950 = C4b − 0.001), and the decorrelation and the loss sit on the same Raptor-carried labels. The final targets stay 0.5 LLM +
 0.5 Raptor; the cheap follow-ups (B22, C6′, C5′: existing checkpoints only) are candidates.md rows, not cards.
 
+**Read 2026-10-13 (B22 #86 and the 0.956 frontier; experiments.md "Submission #86", "The public frontier moved to 0.956").** B22 (`v15c` + `v13b3` + `v15cr`) reads **0.945**, +0.001 over B18 and above both predicted bands. A same-family member on different targets counts like a new family inside our own blend. No card follows yet: whether a stronger report-only member would add more is untested, and the picks' anchors moved first (C7 / C8, candidates.md). heliosli's public 0.956 = nartaa 0.5 + **R7** (S6's recipe + a fastMRI auxiliary loss + newer Opus targets + stackers). Training our own model with a fastMRI auxiliary is not carded: it needs the fastMRI data, an agreement and a new loader inside nine days, and it is Tian's call.
+
 **Read 2026-10-10: P-68 closed 🔁, P-67's floor measured.** The pseudo-label pair `v13ex` / `v13ex2` (B0 on 0.5 LLM + 0.25
 Raptor + 0.25 `xfit_v09k`) reads **0.937 / 0.936**, pair mean 0.9365 = the B0 seed mean: not adopted, Raptor 0.5 stays, the label
 side is closed (experiments.md "Submissions #74–#75"). The P-67 floor pair gives a seed floor of **0.0014** on the pooled 5-fold

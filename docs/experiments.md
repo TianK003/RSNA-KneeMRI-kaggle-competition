@@ -161,11 +161,14 @@ agreement with the teacher, not truth. A one-seed LB delta needs ≥ 0.004 (P-44
 | 2026-10-12 | **P-84, submission #83 (`rsna-knee-infer` v76)**: `v15cb` = `v15c` + `trim_ends 1` (the ≈ 6–94 % slice band on the 24-slice slots, train = infer; RunPod L40S, $1.75) | 0.9229 (`v15c` 0.9234) | **0.943** | **🔁 +0.001 vs `v15c` 0.942 (✅ needed ≥ 0.946): at unchanged density the band is not our lever (Dread's +0.009 came with a denser band); P-84 closed, `trim_ends` stays off** (entry 2026-10-12 "P-84 on RunPod + Submission #83") |
 | 2026-10-12 | **C6, submission #82 (`rsna-knee-fork954` v3, `--s6-anchor`)**: heliosli's S6 alone as the anchor (no CoAtNet stage, OAI-free) + B18 (`v15c` + `v13b3`) at β 0.45 | — | **0.950** | **✅ +0.006 vs A14 / B19 0.944 (rule ✅ ≥ 0.948): our best OAI-free number (C3 0.946), the pick-1 candidate by its rule. All of it is diversity gain (both parts 0.944): k ≈ 0.020–0.028, between our legs' 0.009–0.021 and S6-on-nartaa's 0.026–0.036. The two picks would now share S6 (brainstorm.md). The P-85 gate fires** (entry 2026-10-12 "Submission #82") |
 | 2026-10-12 | **P-85, submissions #85 / #84 (`rsna-knee-infer` v77 / `rsna-knee-fork949` v3)**: `v15cr` = `v15c` on `claude_v1` alone (Opus report labels, no Raptor; RunPod A40, ≈ $1.86) solo, and nartaa's 0.949 CoAtNet + it at β 0.35 | 0.9121 (`v15c` 0.9234) | **0.932 / 0.950** | **✅ the mechanism: k ≈ 0.026–0.035 = S6's range (B18 on the same anchor 0.012–0.021), so without Raptor our ConvNeXt is as complementary to nartaa's Raptor fine-tune as S6 is; the decorrelation sits on the Raptor-carried labels (gold, direction only). 🔁 as a leg: 0.950 = C4b − 0.001; ❌ as a member (−0.010). P-85 closed; pick 1 keeps B18 as C6's leg** (entry 2026-10-12 "Submissions #84–#85") |
+| 2026-10-13 | **B22, submission #86 (`rsna-knee-infer` v78)**: flat rank-mean `v15c` + `v13b3` + `v15cr` (B18 + `v15c` on Opus report labels only, no Raptor) | 0.9273 (B18 0.9260) | **0.945** | **🔁 +0.001 vs B18 0.944 (✅ needed ≥ 0.946); above both predicted bands (0.941–0.943 by the blend rule, 0.943–0.944 if lineage counted like a family): a same-family member on different targets, 0.009 under the others, adds instead of costing (+0.007 over the members' mean, as much as our four-family blends). Our best own-model number, OAI-free; the C6′ gate (≥ 0.945) fires** (entry 2026-10-13 "Submission #86") |
+| 2026-10-13 | **The public frontier moved to 0.956** (no GPU): heliosli's public `0-957-latest-dataset-score-in-one-click` = nartaa's 0.949 CoAtNet 0.5 + R7 0.5 (S6's ConvNeXt-S recipe + a fastMRI auxiliary loss, newer Opus targets, fluid / state stackers; no OAI in R7); 357 teams at exactly 0.956, 551 ≥ 0.955; we are rank 571 at 0.954 | — | — | **✅ a read: pick 2 (C5 0.954) is two ticks under a public notebook → C7 (it + B21 at β 0.20); C5′ dropped; R7 ≈ 0.945–0.950 alone by the fork rule (unmeasured), so C8 (R7 + our leg, if fastMRI is acceptable in pick 1) is priced at 0.950–0.954** (entry 2026-10-13 "The public frontier moved to 0.956") |
 
 **External reference points** (not ours — for calibrating ambition):
 
 | Score | What |
 |---|---|
+| 0.966 | Public LB #1 (2026-10-13 09:19 UTC); 10th 0.963; **551 teams ≥ 0.955 of 5,897, 357 at exactly 0.956** (the new plateau: heliosli's public `0-957-latest-dataset-score-in-one-click` = nartaa 0.949 (0.5) + R7 (0.5)), 1,136 ≥ 0.954 (585 at exactly 0.954), 1,520 ≥ 0.950. **Our C5 #80 = 0.954, rank 571** (20th of 585 in the 0.954 tie) (entry 2026-10-13 "The public frontier moved to 0.956") |
 | 0.966 | Public LB #1 (2026-10-12 17:34 UTC); 10th 0.963; **955 teams ≥ 0.954 of 5,846 (745 at exactly 0.954)**, 210 ≥ 0.955, 1,089 ≥ 0.951, 1,404 ≥ 0.950. **Our C5 #80 = 0.954, rank 238** (28th in the tie, which keeps growing: 620 → 745 in 10 h). heliosli 0.956 (rank 99), goodpjw2008 0.954 (270) |
 | 0.966 | Public LB #1 (2026-10-12 07:27 UTC); 10th 0.963; **802 teams ≥ 0.954 of 5,808 (620 at exactly 0.954)**, 1,304 ≥ 0.950, 182 ≥ 0.955. **Our C5 #80 = 0.954, rank 200** (18th in the tie). **heliosli's S6 alone = 0.944 from our account (#81)**, so the 0.954 public blend = nartaa 0.949 (0.7) + S6 0.944 (0.3) + a +0.0065 diversity gain (entry 2026-10-12 "Submission #81") |
 | 0.964 | Public LB #1 (2026-10-10 00:50 UTC); 10th 0.962; **797 teams ≥ 0.950 of 5,626** (485 at exactly 0.950), 312 ≥ 0.951 (114 at exactly 0.951), 198 ≥ 0.952, 90 ≥ 0.955. **Our C4b #73 = 0.951, rank 218** (the front of the 0.951 tie; entry 2026-10-09 "Submissions #69 and #73") |
@@ -5133,6 +5136,90 @@ not the anchor's 0.949, so the arm ran.
 **🔁 as a leg** (fork 0.950 = C4b − 0.001, under the floor); **❌ as a member** (solo −0.010 vs `v15c`). P-85 is closed
 (closed-cards index).
 
+### 2026-10-13 — Submission #86: B22 = `v15c` + `v13b3` + `v15cr` **0.945** · 🔁 +0.001 vs B18 0.944, above both predicted bands (0.941–0.943 by the blend rule, 0.943–0.944 if lineage counted like a family) · a same-family member on different targets, 0.009 under the others, adds instead of costing · our best own-model number (OAI-free) · the C6′ gate (≥ 0.945) fires
+
+**Read** (09:17 UTC, `kaggle competitions submissions`): ref 57136143, `rsna-knee-infer` v78, sent **by hand at 08:07:55 UTC**. The
+auto-submitter armed for 00:00:30 UTC (pid 27732) died when the laptop was shut down overnight (its last log line 22:00 UTC; traps
+53), so the send was 8 h late. Scored within ≤ 69 min (no watcher).
+
+| # | what | LB | pre-registered read (candidates.md B22) | verdict |
+|---|---|---|---|---|
+| 86 | B22 = flat rank-mean of `v15c` (0.942) + `v13b3` (0.940) + `v15cr` (0.932, `v15c` on Opus report labels only, no Raptor) | **0.945** | vs B18 0.944: ✅ ≥ 0.946 → C6′ / 🔁 0.944–0.945 (0.945 opens C6′) / ❌ ≤ 0.943 (the rule holds whatever the targets) | **🔁 +0.001; the C6′ gate fires** |
+
+- **The arithmetic.** Members' mean (0.942 + 0.940 + 0.932) / 3 = 0.938, so B22 gains **+0.007** over it (+0.006 to +0.008 with the
+  roundings). Our other blends:
+
+  | blend | members | gain over the members' mean |
+  |---|---|---|
+  | B18 (#67) | `v15c` + `v13b3`, two families | +0.003 |
+  | B21 (#79) | `v15co` + `v13b3`, two families | +0.0035 |
+  | B6 (#52) / B17 (#65) | four families (five / six votes) | +0.006 / +0.0062 |
+  | B12 (#66) | B6 + two same-family, same-target votes ≈ 0.005 under the others | +0.0050 (−0.001 vs B6) |
+  | B19 (#71) | B18 + `v15c`'s seed twin as one vote | 0.000 vs B18 |
+  | **B22 (#86)** | B18 + `v15c` on different targets, 0.009 under the others | **+0.007** (+0.001 vs B18) |
+
+  B18's 0.944 lies in [0.9435, 0.9445] and B22's 0.945 in [0.9445, 0.9455], so the public delta lies in [0, +0.002]. B22 holds B18's
+  two checkpoints unchanged, so no seed noise separates them. The open part is whether the public sign carries to the private set.
+- **Gold-58** (direction only): B22 0.9273, B18 0.9260 (+0.0013); the `v15c` + `v15cr` pair 0.9246 (entry "Submissions #84–#85").
+- **What it decides:**
+  - **The blend rule gets a qualifier.** The rule says extra votes of a family already present cost (B12) or add nothing (B19), and
+    that held for same-target votes. A same-family member on **different targets** (no Raptor) behaves like a new family: a
+    three-vote blend in which two ConvNeXt-T votes share architecture and recipe gains as much over its mean as our four-family
+    blends. This is #84's lineage finding (k on nartaa's anchor) seen inside our own blend.
+  - **Our best own-model number is now 0.945 (B22, OAI-free)**, above B18 / B19 0.944. If pick 1 were an own-model blend, B22 would
+    replace B19, on Tian's +0.001 "worth considering" bar.
+  - **As a leg: the C6′ gate (B22 ≥ 0.945) fires.** C6′ = S6 + B22 at β 0.45. Mean 0.55 × 0.944 + 0.45 × 0.945 = 0.94445, plus C6's
+    k 0.020–0.028 × 0.2475 gives 0.949–0.951. If `v15cr` resembles S6 (both are Opus-report-trained), k falls. Pred. 0.948–0.951 vs
+    C6 0.950: no expected tick.
+  - **Training:** the member targets stay 0.5 LLM + 0.5 Raptor. `v15cr` earns a place as a third vote in own blends; whether a
+    stronger report-only member would add more is untested.
+
+**Verdict: 🔁 INCONCLUSIVE as a score** (+0.001 vs B18; Tian's bar calls +0.001 "worth considering"; the LB floor for one-seed deltas
+is 0.004). **✅ KEEP the qualitative finding**: the read is above both pre-registered bands for a same-family vote. It agrees in sign
+with #84's k, and it is the first own blend where a member 0.009 under the others did not cost.
+
+### 2026-10-13 — The public frontier moved to **0.956**: heliosli's public `0-957-latest-dataset-score-in-one-click` = nartaa's 0.949 CoAtNet (0.5) + heliosli's **R7** (0.5; S6's pipeline + a fastMRI auxiliary loss, newer report targets, fluid / state stackers) · 357 teams at exactly 0.956, 551 ≥ 0.955 · we fell to rank 571 at 0.954 · C5 (pick 2) is two ticks under a public notebook, C5′ dropped · ✅ a read (no GPU)
+
+**Sources** (10-13, 09:19–09:35 UTC):
+- the full LB CSV (`kaggle competitions leaderboard -d`, `artifacts/lb_1013/`);
+- the notebook pulled with `kaggle kernels pull -m` and read cell by cell (session scratchpad, not kept);
+- R7's `manifest.json` (`kaggle datasets download heliosli/rsna-knee-compact-r7cnxfsss -f manifest.json`);
+- `kaggle datasets files` of the same Dataset.
+
+**The LB at 09:19 UTC:** top 0.966, 10th 0.963. **551 teams ≥ 0.955** (210 at 10-12 17:34 UTC); **357 at exactly 0.956**, 74 at 0.955,
+585 at 0.954 (745 the evening before), 1,136 ≥ 0.954, 1,520 ≥ 0.950; 5,897 teams. **We are rank 571 at 0.954** (C5 #80; 20th of the
+585 at 0.954). The 0.956 tie is the notebook's signature: a public fork titles it "0.956: Raptor + ConvNeXt R7 Ensemble"
+(`jenillangaliya`, run 10-13 06:00 UTC), heliosli's title says "≈ 0.957". It has not been scored from our account.
+
+**The notebook** (7 cells: the 0.954 notebook's layout; the same pinned docker image as `src/build_fork954.py`):
+
+| Part | What its files say |
+|---|---|
+| Stage 1, weight **0.5** (was 0.7): nartaa's CoAtNet-2 | the same checkpoint as the 0.954 (`raptor_ft_alldata_t16_blendjev_oai_d96_r384_swa.pt`, Dataset `nartaa/rsna-knee-publication-swa-weights-20261007`): OAI-trained, 0.949 alone (its author's score). The markdown carries the NDA / OAI acknowledgement |
+| Stage 2, weight **0.5** (was S6 at 0.3): heliosli's **R7** | Dataset `heliosli/rsna-knee-compact-r7cnxfsss` (files 10-11 19:59 UTC), bundle `8c7b666e27dc0e8f`, arm `E_lrprior`, tag `cnx_r7`. **S6's recipe:** ConvNeXt-S `in22k_ft_in1k` @ 384, crop 352, 4 folds × 1 seed, 16 epochs, lr 1e-4, head 1e-3, wd 0.05, 176 windows, 3.5 mm, views `v4` (knee-centred, SKM-TEA anatomy checkpoint), side classifier. **Changes vs S6:** targets `probe_targets_opusv11b_rr7_plr7_cdr.csv` (S6 `…_rr3_plv21_cdr`); a **fastMRI auxiliary branch** (`fm_aux` = `fm384_v1`, weight 0.3, 96 windows; the markdown says "fastMRI auxiliary training"); a `fluid_stacker` and a `state_stacker` ("refitted Effusion and Baker state stackers": what they were fitted on is not read); `torch.compile`. `gold_in_training` 0; data policy "No KneeCoT inputs or derivatives; gold never trained". No OAI path in R7's config |
+| Stage 3 | per-finding percentile-rank blend, Raptor 0.5 / R7 0.5 on every label (the three OA overrides are also 0.5); "weights fixed before any run" |
+
+- **R7 alone, priced by the fork rule** (unmeasured): 0.956 = 0.5 × 0.949 + 0.5 × R7 + 0.25 × k, so R7 = 0.963 − 0.5 k. At S6's k on
+  the same anchor (0.026–0.036), **R7 ≈ 0.945–0.950** (± 0.0015 with the roundings): +0.001–0.006 over S6's 0.944. R7 would equal S6 only
+  at k ≈ 0.038, above S6's range.
+- **What it decides:**
+  - **Pick 2.** C5 (0.954) sits two ticks under a public notebook that 357 teams carry, and 551 entries are ≥ 0.955 publicly. The
+    C5-type move on the new anchor is **C7** = the 0.956 notebook + B21 at β 0.20 (candidates.md). At C5's gain (+0.0014–0.0026)
+    the prediction is 0.8 × 0.956 + 0.2 × 0.946 + the gain = 0.955–0.957, the anchor's level, with a sub-tick from our arm. It
+    carries the same OAI rule risk as C5 (nartaa; accepted 10-09). **C5′** (a `v15cr` leg on the old 0.954 anchor) is dominated and
+    dropped.
+  - **Pick 1.** R7 carries no OAI but adds **fastMRI** as an auxiliary training set. That is a new external dataset in pick 1; S6
+    already brought SKM-TEA anatomy weights, accepted 10-11. If Tian accepts it, **C8** = R7 alone + B18 (or B22) at β 0.45, priced
+    with C6's k (0.020–0.028), gives 0.55 × (0.945–0.950) + 0.45 × 0.944 + 0.005–0.007 ≈ **0.950–0.954** vs C6 0.950
+    (brainstorm.md). Both picks would then share R7, as they share S6 today.
+  - **The builder.** `src/build_fork954.py` copies the 0.954 notebook's seven cells verbatim with token patches (bundle id, Dataset
+    slug). The 0.956 notebook has the same layout, image and stage contract (`raptor_sub.csv` / `raptor_raw.csv`, `ours_sub.csv`, the
+    stage-3 blend), so a notebook switch plus the R7 mount is probably enough; that needs a placeholder check. Scoring time is
+    unknown: the notebook's own deadline is 8.3 h from its start, and C5 scored in ≤ 5.6 h.
+
+**Verdict: ✅ a read** (no GPU): the frontier moved by a public notebook we can fork. R7's level is a fork-rule estimate, not a
+measurement.
+
 ## Infrastructure
 
 ### 2026-09-27 — The "0.943 Speedy Raptors CoAtNet D4" notebook is our anchor **plus two CoAt readers**, not a faster graph; its "< 30 min" is a 3-study commit run · P-41 (threaded scan + 8 decode workers) smoke-green and byte-identical
@@ -5665,6 +5752,7 @@ and public LB score, so a public/private divergence can be traced to a specific 
 | 83 | 2026-10-12 | rsna-knee-infer v76 (+ Dataset `rsna-knee-ckpt-v15cb`) | **P-84, `v15cb` solo**: `INFER_MEMBERS = ["v15cb"]` (`v15c` + `trim_ends 1`: the ≈ 6–94 % band on the 24-slice slots, train = infer; RunPod L40S 10-12) | none; gold-58 0.9229 | **0.943** | **read 11:32 UTC → 🔁 +0.001 vs `v15c` 0.942 (✅ needed ≥ 0.946); P-84 closed, `trim_ends` stays off; scored within [28.8, 30.3] min.** sent 11:01:46 UTC, ref 57105105 |
 | 84 | 2026-10-12 | rsna-knee-fork949 v3 (`src/build_fork949.py --members v15cr --member v15cr=…ckpt-v15cr:…timm-convnext-tiny-in12k --beta 0.35`) | **P-85 read**: nartaa's public 0.949 CoAtNet + `v15cr` (`v15c` on Opus report labels only, no Raptor) at β 0.35; placeholder green (anchor saved, our arm = the solo's output exactly, `FINAL submission.csv = beta0.35`) | none | **0.950** | **read 17:31 UTC → k ≈ 0.026–0.035 (central 0.031) = S6-like (B18 on this anchor 0.012–0.021): without Raptor our ConvNeXt is as complementary to nartaa's CoAtNet as S6 is; as a leg 0.950 = C4b − 0.001 (🔁); P-85 closed; scored within ≤ 83 min (the watcher died with the session).** sent 16:08:28 UTC, ref 57112516 |
 | 85 | 2026-10-12 | rsna-knee-infer v77 (+ Dataset `rsna-knee-ckpt-v15cr`, replacing the dead `v16d1` mount) | **P-85, `v15cr` solo**: `INFER_MEMBERS = ["v15cr"]` (RunPod A40 10-12) | none; gold-58 0.9121 | **0.932** | **read 17:31 UTC → −0.010 vs `v15c` 0.942 (pred. 0.933–0.940): ❌ as a member; the level the fork's k needs; scored within ≤ 83 min.** sent 16:08:36 UTC, ref 57112523 |
+| 86 | 2026-10-13 | rsna-knee-infer v78 (`artifacts/infer_b22.py`) | **B22**: `INFER_MEMBERS = ["v15c", "v13b3", "v15cr"]`, flat rank-mean (does a member on different targets count as a new family?) | none; gold-58 0.9273 | **0.945** | **read by 09:17 UTC → 🔁 +0.001 vs B18 0.944 (✅ needed ≥ 0.946), above both predicted bands; +0.007 over the members' mean; our best own-model number; the C6′ gate (≥ 0.945) fires; scored within ≤ 69 min (no watcher).** Armed for 10-13 00:00:30 UTC (`auto_submit.py` pid 27732), which died when the laptop was shut down overnight; sent by hand 08:07:55 UTC, ref 57136143 |
 
 ## Closed cards index (moved here from proposals.md on 2026-10-05)
 
