@@ -5614,11 +5614,32 @@ scoring times are only bounded: both were COMPLETE by 08:21 (≤ 11.4 h; uninfor
 - **R7's Dataset has no unused checkpoint** (`kaggle datasets files heliosli/rsna-knee-compact-r7cnxfsss`: the four `E_lrprior` folds, the
   side classifier, two stackers, a manifest). So there is no OAI-free analogue for pick 1.
 
+**The forum re-read** (a subagent, 10-14 ≈ 08:30 UTC; ≈ 90 global searches plus the known threads; per-thread copies in the session
+scratchpad):
+- **Still no host ruling on external data.** The last host post on it is 741819 (09-21). 747455 has only the 10-13 re-ping, 748276 has no
+  reply and 748480 one participant reply. New unanswered questions: 749145 (10-14, yes / no on OAI, on OAI-trained public checkpoints
+  and on derived pseudo-labels; madmax0404, rank 27: "they never gave us an answer. I don't think they will now"), 748925 (labels from
+  a proprietary model?), 733965 (are nartaa's and heliosli's OAI-trained weights allowed?).
+- **Kaggle staff (Ryan Holbrook, 748181, 10-12):** "We do though still have a notebook publishing lock (one week, in this competition)
+  before the submission deadline", and low-effort ensembles "tend to drop on the private leaderboard". With the deadline on 10-22 the lock
+  starts ≈ 10-15: **the public frontier freezes then**, so any new public anchor appears by ≈ 10-15.
+- Po-Hao Chen opened an anonymous survey on AI use (749038, 10-13), which "will not affect your leaderboard standing or eligibility".
+- **Label hints from others** (no top-30 team posted anything new; 748295 unchanged):
+  - nartaa (746792, 10-13) gave the 0.949 recipe: targets = Gemini 3 Flash report labels averaged with stevenleehans' v4 and the JEV
+    labels; OAI targets from MOAKS reads; CoAtNet-2 at 384, 16 epochs, the three best gold-58 epochs averaged.
+  - hengck23 (rank 396, 745861): let the LLM labeller say "I don't know" and leave those cells out of training; random definitely-negative
+    images against false positives; "segmentation label"; an LLM-labelled target at 0.89 on gold ≈ 0.930 on the public LB. The masking
+    idea is close to our P-62 silent-cell mix, which read no lift.
+  - 748111: the author of a 0.960 single submission "said this sub is basically a single model".
+  - Kirderf (747658): a vision LLM on image mosaics alone (local Qwen 3.8 27B) scored macro 0.606 on 10 studies.
+
 **Verdict:**
 - **C8′: 🔁** (Δ 0.000).
 - **C7′: 🔁**, no move in the tie, so C7′ ≤ C7 by its rule.
 - Both picks keep their legs (C7 = B21, C8 = B18), and `v15cr` is closed as a leg member.
 - **The notebook re-read: ✅ a read** → C9.
+- **The forum re-read: ✅ a read:** no host ruling (the OAI / fastMRI risk is unchanged), and the public frontier freezes at the
+  notebook publishing lock (≈ 10-15).
 
 ## Infrastructure
 
