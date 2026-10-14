@@ -11,6 +11,10 @@ views, a side classifier; it pip-installs timm 1.0.25 + pydicom 3.0.1 from its c
     0956  "≈0.957 | Latest dataset| score in one click!", public LB 0.956, pulled 2026-10-13: CoAtNet 0.5 + R7 0.5
           (R7 = S6's recipe + a fastMRI auxiliary loss + stackers; experiments.md 2026-10-13
           "The public frontier moved to 0.956")                                       -> kaggle/rsna-knee-fork956/
+    0956v "RSNA Knee: One Unused Checkpoint Lifts the 0.956" (varshithakolupuri), public LB 0.956, pulled 2026-10-14:
+          the 0956 notebook's stage 1 / 2 cells byte for byte, plus a gated stage 2b running nartaa's second checkpoint
+          (224 px, 0.8 centre crop, OAI-trained like the 384 one) and a stage 3 that mixes it at 35 % of the Raptor half
+          (experiments.md 2026-10-14 "Submissions #89 / #90"; candidates.md C9)            -> kaggle/rsna-knee-fork956/
 
 The two notebooks share cells 1-3 byte for byte (nartaa's stage) and the stage contract (`raptor_sub.csv` / `raptor_raw.csv`,
 `ours_sub.csv`, the stage-3 blend).
@@ -41,6 +45,12 @@ one `rsna-knee-fork949` has carried since its creation (traps 54).
     .venv/Scripts/python.exe src/build_fork954.py --s6-anchor --members v15c v13b3 --beta 0.45   # C6 (S6 + B18, OAI-free)
     .venv/Scripts/python.exe src/build_fork954.py --anchor 0956 --members v15co v13b3 --beta 0.20                   # C7
     .venv/Scripts/python.exe src/build_fork954.py --anchor 0956 --compact-anchor --members v15c v13b3 --beta 0.45  # C8
+    .venv/Scripts/python.exe src/build_fork954.py --anchor 0956v --members v15co v13b3 --beta 0.20 \
+        --gate-hours 7.0 --sec-per-study 3.0                                                                     # C9
+
+On 0956v our arm still runs after the anchor's stage 3 (it blends onto its submission.csv), so the 224 stage now runs
+before it: C9 raises the gate to 7 h and lowers the runtime estimate to 3 s / study (the 8.4 h hard stop is unchanged; a
+late or killed arm keeps the anchor, as always). --compact-anchor and --s6-only are refused there (C8 is the 0956 build).
     .venv/Scripts/python.exe src/build_fork954.py --members v15co v13b3 --beta 0.20 --check
 """
 import argparse
@@ -63,6 +73,10 @@ ORTHO_DATASET = "heliosli/rsna-orthofoundation-fold0-epoch7-20261004"    # helio
 DOCKER_IMAGE = ("gcr.io/kaggle-private-byod/python@sha256:"
                 "2757e0c7d1e0a9cb43da657b97e223c321a98f5014bdf64f44f2f6b083ad2b2f")
 ANCHOR_CELL_TYPES = ["markdown", "markdown", "code", "code", "code", "code", "code"]
+# the anchor cell that holds each stage (0954 / 0956: seven cells; 0956v interleaves markdown and adds stage 2b)
+STAGE_CELLS = {"raptor_write": 2, "raptor_run": 3, "compact_setup": 4, "compact_run": 5, "blend": 6}
+R224_CKPT = "raptor_ft_alldata_t16_blendjev_oai_d96_c08_r224_swa.pt"
+R224_CKPT_SHA256 = "3394fdd7e668286956e85af2554bef0386df5cd79d1c1af223b095c828b815d6"
 
 ANCHORS = {
     "0954": {
@@ -92,6 +106,30 @@ ANCHORS = {
                           6: ("W_RAPTOR_C = {'Medial OA': 0.5, 'Lateral OA': 0.5, 'PF OA': 0.5}",
                               "for f in pred.glob('worker*/predictions.csv'):")},
     },
+    "0956v": {
+        "notebook": "notebook_score_0.956v.ipynb",
+        "sha256": "6406e92300011e48f0534ce74a91f5b7a0629b3771168ab7275f5584f884f36d",   # as pulled 2026-10-14 (= scored v1)
+        "score": "0.956",
+        "compact": "R7",
+        "compact_dataset": "heliosli/rsna-knee-compact-r7cnxfsss",
+        "bundle_id": "8c7b666e27dc0e8f",
+        "weights": ("0.5", "0.5"),
+        "slug": "rsna-knee-fork956",
+        "title": "RSNA Knee Fork956",
+        # no quote marks here: it lands inside a quoted string in the arm
+        "desc": "+ the nartaa 224 px checkpoint at 0.35 of the Raptor half (varshithakolupuri)",
+        "cell_types": ["markdown", "markdown", "markdown", "code", "code", "markdown", "code", "code", "markdown",
+                       "code", "code", "markdown", "code"],
+        "stage_cells": {"raptor_write": 3, "raptor_run": 4, "compact_setup": 6, "compact_run": 7, "blend": 12},
+        "extra_needles": {7: ("'--max-fallback-fraction', '1.0'", "pred = TMP / 'prediction'"),
+                          9: ("%%writefile /tmp/raptor224_run.py", R224_CKPT, R224_CKPT_SHA256,
+                              'out = "/kaggle/working/raptor224_sub.csv"'),
+                          10: ("_left = 9 * 3600 - (time.time() - NB_T0) - 40 * 60", "timeout=min(_left, 2.5 * 3600)",
+                               "R224_OK = _rc == 0 and os.path.isfile('/kaggle/working/raptor224_sub.csv')"),
+                          12: ("W_RAPTOR_C = {'Medial OA': 0.5, 'Lateral OA': 0.5, 'PF OA': 0.5}",
+                               "for f in pred.glob('worker*/predictions.csv'):", "A224 = 0.35",
+                               "rr = (1.0 - A224) * rr + A224 * pct_on(r224[c].values, ~rap_fail)")},
+    },
 }
 for _k, _s in ANCHORS.items():
     _s["name"] = _k
@@ -116,10 +154,11 @@ def fork_templates(spec):
     """The fork-arm markdown and code for this anchor: (blend markdown, blend arm, compact markdown, compact arm)."""
     s, c, (wr, wo) = spec["score"], spec["compact"], spec["weights"]
     tag = s.replace(".", "")
-    blend_head = f"## Fork arm — our members blended onto the public {s} blend (nartaa's CoAtNet {wr} + heliosli's {c} {wo})"
+    desc = (" " + spec["desc"]) if spec.get("desc") else ""
+    blend_head = f"## Fork arm — our members blended onto the public {s} blend (nartaa's CoAtNet {wr} + heliosli's {c} {wo}{desc})"
     blend_prev = f"The previous cell (stage 3 of the {s} notebook, unchanged) has written `submission.csv`."
     arm_head = f"# ===================== FORK ARM: ours as a beta-blend on the public {s} blend =====================      "
-    arm_label = f"'anchor': 'public {s} blend (heliosli: nartaa CoAtNet {wr} + {c} {wo})'"
+    arm_label = f"'anchor': 'public {s} blend (heliosli: nartaa CoAtNet {wr} + {c} {wo}{desc})'"
     md = _swap(f949.FORK_MARKDOWN, [
         ("## Fork arm — our members blended onto the public 0.949 single model", blend_head),
         ("The previous cell (the scored 0.949 source, unchanged) has written `submission.csv`.", blend_prev),
@@ -217,28 +256,30 @@ def compact_anchor_cell(spec):
 # names the anchor's own cells bind at notebook scope: the arm must not rebind any of them (the 0956 stage 3 adds the last row)
 ANCHOR_GLOBALS = ("T0", "NB_T0", "WORK", "DATA", "TMP", "pred", "env", "rc", "deadline", "receipt", "sub", "blend",
                   "ours", "raw", "rsub", "labels", "cols", "test_ids", "out", "pct", "n",
-                  "W_RAPTOR_C", "pct_on", "rap_fail", "our_fail", "scored", "rho_rr", "rho_ro")
+                  "W_RAPTOR_C", "pct_on", "rap_fail", "our_fail", "scored", "rho_rr", "rho_ro",
+                  "R224_OK", "A224", "r224")
 
 
 def check_anchor(nb, spec):
     """The anchor must be heliosli's notebook as pulled: seven cells, three stages, its stage-3 weights."""
     cells = nb["cells"]
-    if [c["cell_type"] for c in cells] != ANCHOR_CELL_TYPES:
+    if [c["cell_type"] for c in cells] != spec.get("cell_types", ANCHOR_CELL_TYPES):
         raise SystemExit(f"anchor cell types changed: {[c['cell_type'] for c in cells]}")
     txt = [cell_text(c) for c in cells]
+    st = spec.get("stage_cells", STAGE_CELLS)
     needles = {
-        2: ("%%writefile /tmp/raptor_run.py", f949.ANCHOR_CKPT, f949.ANCHOR_CKPT_SHA256, "RUN_INFERENCE = True"),
-        3: ("NB_T0 = time.time()", "/tmp/raptor_run.py", "raptor_sub.csv", "raptor_raw.csv"),
-        4: ("ARM = 'E_lrprior'", f"BUNDLE_ID = '{spec['bundle_id']}'", "DEADLINE_HOURS = 8.3", "T0 = NB_T0",
-            f"C_SLUG = '{spec['compact_dataset'].split('/')[1]}'"),
-        5: ("probe_dual.py", "ours_sub.csv", "OURS_STAGE_COMPLETE"),
-        6: (spec["weight_line"], "sub.to_csv(WORK / 'submission.csv', index=False)", "NOTEBOOK_COMPLETE"),
+        st["raptor_write"]: ("%%writefile /tmp/raptor_run.py", f949.ANCHOR_CKPT, f949.ANCHOR_CKPT_SHA256, "RUN_INFERENCE = True"),
+        st["raptor_run"]: ("NB_T0 = time.time()", "/tmp/raptor_run.py", "raptor_sub.csv", "raptor_raw.csv"),
+        st["compact_setup"]: ("ARM = 'E_lrprior'", f"BUNDLE_ID = '{spec['bundle_id']}'", "DEADLINE_HOURS = 8.3", "T0 = NB_T0",
+                              f"C_SLUG = '{spec['compact_dataset'].split('/')[1]}'"),
+        st["compact_run"]: ("probe_dual.py", "ours_sub.csv", "OURS_STAGE_COMPLETE"),
+        st["blend"]: (spec["weight_line"], "sub.to_csv(WORK / 'submission.csv', index=False)", "NOTEBOOK_COMPLETE"),
     }
     for i, keys in list(needles.items()) + list(spec["extra_needles"].items()):
         for k in keys:
             if k not in txt[i]:
                 raise SystemExit(f"anchor cell {i} lacks {k!r}")
-    if txt[6].count(spec["weight_line"]) != 1:
+    if txt[st["blend"]].count(spec["weight_line"]) != 1:
         raise SystemExit("anchor stage 3: the weight line is not unique")
     # our arm writes these names in /kaggle/working: the anchor must not use any of them
     for name in ("_ours.csv", "ours_infer.py", "ours_infer.log", "fork_diagnostics.json",
@@ -427,6 +468,8 @@ def main(argv=None):
         raise SystemExit("--s6-only and --compact-anchor are exclusive")
     if a.s6_only and a.anchor != "0954":
         raise SystemExit("--s6-only patches one weight line; the 0956 stage 3 also has per-finding W_RAPTOR_C overrides")
+    if a.compact_anchor and a.anchor == "0956v":
+        raise SystemExit("--compact-anchor drops the CoAtNet stages; on 0956v that is the 0956 build (C8): use --anchor 0956")
     mode = "s6_only" if a.s6_only else ("compact_anchor" if a.compact_anchor else "blend")
     beta = 0.0 if a.s6_only else a.beta
     params = f949.ForkParams(members=tuple(a.members), beta=beta, betas_diag=tuple(a.betas_diag), gate_h=a.gate_hours,
@@ -438,7 +481,8 @@ def main(argv=None):
     meta_path = os.path.join(out_dir, "kernel-metadata.json")
     c = spec["compact"]
     summary = (f"{nb_path}: {len(out_nb['cells'])} cells ("
-               + (f"4 anchor + 1 clock + 1 {c}-anchor + 3 fork" if mode == "compact_anchor" else "7 anchor + 1 clock + 3 fork") + "); "
+               + (f"4 anchor + 1 clock + 1 {c}-anchor + 3 fork" if mode == "compact_anchor"
+                  else f"{len(out_nb['cells']) - 4} anchor + 1 clock + 3 fork") + "); "
                f"{len(meta['dataset_sources'])} datasets; payload {len(payload) / 1024:.0f} KB; "
                f"members {list(params.members)} beta {params.beta}" + (" [S6 ONLY: stage-3 weights 0.0 / 1.0]" if a.s6_only else "")
                + (f" [{c} ANCHOR: no CoAtNet stage, OAI-free]" if a.compact_anchor else ""))

@@ -610,6 +610,10 @@ half hour or ended with a browser login before it passed. **Do:** after an expir
 (`access_token_expiration` jumps ≈ 12 h); a browser login is needed only if the `refresh_token` itself is rejected. A pod holding
 a *copy* of the file refreshes independently. Also corrected: `kaggle kernels logs <slug> -f` now **streams a running kernel's
 log** (read `[teacher] partial flush: N studies complete` mid-run on 2026-09-26), so the mid-run throughput gate is CLI-readable.
+**Addendum 2026-10-14: the dead half hour can be skipped.** The refresh is one call with the stored `refresh_token`, the same one the
+CLI makes 30 min late: `with KaggleApi().build_kaggle_client() as c: KaggleCredentials.load(client=c).refresh_access_token()`
+(`kaggle.api.kaggle_api_extended`, `kagglesdk.kaggle_creds`). It rewrites `credentials.json` with a 12 h token. Used 10-14 08:51 UTC,
+12 min after an expiry, to push the C9 placeholder. Print nothing from the file but `access_token_expiration`.
 
 **Addendum 2026-10-05: a long-lived Python `KaggleApi` never refreshes, so it sends a dead token forever.** `authenticate()`
 (`kaggle_api_extended.py` 1318–1335) calls `creds.get_access_token()` once and stores the result in `config_values`, and every later

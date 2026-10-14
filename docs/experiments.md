@@ -5641,6 +5641,41 @@ scratchpad):
 - **The forum re-read: ✅ a read:** no host ruling (the OAI / fastMRI risk is unchanged), and the public frontier freezes at the
   notebook publishing lock (≈ 10-15).
 
+### 2026-10-14 — C9 built and sent (Tian: "go ahead and build, send C9"): `src/build_fork954.py --anchor 0956v` = varshithakolupuri's public 0.956 variant verbatim + B21 at β 0.20, gate 7 h · placeholder green · #91 ⏳ PENDING
+
+- **The anchor:** `notebook_score_0.956v.ipynb` = `varshithakolupuri/rsna-knee-one-unused-checkpoint-lifts-the-0-956`, pulled 10-14
+  (sha256 `6406e923…`).
+  - Its 7 code cells equal karttikjangid05's reproduction of the scored version 1 (cell hashes).
+  - Its stage 1 / stage 2 cells are byte-identical to `notebook_score_0.956.ipynb` (C7's anchor).
+  - New: stage 2b, nartaa's 0.945 script on `raptor_ft_alldata_t16_blendjev_oai_d96_c08_r224_swa.pt` (224 px, 0.8 centre crop, no mirror
+    TTA). It is gated: it runs only if ≥ 40 min of the 9 h remain after it, with a timeout of min(left, 2.5 h).
+  - Stage 3 adds 12 lines: `rr = 0.65 · rank(384) + 0.35 · rank(224)` inside the Raptor half.
+  - Same three Datasets and the same pinned Docker image as C7.
+- **The builder:** a new `--anchor 0956v` spec in `src/build_fork954.py`: 13 cell types, a stage-cell map, and needles for the 224
+  script, its gate and the stage-3 mix. The C7′ render still checks byte-identical (`--check` ok). `--compact-anchor` is refused on
+  0956v (C8 is the 0956 build).
+- **The gate:** our arm still runs after stage 3 (it blends onto the anchor's `submission.csv`), so the 224 stage now runs first.
+  - With the defaults (gate 6 h; estimate 5.5 s / study + 10 min against the 8.4 h hard stop) that extra ≈ 0.5–1 h could skip our arm.
+    C9 would then be varshithakolupuri's notebook, which ranks under C7.
+  - C9 is built with **`--gate-hours 7.0 --sec-per-study 3.0`**; the hard stop stays at 8.4 h. Our B21 arm took ≈ 20–50 min as a
+    solo submission. A late or killed arm still keeps the anchor (fail-soft).
+- **Placeholder** (`rsna-knee-fork956` v5, 08:51–09:01 UTC, 3 test studies; outputs in `artifacts/kaggle_out/fork956_v5/`):
+  - Raptor-384 44 s; R7 PASS 3 / 3 (fallback 0); `R224_STAGE rc=0 ok=True seconds 22`; `NOTEBOOK_COMPLETE`.
+  - Our arm: decode-once verified, constant labels 0, `FINAL submission.csv = beta0.20`.
+  - `_ours.csv` = C7's (fork956 v1) exactly (max diff 0.0). `_anchor_0956.csv` differs from C7's by up to 0.058: the 224 mix is in.
+- **Sent 09:02:08 UTC as #91** (ref 57175897); watcher `artifacts/watch_57175897.log` (it dies with the session).
+- **Read rule** (candidates.md C9), vs C7 0.956:
+  - ✅ ≥ 0.957 → pick 2 = C9;
+  - 🔁 0.956 with a better tie position than C7 against the same neighbours (C7 23rd of 761, rank 226, `artifacts/lb_1014/`) → C9 > C7,
+    pick 2 = C9;
+  - 0.956 with no move → C9 ≤ C7, keep C7;
+  - ❌ ≤ 0.955.
+  - **Suspicious:** a score at C7's level with no rank change and a scoring time near 9 h can mean our arm was skipped. The log is not
+    readable for a hidden run, so the scoring time is the only hint.
+- **Rule risk:** OAI on three paths (both CoAtNets, `v15co`): pick 2's class, as C7.
+
+**Verdict: ⏳ PENDING (#91).**
+
 ## Infrastructure
 
 ### 2026-09-27 — The "0.943 Speedy Raptors CoAtNet D4" notebook is our anchor **plus two CoAt readers**, not a faster graph; its "< 30 min" is a 3-study commit run · P-41 (threaded scan + 8 decode workers) smoke-green and byte-identical
@@ -6178,6 +6213,7 @@ and public LB score, so a public/private divergence can be traced to a specific 
 | 88 | 2026-10-13 | rsna-knee-fork956 v2 (`src/build_fork954.py --anchor 0956 --compact-anchor --members v15c v13b3 --beta 0.45`) | **C8**: heliosli's R7 alone as the anchor (no CoAtNet stage, nartaa not mounted: OAI-free; R7 = S6's recipe + a fastMRI auxiliary loss) + B18 (`v15c` + `v13b3`) at β 0.45 | none | **0.953** | **read by 16:57 UTC → ✅ +0.003 vs C6 0.950 (rule ✅ ≥ 0.952): our best OAI-free number, the pick-1 candidate by its rule if fastMRI is accepted (Tian's call). With C6's k (0.020–0.028), R7 alone ≈ 0.948–0.951, +0.004–0.007 over S6 (entry "Submissions #87 / #88"); scored within ≤ 6.7 h (no watcher).** placeholder green (`R7_FALLBACK unscored 0 of 3`, `_ours.csv` = C6's B18 exactly, `FINAL = beta0.45`). sent 10:19:19 UTC on Tian's go, ref 57139528 |
 | 89 | 2026-10-13 | rsna-knee-fork956 v3 (`src/build_fork954.py --anchor 0956 --compact-anchor --members v15c v13b3 v15cr --beta 0.45`) | **C8′**: R7 alone as the anchor (OAI-free; fastMRI inside R7) + B22 (`v15c` + `v13b3` + `v15cr`) at β 0.45 | none | **0.953** | **read 10-14 08:21 UTC → 🔁 Δ 0.000 vs C8 0.953 (✅ needed ≥ 0.955), inside the prediction (0.952–0.954); `v15cr` adds nothing readable to pick 1's leg, C8 (B18) stays (entry 2026-10-14 "Submissions #89 / #90"); COMPLETE by 08:21 (no watcher).** sent 20:58:08 UTC (ref 57156069) |
 | 90 | 2026-10-13 | rsna-knee-fork956 v4 (`src/build_fork954.py --anchor 0956 --members v15co v13b3 v15cr --beta 0.20`) | **C7′**: heliosli's public 0.956 blend (cells verbatim) + `v15co` + `v13b3` + `v15cr` at β 0.20 | none | **0.956** | **read 10-14 08:21 UTC → 🔁 no move inside the 0.956 tie (23rd of 761, rank 226; every tied team above us at 21:08 still above or moved to 0.957, the stable order unchanged, `artifacts/lb_1014/`) → C7′ ≤ C7 by its rule, B21 stays pick 2's leg (entry 2026-10-14 "Submissions #89 / #90"); COMPLETE by 08:21 (no watcher).** sent 21:08:30 UTC (ref 57156272) |
+| 91 | 2026-10-14 | rsna-knee-fork956 v5 (`src/build_fork954.py --anchor 0956v --members v15co v13b3 --beta 0.20 --gate-hours 7.0 --sec-per-study 3.0`) | **C9**: varshithakolupuri's public 0.956 variant (heliosli's 0.956 cells verbatim + nartaa's unused 224 px CoAtNet at 0.35 of the Raptor half, gated) + B21 (`v15co` + `v13b3`) at β 0.20 | none | ⏳ | placeholder green (`R224_STAGE ok=True`, `_ours.csv` = C7's exactly, `FINAL = beta0.20`). sent 09:02:08 UTC on Tian's go (ref 57175897); vs C7: ✅ ≥ 0.957 / a better 0.956 tie position than C7's 23rd of 761 = C9 > C7 / no move = keep C7 / ❌ ≤ 0.955 (entry 2026-10-14 "C9 built and sent") |
 
 ## Closed cards index (moved here from proposals.md on 2026-10-05)
 
