@@ -165,11 +165,13 @@ agreement with the teacher, not truth. A one-seed LB delta needs ≥ 0.004 (P-44
 | 2026-10-13 | **The public frontier moved to 0.956** (no GPU): heliosli's public `0-957-latest-dataset-score-in-one-click` = nartaa's 0.949 CoAtNet 0.5 + R7 0.5 (S6's ConvNeXt-S recipe + a fastMRI auxiliary loss, newer Opus targets, fluid / state stackers; no OAI in R7); 357 teams at exactly 0.956, 551 ≥ 0.955; we are rank 571 at 0.954 | — | — | **✅ a read: pick 2 (C5 0.954) is two ticks under a public notebook → C7 (it + B21 at β 0.20); C5′ dropped; R7 ≈ 0.945–0.950 alone by the fork rule (unmeasured), so C8 (R7 + our leg, if fastMRI is acceptable in pick 1) is priced at 0.950–0.954** (entry 2026-10-13 "The public frontier moved to 0.956") |
 | 2026-10-13 | **C7, submission #87 (`rsna-knee-fork956` v1, `src/build_fork954.py --anchor 0956`)**: heliosli's public 0.956 notebook verbatim + B21 (`v15co` + `v13b3`) at β 0.20 | — | **0.956** | **🔁 Δ 0.000 vs the anchor (✅ needed ≥ 0.958), but 14th of 547 in the 0.956 tie, above the verbatim copies: the arm ran, a sub-tick lift (g ≈ +0.002–0.003). Our best public number (rank 159 of 5,930), pick 2 by its rule in place of C5. Carries OAI on two paths (nartaa, `v15co`) + R7's fastMRI** (entry 2026-10-13 "Submissions #87 / #88") |
 | 2026-10-13 | **C8, submission #88 (`rsna-knee-fork956` v2, `--compact-anchor`)**: heliosli's R7 alone as the anchor (no CoAtNet stage, OAI-free; R7 = S6's recipe + a fastMRI auxiliary loss) + B18 (`v15c` + `v13b3`) at β 0.45 | — | **0.953** | **✅ +0.003 vs C6 0.950 (rule ✅ ≥ 0.952), one change (S6 → R7): our best OAI-free number, the pick-1 candidate by its rule if Tian accepts fastMRI. R7 alone ≈ 0.948–0.951 (+0.004–0.007 over S6). External-data check: fastMRI is click-through (NYU DSA, no fee / IRB / co-signature) → likely inside the host's 08-27 test, not ruled by name; OAI (C7) likely fails the host's 09-21 test (NIH country bar), not ruled** (same entry) |
+| 2026-10-14 | **C8′ / C7′, submissions #89 / #90 (`rsna-knee-fork956` v3 / v4)**: B22's extra member `v15cr` in each pick's leg: R7 alone + B22 at β 0.45 (OAI-free); the public 0.956 notebook + `v15co` + `v13b3` + `v15cr` at β 0.20 | — | **0.953 / 0.956** | **🔁 / 🔁: C8′ = C8 at three decimals (inside its 0.952–0.954 prediction); C7′ moved past no team in the 0.956 tie (23rd of 761, rank 226 of 5,958), so C7′ ≤ C7 by its rule. `v15cr` closed as a leg member; the picks keep B21 / B18; C6′ dropped. The notebook re-read found nartaa's unused 224 px checkpoint (varshithakolupuri, OAI-trained), whose lift ranks under ours in the same tie → C9** (entry 2026-10-14 "Submissions #89 / #90") |
 
 **External reference points** (not ours — for calibrating ambition):
 
 | Score | What |
 |---|---|
+| 0.966 | Public LB #1 (2026-10-14 08:21 UTC); 10th 0.964; **964 teams ≥ 0.956 of 5,958 (761 at exactly 0.956)**, 203 ≥ 0.957, 1,016 ≥ 0.955, 1,346 ≥ 0.954, 1,671 ≥ 0.950. **Our C7 #87 = 0.956, rank 226** (23rd in the 0.956 tie; heliosli rank 218, varshithakolupuri's 224-checkpoint notebook rank 369). No public notebook above 0.956 (entry 2026-10-14 "Submissions #89 / #90") |
 | 0.966 | Public LB #1 (2026-10-13 17:02 UTC); 10th 0.963; **692 teams ≥ 0.956 of 5,930 (547 at exactly 0.956)**, 145 ≥ 0.957, 87 ≥ 0.958, 757 ≥ 0.955, 1,226 ≥ 0.954 (469 at exactly 0.954), 1,581 ≥ 0.950. **Our C7 #87 = 0.956, rank 159** (14th in the 0.956 tie; heliosli 10th, rank 155) (entry 2026-10-13 "Submissions #87 / #88") |
 | 0.966 | Public LB #1 (2026-10-13 09:19 UTC); 10th 0.963; **551 teams ≥ 0.955 of 5,897, 357 at exactly 0.956** (the new plateau: heliosli's public `0-957-latest-dataset-score-in-one-click` = nartaa 0.949 (0.5) + R7 (0.5)), 1,136 ≥ 0.954 (585 at exactly 0.954), 1,520 ≥ 0.950. **Our C5 #80 = 0.954, rank 571** (20th of 585 in the 0.954 tie) (entry 2026-10-13 "The public frontier moved to 0.956") |
 | 0.966 | Public LB #1 (2026-10-12 17:34 UTC); 10th 0.963; **955 teams ≥ 0.954 of 5,846 (745 at exactly 0.954)**, 210 ≥ 0.955, 1,089 ≥ 0.951, 1,404 ≥ 0.950. **Our C5 #80 = 0.954, rank 238** (28th in the tie, which keeps growing: 620 → 745 in 10 h). heliosli 0.956 (rank 99), goodpjw2008 0.954 (270) |
@@ -5551,6 +5553,72 @@ scoring times are only bounded: C7 ≤ 6.9 h, C8 ≤ 6.7 h.
   - Caveat: teams enter the tie above us between the two pulls (14th of 547 at 17:02 → 19th of 620 at 21:08). Judge the move against
     the same neighbours, not the raw position.
 - **Scoring:** ≈ 6.5 h each (C7 / C8 on 10-13). Tian reads them himself (no watcher). All 5 slots of 10-13 are used.
+- **READ 10-14 08:21 UTC:** C8′ = 0.953 (🔁 = C8), C7′ = 0.956 with no move inside the tie (≤ C7 by its rule). Entry "Submissions
+  #89 / #90" below.
+
+### 2026-10-14 — Submissions #89 / #90: **C8′ = 0.953** (🔁 = C8) · **C7′ = 0.956, no move inside the tie** (C7′ ≤ C7 by its rule) · `v15cr` adds nothing readable to either pick's leg, so B21 / B18 stay · the public notebooks re-read: nartaa's unused 224 px checkpoint lifts the 0.956 anchor less than our leg does, and the two lifts have different sources → C9
+
+**Read** (08:21 UTC, `kaggle competitions submissions`; the full LB CSV at 08:21 UTC, `artifacts/lb_1014/`). No watcher ran, so the
+scoring times are only bounded: both were COMPLETE by 08:21 (≤ 11.4 h; uninformative).
+
+| # | what | parts (weight) | LB | pre-registered read (candidates.md C8′ / C7′) | verdict |
+|---|---|---|---|---|---|
+| 89 | C8′ = R7 alone + B22 (`v15c` + `v13b3` + `v15cr`) at β 0.45 (`rsna-knee-fork956` v3) | R7 ≈ 0.948–0.951 (0.55) / B22 0.945 (0.45) | **0.953** | vs C8 0.953: ✅ ≥ 0.955 / 🔁 0.952–0.954 / ❌ ≤ 0.951; pred. 0.952–0.954 | **🔁 Δ 0.000, inside the prediction** |
+| 90 | C7′ = the public 0.956 notebook + `v15co` + `v13b3` + `v15cr` at β 0.20 (`rsna-knee-fork956` v4) | anchor 0.956 (0.8) / leg unmeasured (0.2) | **0.956** | sign only: a better tie position than C7 against the same neighbours = C7′ > C7; no move = C7′ ≤ C7, keep B21 | **🔁 no move → C7′ ≤ C7 (+ the gap to the next team up)** |
+
+**The LB at 08:21 UTC:** top 0.966, 10th 0.964; 203 teams ≥ 0.957, **964 ≥ 0.956 (761 at exactly 0.956)**, 1,016 ≥ 0.955, 1,346 ≥ 0.954,
+1,671 ≥ 0.950; 5,958 teams. **We are rank 226** (C7; 179 at 21:08, 159 at 17:02 on 10-13), 23rd of 761 in the 0.956 tie.
+
+- **C7′, the tie read:**
+  - **No team was passed.** Of the 18 teams above us in the tie at 21:08, 13 are still at 0.956 and still above us, and 5 have moved
+    up to 0.957. The two directly above us then (Hancang Mi, kreininmv) are still directly above us, although both submitted again.
+    The team directly below (Pai, no new submission) is still directly below.
+  - **The tie order is stable:** the 315 tied teams with no new submission between the pulls keep their exact order (Spearman 1.0).
+    The new teams above us are 5 entrants to the tie and 4 teams that improved into it from below (4 of the 599 below us).
+  - **So C7′ ≤ C7 + the gap to kreininmv's best entry.** That gap is unknown, but 22 teams share the window between C7 and the next
+    tick, so it is likely small next to the +0.0002 the leg arithmetic predicted. By the pre-registered rule: no move, **B21 stays
+    pick 2's leg**.
+- **C8′:** = C8 at three decimals, inside the prediction (≈ +0.0005 by the leg arithmetic). C8 is not our best entry, so nothing
+  finer is readable. By Tian's bar (+0.001 worth considering) nothing was observed: **C8 stays pick 1's candidate** (B18 leg).
+- **What `v15cr` does and does not do:**
+  - Inside our own blend it adds +0.001 (B22, #86).
+  - At β 0.45 / 0.20 that is ≤ +0.0005 / +0.0002 on the forks, under what three decimals or the tie can show.
+  - Its lineage effect (k S6-like on nartaa's CoAtNet, #84) does not add on an anchor that already carries an Opus-report-trained model:
+    R7 (and S6) train on Opus report targets.
+  - **`v15cr` is closed as a leg member.** C6′ (S6 + B22) is dominated by C8 and dropped.
+- **The fork rule, a seventh and eighth time:** both reads sit inside their predictions. On the 0.956 anchor a leg change worth
+  +0.001 on its own LB moves the pick by a sub-tick that cannot be read.
+
+**The public notebooks re-read** (`kaggle kernels list` by score and by run date, 08:20 UTC; six pulled into the session scratchpad).
+- **No public notebook scores above 0.956.** The top of the score-sorted list is copies of heliosli's 0.956 notebook, mounting the same
+  three Datasets (R7, nartaa's SWA weights, OrthoFoundation): `evgendvorkin/rsna-versia-7` (403 votes), `degnonguidi`, `le4ves`,
+  `jashsurendra`, `raihanjs`, `jenillangaliya`. Their teams sit at 0.956, ranks 374–632. `jingshuifu/rsna-knee-p957-blend` is a refactor of
+  the old DINOsaur / Raptor-views stack (team at 0.956, rank 729). The 203 teams at ≥ 0.957 have no public notebook.
+- **`varshithakolupuri/rsna-knee-one-unused-checkpoint-lifts-the-0-956`** (48 votes, scored 0.956):
+  - nartaa's Dataset `rsna-knee-publication-swa-weights-20261007` holds a second checkpoint that no public blend used,
+    `raptor_ft_alldata_t16_blendjev_oai_d96_c08_r224_swa.pt`: CoAtNet-2 at 224 px on a 0.8 centre crop, "0.945 on its own", OAI-trained
+    like the 384 one.
+  - It runs nartaa's own 0.945 script on it as one extra stage and mixes it at 35 % of the Raptor half (fixed before any run). The
+    effective weights are Raptor-384 0.325 / Raptor-224 0.175 / R7 0.5.
+  - **It has its own time gate:** the stage runs only if ≥ 40 min of the 9 h remain, and any failure or timeout falls back to the
+    0.956 recipe. On the 3 visible studies it added 26 s.
+  - The author's claim: rank 233 → 156 inside the 0.956 tie, and 437 → 320 inside the 0.954 tie on the S6 recipe. `karttikjangid05`
+    published an explained copy that reproduces the visible CSV.
+- **Where it sits against us:** varshithakolupuri's team is rank 369 and karttikjangid05's 254, both at 0.956; C7 is 226. So on the
+  public split **our leg lifts the anchor by more than the 224 checkpoint does**. Caveat: those teams' best entries may not be that
+  notebook.
+- **The two lifts have different sources:** a different family at β 0.20 (ours) and a crop / resolution twin inside the Raptor half
+  (theirs). By the fork rule they should add. **C9** = varshithakolupuri's notebook + B21 at β 0.20 (candidates.md).
+  - It carries OAI on three paths (both CoAtNets and `v15co`), so it is for pick 2 only, the risk class C7 is already in.
+  - It needs no new mount: the 224 checkpoint is in the nartaa Dataset C7 already mounts.
+- **R7's Dataset has no unused checkpoint** (`kaggle datasets files heliosli/rsna-knee-compact-r7cnxfsss`: the four `E_lrprior` folds, the
+  side classifier, two stackers, a manifest). So there is no OAI-free analogue for pick 1.
+
+**Verdict:**
+- **C8′: 🔁** (Δ 0.000).
+- **C7′: 🔁**, no move in the tie, so C7′ ≤ C7 by its rule.
+- Both picks keep their legs (C7 = B21, C8 = B18), and `v15cr` is closed as a leg member.
+- **The notebook re-read: ✅ a read** → C9.
 
 ## Infrastructure
 
@@ -6087,8 +6155,8 @@ and public LB score, so a public/private divergence can be traced to a specific 
 | 86 | 2026-10-13 | rsna-knee-infer v78 (`artifacts/infer_b22.py`) | **B22**: `INFER_MEMBERS = ["v15c", "v13b3", "v15cr"]`, flat rank-mean (does a member on different targets count as a new family?) | none; gold-58 0.9273 | **0.945** | **read by 09:17 UTC → 🔁 +0.001 vs B18 0.944 (✅ needed ≥ 0.946), above both predicted bands; +0.007 over the members' mean; our best own-model number; the C6′ gate (≥ 0.945) fires; scored within ≤ 69 min (no watcher).** Armed for 10-13 00:00:30 UTC (`auto_submit.py` pid 27732), which died when the laptop was shut down overnight; sent by hand 08:07:55 UTC, ref 57136143 |
 | 87 | 2026-10-13 | rsna-knee-fork956 v1 (`src/build_fork954.py --anchor 0956 --members v15co v13b3 --beta 0.20`) | **C7**: heliosli's public 0.956 blend (nartaa's 0.949 CoAtNet 0.5 + R7 0.5, cells verbatim) + B21 (`v15co` + `v13b3`) at β 0.20 | none | **0.956** | **read by 16:57 UTC → 🔁 Δ 0.000 vs the 0.956 anchor (✅ needed ≥ 0.958), but 14th of 547 in the 0.956 tie (rank 159 of 5,930), above the notebook's verbatim copies: the arm ran, a sub-tick lift; fork-rule gain ≈ +0.002–0.003; our best public number, pick 2's candidate by its rule (≥ 0.955), in place of C5. Carries OAI twice (nartaa's CoAtNet, our `v15co`) + R7's fastMRI (entry "Submissions #87 / #88"); scored within ≤ 6.9 h (no watcher).** placeholder green (R7 PASS 3 / 3, `_ours.csv` = infer v75 exactly, `FINAL = beta0.20`). sent 10:05:59 UTC on Tian's go, ref 57139166 |
 | 88 | 2026-10-13 | rsna-knee-fork956 v2 (`src/build_fork954.py --anchor 0956 --compact-anchor --members v15c v13b3 --beta 0.45`) | **C8**: heliosli's R7 alone as the anchor (no CoAtNet stage, nartaa not mounted: OAI-free; R7 = S6's recipe + a fastMRI auxiliary loss) + B18 (`v15c` + `v13b3`) at β 0.45 | none | **0.953** | **read by 16:57 UTC → ✅ +0.003 vs C6 0.950 (rule ✅ ≥ 0.952): our best OAI-free number, the pick-1 candidate by its rule if fastMRI is accepted (Tian's call). With C6's k (0.020–0.028), R7 alone ≈ 0.948–0.951, +0.004–0.007 over S6 (entry "Submissions #87 / #88"); scored within ≤ 6.7 h (no watcher).** placeholder green (`R7_FALLBACK unscored 0 of 3`, `_ours.csv` = C6's B18 exactly, `FINAL = beta0.45`). sent 10:19:19 UTC on Tian's go, ref 57139528 |
-| 89 | 2026-10-13 | rsna-knee-fork956 v3 (`src/build_fork954.py --anchor 0956 --compact-anchor --members v15c v13b3 v15cr --beta 0.45`) | **C8′**: R7 alone as the anchor (OAI-free; fastMRI inside R7) + B22 (`v15c` + `v13b3` + `v15cr`) at β 0.45 | none | ⏳ | sent 20:58:08 UTC (ref 57156069); vs C8 0.953: ✅ ≥ 0.955 / 🔁 0.952–0.954 / ❌ ≤ 0.951 (entry 2026-10-13 "C8′ and C7′ built and sent") |
-| 90 | 2026-10-13 | rsna-knee-fork956 v4 (`src/build_fork954.py --anchor 0956 --members v15co v13b3 v15cr --beta 0.20`) | **C7′**: heliosli's public 0.956 blend (cells verbatim) + `v15co` + `v13b3` + `v15cr` at β 0.20 | none | ⏳ | sent 21:08:30 UTC (ref 57156272); sign read only: a better position inside the 0.956 tie than 19th of 620 (21:08 UTC, `artifacts/lb_1013c/`) = C7′ > C7; no move = keep B21 (same entry) |
+| 89 | 2026-10-13 | rsna-knee-fork956 v3 (`src/build_fork954.py --anchor 0956 --compact-anchor --members v15c v13b3 v15cr --beta 0.45`) | **C8′**: R7 alone as the anchor (OAI-free; fastMRI inside R7) + B22 (`v15c` + `v13b3` + `v15cr`) at β 0.45 | none | **0.953** | **read 10-14 08:21 UTC → 🔁 Δ 0.000 vs C8 0.953 (✅ needed ≥ 0.955), inside the prediction (0.952–0.954); `v15cr` adds nothing readable to pick 1's leg, C8 (B18) stays (entry 2026-10-14 "Submissions #89 / #90"); COMPLETE by 08:21 (no watcher).** sent 20:58:08 UTC (ref 57156069) |
+| 90 | 2026-10-13 | rsna-knee-fork956 v4 (`src/build_fork954.py --anchor 0956 --members v15co v13b3 v15cr --beta 0.20`) | **C7′**: heliosli's public 0.956 blend (cells verbatim) + `v15co` + `v13b3` + `v15cr` at β 0.20 | none | **0.956** | **read 10-14 08:21 UTC → 🔁 no move inside the 0.956 tie (23rd of 761, rank 226; every tied team above us at 21:08 still above or moved to 0.957, the stable order unchanged, `artifacts/lb_1014/`) → C7′ ≤ C7 by its rule, B21 stays pick 2's leg (entry 2026-10-14 "Submissions #89 / #90"); COMPLETE by 08:21 (no watcher).** sent 21:08:30 UTC (ref 57156272) |
 
 ## Closed cards index (moved here from proposals.md on 2026-10-05)
 
