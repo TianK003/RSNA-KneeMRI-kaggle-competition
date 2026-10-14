@@ -5676,6 +5676,35 @@ scratchpad):
 
 **Verdict: ⏳ PENDING (#91).**
 
+### 2026-10-14 — What else could lift the 0.956 (Tian: "any other combination … a blend of our models added?"): no blend of our existing checkpoints can buy a readable lift, and no unused trained public checkpoint is left besides the 224 one (C9) · ✅ a read (no GPU)
+
+- **Our models in the leg:**
+  - Price on the 0.956 anchor: lift ≈ k·β(1 − β) − β·Δ, with Δ = anchor − leg.
+  - For B21 (0.946, Δ = 0.010, k ≈ 0.012–0.018 from C7) the best β is ≈ 0.10–0.25 and the most it can add is ≈ +0.0002–0.0005. β 0.20
+    is at that optimum.
+  - Every leg we can assemble has been read: B21 0.946 is the best (OAI). B22 / B18 are 0.945 / 0.944, and the six-member flat blends
+    read under the two-family ones. Adding `v15cr` to the pick-2 leg moved nothing (C7′ #90).
+  - Only a stronger leg (smaller Δ) or a more different one (larger k) changes this, and both mean training. At β 0.20 each +0.001 on the
+    leg is ≈ +0.0002 on pick 2; at pick 1's β 0.45 it is ≈ +0.00045.
+- **Public weights of the two authors behind the 0.956** (`kaggle datasets list --user nartaa / heliosli`, `datasets files`, the
+  manifests):
+  - nartaa: only `rsna-knee-publication-swa-weights-20261007`. Its second checkpoint (224 px) is C9's. The other path in nartaa's
+    script (`rsna-knee-oai-original384-s42-pair`) is not a public Dataset.
+  - **`heliosli/rsna-knee-compact-r6cnxfsss` ("R6") is S6 re-uploaded:** the same bundle id `209a32c8b50a6b1c`, tag `cnx_s6`, the same
+    `probe_targets_opusv11b_rr3_plv21_cdr` targets, and no fastMRI branch. S6 + R7 is one pipeline on two target versions. Adding S6 to
+    the 0.956 notebook would cost another ≈ 3 h (S6 alone ≈ 3.0 h on the hidden test, from C5 / C6), which the 9 h limit does not leave.
+  - **`heliosli/rsna-orthofoundation-fold0-epoch7-20261004`** holds a 1.2 GB `weights.part000–009` model besides the SKM-TEA anatomy
+    model and the KneeXNet weights. It is the **OrthoFoundation-L self-supervised backbone**, loaded by heliosli's stage 2 only when a
+    bundle's `backbone` is `ofl_l`; R7's is `convnext_small`. It is not a classifier for our 12 findings. Using it means training a model,
+    and its pretraining data is undocumented (an external-data question). `yuvrajlamba01`'s "Multiscale OrthoFoundation" notebook is
+    varshithakolupuri's recipe under a new title.
+- **Knobs inside the anchor** (the Raptor / R7 weights, the 224 share, mirror TTA on the 224 stage): others read 40/60, 50/50 and 60/40
+  all at 0.956 (karttikjangid05). These are public-LB tuning, which Kaggle staff warned "tend to drop on the private leaderboard", and
+  three decimals cannot read them.
+
+**Verdict: ✅ a read.** After C9 there is no cheap combination left on the 0.956 anchor. Model work moves the picks most through pick 1's
+leg (β 0.45). Training starts after the 10-17 Kaggle reset or on RunPod.
+
 ## Infrastructure
 
 ### 2026-09-27 — The "0.943 Speedy Raptors CoAtNet D4" notebook is our anchor **plus two CoAt readers**, not a faster graph; its "< 30 min" is a 3-study commit run · P-41 (threaded scan + 8 decode workers) smoke-green and byte-identical
