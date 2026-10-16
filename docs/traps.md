@@ -1353,3 +1353,22 @@ the match was the echoed command line, not the log. **Do:** make the success / f
 contain, e.g. `grep -q 'training targets' <log> && echo TR""AIN_STARTED`, and match `^TRAIN_STARTED` in the output (the echo shows
 `TR""AIN_STARTED`). Related friction on the same pod: `get-capacity` priced a secure A40 at $0.35/h, while the created pod billed $0.59/h
 (`get-pod` `cost`). Read the price from the created pod, and say so before the run.
+
+### 72. A public Dataset's name can outlive its contents: `heliosli/rsna-knee-r6-frozen-fe055406` holds R7 since its v2, and the 0.957 / 0.958 notebooks need R6 from v1 / `-w1` (Tier 3, 2026-10-16)
+
+heliosli re-uploaded his frozen-bundle Dataset on 10-14 at 18:12 UTC. Version 2 of `rsna-knee-r6-frozen-fe055406` holds R7 (bundle
+`8c7b666e27dc0e8f`, the manifest byte-identical to `compact-r7cnxfsss`), not the R6 bundle `fe055406fad6a12f` in its name. A fork of the
+0.957 / 0.958 notebooks that mounts the Dataset at its latest version stops at `assert manifest['bundle_id'] == BUNDLE_ID`, after its
+CoAtNet stages have run. The name "R6" also means two different bundles: `compact-r6cnxfsss` is S6 re-uploaded (`209a32c8…`), and the
+new R6 is `fe055406…` (experiments.md 2026-10-16 "Submission #91 and the 0.957 / 0.958 frontier"). **Do:** pin a third-party bundle
+Dataset by version in `kernel-metadata.json` (or mount the byte-identical `heliosli/…-w1` / `rostigor/rsna-knee-r6-fe055406`), and check
+the mounted manifest's `bundle_id` in the builder before any push.
+
+### 73. A public anchor notebook can embed the placeholder test StudyInstanceUIDs, and this repo is public (Tier 1 for data handling, caught 2026-10-16 before any commit)
+
+nartaa's `rsna-knee-s6fall-solo` script (pulled 10-16 as a C11 builder input) contains the 3 placeholder test StudyInstanceUIDs from
+`test.csv`. The repo-root `notebook_score_*` anchors are committed, and `gh repo view` reports the repo as **PUBLIC**. Committing that
+script would have published competition data, which CLAUDE.md ("Rules") keeps out of any public location. The eight other anchors carry no
+train or test UID (checked against `data/train.csv` / `data/test.csv`). **Do:** before committing any pulled notebook or script, count
+the `test.csv` / `train.csv` StudyInstanceUIDs in it (a short Python check against the CSVs); if any is present, keep the file under
+`artifacts/anchors/` (gitignored). Stage files by name, never with `git add -A`.
