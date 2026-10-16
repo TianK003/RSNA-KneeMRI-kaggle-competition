@@ -167,11 +167,13 @@ agreement with the teacher, not truth. A one-seed LB delta needs ≥ 0.004 (P-44
 | 2026-10-13 | **C8, submission #88 (`rsna-knee-fork956` v2, `--compact-anchor`)**: heliosli's R7 alone as the anchor (no CoAtNet stage, OAI-free; R7 = S6's recipe + a fastMRI auxiliary loss) + B18 (`v15c` + `v13b3`) at β 0.45 | — | **0.953** | **✅ +0.003 vs C6 0.950 (rule ✅ ≥ 0.952), one change (S6 → R7): our best OAI-free number, the pick-1 candidate by its rule if Tian accepts fastMRI. R7 alone ≈ 0.948–0.951 (+0.004–0.007 over S6). External-data check: fastMRI is click-through (NYU DSA, no fee / IRB / co-signature) → likely inside the host's 08-27 test, not ruled by name; OAI (C7) likely fails the host's 09-21 test (NIH country bar), not ruled** (same entry) |
 | 2026-10-14 | **C8′ / C7′, submissions #89 / #90 (`rsna-knee-fork956` v3 / v4)**: B22's extra member `v15cr` in each pick's leg: R7 alone + B22 at β 0.45 (OAI-free); the public 0.956 notebook + `v15co` + `v13b3` + `v15cr` at β 0.20 | — | **0.953 / 0.956** | **🔁 / 🔁: C8′ = C8 at three decimals (inside its 0.952–0.954 prediction); C7′ moved past no team in the 0.956 tie (23rd of 761, rank 226 of 5,958), so C7′ ≤ C7 by its rule. `v15cr` closed as a leg member; the picks keep B21 / B18; C6′ dropped. The notebook re-read found nartaa's unused 224 px checkpoint (varshithakolupuri, OAI-trained), whose lift ranks under ours in the same tie → C9** (entry 2026-10-14 "Submissions #89 / #90") |
 | 2026-10-16 | **C9, submission #91 (`rsna-knee-fork956` v5, `--anchor 0956v`)**: varshithakolupuri's public 0.956 variant (nartaa's 384 + unused 224 px CoAtNets at 0.65 / 0.35 of the Raptor half, R7) + B21 (`v15co` + `v13b3`) at β 0.20 | — | **0.956** | **🔁 at three decimals; C9 > C7 by sign (team 16679021, 10 places above C7 in the tie on 10-14, is now directly below us; a best cannot fall) → pick 2 = C9 by its rule. Rank 774 of 6,079 (26th of 701 at 0.956): the public frontier moved to 0.958 (R6 + flip TTA = 0.957; + heliosli's per-finding Raptor weights = 0.958), and nartaa's `s6fall` (0.950 alone, no OAI / fastMRI) is public → C10 / C11** (entry 2026-10-16 "Submission #91 and the 0.957 / 0.958 frontier") |
+| 2026-10-16 | **C11 / C10 / C10w, submissions #92 / #93 / #94 (`rsna-knee-forks6f` v1, `rsna-knee-fork957` v1, `rsna-knee-fork958` v1)**: nartaa's `s6fall` alone + B18 at β 0.45 (no OAI, no fastMRI); heliosli's R6 + flip TTA notebook + B21 at β 0.20; his 0.958 `blend-mine-in` + B21 at β 0.20 | — | **0.952 / 0.957 / 0.957** | **🔁 / 🔁 / ❌. C11 sits at the low end of its 0.952–0.954 prediction (k ≈ 0.015–0.023 vs B18, at or under S6's 0.020–0.028) and becomes the fastMRI-free pick 1 in place of C6. C10 = its anchor at three decimals and +0.001 over C9, so it is pick 2's candidate. C10w reads one tick under its 0.958 anchor, and the arm ran: the anchor is deterministic (degnonguidi's hash copy sits directly under heliosli in the tie). On a ≥ 0.957 anchor B21 at β 0.20 is break-even to a cost, which closes leg work for pick 2. Our best is 0.957, rank 617 of 6,103 (12th of 315 at 0.957)** (entry 2026-10-16 "Submissions #92–#94") |
 
 **External reference points** (not ours — for calibrating ambition):
 
 | Score | What |
 |---|---|
+| 0.968 | Public LB #1 (2026-10-16 18:30 UTC); 10th 0.964, 50th 0.961, 100th 0.959; **605 teams ≥ 0.958 of 6,103 (481 at exactly 0.958; 278 at 11:29), 920 ≥ 0.957 (315 at exactly)**, 124 ≥ 0.959, 1,513 ≥ 0.956 (593 at exactly), 1,756 ≥ 0.954, 1,996 ≥ 0.950. The 0.958 block is copies of heliosli's `blend-mine-in` (degnonguidi's hash copy sits directly under heliosli, ranks 480 / 481). The top 9 did not move. **Our C10 / C10w (#93 / #94) = 0.957, rank 617** (12th of 315 at 0.957; 774 at 11:29). No new public anchor: heliosli's 0.957 notebook re-ran at 18:32 UTC with byte-identical code cells (entry 2026-10-16 "Submissions #92–#94") |
 | 0.968 | Public LB #1 (2026-10-16 11:29 UTC); 10th 0.964; **748 teams ≥ 0.957 of 6,079 (360 at exactly 0.957), 388 ≥ 0.958 (278 at exactly 0.958)**, 1,449 ≥ 0.956 (701 at exactly), 1,695 ≥ 0.954, 1,939 ≥ 0.950. 0.957 = heliosli's R6 + flip TTA notebook; 0.958 = + his per-finding Raptor weights (`blend-mine-in-private-lb-luck-to-all-upvoters`). **Our C9 #91 = 0.956, rank 774** (26th in the 0.956 tie; heliosli 0.958 rank 314) (entry 2026-10-16 "Submission #91 and the 0.957 / 0.958 frontier") |
 | 0.966 | Public LB #1 (2026-10-14 08:21 UTC); 10th 0.964; **964 teams ≥ 0.956 of 5,958 (761 at exactly 0.956)**, 203 ≥ 0.957, 1,016 ≥ 0.955, 1,346 ≥ 0.954, 1,671 ≥ 0.950. **Our C7 #87 = 0.956, rank 226** (23rd in the 0.956 tie; heliosli rank 218, varshithakolupuri's 224-checkpoint notebook rank 369). No public notebook above 0.956 (entry 2026-10-14 "Submissions #89 / #90") |
 | 0.966 | Public LB #1 (2026-10-13 17:02 UTC); 10th 0.963; **692 teams ≥ 0.956 of 5,930 (547 at exactly 0.956)**, 145 ≥ 0.957, 87 ≥ 0.958, 757 ≥ 0.955, 1,226 ≥ 0.954 (469 at exactly 0.954), 1,581 ≥ 0.950. **Our C7 #87 = 0.956, rank 159** (14th in the 0.956 tie; heliosli 10th, rank 155) (entry 2026-10-13 "Submissions #87 / #88") |
@@ -5935,6 +5937,76 @@ scratchpad):
 
 **Verdict: ⏳ PENDING (#92, #93, #94).**
 
+**READ 2026-10-16 18:29 UTC:** #92 C11 = **0.952** (🔁), #93 C10 = **0.957** (🔁), #94 C10w = **0.957** (❌ by its rule, with the arm
+run). The read is the next entry, "Submissions #92–#94".
+
+### 2026-10-16 — Submissions #92–#94: **C11 = 0.952** (the fastMRI-free pick 1, in place of C6) · **C10 = 0.957** (pick 2's candidate, +0.001 over C9) · **C10w = 0.957**, one tick under its 0.958 anchor: on a ≥ 0.957 anchor B21 at β 0.20 no longer adds
+
+**Read** (18:29 UTC, `kaggle competitions submissions`; the full LB CSV at 18:30 UTC, `artifacts/lb_1016b/`). The three watchers died
+with the 10-16 session after their first poll (traps 69), so the scoring times are bounded only: all three were COMPLETE by 18:29 UTC,
+within ≤ 6.2 / 6.1 / 5.9 h of sending.
+
+| # | what | parts (weight) | LB | pre-registered read | verdict |
+|---|---|---|---|---|---|
+| 92 | C11 = nartaa's `s6fall` alone (component A not run) + B18 at β 0.45 (`rsna-knee-forks6f` v1) | s6fall 0.950 (0.55) / B18 0.944 (0.45) | **0.952** | vs C8 0.953 / C6 0.950, pred. 0.952–0.954: ✅ ≥ 0.953 / 🔁 0.951–0.952 → the fastMRI-free pick 1 in place of C6 / ❌ ≤ 0.950 | **🔁 → the fastMRI-free pick 1 = C11, in place of C6** |
+| 93 | C10 = heliosli's R6 + flip notebook (`C_SLUG` → `-w1`) + B21 at β 0.20 (`rsna-knee-fork957` v1) | anchor 0.957 (0.8) / B21 0.946 (0.2) | **0.957** | vs the anchor 0.957: ✅ ≥ 0.958 / 🔁 0.957 (the tie position is readable only if it is our best entry) / ❌ ≤ 0.956 | **🔁 = the anchor at three decimals; its tie position is unread (C10w is most likely our best entry); +0.001 over C9 → pick 2's candidate** |
+| 94 | C10w = heliosli's 0.958 `blend-mine-in` + B21 at β 0.20 (`rsna-knee-fork958` v1) | anchor 0.958 (0.8) / B21 0.946 (0.2) | **0.957** | vs the anchor 0.958: ✅ ≥ 0.959 / 🔁 0.958 / ❌ ≤ 0.957 (harmful or a skipped arm) | **❌ harmful: the arm ran and cost the anchor its tick** |
+
+- **C10w's arm ran.** A skipped arm writes the anchor's own output, and the anchor is deterministic on the hidden test. heliosli (rank
+  480) and degnonguidi's hash-identical copy (481) sit adjacent inside the 0.958 tie, the earlier submission first, as identical
+  unrounded scores do. A skipped arm would therefore have read 0.958, so B21 at β 0.20 moved the anchor below 0.9575.
+  - heliosli is 356th of the 481 at 0.958. So the anchor's unrounded score b sits in the lower part of its tick, but not at the floor:
+    125 teams lie between it and 0.9575, and C10w is below all of them.
+- **Our best entry:** 0.957, rank 617 of 6,103, 12th of 315 at 0.957 (rank 774 at 11:29).
+  - It ranks above prvsiyan (837; a byte reproduction of the plain 0.957 notebook, "V1 0.957"), nartaa (748) and leoprovorov (716).
+  - Which of C10 / C10w it is cannot be read. C10w − C10 ≈ 0.8 × (b − a), where a is the plain 0.957 notebook's unrounded score
+    (b ≥ 0.9575 > a), and both carry the same leg. So C10w is most likely the best entry, and C10's own tie position stays unread, as
+    pre-registered.
+- **The fork arithmetic:** fork ≈ (1 − β) × anchor + β × leg + k β (1 − β).
+  - **C10w:** it is < 0.9575 with b ≥ 0.9575 and B21 0.946. So the diversity gain g = 0.16 k < 0.9575 − 0.8 b − 0.2 × 0.946 =
+    0.0015–0.0023 (b from 0.9585 down to 0.9575), and k < 0.009–0.014. That is inside the heliosli-anchor range (+0.0014–0.0026 at
+    β 0.20), at its low end: **the fork rule held.** What changed is the weighted-mean cost, 0.2 × (b − 0.946) ≈ 0.0023–0.0025, which
+    now exceeds the gain.
+  - **C10:** 0.8 a + 0.2 × 0.946 + g with a ∈ [0.9565, 0.9575) and g ∈ [0.0014, 0.0023). So C10 − a ≈ −0.0009 to +0.0002: the anchor's
+    tick, as read.
+  - **The leg's break-even on a 0.958 anchor at β 0.20** is anchor − 0.8 k ≈ 0.947–0.951: B21 (0.946) sits under it. By the same rule
+    the best β is ≤ 0.07 and worth ≤ +0.0001. **On pick 2 our leg can no longer buy a readable amount; only the anchor side moves pick
+    2.**
+  - **C11:** 0.55 × 0.950 + 0.45 × 0.944 = 0.9473, so 0.952 gives g ≈ 0.0037–0.0057 and k ≈ 0.015–0.023 (C6 / S6: 0.020–0.028).
+    nartaa's JEV labels make s6fall no more complementary to B18 than S6 is. Its +0.006 solo edge over S6 passed through at 0.55:
+    C11 − C6 = +0.002, against an expected ≈ +0.003.
+  - **R7 alone, from C8 (0.953):** ≈ 0.950–0.954 with C11's k, ≈ 0.948–0.951 with C6's; together ≈ 0.948–0.954.
+- **The LB at 18:30 UTC:**
+  - Top 0.968 (CentralyDS), 10th 0.964, 50th 0.961, 100th 0.959; 6,103 teams. The top 9 did not move since 11:29.
+  - 124 ≥ 0.959; **605 ≥ 0.958, 481 at exactly 0.958** (278 at 11:29); 920 ≥ 0.957, 315 at exactly; 1,513 ≥ 0.956 (593 at exactly);
+    1,756 ≥ 0.954; 1,996 ≥ 0.950.
+  - Of the 481 now at 0.958, 268 were there at 11:29, 81 came from 0.957 and 93 from 0.956. Of the 315 at 0.957, 276 were there and 32
+    came from 0.956.
+  - Where the anchors' authors stand: goodpjw2008 0.958 (rank 257), heliosli 0.958 (480), degnonguidi 0.958 (481), varshithakolupuri
+    0.958 (506; 0.957 at 11:29), leoprovorov 0.957 (716), nartaa 0.957 (748), prvsiyan 0.957 (837).
+- **No new public anchor** (`kaggle kernels list --sort-by dateRun`, 18:35 UTC):
+  - heliosli's 0.957 notebook re-ran at 18:32 UTC with its seven code cells byte-identical to `notebook_score_0.957.ipynb`. Its metadata
+    now also mounts goodpjw2008's 2.5D reader Dataset and kernel, which the cells do not use.
+  - goodpjw2008's `coatnet-r6-2-5d-mil-lb-0-958` is the 0.958 recipe with his 2.5D reader at small weights (rank 257, above heliosli).
+  - Nothing public reads above 0.958.
+
+**What it means for us:**
+- **Pick 1:** the ladder is C8 0.953 (R7, fastMRI inside) > **C11 0.952** (no OAI, no fastMRI; the s6fall weights are CC BY-NC 4.0) >
+  C6 0.950. If fastMRI fails the host's 10-14 test (brainstorm.md), pick 1 = C11. Pricing R7 + s6fall was gated on C11 ≥ 0.953, which
+  did not fire. It is priced anyway as C12 in candidates.md, because its value does not depend on C11's level: pred. 0.953–0.956 vs
+  C8, needing fastMRI.
+- **Pick 2:** C10 (0.957, no probed weights) replaces C9 (0.956) by the shortlist rule ("C9, or C10 if it reads ≥ 0.957"). C10w reads
+  the same three decimals with five public-probed weights and is most likely a sub-tick above C10 on the public split. On the private
+  70 % the probed weights should give back their public gain. Tian decides on 10-21.
+- **The own leg now matters for pick 1 only.** On pick 2, B21 at β 0.20 is break-even (C10) to a cost (C10w) on a ≥ 0.957 anchor. On
+  pick 1 the anchors (R7 / s6fall) sit only 0.005–0.008 above B18, so each +0.001 on the leg is still ≈ +0.00045.
+
+**Verdict:**
+- **C11 #92: 🔁** (0.952, the low end of its prediction) → the fastMRI-free pick 1 = C11, in place of C6.
+- **C10 #93: 🔁** = its anchor at three decimals; +0.001 over C9 → pick 2's candidate in place of C9.
+- **C10w #94: ❌** by its rule (≤ 0.957), with the arm run: B21 at β 0.20 lowers a 0.958 anchor. The fork rule held, with its gain at
+  the low end. Own-leg work for pick 2 is closed (proposals.md Dropped directions).
+
 ## Infrastructure
 
 ### 2026-09-27 — The "0.943 Speedy Raptors CoAtNet D4" notebook is our anchor **plus two CoAt readers**, not a faster graph; its "< 30 min" is a 3-study commit run · P-41 (threaded scan + 8 decode workers) smoke-green and byte-identical
@@ -6473,9 +6545,9 @@ and public LB score, so a public/private divergence can be traced to a specific 
 | 89 | 2026-10-13 | rsna-knee-fork956 v3 (`src/build_fork954.py --anchor 0956 --compact-anchor --members v15c v13b3 v15cr --beta 0.45`) | **C8′**: R7 alone as the anchor (OAI-free; fastMRI inside R7) + B22 (`v15c` + `v13b3` + `v15cr`) at β 0.45 | none | **0.953** | **read 10-14 08:21 UTC → 🔁 Δ 0.000 vs C8 0.953 (✅ needed ≥ 0.955), inside the prediction (0.952–0.954); `v15cr` adds nothing readable to pick 1's leg, C8 (B18) stays (entry 2026-10-14 "Submissions #89 / #90"); COMPLETE by 08:21 (no watcher).** sent 20:58:08 UTC (ref 57156069) |
 | 90 | 2026-10-13 | rsna-knee-fork956 v4 (`src/build_fork954.py --anchor 0956 --members v15co v13b3 v15cr --beta 0.20`) | **C7′**: heliosli's public 0.956 blend (cells verbatim) + `v15co` + `v13b3` + `v15cr` at β 0.20 | none | **0.956** | **read 10-14 08:21 UTC → 🔁 no move inside the 0.956 tie (23rd of 761, rank 226; every tied team above us at 21:08 still above or moved to 0.957, the stable order unchanged, `artifacts/lb_1014/`) → C7′ ≤ C7 by its rule, B21 stays pick 2's leg (entry 2026-10-14 "Submissions #89 / #90"); COMPLETE by 08:21 (no watcher).** sent 21:08:30 UTC (ref 57156272) |
 | 91 | 2026-10-14 | rsna-knee-fork956 v5 (`src/build_fork954.py --anchor 0956v --members v15co v13b3 --beta 0.20 --gate-hours 7.0 --sec-per-study 3.0`) | **C9**: varshithakolupuri's public 0.956 variant (heliosli's 0.956 cells verbatim + nartaa's unused 224 px CoAtNet at 0.35 of the Raptor half, gated) + B21 (`v15co` + `v13b3`) at β 0.20 | none | **0.956** | **read 10-16 11:29 UTC → 🔁 at three decimals, but C9 > C7 by sign: team 16679021, 10 places above C7 in the 0.956 tie on 10-14 (rank 216 vs our 226), is now directly below us (775 vs 774), and a team's best cannot fall. By its rule pick 2 = C9 in place of C7; the lift is sub-tick (entry 2026-10-16 "Submission #91 and the 0.957 / 0.958 frontier"); scored by 10-16 (no watcher; the 10-14 watcher died with the session).** placeholder green (`R224_STAGE ok=True`, `_ours.csv` = C7's exactly, `FINAL = beta0.20`). sent 09:02:08 UTC on Tian's go (ref 57175897); vs C7: ✅ ≥ 0.957 / a better 0.956 tie position than C7's 23rd of 761 = C9 > C7 / no move = keep C7 / ❌ ≤ 0.955 (entry 2026-10-14 "C9 built and sent") |
-| 92 | 2026-10-16 | rsna-knee-forks6f v1 (`src/build_fork954.py --anchor 0950s6f --members v15c v13b3 --beta 0.45`) | **C11**: nartaa's s6fall alone as the anchor (S6 architecture on JEV labels, 0.950 public alone; component A, his OAI CoAtNet, not run and not mounted; B-failed studies mean-filled; no OAI, no fastMRI) + B18 (`v15c` + `v13b3`) at β 0.45 | none | ⏳ | placeholder green (`K1_DONE`, A 0 s, B 0 failed; `_anchor_0950.csv` = nartaa's own s6fall output exactly; `_ours.csv` = C8's exactly; `FINAL = beta0.45`). sent 12:19:45 UTC on Tian's go (ref 57268784); vs C8 0.953 / C6 0.950: ✅ ≥ 0.953 / 🔁 0.951–0.952 / ❌ ≤ 0.950 (entry 2026-10-16 "C11, C10 and C10w built and sent") |
-| 93 | 2026-10-16 | rsna-knee-fork957 v1 (`src/build_fork954.py --anchor 0957 --members v15co v13b3 --beta 0.20 --gate-hours 7.5 --sec-per-study 3.0`) | **C10**: heliosli's public R6 + flip TTA notebook (verbatim but `C_SLUG` → the `-w1` copy of R6; Raptor half 0.65 × 384 + 0.35 × 224, R6 0.5) + B21 (`v15co` + `v13b3`) at β 0.20 | none | ⏳ | placeholder green (R6 from `-w1`, flip TTA on, PASS 3 / 3; `_anchor_0957.csv` = heliosli's own output exactly; `_ours.csv` = C9's exactly; `FINAL = beta0.20`). sent 12:23:30 UTC on Tian's go (ref 57268876); vs the anchor 0.957: ✅ ≥ 0.958 / 🔁 0.957 / ❌ ≤ 0.956 (entry 2026-10-16 "C11, C10 and C10w built and sent") |
-| 94 | 2026-10-16 | rsna-knee-fork958 v1 (`src/build_fork954.py --anchor 0958 --members v15co v13b3 --beta 0.20 --gate-hours 7.5 --sec-per-study 3.0`) | **C10w**: heliosli's public 0.958 `blend-mine-in` (verbatim: C10's anchor + Raptor-half weights Synovitis 0.80 / Lateral OA 0.20 / PF OA 0.60 / Baker's 0.35, others 0.50) + B21 (`v15co` + `v13b3`) at β 0.20 | none | ⏳ | placeholder green (per-finding weights in the receipt; `_anchor_0958.csv` = heliosli's own output exactly; `_ours.csv` = C9's exactly; `FINAL = beta0.20`). sent 12:32:48 UTC on Tian's go (ref 57269124); vs the anchor 0.958: ✅ ≥ 0.959 / 🔁 0.958 / ❌ ≤ 0.957 (entry 2026-10-16 "C11, C10 and C10w built and sent") |
+| 92 | 2026-10-16 | rsna-knee-forks6f v1 (`src/build_fork954.py --anchor 0950s6f --members v15c v13b3 --beta 0.45`) | **C11**: nartaa's s6fall alone as the anchor (S6 architecture on JEV labels, 0.950 public alone; component A, his OAI CoAtNet, not run and not mounted; B-failed studies mean-filled; no OAI, no fastMRI) + B18 (`v15c` + `v13b3`) at β 0.45 | none | **0.952** | **read 10-16 18:29 UTC → 🔁, the low end of its 0.952–0.954 prediction: C8 − 0.001, C6 + 0.002; k ≈ 0.015–0.023 vs B18. By its rule the fastMRI-free pick 1 = C11, in place of C6 (entry 2026-10-16 "Submissions #92–#94"); COMPLETE within ≤ 6.2 h (the watcher died with the session).** placeholder green (`K1_DONE`, A 0 s, B 0 failed; `_anchor_0950.csv` = nartaa's own s6fall output exactly; `_ours.csv` = C8's exactly; `FINAL = beta0.45`). sent 12:19:45 UTC on Tian's go (ref 57268784); vs C8 0.953 / C6 0.950: ✅ ≥ 0.953 / 🔁 0.951–0.952 / ❌ ≤ 0.950 (entry 2026-10-16 "C11, C10 and C10w built and sent") |
+| 93 | 2026-10-16 | rsna-knee-fork957 v1 (`src/build_fork954.py --anchor 0957 --members v15co v13b3 --beta 0.20 --gate-hours 7.5 --sec-per-study 3.0`) | **C10**: heliosli's public R6 + flip TTA notebook (verbatim but `C_SLUG` → the `-w1` copy of R6; Raptor half 0.65 × 384 + 0.35 × 224, R6 0.5) + B21 (`v15co` + `v13b3`) at β 0.20 | none | **0.957** | **read 10-16 18:29 UTC → 🔁 = the anchor at three decimals (C10 − anchor ≈ −0.0009 to +0.0002 by the fork rule). Its tie position is unread, since C10w is most likely our best entry; +0.001 over C9 → pick 2's candidate (entry 2026-10-16 "Submissions #92–#94"); COMPLETE within ≤ 6.1 h (the watcher died with the session).** placeholder green (R6 from `-w1`, flip TTA on, PASS 3 / 3; `_anchor_0957.csv` = heliosli's own output exactly; `_ours.csv` = C9's exactly; `FINAL = beta0.20`). sent 12:23:30 UTC on Tian's go (ref 57268876); vs the anchor 0.957: ✅ ≥ 0.958 / 🔁 0.957 / ❌ ≤ 0.956 (entry 2026-10-16 "C11, C10 and C10w built and sent") |
+| 94 | 2026-10-16 | rsna-knee-fork958 v1 (`src/build_fork954.py --anchor 0958 --members v15co v13b3 --beta 0.20 --gate-hours 7.5 --sec-per-study 3.0`) | **C10w**: heliosli's public 0.958 `blend-mine-in` (verbatim: C10's anchor + Raptor-half weights Synovitis 0.80 / Lateral OA 0.20 / PF OA 0.60 / Baker's 0.35, others 0.50) + B21 (`v15co` + `v13b3`) at β 0.20 | none | **0.957** | **read 10-16 18:29 UTC → ❌ by its rule (≤ 0.957), with the arm run: the anchor is deterministic (heliosli and degnonguidi's hash copy sit adjacent at 0.958), so B21 at β 0.20 pushed it below 0.9575. Our best entry is most likely this one: rank 617 of 6,103, 12th of 315 at 0.957 (entry 2026-10-16 "Submissions #92–#94"); COMPLETE within ≤ 5.9 h (the watcher died with the session).** placeholder green (per-finding weights in the receipt; `_anchor_0958.csv` = heliosli's own output exactly; `_ours.csv` = C9's exactly; `FINAL = beta0.20`). sent 12:32:48 UTC on Tian's go (ref 57269124); vs the anchor 0.958: ✅ ≥ 0.959 / 🔁 0.958 / ❌ ≤ 0.957 (entry 2026-10-16 "C11, C10 and C10w built and sent") |
 
 ## Closed cards index (moved here from proposals.md on 2026-10-05)
 
