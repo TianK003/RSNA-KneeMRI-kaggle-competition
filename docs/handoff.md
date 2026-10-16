@@ -6,6 +6,112 @@ to read first after a break.
 
 ---
 
+## 2026-10-16 (11:25 → 12:45 UTC) — **C9 read: 0.956, ahead of C7 by sign** · the 0.957 / 0.958 frontier decoded (R6 + flip TTA; then probed per-finding weights) · the host's 10-14 external-data ruling · **C11 / C10 / C10w built and sent (#92–#94)**
+
+Tian, in order:
+1. "Pull the results of latest submission and run /update, also discover how the leaderboard shifted and how everybody got such high
+   scores, then report back to me."
+2. "Build C11 and C10, submit both as soon as possible." C10w: "No picks yet, rebuild it and submit to see how much we get." fastMRI and
+   the picks: "No decision yet … we will decide one day before the competition ends."
+3. "Run /handoff and I will let you know when the scores come in."
+
+Commits `b5b457b`, `4fd8cb0` and this one. No session ran between 10-14 09:10 and this one (10-15 had no submission).
+
+### ⏳ Still in flight as this was written (12:45 UTC)
+
+| In flight | What it is | Started | How to check | How to read it |
+|---|---|---|---|---|
+| **#92 = C11** (ref 57268784) | `rsna-knee-forks6f` v1. nartaa's s6fall alone, with component A (his OAI CoAtNet) not run and not mounted, + B18 (`v15c` + `v13b3`) at β 0.45. No OAI, no fastMRI | sent 12:19:45 UTC | Tian reports the score; or `kaggle competitions submissions rsna-knee-abnormality-detection`. Scoring time: `artifacts/watch_57268784.log` (the watcher dies with this session) | vs C8 0.953 / C6 0.950, pred. 0.952–0.954. **✅ ≥ 0.953** → pick-1 candidate with no fastMRI question. **🔁 0.951–0.952** → the fastMRI-free pick 1 in place of C6. **❌ ≤ 0.950.** Expect it to score first (one model at 320 px; S6's four folds took ≈ 3 h). **Suspicious:** an ERROR status means the s6fall script's own HARD ERROR, which deletes `submission.csv`. Its causes: more than 4 of 1,284 studies failed after the retry, or the B deadline. It is not a fault of our arm |
+| **#93 = C10** (ref 57268876) | `rsna-knee-fork957` v1: heliosli's R6 + flip TTA notebook (C_SLUG → `-w1`) + B21 (`v15co` + `v13b3`) at β 0.20, gate 7.5 h | sent 12:23:30 UTC | as above; `artifacts/watch_57268876.log` | vs the anchor 0.957, pred. 0.957. **✅ ≥ 0.958 / 🔁 0.957 / ❌ ≤ 0.956.** Expect ≈ 5–6 h (R6 + flip 17.1 s / study of GPU over 1,284 studies on 2 T4s, ≈ 3 h, plus the CoAtNets and our arm). **Suspicious:** 0.957 with a scoring time near 8.5–9 h can mean our arm was skipped at the 7.5 h gate (= the anchor) |
+| **#94 = C10w** (ref 57269124) | `rsna-knee-fork958` v1: heliosli's 0.958 `blend-mine-in` verbatim + B21 at β 0.20, gate 7.5 h | sent 12:32:48 UTC | as above; `artifacts/watch_57269124.log` | vs the anchor 0.958, pred. 0.958. **✅ ≥ 0.959 / 🔁 0.958 / ❌ ≤ 0.957.** **The tie read:** only our best entry shows on the LB. If C10w is it at 0.958, pull the LB (`kaggle competitions leaderboard rsna-knee-abnormality-detection -d -p artifacts/lb_1016b/`) and compare against `artifacts/lb_1016/`: ranking above degnonguidi (hash-identical copy of the notebook, 0.958, rank 315 at 11:29) and heliosli (314) means our leg added a sub-tick. C10's tie position is then unreadable |
+
+No Kaggle kernel or RunPod pod is running.
+
+### Where things stand
+
+| | Status |
+|---|---|
+| Public LB | **0.956 = C9 #91** (> C7 by sign: pick 2 by its rule), **rank 774 of 6,079** (11:29 UTC; 226 on 10-14). The field moved to 0.958: 748 teams ≥ 0.957, 278 at exactly 0.958, 360 at 0.957. OAI-free best unchanged: **0.953 = C8 #88** (fastMRI inside R7) |
+| In flight | ⏳ #92 C11, #93 C10, #94 C10w (table above) |
+| Builder | `src/build_fork954.py` has three new anchors: `0957` (one patched line), `0958` (verbatim) and `0950s6f` (script anchor, `patch_s6fall()`). It refuses any render holding a competition StudyInstanceUID. The C9 render is still byte-identical (`--check` ok) |
+| Anchors | `notebook_score_0.957.ipynb` and `notebook_score_0.958.ipynb` are committed. `artifacts/anchors/notebook_score_0.950s6fall.py` is **gitignored**: it embeds the 3 test ids, and the repo is public (traps 73). C11 rebuilds only from that local copy (sha256 `2f2d50d8…`) |
+| Budgets | Submissions: 10-16 has 3 used, **2 left**. Kaggle GPU **3.53 h** until the 10-17 00:00 UTC reset (30 h after). RunPod ≈ $5.8. OpenRouter $2.29 of $13 |
+| Repo | Clean except Tian's untracked `discussion*.{py,xml}` (never `git add -A`) |
+
+### What we talked about and decided
+
+- **How the field got to 0.957 / 0.958** (Tian's question; three subagents read the notebooks and the forum):
+  - Copies of two heliosli notebooks.
+  - **0.957** = the 0.956 recipe + nartaa's 224 px CoAtNet + **R6 with flip TTA** in place of R7.
+  - **0.958** = that + five per-finding Raptor weights. heliosli's code has a per-class public-LB probe (`PROBE_CLASS`), so the weights
+    look fitted to the public split.
+  - The top 10 gained only +0.001–0.002.
+- **C10w was sent despite the probed weights** (Tian: "see how much we get"). It is a read, not a pick decision.
+- **C11's design:** nartaa's s6fall script runs his OAI CoAtNet as component A. A carries weight 0, but it is the fallback rank and a
+  rank-corr sanity floor. So C11 skips A, mean-fills failed studies (C8's rule) and does not mount the OAI Dataset; the rest of the script
+  runs byte for byte as a subprocess. The anchor reproduced nartaa's own output exactly.
+- **C10 patches one line** (C_SLUG → `-w1`), not 0958 with its weights reverted: it stays the 0.957 notebook others scored.
+- **Picks:** no decisions until 10-21. That includes fastMRI in pick 1 and the probed weights in pick 2.
+- **No new cards.** One idea is not carded: R7 + s6fall as the compact half + B18 (fastMRI; leoprovorov reads 0.957 with that compact half
+  next to both CoAtNets). Price it after C11 reads.
+
+### What we figured out
+
+1. **C9 > C7:** team 16679021, 10 places above C7 in the 10-14 tie, is now directly below us (experiments.md 2026-10-16
+   "Submission #91 and the 0.957 / 0.958 frontier").
+2. **heliosli's "R6" in the 0.957 / 0.958 notebooks is a new bundle** (`fe055406`, ConvNeXt-S on Opus targets, R7's trainer), not the S6
+   re-upload logged 10-14. Its Dataset slug now holds R7 (traps 72).
+3. **nartaa's s6fall reads 0.950 alone with no OAI and no fastMRI**: the first such public model above S6 (0.944). Hence C11.
+4. **The host ruled on 10-14 13:18 UTC** (Chris Carr, 743416), without naming datasets: registration + licence acknowledgement passes,
+   institutional agreements or affiliation limits fail. Whether fastMRI requires an affiliation is now the open pick-1 check (CLAUDE.md
+   "Rules"; brainstorm.md).
+5. **The hidden test is 1,284 studies** (nartaa's script). R6 + flip costs 17.1 s / study of GPU against R7's 9.8 (C10's placeholder).
+6. **The repo is public, and nartaa's script embeds the 3 test ids** (traps 73). Caught before any commit; the builder now refuses such a
+   render.
+
+### ⏭ Next action, in order
+
+1. **When Tian reports #92–#94** (or `kaggle competitions submissions rsna-knee-abnormality-detection`), run `/update`:
+   - Submissions rows #92–#94: ⏳ → scores. Add a READ line to the entry "C11, C10 and C10w built and sent", plus a new read entry and a
+     Scoreboard row.
+   - Read each by the rules in the in-flight table. For the tie read, pull the LB into `artifacts/lb_1016b/` and compare with
+     `artifacts/lb_1016/`.
+   - candidates.md: delete the C10 / C10w / C11 rows and update the pick shortlist (pick 1: C8 / C11 / C6; pick 2: C9 / C10 / C10w).
+     CLAUDE.md: the state block.
+   - Scoring times come from `artifacts/watch_<ref>.log`. If a watcher died first, the time is bounded only.
+2. **If C11 ≥ 0.953:** pick 1 can be OAI- and fastMRI-free at C8's level. Then price the uncarded R7 + s6fall + B18 idea, which needs a
+   new compact-half spec.
+3. **The Fable arm of P-87** (Tian: after the weekly Claude quota reset, which was due 10-16). Use the steps in the 10-13 entry below
+   (`AGENT_TASK_fable.md`, 10 Agent calls with `model: "fable"`, `score_vlm.py fable`, P-87's rule). If neither Fable nor Qwen runs, close
+   P-87.
+4. **After the 10-17 00:00 UTC Kaggle reset:** P-86 (one JEV arm: card, critic, Tian's go), then the P-67 loop.
+5. **Before 10-21:** the two browser checks in brainstorm.md:
+   - fastMRI's request form: is an institutional affiliation required?
+   - The auto-selection markers on the Submissions page: which 0.956 entries are our two best?
+
+### Open decisions for Tian
+
+- **The final picks, on 10-21:**
+  - pick 1: C8 (fastMRI) / C11 (if ≥ 0.953) / C6;
+  - pick 2: C9 / C10 / C10w (the last carries public-probed weights).
+- **fastMRI in pick 1** (the host's 10-14 test; the affiliation check above).
+- **The Fable and Qwen arms of P-87.**
+
+### Things that will bite if forgotten
+
+- **The repo is public.** Scan any pulled notebook or script for `train.csv` / `test.csv` StudyInstanceUIDs before committing it
+  (traps 73). The s6fall source stays in `artifacts/anchors/`.
+- **`heliosli/rsna-knee-r6-frozen-fe055406` (latest) holds R7.** R6 is in `…-w1` (traps 72). A fork that mounts the bare slug fails
+  heliosli's `BUNDLE_ID` assert after both CoAtNet stages have run.
+- **Only a team's best entry shows on the LB:** the tie position of a non-best entry is unreadable.
+- **Rebuilding C6 today would embed the current pipeline** (P-84's `trim_ends` code). The committed `rsna-knee-fork954` folder predates
+  it; that difference existed before this session's builder edit.
+- **Public notebooks were still being published at 06:48 UTC on 10-16.** No lock date was posted, so a newer public anchor can still
+  appear; re-read `kaggle kernels list --sort-by dateRun` before the picks.
+- **Background watchers die with the session** (traps 69).
+
+---
+
 ## 2026-10-13 (18:30 → 21:15 UTC) — **P-87 Mistral Large 4 arm read ❌ (0.8786)** · a Qwen 3.8 Max arm priced (Tian undecided) · the Fable arm waits for the Claude quota reset · **C8′ (#89) and C7′ (#90) sent** in 10-13's last two slots
 
 Tian, in order:
