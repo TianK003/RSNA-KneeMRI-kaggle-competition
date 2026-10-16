@@ -5776,6 +5776,10 @@ pulled into the session scratchpad, their cells diffed against `notebook_score_0
     that holds 11 findings constant reads the 12th finding's public AUC. Five per-finding weights are what such probes produce. That is our
     inference; he does not say so. It is public-LB fitting of the kind Kaggle staff warned "tend[s] to drop on the private leaderboard"
     (748181).
+  - **CORRECTED 2026-10-16 (evening):** the published `blend-mine-in` sets `PROBE_CLASS = None`, calls the weights "user decision
+    10-16" and says no clean labelled set exists to fit them; goodpjw2008 calls them "fixed before any run" (R6 strong on the lateral
+    compartment, weaker on synovitis). Probing stays possible but is unconfirmed. A model of the hidden test keeps ≈ 80 % of such a gain on
+    private when the halves truly differ per finding (entry "Public vs private" below).
   - The notebook has no hook for outside predictions. The title is a send-off before the publishing lock.
 - **The four-decimal titles (0.9573, 0.9576) are heliosli's claims;** the LB shows three decimals. The "0.9573" notebook (run 10-14 18:13)
   now runs R7 + 224 without flip, which at rank level is C9's anchor. That anchor reads 0.956 from two accounts (varshithakolupuri, 10-13;
@@ -5998,6 +6002,9 @@ within ≤ 6.2 / 6.1 / 5.9 h of sending.
 - **Pick 2:** C10 (0.957, no probed weights) replaces C9 (0.956) by the shortlist rule ("C9, or C10 if it reads ≥ 0.957"). C10w reads
   the same three decimals with five public-probed weights and is most likely a sub-tick above C10 on the public split. On the private
   70 % the probed weights should give back their public gain. Tian decides on 10-21.
+  - **CORRECTED 2026-10-16 (evening):** probing is unconfirmed (`PROBE_CLASS = None` in the published notebook), and the weights are
+    four, not five. A model of the hidden test expects them to keep most of their public gain if the halves truly differ per finding
+    (entry "Public vs private" below). So "should give back their public gain" is too strong.
 - **The own leg now matters for pick 1 only.** On pick 2, B21 at β 0.20 is break-even (C10) to a cost (C10w) on a ≥ 0.957 anchor. On
   pick 1 the anchors (R7 / s6fall) sit only 0.005–0.008 above B18, so each +0.001 on the leg is still ≈ +0.00045.
 
@@ -6006,6 +6013,118 @@ within ≤ 6.2 / 6.1 / 5.9 h of sending.
 - **C10 #93: 🔁** = its anchor at three decimals; +0.001 over C9 → pick 2's candidate in place of C9.
 - **C10w #94: ❌** by its rule (≤ 0.957), with the arm run: B21 at β 0.20 lowers a 0.958 anchor. The fork rule held, with its gain at
   the low end. Own-leg work for pick 2 is closed (proposals.md Dropped directions).
+
+### 2026-10-16 — Public vs private: a binormal model of the hidden test (`src/pubpriv_sim.py`) and the forum read · the 0.956 → 0.957 → 0.958 steps sit inside the public noise · **the 0.958 weights are not shown to be probed** (CORRECTED below)
+
+Tian: "estimate how this public notebook could be affected by scoring: is it overfit on the public LB and might drop on private, or
+could it do better? Is anybody discussing this?"
+
+**The model** (`src/pubpriv_sim.py`, 300 reps per cell, ≈ 5 min CPU; output `artifacts/pubpriv_sim_1016.txt`; no competition data):
+- **The test:** N = 1,284 studies, public 30 % ≈ 385. varshithakolupuri (748011) estimates ≈ 390; the split itself is unverified.
+- **Labels:** 12 independent labels at the gold-58 prevalences, with binormal scores.
+- **heliosli's blend:** two halves at 0.950 each, error correlation 0.836, calibrated so their 0.5 / 0.5 rank blend reads 0.957.
+  leoprovorov infers 0.86–0.89 from the published scores.
+
+| What | Public | Private | Read |
+|---|---|---|---|
+| **1. One fixed submission** | SD 0.0030 | SD 0.0019 | public − private SD **0.0035**: any fixed notebook's private score can land ± 0.007 (2 SD) from its public one. The shift is shared by every copy, and largely by every similar model. Matches nartaa's "SD of roughly 0.003" |
+| **2. A sibling swap with no true difference** (R7 → R6, flip TTA on / off; the swapped models correlate 0.90–0.98) | diff SD 0.0004–0.0009 | diff SD 0.0003–0.0005 | the public and private diffs are uncorrelated (\|r\| ≤ 0.04). The best of K = 3 / 5 / 8 equal variants gains +0.0004–0.0007 / +0.0005–0.0010 / +0.0006–0.0012 on public by luck alone |
+| **3a. Per-finding weights, no true per-finding difference** (grid 0.20–0.80) | exact readout: 7.3 findings changed, +0.0006 | −0.0006 (P(loss) 0.99) | a pure fit. A probe at the LB's resolution (± 0.006 of class AUC, since LB = (5.5 + AUC_c) / 12 at 0.001) changes 0.6 findings, +0.0001 |
+| **3b. The same, true per-half per-finding AUC SD 0.0075** | probe: 1.4 changed, +0.0003; exact: 9.0 changed, +0.0015 | +0.0002 / +0.0006 | 47 % / 39 % of the public gain kept |
+| **3c. The same, SD 0.015** | probe: 3.2 changed, +0.0014; exact: 10.2 changed, +0.0034 | +0.0011 / +0.0027 (P(loss) ≤ 0.01) | 82 % / 81 % kept. **This row reproduces heliosli's pattern (4 findings changed, ≈ one tick)** |
+| **4. An independent pipeline vs a 0.958 plateau blend** (error correlation 0.7–0.9) | its public lead SD 0.0015–0.0028 | — | a true +0.002 lead flips on private 4–10 % of the time; +0.004 ≤ 1 % |
+
+**The forum and notebook read** (a subagent, 10-16 ≈ 19:00 UTC; `artifacts/forum_1016b/`, 133 topics, plus the notebooks pulled into
+the session scratchpad):
+- **Nobody has tested whether heliosli's 0.957 / 0.958 hold on the private split.**
+- **Warnings, all generic:**
+  - Ryan Holbrook (Kaggle staff, 748181, 10-12): low-effort public ensembles "usually suffer from optimism bias … and tend to drop on
+    the private leaderboard".
+  - Mattia Angeli (742050): repeated blend-weight searches are "another hyperparameter search on the public split".
+  - hengck23 (745861): "is his prior an overfitting one?"
+- **Agnostic:**
+  - Cody_Null (748181, 10-14): "I also don't think anyone can be confident about a shakeup either way yet. Local validation is close to
+    useless here … the LB [is] the largest sample we have."
+  - k256.dev: the 0.954 "might surprisingly not be overfitting"; the 0.957 is "harder to say".
+- **Numbers:**
+  - varshithakolupuri (748011): ≈ 390 public studies, SD ≈ 0.003, "a 0.001 public move … is mostly noise".
+  - leoprovorov's notebook `rsna-knee-0-957-explained-…` (10-16): SD ≈ 0.003 at an assumed 640 studies, more than the top-400 spread
+    (0.0022); error correlation 0.86–0.89; a ceiling ≈ 0.960 for eight models. His shake-up chapter sits in a Dataset that returns 403.
+  - hoshinoyumemi's `knee-0-939-to-0-956-what-moved-the-score` (10-15): every visible step came from a newly published trained model,
+    except a probe-derived 0.939 → 0.941. "Differences below 0.001 between forks are unlikely to survive the private 70%." On gold-58, a
+    cross-finding re-rank tuned on half the studies lost 0.020 on the other half (500 splits).
+  - Georgy Mamarin (742327): across 11 past competitions, teams just inside and just outside the bronze line swapped 24 % of the time.
+- **The 0.958 weights:**
+  - The published `blend-mine-in` has `PROBE_CLASS = None`. Its blend cell calls the weights "user decision 10-16" and says no clean
+    labelled set exists to fit them.
+  - goodpjw2008: "fixed before any run; R6 is strong on the lateral compartment and weaker on synovitis".
+  - The probe code exists in heliosli's stage, so probing remains possible, but it is unconfirmed.
+- **CV vs LB:**
+  - colum2131 (748011), over 15 submissions: gold-58 vs LB r = 0.66; OOF on LLM labels vs LB r = 0.87.
+  - nartaa: s6fall beat his CoAtNet on fold-0 OOF (0.907 vs 0.890) and gold (0.931 vs 0.919), yet read 0.948 vs 0.949 public.
+  - karttikjangid05: Raptor / R7 at 40 / 60, 50 / 50 and 60 / 40 all read 0.956, a flat plateau.
+  - No R6 / R7 OOF or off-LB comparison is posted.
+- **Final-selection advice:** Chris Deotte (744495) "trust your CV"; starkhushi (742050) keeps a flat-weight version as the second pick.
+
+**What it means for us:**
+- **The 0.957 / 0.958 notebooks are not overfit in a way that predicts a drop of their level.** Their components are trained models,
+  chosen by public reads that sit inside a ± 0.003 band.
+- **Expect the plateau to keep its level on private ± 0.004, with its internal order reshuffled.** The 0.956 / 0.957 / 0.958 variants,
+  their copies and our forks differ on public by amounts that carry no information about private (row 2).
+- **C10 vs C10w:** the weights are more likely a small private plus (≈ +0.001 under row 3c) than a loss, and probing is unconfirmed. So
+  C10w is no longer the riskier pick on that ground; otherwise the two share everything.
+- **Our leg's sub-tick effect in C10 is a coin flip on private** (a paired SD ≈ 0.0005).
+- **The two picks should be chosen on construction** (rule risk, how different the two tickets are), not on a third-decimal public
+  difference. Teams at 0.959–0.961 with their own pipelines are within public noise of the plateau (row 4).
+
+**Verdict: ✅ a read (analysis, no GPU, no submission).** The 0.956 → 0.958 steps are inside the public noise. Nothing posted or modelled
+predicts a drop of the plateau's level; its internal order is a lottery. The probing claim is CORRECTED to unconfirmed in the two
+entries above.
+
+### 2026-10-16 — Public image models as a second teacher for the pick-1 leg: surveyed, **none worth a teacher pass before 10-22**
+
+Tian: "do some research to find if there are any other image models such as Raptor capable of producing pseudo labels, and if it's worth
+trying them out." The read is a subagent's (10-16 ≈ 18:50–19:10 UTC): Kaggle Datasets / models / notebooks plus small manifest files,
+heliosli's trainer text, and both forum harvests. Its notes are in the session scratchpad (`teacher_research/`).
+
+| Teacher | Public solo | Lineage (its own labels) | External data | OOF possible? | For pick 1 |
+|---|---|---|---|---|---|
+| Raptor (in use) | ≈ 0.924 | Dread's LLM labels | none | in-sample | the one teacher that transferred |
+| D4 (the 0.942 stack) | — | Raptor lineage (ρ 0.869) | none | in-sample | read flat (#43) |
+| nartaa's CoAtNet 384 / 224 | 0.949 / 0.945 | Gemini + hans_v4 + JEV | **OAI** | no (all-data) | out: OAI. An OAI ruling may also cover pseudo-labels from an OAI model (749145, unanswered) |
+| heliosli S6 | 0.944 (#81) | Opus `opusv11b_rr3…` | SKM-TEA | **yes:** 4 folds, `sha1(uid)[:8] % 4` over the non-gold pool | each fold model is at our student's level |
+| heliosli R6 / R7 | ≈ 0.948–0.954 (R7, from C8) | Opus `rr6` / `rr7` targets, probably folding in earlier pseudo-label rounds (trainer text; the label builder is not public) | SKM-TEA + fastMRI (R7; R6 likely) | yes (same hash folds) | brings fastMRI into the leg; same family as C8's anchor |
+| nartaa's s6fall | 0.950 (C11 = 0.952 fits) | JEV soft labels, report-only (ρ 0.965 with our LLM blend) | SKM-TEA | no: in-sample on 4,263 of 4,349 | **the only clean, strong one**, but it is C11's anchor and shares C8's architecture and views |
+| goodpjw2008's 2.5D reader | 0.929 | mean of 4 LLM tables | none | 3 of 5 folds | weaker than `v15c` |
+
+- **No public prediction table** exists for S6 / R6 / R7 / s6fall / the CoAtNet on the training studies. The new label tables since
+  10-12 are LLM lineage:
+  - genesis96839 `stacked_labels_v1`: gold-58 0.9057, ρ 0.963 with our blend;
+  - siamrahman29 w5: 0.8958;
+  - pilkwang's `oof.npz`: 0.840.
+  - lingyu07's v53 table carries OAI rows and the official gold labels, so it is unusable.
+- **Forum evidence:**
+  - colum2131 and Raymond Yuen blend an image model's pseudo-labels with LLM labels at a fixed ratio (Raymond: 0.938 → 0.949, his own
+    teachers).
+  - Myo and Karcher report OOF / bootstrap pseudo-labels that lifted CV but not the LB.
+  - Nobody posts an LB number for distilling S6, R7, s6fall or the CoAtNet into a student.
+- **What made Raptor transfer and the others not:**
+  1. It brought information the targets lacked: other labels, input and family.
+  2. It was above the student at the time (0.924 vs 0.918).
+  3. Its lineage was not the fork anchor's. A Raptor-distilled leg in a Raptor fork did not register (P-40), and label lineage moves
+     the fork's k by ≈ 0.014 (P-85).
+  s6fall meets (2), only partly meets (1) (JEV ≈ our LLM blend), and fails (3) for C11 outright and mostly for C8.
+- **Pricing the one defensible design:**
+  - **The design:** an s6fall teacher pass (≈ 7–12 Kaggle GPU-h); then `v15c` on 0.5 LLM + 0.25 Raptor + 0.25 s6fall (RunPod ≈ $1.9);
+    then a solo read and a fork read.
+  - **The gain:** a student gain δ of 0 to +0.004 (the two second-teacher reads on top of Raptor were −0.002 and 0.000) → ≈ +0.27 δ on
+    pick 1.
+  - **The cost:** the lost diversity, k down ≈ 0.003–0.010 → −0.001 to −0.0025 on C11.
+  - **Net ≈ −0.002 to +0.0005:** sub-tick, and unreadable in one fork.
+
+**Verdict: ❌ not worth running (a read; no GPU spent).** Every strong public image model is either OAI, fastMRI, or the pick-1 anchor's own
+lineage. A teacher from the anchor's lineage removes the diversity the leg is worth. The quota goes to lineage-neutral leg work (P-67)
+or the anchor side (C12). Recorded in proposals.md Dropped directions.
 
 ## Infrastructure
 
