@@ -1,0 +1,32 @@
+{
+ "id": "tiankljucanin/rsna-knee-forks6f",
+ "title": "RSNA Knee Forks6f",
+ "code_file": "rsna-knee-forks6f.ipynb",
+ "language": "python",
+ "kernel_type": "notebook",
+ "is_private": true,
+ "enable_gpu": true,
+ "enable_tpu": false,
+ "enable_internet": false,
+ "keywords": [],
+ "dataset_sources": [
+  "nartaa/rsna-knee-s6fall-weights",
+  "heliosli/rsna-orthofoundation-fold0-epoch7-20261004",
+  "pilkwang/rsna-knee-llm-labels",
+  "stevenleehans/rsna-knee-llm-report-labels",
+  "lixin73/rsna-knee-llm-report-labels-sol56",
+  "tiankljucanin/rsna-knee-ckpt-v13b3",
+  "tiankljucanin/rsna-knee-ckpt-v15c",
+  "tiankljucanin/timm-convnext-tiny-in12k",
+  "tiankljucanin/timm-efficientnet-b3-ra2"
+ ],
+ "kernel_sources": [],
+ "competition_sources": [
+  "rsna-knee-abnormality-detection"
+ ],
+ "model_sources": [
+  "metaresearch/dinov2/PyTorch/small/1"
+ ],
+ "docker_image": "gcr.io/kaggle-private-byod/python@sha256:2757e0c7d1e0a9cb43da657b97e223c321a98f5014bdf64f44f2f6b083ad2b2f",
+ "machine_shape": "NvidiaTeslaT4"
+}

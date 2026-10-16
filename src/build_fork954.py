@@ -47,6 +47,17 @@ one `rsna-knee-fork949` has carried since its creation (traps 54).
     .venv/Scripts/python.exe src/build_fork954.py --anchor 0956 --compact-anchor --members v15c v13b3 --beta 0.45  # C8
     .venv/Scripts/python.exe src/build_fork954.py --anchor 0956v --members v15co v13b3 --beta 0.20 \
         --gate-hours 7.0 --sec-per-study 3.0                                                                     # C9
+    .venv/Scripts/python.exe src/build_fork954.py --anchor 0957 --members v15co v13b3 --beta 0.20 \
+        --gate-hours 7.5 --sec-per-study 3.0                                                                     # C10
+    .venv/Scripts/python.exe src/build_fork954.py --anchor 0958 --members v15co v13b3 --beta 0.20 \
+        --gate-hours 7.5 --sec-per-study 3.0                                                                     # C10w
+    .venv/Scripts/python.exe src/build_fork954.py --anchor 0950s6f --members v15c v13b3 --beta 0.45              # C11
+
+0957 / 0958 (heliosli, 10-14 / 10-15; experiments.md 2026-10-16 "Submission #91 and the 0.957 / 0.958 frontier") are nine-cell
+notebooks: stage 1 (384) and stage 1b (224) before stage 2 (R6 with flip TTA), which runs longer than R7, so C10 / C10w raise the
+gate to 7.5 h. 0957 gets one patched line (C_SLUG -> the -w1 copy of R6, traps 72); 0958 is verbatim. Each has its own kernel slug
+(rsna-knee-fork957 / -fork958), so their placeholders can run at once. 0950s6f is nartaa's s6fall script (C11, OAI-free): see
+ANCHORS["0950s6f"] and patch_s6fall(); kernel rsna-knee-forks6f.
 
 On 0956v our arm still runs after the anchor's stage 3 (it blends onto its submission.csv), so the 224 stage now runs
 before it: C9 raises the gate to 7 h and lowers the runtime estimate to 3 s / study (the 8.4 h hard stop is unchanged; a
@@ -131,6 +142,105 @@ ANCHORS = {
                                "rr = (1.0 - A224) * rr + A224 * pct_on(r224[c].values, ~rap_fail)")},
     },
 }
+# heliosli's two notebooks of 10-14 / 10-15 (experiments.md 2026-10-16 "Submission #91 and the 0.957 / 0.958 frontier"): nine cells,
+# stage 1 (384) and stage 1b (224, ungated: a failed 224 stage stops the notebook) before stage 2, which runs R6 (bundle
+# fe055406fad6a12f) with flip TTA; stage 3 mixes the 224 rank at 0.35 of the Raptor half.  0958 = 0957 + five per-finding Raptor
+# weights (W_RAPTOR_C) and the R6 Dataset's -w1 copy.  0957 mounts `heliosli/rsna-knee-r6-frozen-fe055406`, whose latest version
+# holds R7 (traps 72): the build patches its C_SLUG to the byte-identical -w1 copy, the one line it changes.
+_NINE_CELLS = ["markdown", "markdown", "code", "code", "code", "code", "code", "code", "code"]
+_NINE_STAGES = {"raptor_write": 2, "raptor_run": 3, "compact_setup": 6, "compact_run": 7, "blend": 8}
+_R6_SLUG = "rsna-knee-r6-frozen-fe055406"
+
+
+def _nine_needles(w_raptor_c):
+    return {4: ("%%writefile /tmp/raptor224_run.py", R224_CKPT, R224_CKPT_SHA256, 'out = "/kaggle/working/raptor224_sub.csv"'),
+            5: ("/tmp/raptor224_run.py", "RAPTOR224_STAGE_DONE", "raise RuntimeError('Raptor-224 stage failed"),
+            6: ("FLIP_TTA = True", "if manifest.get('flip_tta') or FLIP_TTA:"),
+            7: ("'--max-fallback-fraction', '1.0'", "pred = TMP / 'prediction'"),
+            8: (w_raptor_c, "A224 = 0.35", "for f in pred.glob('worker*/predictions.csv'):",
+                "rr = np.where(r384_fail, r224, np.where(r224_fail, r384, (1.0 - A224) * r384 + A224 * r224))")}
+
+
+ANCHORS["0957"] = {
+    "notebook": "notebook_score_0.957.ipynb",
+    "sha256": "16a9d953972d9d82717f279f75e57e798d3902f93d1071c30f3caa67326e3601",   # as pulled 2026-10-16
+    "score": "0.957",
+    "compact": "R6",
+    "compact_dataset": "heliosli/" + _R6_SLUG + "-w1",                              # the mount (v1 of the slug = R6)
+    "c_slug": _R6_SLUG,                                                               # as the notebook names it (patched below)
+    "bundle_id": "fe055406fad6a12f",
+    "weights": ("0.5", "0.5"),
+    "slug": "rsna-knee-fork957",
+    "title": "RSNA Knee Fork957",
+    "desc": "+ the nartaa 224 px checkpoint at 0.35 of the Raptor half, R6 with flip TTA (heliosli)",
+    "cell_types": _NINE_CELLS,
+    "stage_cells": _NINE_STAGES,
+    "extra_needles": _nine_needles("W_RAPTOR_C = {'Medial OA': 0.5, 'Lateral OA': 0.5, 'PF OA': 0.5}"),
+    "patches": {6: [("C_SLUG = '%s'   # [d957]" % _R6_SLUG,
+                     "C_SLUG = '%s-w1'   # [fork957: the -w1 copy = v1 = R6; this slug's latest version holds R7, traps 72] [d957]"
+                     % _R6_SLUG)]},
+}
+ANCHORS["0958"] = {
+    "notebook": "notebook_score_0.958.ipynb",
+    "sha256": "ad0b97aca3361f16e32b0836655dd68bc2a37ff0cc5a44f6d6f4de07880d986d",   # as pulled 2026-10-16
+    "score": "0.958",
+    "compact": "R6",
+    "compact_dataset": "heliosli/" + _R6_SLUG + "-w1",
+    "bundle_id": "fe055406fad6a12f",
+    "weights": ("0.5", "0.5"),
+    "slug": "rsna-knee-fork958",
+    "title": "RSNA Knee Fork958",
+    "desc": "+ the nartaa 224 px checkpoint, R6 with flip TTA, per-finding Raptor weights (heliosli)",
+    "cell_types": _NINE_CELLS,
+    "stage_cells": _NINE_STAGES,
+    "extra_needles": _nine_needles("W_RAPTOR_C = {'Medial OA': 0.5, 'Lateral OA': 0.2, 'PF OA': 0.6, 'Synovitis': 0.8, "
+                                   "\"Baker's\": 0.35}"),
+}
+# nartaa's s6fall solo (a script kernel, 0.950 public alone; experiments.md 2026-10-16 "Submission #91 …"): heliosli's S6
+# architecture retrained on JEV labels, run through heliosli's compact_infer.py unchanged.  The script also runs nartaa's
+# OAI-trained 0.949 CoAtNet as component A, at weight 0 (W_A = 0.0) but as the rank of a study B fails on and as a rank-corr
+# sanity floor.  C11 is OAI-free: the build skips component A, does not mount its Dataset, gives a failed B study the column-mean
+# rank (heliosli's controller rule, as C8 does), and removes the 3 public test ids the script embeds (only A read them; the
+# script stays gitignored under artifacts/anchors/, traps 73).  Everything else runs byte for byte as a subprocess.
+S6FALL_DATASET = "nartaa/rsna-knee-s6fall-weights"
+ANCHORS["0950s6f"] = {
+    "kind": "script",
+    "notebook": os.path.join("artifacts", "anchors", "notebook_score_0.950s6fall.py"),
+    "sha256": "2f2d50d8add7c8d2166577cdc16e511def9fa53620d431e25188be06da0aaa24",   # as pulled 2026-10-16
+    "score": "0.950",
+    "compact": "s6fall",
+    "compact_owner": "nartaa's",
+    "compact_prev": ("The previous cell has run nartaa's s6fall script (component A, the OAI-trained CoAtNet, removed by the "
+                     "builder) and written its predictions as `submission.csv`."),
+    "compact_label": ("'anchor': 's6fall alone (nartaa: S6 architecture on JEV labels; component A, the OAI-trained CoAtNet, "
+                      "not run)'"),
+    "compact_dataset": S6FALL_DATASET,
+    "weights": ("0.0", "1.0"),
+    "slug": "rsna-knee-forks6f",
+    "title": "RSNA Knee Forks6f",
+    "extra_needles": {},
+}
+S6F_NEEDLES = ('DS_SLUG = "rsna-knee-s6fall-weights"', 'HELIOS_SLUG = "rsna-orthofoundation-fold0-epoch7-20261004"',
+               "W_A, W_B = 0.0, 1.0", 'MODE = "submit"', 'B_MODEL = {"file": "E_prior_s42_fall.pt"',
+               'KROOT = Path(os.environ.get("K1_KAGGLE_ROOT", "/kaggle"))', "def blend_with_failures(A, B, failed_mask):",
+               'if __name__ == "__main__":\n    main()')
+S6F_PATCHES = [
+    ('        stage("A")\n        A, a_info = run_a(I)\n        _RECEIPT["A"] = a_info\n        stage_done("A")\n',
+     '        stage("A")   # [forks6f] component A (nartaa\'s OAI-trained 0.949 CoAtNet) is NOT run; its Dataset is not mounted\n'
+     '        _RECEIPT["A"] = {"skipped": "forks6f (src/build_fork954.py --anchor 0950s6f): OAI-free; a B-failed study takes the '
+     'column-mean rank"}\n'
+     '        stage_done("A")\n'),
+    ('        stage("blend")\n        _RECEIPT["blend"] = blend_and_write(I, A, B, b_failed)\n',
+     '        # [forks6f] A := B with its failed studies mean-filled (heliosli\'s controller rule): with W_A = 0, blend_and_write then\n'
+     '        # writes rank(B) on every scored study and the column-mean rank on a failed one, and its rank-corr floor against A is 1\n'
+     '        _forks6f_fmask = np.array([u in (b_failed or {}) for u in I.test_ids])\n'
+     '        A = np.array(B, np.float64)\n'
+     '        if _forks6f_fmask.any():\n'
+     '            A[_forks6f_fmask] = np.nanmean(A[~_forks6f_fmask], axis=0)\n'
+     '        stage("blend")\n        _RECEIPT["blend"] = blend_and_write(I, A, B, b_failed)\n'),
+]
+S6F_IDS_RE = r'^PUBLIC_TEST_IDS = \[[^\]]*\]'
+S6F_IDS_NEW = "PUBLIC_TEST_IDS = []   # [forks6f] the 3 public test ids removed (competition data; only component A read them)"
 for _k, _s in ANCHORS.items():
     _s["name"] = _k
     _s["weight_line"] = "W_RAPTOR, W_OURS = %s, %s" % _s["weights"]
@@ -172,14 +282,17 @@ def fork_templates(spec):
          f"_FORK_ANCHOR_PUB = _FORK_WORK / 'submission_fork_anchor_{tag}.csv'"),
         ("'anchor': 'public 0.949 single model (nartaa)'", arm_label),
     ])
+    owner = spec.get("compact_owner", "heliosli's")          # a script anchor (0950s6f) names its own author and stage
     md_c = _swap(md, [
-        (blend_head, f"## Fork arm — our members blended onto heliosli's {c} alone (OAI-free: no CoAtNet stage in this notebook)"),
-        (blend_prev, f"The previous cell has written {c}'s predictions (stage 2 of the {s} notebook, unchanged) as `submission.csv`."),
+        (blend_head, f"## Fork arm — our members blended onto {owner} {c} alone (OAI-free: no CoAtNet stage in this notebook)"),
+        (blend_prev, spec.get("compact_prev",
+                              f"The previous cell has written {c}'s predictions (stage 2 of the {s} notebook, unchanged) as "
+                              f"`submission.csv`.")),
     ])
     arm_c = _swap(arm, [
         (arm_head,
-         f"# ===================== FORK ARM: ours as a beta-blend on heliosli's {c} alone (OAI-free) =====================  "),
-        (arm_label, f"'anchor': '{c} alone (heliosli compact model; no OAI-trained stage)'"),
+         f"# ===================== FORK ARM: ours as a beta-blend on {owner} {c} alone (OAI-free) =====================  "),
+        (arm_label, spec.get("compact_label", f"'anchor': '{c} alone (heliosli compact model; no OAI-trained stage)'")),
     ])
     return md, arm, md_c, arm_c
 
@@ -257,7 +370,10 @@ def compact_anchor_cell(spec):
 ANCHOR_GLOBALS = ("T0", "NB_T0", "WORK", "DATA", "TMP", "pred", "env", "rc", "deadline", "receipt", "sub", "blend",
                   "ours", "raw", "rsub", "labels", "cols", "test_ids", "out", "pct", "n",
                   "W_RAPTOR_C", "pct_on", "rap_fail", "our_fail", "scored", "rho_rr", "rho_ro",
-                  "R224_OK", "A224", "r224")
+                  "R224_OK", "A224", "r224",
+                  # 0957 / 0958: stage 1b, the R6 flip switch and the 224-aware stage 3
+                  "RAPTOR_SECONDS", "RAPTOR224_SECONDS", "FLIP_TTA", "raw224", "rsub224", "r384", "r384_fail", "r224_fail",
+                  "rho_rr224", "rho_224_384")
 
 
 def check_anchor(nb, spec):
@@ -271,7 +387,7 @@ def check_anchor(nb, spec):
         st["raptor_write"]: ("%%writefile /tmp/raptor_run.py", f949.ANCHOR_CKPT, f949.ANCHOR_CKPT_SHA256, "RUN_INFERENCE = True"),
         st["raptor_run"]: ("NB_T0 = time.time()", "/tmp/raptor_run.py", "raptor_sub.csv", "raptor_raw.csv"),
         st["compact_setup"]: ("ARM = 'E_lrprior'", f"BUNDLE_ID = '{spec['bundle_id']}'", "DEADLINE_HOURS = 8.3", "T0 = NB_T0",
-                              f"C_SLUG = '{spec['compact_dataset'].split('/')[1]}'"),
+                              f"C_SLUG = '{spec.get('c_slug', spec['compact_dataset'].split('/')[1])}'"),
         st["compact_run"]: ("probe_dual.py", "ours_sub.csv", "OURS_STAGE_COMPLETE"),
         st["blend"]: (spec["weight_line"], "sub.to_csv(WORK / 'submission.csv', index=False)", "NOTEBOOK_COMPLETE"),
     }
@@ -355,6 +471,13 @@ def build_notebook(nb, fork_cells, provenance, mode, spec):
         if WEIGHT_LINE_S6 not in src or spec["weight_line"] in src:
             raise SystemExit("--s6-only: the weight patch did not apply")
         kept[6]["source"] = src
+    for i, pairs in spec.get("patches", {}).items():     # 0957: the one line it changes (C_SLUG -> the -w1 copy of R6)
+        src = cell_text(kept[i])
+        for old, new in pairs:
+            if src.count(old) != 1:
+                raise SystemExit(f"anchor cell {i}: patch target found {src.count(old)} times: {old!r}")
+            src = src.replace(old, new)
+        kept[i]["source"] = src
     if mode == "compact_anchor":
         anchor_src = compact_anchor_cell(spec)
         t0 = {"id": "fork-t0", "cell_type": "code", "metadata": {}, "outputs": [], "execution_count": None,
@@ -442,7 +565,113 @@ def build(params, mode, spec, notebook=None, pipeline=PIPELINE):
     }
     if mode == "compact_anchor":
         provenance["s6_anchor" if spec["name"] == "0954" else "compact_anchor"] = True
+    if spec.get("patches"):
+        provenance["anchor_patches"] = {str(i): [new for _, new in pairs] for i, pairs in spec["patches"].items()}
     return build_notebook(nb, fork_cells, provenance, mode, spec), build_metadata(params, spec, mode), payload
+
+
+S6F_INTRO = """# RSNA Knee Forks6f: nartaa's s6fall (0.950 public alone) + our members (candidates.md C11)
+
+Built by `src/build_fork954.py --anchor 0950s6f`. The next cells run nartaa's public `rsna-knee-s6fall-solo` script (heliosli's S6
+architecture retrained on JEV labels, through heliosli's `compact_infer.py`) as its own process. The builder changed exactly two things:
+component A, nartaa's OAI-trained 0.949 CoAtNet, is not run and its Dataset is not mounted (a study the ConvNeXt fails on takes the
+column-mean rank instead of A's); and the three public test ids the script embedded for A are removed. Our arm then blends onto it.
+Credits: nartaa (s6fall weights, CC BY-NC 4.0), heliosli (S6 architecture, inference code, SKM-TEA anatomy model).
+"""
+
+S6F_RUN_CELL = """# Forks6f: run nartaa's s6fall script (patched by src/build_fork954.py: component A not run, the public test ids removed) as its own
+# process, as heliosli's notebooks run nartaa's Raptor script. It writes /kaggle/working/submission.csv or raises (its own HARD ERROR).
+import os as _forks6f_os, subprocess as _forks6f_sp, sys as _forks6f_sys, time as _forks6f_time
+_forks6f_t = _forks6f_time.time()
+_forks6f_rc = _forks6f_sp.run([_forks6f_sys.executable, '-u', '/tmp/s6fall_run.py'], timeout=8.25 * 3600).returncode
+if _forks6f_rc != 0:
+    raise RuntimeError('s6fall stage failed with exit code %d' % _forks6f_rc)
+assert _forks6f_os.path.isfile('/kaggle/working/submission.csv'), 'submission.csv missing after the s6fall stage'
+print('S6FALL_STAGE_DONE seconds %.0f' % (_forks6f_time.time() - _forks6f_t), flush=True)
+"""
+
+
+def patch_s6fall(text):
+    """nartaa's s6fall script -> the C11 stage: component A skipped, B's failures mean-filled, the public test ids removed."""
+    import re
+    for k in S6F_NEEDLES:
+        if text.count(k) != 1:
+            raise SystemExit(f"s6fall script: expected exactly one {k!r}, found {text.count(k)}")
+    for old, new in S6F_PATCHES:
+        if text.count(old) != 1:
+            raise SystemExit(f"s6fall script: patch target found {text.count(old)} times: {old[:60]!r}")
+        text = text.replace(old, new)
+    ids = re.findall(S6F_IDS_RE, text, flags=re.M | re.S)
+    if len(ids) != 1 or ids[0].count('"') != 6:
+        raise SystemExit("s6fall script: PUBLIC_TEST_IDS is not one list of three ids")
+    text = re.sub(S6F_IDS_RE, S6F_IDS_NEW, text, count=1, flags=re.M | re.S)
+    if "= run_a(I)" in text or "PUBLIC_TEST_IDS)" not in text:     # A's call is gone; A's own (dead) comparison still names it
+        raise SystemExit("s6fall script: component A is still called, or the id list is no longer where A reads it")
+    compile(text, "s6fall_run.py", "exec")
+    return text
+
+
+def check_no_competition_ids(text, what):
+    """The repo is public (traps 73): no train / test StudyInstanceUID may appear in a rendered kernel."""
+    import csv
+    for split in ("test", "train"):
+        p = os.path.join("data", split + ".csv")
+        if not os.path.isfile(p):
+            continue
+        with open(p, encoding="utf-8", newline="") as fh:
+            hits = [r["StudyInstanceUID"] for r in csv.DictReader(fh) if r["StudyInstanceUID"] and r["StudyInstanceUID"] in text]
+        if hits:
+            raise SystemExit(f"{what} contains {len(hits)} {split}.csv StudyInstanceUID(s): refusing to write it (traps 73)")
+
+
+def build_script(params, spec, notebook=None, pipeline=PIPELINE):
+    """C11: a script anchor (0950s6f) wrapped as %%writefile + subprocess cells, then our arm in compact-anchor form."""
+    notebook = notebook or spec["notebook"]
+    if sha256_file(notebook) != spec["sha256"]:
+        raise SystemExit(f"{notebook}: sha256 differs from the pull this builder was written against")
+    with open(notebook, encoding="utf-8") as fh:
+        stage_src = patch_s6fall(fh.read())
+    text, pipeline_sha = prepare_pipeline(pipeline, params.members)
+    payload = make_payload(text)
+    fork_cells = render_fork_cells(payload, sha256_text(text), pipeline_sha, params, spec, "compact_anchor")
+    selftest_blend(fork_cells)
+    for src, cid in ((S6F_RUN_CELL, "forks6f-run"),):
+        compile(src, cid, "exec")
+        clash = sorted(module_level_names(src) & set(ANCHOR_GLOBALS))
+        if clash:
+            raise SystemExit(f"{cid} binds {clash}")
+
+    def code(cid, src):
+        return {"id": cid, "cell_type": "code", "metadata": {}, "outputs": [], "execution_count": None, "source": src}
+    cells = [{"id": "forks6f-intro", "cell_type": "markdown", "metadata": {}, "source": S6F_INTRO},
+             code("fork-t0", T0_CELL.replace("Fork954:", "Forks6f:")),
+             code("forks6f-script", "%%writefile /tmp/s6fall_run.py\n" + stage_src),
+             code("forks6f-run", S6F_RUN_CELL)] + fork_cells
+    provenance = {
+        "builder": "src/build_fork954.py",
+        "source_script": os.path.basename(notebook),
+        "source_script_sha256": spec["sha256"],
+        "stage_sha256": sha256_text(stage_src),
+        "script_patches": ["component A (OAI-trained 0.949 CoAtNet) not run; a B-failed study takes the column-mean rank",
+                           "PUBLIC_TEST_IDS removed"],
+        "pipeline_sha256": pipeline_sha,
+        "payload_sha256": sha256_text(text),
+        "members": list(params.members),
+        "beta": params.beta,
+        "betas_diag": list(params.betas_diag),
+        "gate_h": params.gate_h,
+        "hard_stop_h": params.hard_stop_h,
+        "sec_per_study": params.sec_per_study,
+        "compact_anchor": True,
+    }
+    out_nb = {"cells": cells,
+              "metadata": {"kernelspec": {"display_name": "Python 3", "language": "python", "name": "python3"},
+                           "language_info": {"name": "python"}, "rsna_fork": provenance},
+              "nbformat": 4, "nbformat_minor": 4}
+    meta = build_metadata(params, spec, "compact_anchor")      # mounts s6fall + heliosli's code / anatomy Dataset + ours
+    if NARTAA_DATASET in meta["dataset_sources"]:
+        raise SystemExit("C11 must not mount nartaa's OAI-trained CoAtNet Dataset")
+    return out_nb, meta, payload
 
 
 def main(argv=None):
@@ -470,18 +699,28 @@ def main(argv=None):
         raise SystemExit("--s6-only patches one weight line; the 0956 stage 3 also has per-finding W_RAPTOR_C overrides")
     if a.compact_anchor and a.anchor == "0956v":
         raise SystemExit("--compact-anchor drops the CoAtNet stages; on 0956v that is the 0956 build (C8): use --anchor 0956")
-    mode = "s6_only" if a.s6_only else ("compact_anchor" if a.compact_anchor else "blend")
+    if a.compact_anchor and a.anchor in ("0957", "0958"):
+        raise SystemExit("--compact-anchor is not written for the 0957 / 0958 notebooks (R6 alone would need its own anchor cell)")
+    script = spec.get("kind") == "script"
+    if script and a.s6_only:
+        raise SystemExit("--s6-only has no meaning on a script anchor")
+    mode = "s6_only" if a.s6_only else ("compact_anchor" if (a.compact_anchor or script) else "blend")
     beta = 0.0 if a.s6_only else a.beta
     params = f949.ForkParams(members=tuple(a.members), beta=beta, betas_diag=tuple(a.betas_diag), gate_h=a.gate_hours,
                              hard_stop_h=a.hard_stop_hours, sec_per_study=a.sec_per_study)
-    out_nb, meta, payload = build(params, mode, spec, a.notebook, a.pipeline)
+    if script:
+        out_nb, meta, payload = build_script(params, spec, a.notebook, a.pipeline)
+    else:
+        out_nb, meta, payload = build(params, mode, spec, a.notebook, a.pipeline)
     nb_text, meta_text = dump_json(out_nb), dump_json(meta)
+    check_no_competition_ids(nb_text, "the rendered notebook")
     out_dir = a.out or os.path.join("kaggle", spec["slug"])
     nb_path = os.path.join(out_dir, spec["slug"] + ".ipynb")
     meta_path = os.path.join(out_dir, "kernel-metadata.json")
     c = spec["compact"]
     summary = (f"{nb_path}: {len(out_nb['cells'])} cells ("
-               + (f"4 anchor + 1 clock + 1 {c}-anchor + 3 fork" if mode == "compact_anchor"
+               + ("1 intro + 1 clock + 1 script + 1 run + 3 fork" if script
+                  else f"4 anchor + 1 clock + 1 {c}-anchor + 3 fork" if mode == "compact_anchor"
                   else f"{len(out_nb['cells']) - 4} anchor + 1 clock + 3 fork") + "); "
                f"{len(meta['dataset_sources'])} datasets; payload {len(payload) / 1024:.0f} KB; "
                f"members {list(params.members)} beta {params.beta}" + (" [S6 ONLY: stage-3 weights 0.0 / 1.0]" if a.s6_only else "")

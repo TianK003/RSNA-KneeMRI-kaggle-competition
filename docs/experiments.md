@@ -5867,6 +5867,74 @@ scratchpad):
   - fastMRI's affiliation requirement is now the open pick-1 check, and C11 sidesteps it;
   - colum2131's label hint is our recipe in kind.
 
+### 2026-10-16 — C11, C10 and C10w built and sent (Tian: "build C11 and C10, submit both as soon as possible"; C10w: "rebuild it and submit to see how much we get"): `src/build_fork954.py --anchor 0950s6f / 0957 / 0958` · placeholders green · #92 / #93 / #94 ⏳ PENDING
+
+- **The builder:** `src/build_fork954.py` gained three anchors. The C9 render still checks byte-identical (`--check` ok). The C6 render
+  (`rsna-knee-fork954`) differs from its folder with the committed builder too: the pipeline changed after C6 was built (P-84's
+  `trim_ends`), so that difference is not from this edit.
+  - **`0957`** = `notebook_score_0.957.ipynb`, heliosli's R6 + flip TTA notebook (9 cells; slug `rsna-knee-fork957`). **One patched
+    line:** `C_SLUG` → `rsna-knee-r6-frozen-fe055406-w1`, and that Dataset is mounted. The notebook names the slug whose latest version
+    holds R7 (traps 72).
+  - **`0958`** = `notebook_score_0.958.ipynb` (`blend-mine-in`, 9 cells; slug `rsna-knee-fork958`), verbatim.
+  - **`0950s6f`** = nartaa's s6fall script (`artifacts/anchors/`, gitignored, traps 73; slug `rsna-knee-forks6f`). It is written by
+    `%%writefile` and run as its own process, as heliosli's notebooks run nartaa's Raptor script. It is followed by our arm in its
+    compact-anchor form. **Three patches** (`patch_s6fall()`):
+    - **Component A is not run:** nartaa's OAI-trained 0.949 CoAtNet, and its Dataset is not mounted.
+    - **A := B with B's failed studies mean-filled.** With `W_A = 0` the script then writes rank(B), and a failed study takes the
+      column-mean rank (heliosli's controller rule, as in C8) instead of A's rank.
+    - **The three embedded public test ids are removed.** Only A read them, and the builder refuses to write a render that holds any
+      train / test StudyInstanceUID (`check_no_competition_ids`).
+  - New anchor globals are added to the clash check, plus a `patches` spec key and a script-anchor build path. `--compact-anchor` is
+    refused on 0957 / 0958.
+- **Gates:** C10 / C10w run with `--gate-hours 7.5 --sec-per-study 3.0` (the hard stop stays at 8.4 h). R6 + flip measured 17.1 s / study
+  of GPU against R7's ≈ 9.8, so with the hidden test's 1,284 studies (nartaa's script: "hidden test = 1,284 studies") over two T4s the
+  compact stage is ≈ 3 h of GPU. C11 keeps the defaults (6.0 h / 5.5 s).
+- **Placeholders** (3 test studies; outputs in `artifacts/kaggle_out/forks6f_v1/`, `fork957_v1/`, `fork958_v1/`):
+  - **C11** (`rsna-knee-forks6f` v1, 12:12–12:18 UTC):
+    - `K1_DONE`, with stages A 0.0 s and B 74 s; `S6FALL_STAGE_DONE` 139 s.
+    - `blend_receipt.json`: B failed on none of the studies, and the weights are A 0 / B 1.
+    - **`_anchor_0950.csv` = nartaa's own `rsna-knee-s6fall-solo` output exactly** (max diff 0.0), so his scored stage is reproduced.
+    - `_ours.csv` = C8's B18 exactly (max diff 0.0); `FINAL submission.csv = beta0.45`.
+  - **C10** (`rsna-knee-fork957` v1, 12:12–12:22 UTC):
+    - Stage timings: Raptor-384 51 s, Raptor-224 23 s.
+    - `ASSETS_READY … rsna-knee-r6-frozen-fe055406-w1 … flip_tta True`; the bundle assert passed (R6).
+    - `OURS_STAGE_COMPLETE` PASS 3 / 3, with no fallback; per study: decode 38.8 s, GPU 17.1 s.
+    - `NOTEBOOK_COMPLETE`: no failures.
+    - **`_anchor_0957.csv` = heliosli's own 0.957 notebook output exactly** (max diff 0.0).
+    - `_ours.csv` = C9's B21 exactly; `FINAL = beta0.20`.
+  - **C10w** (`rsna-knee-fork958` v1, 12:19–12:31 UTC):
+    - Stage timings: Raptor-384 66 s, Raptor-224 22 s.
+    - R6 from `-w1` with `flip_tta True`; PASS 3 / 3, with no fallback.
+    - `NOTEBOOK_COMPLETE` with the per-finding weights in its receipt.
+    - **`_anchor_0958.csv` = heliosli's own `blend-mine-in` output exactly** (max diff 0.0).
+    - `_ours.csv` = C9's B21 exactly; `FINAL = beta0.20`.
+- **Sent:**
+  - **#92 = C11**, 12:19:45 UTC (ref 57268784; watcher `artifacts/watch_57268784.log`).
+  - **#93 = C10**, 12:23:30 UTC (ref 57268876; watcher `artifacts/watch_57268876.log`).
+  - **#94 = C10w**, 12:32:48 UTC (ref 57269124; watcher `artifacts/watch_57269124.log`).
+  - Three placeholders cost ≈ 0.4 Kaggle GPU-h (3.53 h left until 10-17 00:00 UTC). 10-16 has 2 slots left.
+- **Read rules** (candidates.md):
+  - **C11**, vs C8 0.953 / C6 0.950, pred. 0.952–0.954:
+    - ✅ ≥ 0.953 → pick-1 candidate, with no fastMRI question;
+    - 🔁 0.951–0.952 → the fastMRI-free pick 1 in place of C6;
+    - ❌ ≤ 0.950.
+  - **C10**, vs the anchor 0.957, pred. 0.957:
+    - ✅ ≥ 0.958;
+    - 🔁 0.957: sub-tick, readable by tie position only if it is our best entry;
+    - ❌ ≤ 0.956, a fault or a skipped arm.
+  - **C10w**, vs 0.958:
+    - ✅ ≥ 0.959;
+    - 🔁 0.958;
+    - ❌ ≤ 0.957.
+  - Only a team's best entry is visible on the LB, so if C10w reads 0.958 the C10 tie position cannot be read.
+- **Rule risk:**
+  - C10 / C10w carry OAI on three paths (both CoAtNets, `v15co`), plus R6's likely fastMRI; that is pick 2's class.
+  - C11 carries neither. Its only external component is SKM-TEA (heliosli's anatomy model), which C6 and C8 also carry. The s6fall
+    weights are CC BY-NC 4.0.
+- **Tian, 10-16:** no pick decisions until one day before the deadline (10-21).
+
+**Verdict: ⏳ PENDING (#92, #93, #94).**
+
 ## Infrastructure
 
 ### 2026-09-27 — The "0.943 Speedy Raptors CoAtNet D4" notebook is our anchor **plus two CoAt readers**, not a faster graph; its "< 30 min" is a 3-study commit run · P-41 (threaded scan + 8 decode workers) smoke-green and byte-identical
@@ -6405,6 +6473,9 @@ and public LB score, so a public/private divergence can be traced to a specific 
 | 89 | 2026-10-13 | rsna-knee-fork956 v3 (`src/build_fork954.py --anchor 0956 --compact-anchor --members v15c v13b3 v15cr --beta 0.45`) | **C8′**: R7 alone as the anchor (OAI-free; fastMRI inside R7) + B22 (`v15c` + `v13b3` + `v15cr`) at β 0.45 | none | **0.953** | **read 10-14 08:21 UTC → 🔁 Δ 0.000 vs C8 0.953 (✅ needed ≥ 0.955), inside the prediction (0.952–0.954); `v15cr` adds nothing readable to pick 1's leg, C8 (B18) stays (entry 2026-10-14 "Submissions #89 / #90"); COMPLETE by 08:21 (no watcher).** sent 20:58:08 UTC (ref 57156069) |
 | 90 | 2026-10-13 | rsna-knee-fork956 v4 (`src/build_fork954.py --anchor 0956 --members v15co v13b3 v15cr --beta 0.20`) | **C7′**: heliosli's public 0.956 blend (cells verbatim) + `v15co` + `v13b3` + `v15cr` at β 0.20 | none | **0.956** | **read 10-14 08:21 UTC → 🔁 no move inside the 0.956 tie (23rd of 761, rank 226; every tied team above us at 21:08 still above or moved to 0.957, the stable order unchanged, `artifacts/lb_1014/`) → C7′ ≤ C7 by its rule, B21 stays pick 2's leg (entry 2026-10-14 "Submissions #89 / #90"); COMPLETE by 08:21 (no watcher).** sent 21:08:30 UTC (ref 57156272) |
 | 91 | 2026-10-14 | rsna-knee-fork956 v5 (`src/build_fork954.py --anchor 0956v --members v15co v13b3 --beta 0.20 --gate-hours 7.0 --sec-per-study 3.0`) | **C9**: varshithakolupuri's public 0.956 variant (heliosli's 0.956 cells verbatim + nartaa's unused 224 px CoAtNet at 0.35 of the Raptor half, gated) + B21 (`v15co` + `v13b3`) at β 0.20 | none | **0.956** | **read 10-16 11:29 UTC → 🔁 at three decimals, but C9 > C7 by sign: team 16679021, 10 places above C7 in the 0.956 tie on 10-14 (rank 216 vs our 226), is now directly below us (775 vs 774), and a team's best cannot fall. By its rule pick 2 = C9 in place of C7; the lift is sub-tick (entry 2026-10-16 "Submission #91 and the 0.957 / 0.958 frontier"); scored by 10-16 (no watcher; the 10-14 watcher died with the session).** placeholder green (`R224_STAGE ok=True`, `_ours.csv` = C7's exactly, `FINAL = beta0.20`). sent 09:02:08 UTC on Tian's go (ref 57175897); vs C7: ✅ ≥ 0.957 / a better 0.956 tie position than C7's 23rd of 761 = C9 > C7 / no move = keep C7 / ❌ ≤ 0.955 (entry 2026-10-14 "C9 built and sent") |
+| 92 | 2026-10-16 | rsna-knee-forks6f v1 (`src/build_fork954.py --anchor 0950s6f --members v15c v13b3 --beta 0.45`) | **C11**: nartaa's s6fall alone as the anchor (S6 architecture on JEV labels, 0.950 public alone; component A, his OAI CoAtNet, not run and not mounted; B-failed studies mean-filled; no OAI, no fastMRI) + B18 (`v15c` + `v13b3`) at β 0.45 | none | ⏳ | placeholder green (`K1_DONE`, A 0 s, B 0 failed; `_anchor_0950.csv` = nartaa's own s6fall output exactly; `_ours.csv` = C8's exactly; `FINAL = beta0.45`). sent 12:19:45 UTC on Tian's go (ref 57268784); vs C8 0.953 / C6 0.950: ✅ ≥ 0.953 / 🔁 0.951–0.952 / ❌ ≤ 0.950 (entry 2026-10-16 "C11, C10 and C10w built and sent") |
+| 93 | 2026-10-16 | rsna-knee-fork957 v1 (`src/build_fork954.py --anchor 0957 --members v15co v13b3 --beta 0.20 --gate-hours 7.5 --sec-per-study 3.0`) | **C10**: heliosli's public R6 + flip TTA notebook (verbatim but `C_SLUG` → the `-w1` copy of R6; Raptor half 0.65 × 384 + 0.35 × 224, R6 0.5) + B21 (`v15co` + `v13b3`) at β 0.20 | none | ⏳ | placeholder green (R6 from `-w1`, flip TTA on, PASS 3 / 3; `_anchor_0957.csv` = heliosli's own output exactly; `_ours.csv` = C9's exactly; `FINAL = beta0.20`). sent 12:23:30 UTC on Tian's go (ref 57268876); vs the anchor 0.957: ✅ ≥ 0.958 / 🔁 0.957 / ❌ ≤ 0.956 (entry 2026-10-16 "C11, C10 and C10w built and sent") |
+| 94 | 2026-10-16 | rsna-knee-fork958 v1 (`src/build_fork954.py --anchor 0958 --members v15co v13b3 --beta 0.20 --gate-hours 7.5 --sec-per-study 3.0`) | **C10w**: heliosli's public 0.958 `blend-mine-in` (verbatim: C10's anchor + Raptor-half weights Synovitis 0.80 / Lateral OA 0.20 / PF OA 0.60 / Baker's 0.35, others 0.50) + B21 (`v15co` + `v13b3`) at β 0.20 | none | ⏳ | placeholder green (per-finding weights in the receipt; `_anchor_0958.csv` = heliosli's own output exactly; `_ours.csv` = C9's exactly; `FINAL = beta0.20`). sent 12:32:48 UTC on Tian's go (ref 57269124); vs the anchor 0.958: ✅ ≥ 0.959 / 🔁 0.958 / ❌ ≤ 0.957 (entry 2026-10-16 "C11, C10 and C10w built and sent") |
 
 ## Closed cards index (moved here from proposals.md on 2026-10-05)
 
