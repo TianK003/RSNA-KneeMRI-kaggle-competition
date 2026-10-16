@@ -6126,6 +6126,30 @@ heliosli's trainer text, and both forum harvests. Its notes are in the session s
 lineage. A teacher from the anchor's lineage removes the diversity the leg is worth. The quota goes to lineage-neutral leg work (P-67)
 or the anchor side (C12). Recorded in proposals.md Dropped directions.
 
+### 2026-10-16 — C10w at β 0.05 built and sent (#95; Tian: "replicate the .958 and just do a bit of our models … to see how we fare up against everyone's generic notebook copy. Even if we don't learn anything new I just want to test it") · placeholder green · ⏳ PENDING
+
+- **Build:** `src/build_fork954.py --anchor 0958 --members v15co v13b3 --beta 0.05 --gate-hours 7.5 --sec-per-study 3.0` →
+  `rsna-knee-fork958` v2. One change vs C10w (#94): β 0.20 → 0.05. The render differs from v1 in three lines, all of them β. The v1
+  render (β 0.20) checked byte-identical (`--check`) before the rebuild.
+- **Placeholder** (v2, pushed ≈ 19:59, COMPLETE 20:10 UTC; outputs in `artifacts/kaggle_out/fork958_v2/`):
+  - `_anchor_0958.csv`, `submission_fork_anchor_0958.csv` and `_ours.csv` = v1's exactly (max diff 0.0); the anchor is heliosli's own
+    output;
+  - `submission.csv` = rank_pct(0.95 × rank_pct(anchor) + 0.05 × rank_pct(ours)) exactly; `FINAL submission.csv = beta0.05`;
+  - no Traceback; ≈ 0.2 Kaggle GPU-h (3.37 h left until the 10-17 reset).
+- **Sent:** #95 at 20:13:17 UTC, ref 57282094. There is no watcher: Tian reports the score. 10-16 has 4 slots used and 1 left.
+- **Prediction (fork rule):** the change vs the anchor is −0.05 × (b − 0.946) + 0.0475 k ≈ −0.0006 + 0.0004…0.0007 ≈ −0.0002 to
+  +0.0001. So it reads 0.958, unless b sits within 0.0002 of 0.9575.
+- **Read rule.** The baseline is `artifacts/lb_1016c/` (20:12 UTC): heliosli at 517 and degnonguidi's hash-identical copy at 518; 525
+  teams at 0.958; we are 662 at 0.957. A 0.958 becomes our best entry, so its tie position is readable:
+  - **✅ 0.958, ranked above** heliosli and degnonguidi (the anchor's verbatim copies) → our leg adds a sub-tick even at β 0.05: we
+    beat the generic copy.
+  - **🔁 0.958, ranked below** the verbatim copies → a sub-tick cost. A skipped arm would look the same: it ties the copies and sorts
+    after them by time. C10w's arm ran inside the same gate, so a skip is unlikely.
+  - **❌ ≤ 0.957** → a cost of at least (b − 0.9575).
+  - Compare against the copies, not the raw rank: teams keep entering the 0.958 tie (481 → 525 in 1.7 h). If heliosli's own best
+    changes, use degnonguidi or another copy that has not resubmitted.
+- **Verdict: ⏳ PENDING (#95).**
+
 ## Infrastructure
 
 ### 2026-09-27 — The "0.943 Speedy Raptors CoAtNet D4" notebook is our anchor **plus two CoAt readers**, not a faster graph; its "< 30 min" is a 3-study commit run · P-41 (threaded scan + 8 decode workers) smoke-green and byte-identical
@@ -6667,6 +6691,7 @@ and public LB score, so a public/private divergence can be traced to a specific 
 | 92 | 2026-10-16 | rsna-knee-forks6f v1 (`src/build_fork954.py --anchor 0950s6f --members v15c v13b3 --beta 0.45`) | **C11**: nartaa's s6fall alone as the anchor (S6 architecture on JEV labels, 0.950 public alone; component A, his OAI CoAtNet, not run and not mounted; B-failed studies mean-filled; no OAI, no fastMRI) + B18 (`v15c` + `v13b3`) at β 0.45 | none | **0.952** | **read 10-16 18:29 UTC → 🔁, the low end of its 0.952–0.954 prediction: C8 − 0.001, C6 + 0.002; k ≈ 0.015–0.023 vs B18. By its rule the fastMRI-free pick 1 = C11, in place of C6 (entry 2026-10-16 "Submissions #92–#94"); COMPLETE within ≤ 6.2 h (the watcher died with the session).** placeholder green (`K1_DONE`, A 0 s, B 0 failed; `_anchor_0950.csv` = nartaa's own s6fall output exactly; `_ours.csv` = C8's exactly; `FINAL = beta0.45`). sent 12:19:45 UTC on Tian's go (ref 57268784); vs C8 0.953 / C6 0.950: ✅ ≥ 0.953 / 🔁 0.951–0.952 / ❌ ≤ 0.950 (entry 2026-10-16 "C11, C10 and C10w built and sent") |
 | 93 | 2026-10-16 | rsna-knee-fork957 v1 (`src/build_fork954.py --anchor 0957 --members v15co v13b3 --beta 0.20 --gate-hours 7.5 --sec-per-study 3.0`) | **C10**: heliosli's public R6 + flip TTA notebook (verbatim but `C_SLUG` → the `-w1` copy of R6; Raptor half 0.65 × 384 + 0.35 × 224, R6 0.5) + B21 (`v15co` + `v13b3`) at β 0.20 | none | **0.957** | **read 10-16 18:29 UTC → 🔁 = the anchor at three decimals (C10 − anchor ≈ −0.0009 to +0.0002 by the fork rule). Its tie position is unread, since C10w is most likely our best entry; +0.001 over C9 → pick 2's candidate (entry 2026-10-16 "Submissions #92–#94"); COMPLETE within ≤ 6.1 h (the watcher died with the session).** placeholder green (R6 from `-w1`, flip TTA on, PASS 3 / 3; `_anchor_0957.csv` = heliosli's own output exactly; `_ours.csv` = C9's exactly; `FINAL = beta0.20`). sent 12:23:30 UTC on Tian's go (ref 57268876); vs the anchor 0.957: ✅ ≥ 0.958 / 🔁 0.957 / ❌ ≤ 0.956 (entry 2026-10-16 "C11, C10 and C10w built and sent") |
 | 94 | 2026-10-16 | rsna-knee-fork958 v1 (`src/build_fork954.py --anchor 0958 --members v15co v13b3 --beta 0.20 --gate-hours 7.5 --sec-per-study 3.0`) | **C10w**: heliosli's public 0.958 `blend-mine-in` (verbatim: C10's anchor + Raptor-half weights Synovitis 0.80 / Lateral OA 0.20 / PF OA 0.60 / Baker's 0.35, others 0.50) + B21 (`v15co` + `v13b3`) at β 0.20 | none | **0.957** | **read 10-16 18:29 UTC → ❌ by its rule (≤ 0.957), with the arm run: the anchor is deterministic (heliosli and degnonguidi's hash copy sit adjacent at 0.958), so B21 at β 0.20 pushed it below 0.9575. Our best entry is most likely this one: rank 617 of 6,103, 12th of 315 at 0.957 (entry 2026-10-16 "Submissions #92–#94"); COMPLETE within ≤ 5.9 h (the watcher died with the session).** placeholder green (per-finding weights in the receipt; `_anchor_0958.csv` = heliosli's own output exactly; `_ours.csv` = C9's exactly; `FINAL = beta0.20`). sent 12:32:48 UTC on Tian's go (ref 57269124); vs the anchor 0.958: ✅ ≥ 0.959 / 🔁 0.958 / ❌ ≤ 0.957 (entry 2026-10-16 "C11, C10 and C10w built and sent") |
+| 95 | 2026-10-16 | rsna-knee-fork958 v2 (`src/build_fork954.py --anchor 0958 --members v15co v13b3 --beta 0.05 --gate-hours 7.5 --sec-per-study 3.0`) | **C10w-b05**: heliosli's public 0.958 `blend-mine-in` (verbatim) + B21 (`v15co` + `v13b3`) at β 0.05; one change vs C10w (β 0.20 → 0.05); Tian's test against the generic copy | none | ⏳ | placeholder green (anchor / ours = v1's exactly; `submission.csv` = the β 0.05 blend exactly; `FINAL = beta0.05`). sent 20:13:17 UTC on Tian's go (ref 57282094); vs the anchor's verbatim copies in the 0.958 tie (heliosli 517 / degnonguidi 518 at 20:12 UTC, `artifacts/lb_1016c/`): ✅ ranked above them / 🔁 below them / ❌ ≤ 0.957 (entry 2026-10-16 "C10w at β 0.05 built and sent") |
 
 ## Closed cards index (moved here from proposals.md on 2026-10-05)
 

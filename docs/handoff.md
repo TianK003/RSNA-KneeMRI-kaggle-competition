@@ -6,6 +6,94 @@ to read first after a break.
 
 ---
 
+## 2026-10-16 (18:25 → 20:20 UTC) — **#92–#94 read** (C11 0.952, C10 0.957, C10w 0.957 ❌ with the arm run) · **we are rank 617 at 0.957** · public vs private modelled (`src/pubpriv_sim.py`) + forum read · image teachers surveyed (none worth a pass) · Fable dropped · **#95 = C10w at β 0.05 sent** (Tian's test)
+
+Tian, in order:
+1. "Pull the results of the latest runs, analyze them and then run /update, then report … what we figured out and what we should try next
+   according to our own rules (read the handoff too)."
+2. "Drop the fable prediction and do some research to find if there are any other image models such as raptor capable of producing
+   pseudo labels and if it's worth trying them out. Additionally … estimate how this public notebook could be affected by scoring: is it
+   overfit on the public LB data and might drop on private LB, or could it do better? Is anybody discussing this?"
+3. "Replicate the .958 and just do a bit of our models (beta at like 0.05 to see how we fare up against everyone's generic notebook
+   copy). Even if we don't learn anything new I just want to test it."
+4. "Run /handoff and stop the watcher, I will tell you when it scores, also push all changes to github."
+
+Commits `29599af`, `875bd7a` and this one (it also carries the #95 log and the `rsna-knee-fork958` v2 render).
+
+### ⏳ Still in flight as this was written (20:20 UTC)
+
+| In flight | What it is | Started | How to check | How to read it |
+|---|---|---|---|---|
+| **#95 = C10w-b05** (ref 57282094) | `rsna-knee-fork958` v2: heliosli's 0.958 `blend-mine-in` verbatim + B21 (`v15co` + `v13b3`) at **β 0.05**. One change vs C10w #94 (β 0.20). Placeholder green: anchor / ours = v1's exactly, `submission.csv` = the β 0.05 blend exactly | sent 20:13:17 UTC | Tian reports the score (no watcher, his call); or `kaggle competitions submissions rsna-knee-abnormality-detection`. Then pull the LB: `kaggle competitions leaderboard rsna-knee-abnormality-detection -d -p artifacts/lb_1017/` (unzip, read with `encoding='utf-8-sig'`) | Expect ≈ 6 h (C10w ≤ 5.9 h) and pred. **0.958** (fork rule: −0.0002 to +0.0001 vs the anchor). A 0.958 becomes our best entry, so its tie position reads. Baseline `artifacts/lb_1016c/` (20:12 UTC): heliosli 517, degnonguidi (hash-identical copy) 518. **✅ 0.958 ranked above both** = our leg adds a sub-tick at 5 %, we beat the generic copy. **🔁 0.958 ranked below them** = a sub-tick cost (a skipped arm looks the same: it ties and sorts after them by time). **❌ ≤ 0.957** = a cost ≥ (b − 0.9575). Compare against the copies, not the raw rank: the tie grew 481 → 525 in 1.7 h |
+
+No Kaggle kernel or RunPod pod is running. The watchers were stopped (Tian).
+
+### Where things stand
+
+| | Status |
+|---|---|
+| Public LB | **0.957** (C10 #93 / C10w #94), **rank 617 of 6,103** at 18:30 UTC (12th of 315 at 0.957); 662 of 6,106 at 20:12 as the 0.958 tie grows. OAI-free 0.953 (C8 #88); free of OAI and fastMRI **0.952 (C11 #92)** |
+| Picks (Tian decides 10-21) | pick 1 = C8 (if fastMRI passes) / **C11** (otherwise; replaced C6); pick 2 = **C10** / C10w / (C10w-b05 if it reads 0.958). Select both by hand: Kaggle's default would take two OAI forks |
+| Docs | All reads logged (experiments.md 10-16: "Submissions #92–#94", "Public vs private", "Public image models as a second teacher", "C10w at β 0.05 built and sent"); candidates.md, proposals.md (Dropped directions + P-87 + P-50), CLAUDE.md current |
+| Code | **`src/pubpriv_sim.py`** (new): the binormal public / private model, ≈ 5 min CPU, output `artifacts/pubpriv_sim_1016.txt`. `kaggle/rsna-knee-fork958/` now holds the **β 0.05** render (v2); C10w's β 0.20 rebuilds with the command in the builder's docstring |
+| Budgets | Submissions: 10-16 has **1 slot left**. Kaggle GPU **3.37 h** until the 10-17 00:00 UTC reset (30 h after). RunPod ≈ $5.8. OpenRouter $2.29 of $13 |
+| Repo | Pushed. Tian's untracked `discussion*.{py,xml}` were **not** added (forum dumps in a public repo; never `git add -A`) |
+
+### What we talked about and decided
+
+- **"What next by our own rules"** (after #92–#94): leave the last 10-16 slots empty (β tuning is a dropped direction); P-86 / P-67 after the reset feed pick 1 only; C12 is optional. Tian then asked for the β 0.05 test anyway, as a test, not as a pick decision.
+- **Fable arm of P-87: dropped (Tian).** P-87 stays open only for the Qwen 3.8 Max call; without it, the card closes.
+- **Image teachers:** surveyed (a subagent); Tian did not ask to run one, and the read says skip it (below).
+- **The β 0.05 test design:** B21 kept as the leg (same as C10w), so β is the only change and the read compares directly with C10w and the generic copy.
+- **"Stop the watcher":** both watchers stopped. The placeholder was then checked by one bounded poll and sent, since Tian expects a score.
+
+### What we figured out
+
+1. **#92 C11 = 0.952** → the fastMRI-free pick 1 (in place of C6). **#93 C10 = 0.957** → pick 2's candidate (in place of C9). **#94 C10w = 0.957**, one tick under its 0.958 anchor with the arm run (the anchor is deterministic: heliosli and degnonguidi's copy sit adjacent) (experiments.md "Submissions #92–#94").
+2. **On a ≥ 0.957 anchor, B21 at β 0.20 is break-even to a cost.** The leg's weighted-mean cost (≈ 0.0023) equals its diversity gain; the break-even leg is ≈ 0.947–0.951. Own-leg work for pick 2 is closed (Dropped directions); the leg still pays in pick 1 (≈ +0.00045 per +0.001).
+3. **Public vs private** (experiments.md "Public vs private"):
+   - public SD ≈ 0.003 (model 0.0030, matching nartaa and leoprovorov);
+   - sibling swaps (R7 → R6, flip) differ by 0.0004–0.0009 on public, uncorrelated with private, so the 0.956 → 0.957 → 0.958 steps sit inside the noise;
+   - nothing predicts a drop of the plateau's level (± 0.004), but its internal order (our forks included) is a lottery;
+   - nobody on the forum has tested it.
+   **CORRECTED:** the 0.958 weights are not shown to be probed (`PROBE_CLASS = None`, "user decision 10-16"); the model keeps ≈ 80 % of such a gain on private when the halves truly differ per finding.
+4. **No public image model is worth a teacher pass for pick 1's leg.** Each is OAI (nartaa), fastMRI (R6 / R7) or the pick-1 anchor's own lineage (s6fall). The one clean design nets ≈ −0.002 to +0.0005 (experiments.md "Public image models as a second teacher").
+5. **No new public anchor:** heliosli's 0.957 notebook re-ran at 18:32 UTC with byte-identical cells.
+
+### ⏭ Next action, in order
+
+1. **When Tian reports #95:** pull the LB into `artifacts/lb_1017/` and find our row, heliosli's and degnonguidi's. Read by the rule in the in-flight table, then `/update`:
+   - the Submissions row #95 (⏳ → score) and a READ line under "C10w at β 0.05 built and sent";
+   - a read entry and a Scoreboard row;
+   - delete the C10w-b05 rows from candidates.md (priority table + section C);
+   - CLAUDE.md state.
+   If it reads 0.958, it is our best public number and a pick-2 option (Tian's call).
+2. **After the 10-17 00:00 UTC Kaggle reset** (30 h), on Tian's go:
+   - **P-86** (`v15cj`): build the composite table, run a local smoke, get a critic check, then a pod (≈ $1.8). Read the solo vs `v15c` 0.942 on Tian's bar.
+   - **The P-67 loop:** `v14mx` ‖ `v14r288` as session D on `rsna-knee-train` (≈ 7.5 h). A variant clears +0.002 on the pooled proxy → one production transfer arm. Both feed pick 1 only.
+3. **C12, only if Tian wants it** (send by 10-20): R7 + s6fall (flat) + B18 at β 0.45. It needs a `build_fork954.py` spec running both compact stages and a 9-h runtime check (candidates.md C12).
+4. **Before 10-21:**
+   - the fastMRI request-form check in a browser (brainstorm.md);
+   - re-read `kaggle kernels list --competition rsna-knee-abnormality-detection --sort-by dateRun` for a newer public anchor.
+5. **10-21:** Tian picks; select both submissions by hand on the Submissions page.
+
+### Open decisions for Tian
+
+- The final picks (10-21): pick 1 C8 / C11; pick 2 C10 / C10w / C10w-b05.
+- fastMRI in pick 1.
+- C12.
+- The Qwen arm (else P-87 closes).
+- P-86's pod, and the P-67 sessions after the reset.
+
+### Things that will bite if forgotten
+
+- **`src/watch_kernel.py --key` takes one value per flag.** Repeat `--key X --key Y`; several values after one `--key` exit with a usage error at once, and the background-task notice still says "completed".
+- **The 0.958 tie keeps growing** (481 → 525 in 1.7 h): read #95 against the anchor's copies, not the raw rank.
+- **`kaggle/rsna-knee-fork958/` holds the β 0.05 render.** Rebuild with `--beta 0.20` before ever re-sending C10w.
+- **The repo is public:** the `discussion*` dumps and anything with StudyInstanceUIDs stay out of git (traps 73).
+
+---
+
 ## 2026-10-16 (11:25 → 12:45 UTC) — **C9 read: 0.956, ahead of C7 by sign** · the 0.957 / 0.958 frontier decoded (R6 + flip TTA; then probed per-finding weights) · the host's 10-14 external-data ruling · **C11 / C10 / C10w built and sent (#92–#94)**
 
 Tian, in order:
