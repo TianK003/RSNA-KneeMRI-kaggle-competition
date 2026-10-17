@@ -898,6 +898,14 @@ def main():
               f"{a} = v15c + {sorted(keys)} only (same seed), on {' + '.join(tables)} at mix {mix} ({sorted(diff)})")
     check(Config(smoke=False, **arms["v15cb"]).trim_ends == 1, "v15cb trims one slice at each end")
 
+    # ---- 2026-10-17: v15cj (P-86: jevf_rap_v1 = 2/3 Raptor + 1/3 OpenJev at mix 0.75) --------------------------------------
+    print("\n== 2026-10-17: v15cj")
+    cj = Config(smoke=False, **arms["v15cj"])
+    diff = {k for k in K["asdict"](cj) if getattr(cj, k) != getattr(cv, k)} - {"version"}
+    check(not diff and da["v15cj"] == ("jevf_rap_v1",) and abs(dm["v15cj"] - 0.75) < 1e-9
+          and "v15cj" not in K["DISTILLED_SILENT_MIX"] and "jevf_rap_v1" in K["TEACHER_PATHS"] and cj.seed == cv.seed,
+          f"v15cj = v15c exactly (same seed), on jevf_rap_v1 at mix 0.75 ({sorted(diff)})")
+
     print("\n" + ("UNIT CHECKS PASSED" if not fails else f"UNIT CHECKS FAILED ({len(fails)}):\n  - " + "\n  - ".join(fails)))
     sys.exit(1 if fails else 0)
 

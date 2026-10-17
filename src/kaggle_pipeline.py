@@ -474,6 +474,11 @@ SHIPPED_ARMS = [
                "llrd_decay": 0.9, "aug": "heavy", "drop_path": 0.1, "epochs": 20, "trim_ends": 1}),
     ("v15cr", {**PROD, **V09R_KW, **C03_KW, "backbone": "timm:convnext_tiny", "img_size": 288, "lr_backbone": 1e-4,
                "llrd_decay": 0.9, "aug": "heavy", "drop_path": 0.1, "epochs": 20}),
+    # 2026-10-17 (P-86, Tian's go; RunPod): `v15c` with ONE change, same seed -- half of the LLM share goes to the OpenJev text
+    # ensemble: `jevf_rap_v1` (2/3 Raptor rank + 1/3 OpenJev rank, src/build_rank_composite.py) at TEACHER_MIX 0.75, i.e.
+    # ~ 0.25 LLM + 0.25 OpenJev + 0.5 Raptor (gold-58 target 0.9394 vs production 0.9320). DISTILLED_ARMS / DISTILLED_MIX pin it.
+    ("v15cj", {**PROD, **V09R_KW, **C03_KW, "backbone": "timm:convnext_tiny", "img_size": 288, "lr_backbone": 1e-4,
+               "llrd_decay": 0.9, "aug": "heavy", "drop_path": 0.1, "epochs": 20}),
     # 2026-10-10 (P-82, Tian's go; recipe from the literature + forum review): DINOv2-S/14 retrained on the CNNs' data side
     # (c03, heavy aug, Raptor 0.5, SWA of the last 3), which the 0.918 `v08r` never had, with a ViT optimiser: AdamW wd 0.05
     # (MAE / BEiT / iBOT), drop path ramped 0 -> 0.1, head 1e-3, 280 px (20 x 20 tokens of ~7.5 mm; Tian), 20 epochs.
@@ -606,6 +611,9 @@ TEACHER_PATHS = {
     # P-68 (2026-10-05): the CNN-family OOF teacher -- src/build_distill_table.py --per-fold-rank over the v14p + v14p2
     # five-fold OOFs (the P-67 floor run). Does not exist until that run is in; only needs to be mounted when listed.
     "cnnoof_v1": ["/kaggle/input/rsna-knee-teacher-tables/cnnoof_v1.csv", "artifacts/teacher/cnnoof_v1.csv"],
+    # P-86 (2026-10-17): 2/3 Raptor rank + 1/3 OpenJev rank (riadmohamed42 FINAL2, gold rows dropped; src/build_rank_composite.py),
+    # the claude_rap_v1 construction with the OpenJev text ensemble in place of Claude. Only needs to be mounted when listed.
+    "jevf_rap_v1": ["/kaggle/input/rsna-knee-teacher-tables/jevf_rap_v1.csv", "artifacts/teacher/jevf_rap_v1.csv"],
 }
 # P-38: a distilled arm (`v09s` = the fold-0 probe, `v09t` = the production member) is what its name says only when its
 # targets are distilled, and the arm dict cannot carry TEACHER_TABLES (targets are built once per session) -- never train
@@ -638,9 +646,9 @@ DISTILLED_ARMS = {"v09s": ("selfdistill_v1",), "v09t": ("selfdistill_v1",),
                   "v13eo": ("raptor_teacher", "cnnoof_v1"),
                   "v15c": ("raptor_teacher",), "v15c2": ("raptor_teacher",), "v15c320": ("raptor_teacher",),
                   "v15co": ("raptor_teacher",), "v16d1": ("raptor_teacher",), "v16d3": ("raptor_teacher",),
-                  "v15cb": ("raptor_teacher",), "v15cr": ("claude_v1",)}
+                  "v15cb": ("raptor_teacher",), "v15cr": ("claude_v1",), "v15cj": ("jevf_rap_v1",)}
 # 2026-09-28 (traps 40's second gap): the mix a distilled arm must train with; every other distilled arm trains at 0.5.
-DISTILLED_MIX = {"v09o": 0.75, "v09o2": 0.75, "v13ec": 0.75, "v13rc": 0.75, "v13ecp": 1.0, "v15cr": 1.0}
+DISTILLED_MIX = {"v09o": 0.75, "v09o2": 0.75, "v13ec": 0.75, "v13rc": 0.75, "v13ecp": 1.0, "v15cr": 1.0, "v15cj": 0.75}
 # P-62: the silent-cell mix an arm must train with; every arm not listed trains without one (TEACHER_SILENT_MIX = None).
 DISTILLED_SILENT_MIX = {"v11s": 0.75, "v11s2": 0.75, "v13es": 0.75, "v13rs": 0.75}
 if TEACHER_SILENT_MIX is not None and not TEACHER_TABLES:

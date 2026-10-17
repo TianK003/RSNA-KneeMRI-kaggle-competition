@@ -250,6 +250,7 @@ WEIGHT_LINE_S6 = "W_RAPTOR, W_OURS = 0.0, 1.0   # [fork954 --s6-only] A14: S6 al
 MEMBER_SOURCES = dict(f949.MEMBER_SOURCES)
 MEMBER_SOURCES["v15co"] = ("tiankljucanin/rsna-knee-ckpt-v15co", "tiankljucanin/timm-convnext-tiny-in12k")
 MEMBER_SOURCES["v15cr"] = ("tiankljucanin/rsna-knee-ckpt-v15cr", "tiankljucanin/timm-convnext-tiny-in12k")
+MEMBER_SOURCES["v15cj"] = ("tiankljucanin/rsna-knee-ckpt-v15cj", "tiankljucanin/timm-convnext-tiny-in12k")
 
 
 def _swap(text, pairs):
