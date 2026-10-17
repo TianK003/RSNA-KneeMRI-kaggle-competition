@@ -52,12 +52,16 @@ one `rsna-knee-fork949` has carried since its creation (traps 54).
     .venv/Scripts/python.exe src/build_fork954.py --anchor 0958 --members v15co v13b3 --beta 0.20 \
         --gate-hours 7.5 --sec-per-study 3.0                                                                     # C10w
     .venv/Scripts/python.exe src/build_fork954.py --anchor 0950s6f --members v15c v13b3 --beta 0.45              # C11
+    .venv/Scripts/python.exe src/build_fork954.py --anchor c12 --members v15c v13b3 --beta 0.45 \\
+        --gate-hours 7.5 --sec-per-study 3.0                                                                     # C12
 
 0957 / 0958 (heliosli, 10-14 / 10-15; experiments.md 2026-10-16 "Submission #91 and the 0.957 / 0.958 frontier") are nine-cell
 notebooks: stage 1 (384) and stage 1b (224) before stage 2 (R6 with flip TTA), which runs longer than R7, so C10 / C10w raise the
 gate to 7.5 h. 0957 gets one patched line (C_SLUG -> the -w1 copy of R6, traps 72); 0958 is verbatim. Each has its own kernel slug
 (rsna-knee-fork957 / -fork958), so their placeholders can run at once. 0950s6f is nartaa's s6fall script (C11, OAI-free): see
-ANCHORS["0950s6f"] and patch_s6fall(); kernel rsna-knee-forks6f.
+ANCHORS["0950s6f"] and patch_s6fall(); kernel rsna-knee-forks6f. c12 (10-17) runs both OAI-free compact models in one
+notebook: R7 (as C8) then s6fall (as C11) under a time limit, rank-meaned 0.5 / 0.5, then our arm (see build_c12; kernel
+rsna-knee-forkc12).
 
 On 0956v our arm still runs after the anchor's stage 3 (it blends onto its submission.csv), so the 224 stage now runs
 before it: C9 raises the gate to 7 h and lowers the runtime estimate to 3 s / study (the 8.4 h hard stop is unchanged; a
@@ -675,6 +679,200 @@ def build_script(params, spec, notebook=None, pipeline=PIPELINE):
     return out_nb, meta, payload
 
 
+# C12 (candidates.md; Tian 10-17 "build it"): a two-model compact anchor, OAI-free -- heliosli's R7 (the 0956 notebook's stage 2,
+# as C8 runs it) and nartaa's s6fall (C11's stage, as C11 runs it), rank-meaned 0.5 / 0.5 per finding, then our arm at beta.
+# R7 runs first: its cells are byte-identical anchor cells that raise on their own failure, exactly as in C8. Its submission.csv
+# (C8's anchor) is kept aside as the fallback; s6fall then runs as its own process under a time limit counted from the notebook
+# start (its own 8 h guard counts from its own start, so the limit is ours), and on a skip, a timeout or a failure the anchor stays
+# R7 alone -- C8's anchor. Our arm's gate (--gate-hours, from the same clock) follows as in every fork.
+S6F_LATEST_START_H = 4.5       # s6fall needs ~2.5-3 h at 1,284 studies (S6: ~8 s / study on two T4s); started later it is skipped
+S6F_END_H = 7.0                # s6fall is killed at this notebook time, so our arm (gate 7.5 h, ~1.1 h at 3 s / study) can still run
+C12_INTRO = """# RSNA Knee Forkc12: heliosli's R7 + nartaa's s6fall as one compact anchor + our members (candidates.md C12)
+
+Built by `src/build_fork954.py --anchor c12`. OAI-free: no CoAtNet stage, nartaa's OAI-trained Dataset is not mounted. Stage A runs
+heliosli's R7 (the two stage-2 cells of his public 0.956 notebook, byte-identical, as C8 runs them) and writes R7's predictions as
+`submission.csv`. Stage B runs nartaa's public s6fall script as its own process (component A, the OAI-trained CoAtNet, not run; the
+public test ids removed; as C11 runs it) under a time limit. The anchor is the per-finding rank mean 0.5 R7 + 0.5 s6fall, each ranked
+over the studies it scored; if s6fall is skipped, times out or fails, the anchor is R7 alone. Our arm then blends onto it at beta.
+Credits: heliosli (R7, S6 architecture, inference code, SKM-TEA anatomy model), nartaa (s6fall weights, CC BY-NC 4.0).
+"""
+C12_RUN_CELL = """# Forkc12: stage B -- nartaa's s6fall (C11's stage) as its own process, then the anchor = 0.5 rank(R7) + 0.5 rank(s6fall) per
+# finding, each ranked over the studies it scored (a study only one model scored takes that model's rank; neither: 0.5). R7's
+# submission.csv (written above) is the fallback: on a skip, a timeout or a failure of s6fall the anchor stays R7 alone (= C8's).
+import json as _c12_json, os as _c12_os, shutil as _c12_sh, signal as _c12_sig, subprocess as _c12_sp, sys as _c12_sys
+import time as _c12_time
+import numpy as _c12_np
+import pandas as _c12_pd
+_C12_LATEST_START_H = __S6F_LATEST_START_H__
+_C12_END_H = __S6F_END_H__
+_c12_sub = '/kaggle/working/submission.csv'
+_c12_r7_path = '/kaggle/working/_c12_r7.csv'
+_c12_s6f_path = '/kaggle/working/_c12_s6f.csv'
+_c12_sh.copyfile(_c12_sub, _c12_r7_path)                     # s6fall deletes submission.csv when it starts
+_c12_r7 = _c12_pd.read_csv(_c12_r7_path, dtype={'StudyInstanceUID': str})
+_c12_ids = _c12_r7['StudyInstanceUID'].tolist()
+_c12_labels = [c for c in _c12_r7.columns if c != 'StudyInstanceUID']
+_c12_r7_ok = _c12_np.array([u in _fork_scored for u in _c12_ids])   # R7's scored studies (stage 3's rule, counted above)
+_c12_info = {'r7_scored': int(_c12_r7_ok.sum()), 'rows': len(_c12_ids)}
+
+
+def _c12_log(msg):
+    print('[c12 %5.2fh] %s' % ((_c12_time.time() - NB_T0) / 3600, msg), flush=True)
+
+
+def _c12_pct(v, ok):
+    r = _c12_np.full(len(v), _c12_np.nan)
+    if ok.any():
+        r[ok] = _c12_pd.Series(_c12_np.asarray(v, _c12_np.float64)[ok]).rank(method='average', pct=True).values
+    return r
+
+
+_c12_elapsed_h = (_c12_time.time() - NB_T0) / 3600
+_c12_status = 'skipped_late'
+if _c12_elapsed_h <= _C12_LATEST_START_H:
+    _c12_limit = (_C12_END_H - _c12_elapsed_h) * 3600
+    _c12_log('s6fall stage: start, limit %.0f min' % (_c12_limit / 60))
+    _c12_t = _c12_time.time()
+    _c12_p = _c12_sp.Popen([_c12_sys.executable, '-u', '/tmp/s6fall_run.py'], start_new_session=True)
+    try:
+        _c12_rc = _c12_p.wait(timeout=_c12_limit)
+    except _c12_sp.TimeoutExpired:
+        _c12_rc = None
+        try:
+            _c12_os.killpg(_c12_p.pid, _c12_sig.SIGKILL)
+        except ProcessLookupError:
+            pass
+        _c12_p.wait()
+        _c12_sp.run(['pkill', '-9', '-f', '/tmp/k1'], check=False)    # its workers run in their own sessions (cmdlines under /tmp/k1)
+    _c12_info['s6f_seconds'] = round(_c12_time.time() - _c12_t, 1)
+    _c12_info['s6f_rc'] = _c12_rc
+    if _c12_rc == 0 and _c12_os.path.isfile(_c12_sub):
+        _c12_status = 'ok'
+    else:
+        _c12_status = 'timeout' if _c12_rc is None else 'failed'
+if _c12_status == 'ok':
+    try:
+        _c12_s6 = _c12_pd.read_csv(_c12_sub, dtype={'StudyInstanceUID': str})
+        assert sorted(_c12_s6['StudyInstanceUID']) == sorted(_c12_ids), 's6fall: rows differ from R7'
+        assert set(_c12_labels) <= set(_c12_s6.columns), 's6fall: columns differ'
+        _c12_sh.copyfile(_c12_sub, _c12_s6f_path)
+        _c12_s6 = _c12_s6.set_index('StudyInstanceUID').loc[_c12_ids, _c12_labels]
+        _c12_r7v = _c12_r7.set_index('StudyInstanceUID').loc[_c12_ids, _c12_labels]
+        try:                                                    # s6fall's own failed studies (mean-filled by the C11 patch)
+            with open('/kaggle/working/k1/blend_receipt.json', encoding='utf-8') as _c12_fh:
+                _c12_bf = set(_c12_json.load(_c12_fh).get('b_failed_rank_A_only') or {})
+        except Exception as _c12_e:
+            _c12_bf = set()
+            _c12_log('blend_receipt.json unread (%s): every s6fall row counts as scored' % type(_c12_e).__name__)
+        _c12_s6_ok = _c12_np.array([u not in _c12_bf for u in _c12_ids])
+        _c12_out = _c12_np.zeros((len(_c12_ids), len(_c12_labels)))
+        _c12_rho = {}
+        for _c12_j, _c12_c in enumerate(_c12_labels):
+            _c12_a = _c12_pct(_c12_r7v[_c12_c].values, _c12_r7_ok)
+            _c12_b = _c12_pct(_c12_s6[_c12_c].values, _c12_s6_ok)
+            _c12_out[:, _c12_j] = _c12_np.where(_c12_r7_ok & _c12_s6_ok, 0.5 * _c12_a + 0.5 * _c12_b,
+                                                _c12_np.where(_c12_r7_ok, _c12_a, _c12_np.where(_c12_s6_ok, _c12_b, 0.5)))
+            _c12_both = _c12_r7_ok & _c12_s6_ok
+            if _c12_both.sum() >= 3:
+                _c12_rho[_c12_c] = round(float(_c12_pd.Series(_c12_a[_c12_both]).corr(_c12_pd.Series(_c12_b[_c12_both]),
+                                                                                      method='spearman')), 4)
+        assert _c12_np.isfinite(_c12_out).all() and ((_c12_out >= 0) & (_c12_out <= 1)).all(), 'combined anchor out of range'
+        _c12_df = _c12_pd.DataFrame(_c12_out, columns=_c12_labels)
+        _c12_df.insert(0, 'StudyInstanceUID', _c12_ids)
+        _c12_df[_c12_r7.columns.tolist()].to_csv(_c12_sub, index=False)
+        _c12_info.update(s6f_failed=len(_c12_bf), rho_r7_s6f=_c12_rho,
+                         rho_mean=round(float(_c12_np.mean(list(_c12_rho.values()))), 4) if _c12_rho else None)
+    except Exception as _c12_e:
+        _c12_status = 'combine_failed'
+        _c12_info['error'] = repr(_c12_e)[:500]
+if _c12_status != 'ok':
+    _c12_sh.copyfile(_c12_r7_path, _c12_sub)                 # the anchor stays R7 alone (C8's)
+_c12_info['status'] = _c12_status
+with open('/kaggle/working/c12_anchor.json', 'w', encoding='utf-8') as _c12_fh:
+    _c12_json.dump(_c12_info, _c12_fh, indent=1)
+_c12_log('C12_ANCHOR ' + _c12_json.dumps(_c12_info))
+"""
+
+
+def build_c12(params, pipeline=PIPELINE):
+    """C12: the 0956 notebook's R7 stage (as C8) + the patched s6fall script (as C11) + the rank-mean cell + our arm."""
+    s56, s6f, spec = ANCHORS["0956"], ANCHORS["0950s6f"], ANCHORS["c12"]
+    if sha256_file(s56["notebook"]) != s56["sha256"] or sha256_file(s6f["notebook"]) != s6f["sha256"]:
+        raise SystemExit("C12: an anchor input differs from the pull this builder was written against")
+    nb = load_notebook(s56["notebook"])
+    check_anchor(nb, s56)
+    kept = [json.loads(json.dumps(c)) for c in nb["cells"]]
+    for needle in (NARTAA_DATASET.split("/")[1], "raptor_", "RAPTOR_SECONDS", f949.ANCHOR_CKPT):   # as --compact-anchor checks
+        if any(needle in cell_text(c) for c in kept[4:6]):
+            raise SystemExit(f"C12: R7's stage uses {needle!r} from the CoAtNet stage")
+    with open(s6f["notebook"], encoding="utf-8") as fh:
+        stage_src = patch_s6fall(fh.read())
+    run_src = (C12_RUN_CELL.replace("__S6F_LATEST_START_H__", repr(S6F_LATEST_START_H))
+               .replace("__S6F_END_H__", repr(S6F_END_H)))
+    if S6F_END_H >= params.gate_h or S6F_LATEST_START_H >= S6F_END_H:
+        raise SystemExit("C12: the s6fall stage must end before our arm's gate")
+    for src, cid in ((R7_ANCHOR_CELL, "fork-s6-anchor"), (run_src, "forkc12-run")):
+        compile(src, cid, "exec")
+        clash = sorted(module_level_names(src) & set(ANCHOR_GLOBALS))
+        if clash:
+            raise SystemExit(f"{cid} binds {clash}")
+    if "_fork_scored" not in module_level_names(R7_ANCHOR_CELL):
+        raise SystemExit("C12: the R7 anchor cell no longer defines _fork_scored, which the run cell reads")
+    text, pipeline_sha = prepare_pipeline(pipeline, params.members)
+    payload = make_payload(text)
+    fork_cells = render_fork_cells(payload, sha256_text(text), pipeline_sha, params, spec, "compact_anchor")
+    selftest_blend(fork_cells)
+
+    def code(cid, src):
+        return {"id": cid, "cell_type": "code", "metadata": {}, "outputs": [], "execution_count": None, "source": src}
+    cells = ([{"id": "forkc12-intro", "cell_type": "markdown", "metadata": {}, "source": C12_INTRO}] + kept[:2]
+             + [code("fork-t0", clock_cell(s56, compact=True))] + kept[4:6]
+             + [code("fork-s6-anchor", R7_ANCHOR_CELL),
+                code("forkc12-script", "%%writefile /tmp/s6fall_run.py\n" + stage_src),
+                code("forkc12-run", run_src)] + fork_cells)
+    provenance = {
+        "builder": "src/build_fork954.py --anchor c12",
+        "source_notebook": os.path.basename(s56["notebook"]), "source_notebook_sha256": s56["sha256"],
+        "source_script": os.path.basename(s6f["notebook"]), "source_script_sha256": s6f["sha256"],
+        "stage_sha256": sha256_text(stage_src),
+        "script_patches": ["component A (OAI-trained 0.949 CoAtNet) not run; a B-failed study takes the column-mean rank",
+                           "PUBLIC_TEST_IDS removed"],
+        "s6f_latest_start_h": S6F_LATEST_START_H, "s6f_end_h": S6F_END_H,
+        "pipeline_sha256": pipeline_sha, "payload_sha256": sha256_text(text),
+        "members": list(params.members), "beta": params.beta, "betas_diag": list(params.betas_diag),
+        "gate_h": params.gate_h, "hard_stop_h": params.hard_stop_h, "sec_per_study": params.sec_per_study,
+        "compact_anchor": True,
+    }
+    out_nb = {"cells": cells,
+              "metadata": {"kernelspec": nb["metadata"].get("kernelspec", {"display_name": "Python 3", "language": "python",
+                                                                            "name": "python3"}),
+                           "language_info": nb["metadata"].get("language_info", {"name": "python"}), "rsna_fork": provenance},
+              "nbformat": nb.get("nbformat", 4), "nbformat_minor": nb.get("nbformat_minor", 4)}
+    meta = build_metadata(params, spec, "compact_anchor")   # R7's Dataset + heliosli's code / anatomy Dataset + ours
+    meta["dataset_sources"].insert(1, S6FALL_DATASET)
+    if NARTAA_DATASET in meta["dataset_sources"]:
+        raise SystemExit("C12 must not mount nartaa's OAI-trained CoAtNet Dataset")
+    return out_nb, meta, payload
+
+
+ANCHORS["c12"] = {
+    "kind": "combo",
+    "name": "c12",
+    "score": "c12",
+    "compact": "R7 + s6fall rank mean",
+    "compact_owner": "the",
+    "compact_prev": ("The previous cell has written the anchor as `submission.csv`: heliosli's R7 0.5 + nartaa's s6fall 0.5, a "
+                     "per-finding rank mean (R7 alone if s6fall was skipped, timed out or failed)."),
+    "compact_label": ("'anchor': 'R7 + s6fall rank mean (heliosli R7 0.5 + nartaa s6fall 0.5; R7 alone if s6fall did not "
+                      "finish; OAI-free)'"),
+    "compact_dataset": ANCHORS["0956"]["compact_dataset"],
+    "weights": ("0.0", "1.0"),
+    "weight_line": "",
+    "slug": "rsna-knee-forkc12",
+    "title": "RSNA Knee Forkc12",
+}
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--anchor", choices=sorted(ANCHORS), default="0954")
@@ -703,13 +901,18 @@ def main(argv=None):
     if a.compact_anchor and a.anchor in ("0957", "0958"):
         raise SystemExit("--compact-anchor is not written for the 0957 / 0958 notebooks (R6 alone would need its own anchor cell)")
     script = spec.get("kind") == "script"
-    if script and a.s6_only:
-        raise SystemExit("--s6-only has no meaning on a script anchor")
-    mode = "s6_only" if a.s6_only else ("compact_anchor" if (a.compact_anchor or script) else "blend")
+    combo = spec.get("kind") == "combo"
+    if (script or combo) and a.s6_only:
+        raise SystemExit("--s6-only has no meaning on a script / combo anchor")
+    if combo and (a.compact_anchor or a.notebook):
+        raise SystemExit("--anchor c12 takes neither --compact-anchor (it is one) nor --notebook (it reads two pinned inputs)")
+    mode = "s6_only" if a.s6_only else ("compact_anchor" if (a.compact_anchor or script or combo) else "blend")
     beta = 0.0 if a.s6_only else a.beta
     params = f949.ForkParams(members=tuple(a.members), beta=beta, betas_diag=tuple(a.betas_diag), gate_h=a.gate_hours,
                              hard_stop_h=a.hard_stop_hours, sec_per_study=a.sec_per_study)
-    if script:
+    if combo:
+        out_nb, meta, payload = build_c12(params, a.pipeline)
+    elif script:
         out_nb, meta, payload = build_script(params, spec, a.notebook, a.pipeline)
     else:
         out_nb, meta, payload = build(params, mode, spec, a.notebook, a.pipeline)
@@ -720,7 +923,8 @@ def main(argv=None):
     meta_path = os.path.join(out_dir, "kernel-metadata.json")
     c = spec["compact"]
     summary = (f"{nb_path}: {len(out_nb['cells'])} cells ("
-               + ("1 intro + 1 clock + 1 script + 1 run + 3 fork" if script
+               + ("1 intro + 2 anchor md + 1 clock + 2 R7 + 1 R7-anchor + 1 script + 1 run + 3 fork" if combo
+                  else "1 intro + 1 clock + 1 script + 1 run + 3 fork" if script
                   else f"4 anchor + 1 clock + 1 {c}-anchor + 3 fork" if mode == "compact_anchor"
                   else f"{len(out_nb['cells']) - 4} anchor + 1 clock + 3 fork") + "); "
                f"{len(meta['dataset_sources'])} datasets; payload {len(payload) / 1024:.0f} KB; "
