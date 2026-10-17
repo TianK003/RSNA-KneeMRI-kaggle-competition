@@ -6213,6 +6213,84 @@ or the anchor side (C12). Recorded in proposals.md Dropped directions.
 with β (C10w < #95 < the anchor, read by tie position). A leg at 0.946 is a public cost on a 0.958 anchor at every β we tried. Tian's
 question ("how we fare against everyone's generic notebook copy") has its answer: a sub-tick under it.
 
+### 2026-10-17 — C13 built: heliosli's 0.958 `blend-mine-in` and his new "0.9586" notebook submitted as they are (Tian: "send the C13 today to see how we fare in comparison to others" and "also run the new heliosli notebook") · ⏳ PENDING
+
+- **Builder:** `src/build_anchor_copy.py --anchor 0958 | 09586` copies a public notebook's cells byte for byte, apart from the patches
+  an anchor declares. It clears the stored outputs, mounts what the author's kernel mounts, and pins the author's Docker image. It
+  refuses a render that holds a competition StudyInstanceUID (traps 73).
+  - **`rsna-knee-anchor958`** (C13): `notebook_score_0.958.ipynb`, verbatim. Re-pulled 10-17, it is byte-identical to heliosli's
+    current version. It mounts R6's `-w1` copy, nartaa's weights and heliosli's code Dataset, as his metadata does.
+  - **`rsna-knee-anchor9586`** (C13-V2): `notebook_score_0.9586.ipynb` (pulled 10-17; no competition UID). One patched line: `C_SLUG`
+    → `rsna-knee-r6-frozen-fe055406-w1`, mounted in place of the bare slug, whose latest version holds R7 (traps 72; C10's patch). Its
+    Part B (goodpjw2008's 2.5D reader) mounts the reader's Dataset and his kernel, as heliosli's metadata does. A stray paste of the
+    weight line sits inside a comment of cell 6 (code, notebook scope): inert.
+- **Pushed** 13:28 UTC (v1 each); both sat in Kaggle's GPU queue for over 27 min.
+
+### 2026-10-17 — C12 built: heliosli's R7 + nartaa's s6fall as one OAI-free compact anchor + B18 at β 0.45 (`src/build_fork954.py --anchor c12`) · ⏳ PENDING
+
+Tian, 10-17: "build it" (candidates.md C12, pick 1 if fastMRI is accepted; pred. 0.953–0.956 vs C8 0.953).
+- **Order and fallbacks:**
+  1. R7 runs first: the 0956 notebook's two stage-2 cells, byte-identical, as C8 runs them. C8's anchor cell then writes R7's
+     `submission.csv` and counts the studies R7 scored. A failure in R7's cells stops the notebook, as in C8.
+  2. s6fall runs next as its own process. Its stage source is byte-identical to C11's (component A not run, the public ids removed). It
+     starts only before 4.5 h of notebook time and is killed at 7.0 h, including its own-session workers (`pkill -f /tmp/k1`). Its own
+     8 h guard counts from its own start, so the limit has to be ours.
+  3. The anchor = per finding 0.5 rank(R7) + 0.5 rank(s6fall), each ranked over the studies it scored (s6fall's failures come from its
+     `blend_receipt.json`). On a skip, a timeout or a failure it stays R7 alone, i.e. C8's anchor. `c12_anchor.json` records which.
+  4. Our B18 arm follows, with gate 7.5 h and 3 s / study (hard stop 8.4 h).
+- **Runtime estimate:** R7 ≈ 2.5–3.5 h, s6fall ≈ 2.4–3 h (S6 ≈ 8 s / study on two T4s), B18 ≈ 0.5–1 h, so ≈ 6–7.5 h. C8 and C11 were
+  each COMPLETE within ≤ 6.7 / 6.2 h with one compact stage.
+- **Environment:** R7's stage installs timm 1.0.25 / pydicom 3.0.1 (traps 68) before s6fall runs. That is the stack heliosli's own S6
+  path uses. C11 ran s6fall on the image's versions, so the placeholder compares C12's s6fall output with C11's `_anchor_0950.csv`.
+- **Render:** `rsna-knee-forkc12`, 12 cells, 10 Datasets: R7's, s6fall's and heliosli's code, no nartaa / OAI Dataset.
+
+### 2026-10-17 — P-86 on RunPod: `v15cj` = `v15c` on `jevf_rap_v1` (2/3 Raptor rank + 1/3 OpenJev rank) at mix 0.75 · training · ⏳ PENDING
+
+Tian, 10-17: "run P-86 … now".
+- **Table:** `src/build_rank_composite.py`. Its self-test rebuilds `claude_rap_v1` from `raptor_teacher` + `claude_v1` to max |diff|
+  0.0. The 58 gold rows of FINAL2 are dropped. ρ with Raptor is 0.917–0.973 per finding; with OpenJev 0.520 (Synovitis) to 0.872.
+  The gold-58 targets reproduce: production 0.9320, this target 0.9394. Published as a new version of `rsna-knee-teacher-tables`; the
+  six old files are byte-identical in the upload folder, and `datasets files` lists 7.
+- **Arm:** `v15cj` = `v15c` exactly (same seed), pinned to ("jevf_rap_v1",) at DISTILLED_MIX 0.75. `window_head_test.py` passes. The
+  local train smoke (CPU, 1 epoch) prints `training targets = (1 - 0.75) * LLM + 0.75 * quantile-matched ['jevf_rap_v1']`,
+  loads `convnext_tiny` 180 tensors and writes `_best.pt` = SWA.
+- **Critic:** GO WITH CHANGES; all applied (proposals.md P-86). Its own check: the training targets of `v15cj` and `v15c` correlate
+  at mean ρ 0.953 (min 0.914), against 0.803 for `v15cr`. So `v15cj` is a level read, not a new lineage.
+- **Pod** `hw69pj7ln21ia2`:
+  - Secure RTX 4090, EUR-IS-2, CUDA 12.8 (driver 570), $0.89/h, created 13:38:30 UTC.
+  - `cuInit` 0. cgroup v1 quota 10.2 CPUs (`nproc` 64) and 100 GB of memory. `/workspace` is MooseFS, so the c03 cache is split:
+    shards a / b in `/dev/shm` (47 GB) and c / d on the 40 GB container disk.
+  - Proxy-only SSH: commands are piped into a PTY with arithmetic markers (traps 71). `!` in a piped command is history-expanded by
+    the remote interactive bash.
+  - The stopper deadline is 16:26:30 UTC (creation + 2.8 h).
+- **Chain:** started 13:41 UTC with `CACHE_PREFIX=rsna-knee-cache3 RSNA_TEACHER_TABLES='("jevf_rap_v1",)' RSNA_TEACHER_MIX=0.75
+  EXPECT_TEACHER=jevf_rap_v1 AUTO_STOP=1 SEQ_ARMS=1 MAX_POD_H=2.8`, from commit `db76912`.
+  - `jevf_rap_v1.csv: 4349 rows`.
+  - The four cache pulls ran at ≈ 25 MB/s (slower than earlier pods); `blobs 71, bad 0, studies 4407` at 13:54 UTC.
+  - Training started 13:54:24 UTC; its log shows `RSNA_ARM: running only v15cj` and the targets line above. Epoch 0: loss 0.5495,
+    gold-58 0.804 (`v15c` 0.8154), ≈ 5.5 min including the first-epoch overhead.
+- **Done:** 20 epochs at ≈ 4.4 min, `SWA of last 3`, `-> v15cj_fold0_best.pt = SWA`, no runtime guard. Shipped 15:21 UTC as Dataset
+  `rsna-knee-ckpt-v15cj` (`_best.pt` 112,204,320 bytes = `v15c`'s size, the OOF csv, the log); AUTO_STOP stopped the pod.
+  - Backed up into `artifacts/kaggle_out/pod_v15cj/` (same sizes; `_best.pt` sha256 `bd50bd98…`). The pod was deleted at 15:40 UTC
+    after the ship and the backup; `list-pods` is empty.
+  - Pod time ≈ 1.75 h (13:38 → ≈ 15:23), ≈ $1.6 at $0.89/h (the case said ≈ $1.5); RunPod ≈ $4.2 left.
+- **Gold-58 curve (direction only, floor 0.05):** epoch 4 0.9146, 9 0.9170 (peak), 12 0.9159, 14 0.9116, 19 0.9092; **SWA 17–19
+  0.9099** (`v15c` 0.9234, `v15cr` 0.9121). Gold has inverted target changes before (traps 39); the read is the LB.
+
+### 2026-10-17 — P-67 session D planned: `v14mx` (study-level mixup) ‖ `v14sh` (sharpen), not `v14mx` ‖ `v14r288` · ⏳ PENDING
+
+Tian, 10-17: "run P-86 and P-67 now". The 10-16 handoff named `v14mx` ‖ `v14r288`. `v14r288` is swapped for `v14sh`, for two reasons:
+- **Runtime.** The proxy arms are close to GPU-bound. Session A (`v14p` ‖ `v14p2`) took 5.63 h, and session C took 7.56 h once two
+  GPU-side augmentations were added. B0 at 288 px is 1.65× the pixels of 224, so ≈ 8.5–9.3 h, past the children's 8.3 h guard: fold 4
+  would be cut, or the arm would need a resume session.
+- **Transfer.** Both members of the pick-1 leg (`v15c` ConvNeXt-T, `v13b3` B3) already train at 288 px, so a resolution win on B0 has
+  no production arm to move. Sharpen is the card's best-supported image-quality component (the 10-06 amendment: BigAug's single best
+  transform), so it moved ahead of blur / noise / thick.
+
+Build: `artifacts/train_v14d_smoke.py` / `_real.py` = src with `PARALLEL_ARMS = ("v14mx", "v14sh")`,
+`TEACHER_TABLES = ("raptor_teacher",)` (and `FORCE_SMOKE = False` for the real one), session C's recipe. Kaggle smoke first: the
+source has changed since session C.
+
 ## Infrastructure
 
 ### 2026-09-27 — The "0.943 Speedy Raptors CoAtNet D4" notebook is our anchor **plus two CoAt readers**, not a faster graph; its "< 30 min" is a 3-study commit run · P-41 (threaded scan + 8 decode workers) smoke-green and byte-identical
