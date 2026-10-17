@@ -727,23 +727,32 @@ def _c12_pct(v, ok):
     return r
 
 
+def _c12_kill(p):
+    # every step may fail on its own (no such process group, no pkill on the image): none may stop the notebook
+    for _c12_k in (lambda: _c12_os.killpg(p.pid, _c12_sig.SIGKILL), lambda: p.kill(), lambda: p.wait(timeout=60),
+                   lambda: _c12_sp.run(['pkill', '-9', '-f', '/tmp/k1'], check=False, timeout=60)):  # its own-session workers
+        try:
+            _c12_k()
+        except Exception as _c12_e:
+            _c12_log('kill step: %s' % type(_c12_e).__name__)
+
+
 _c12_elapsed_h = (_c12_time.time() - NB_T0) / 3600
 _c12_status = 'skipped_late'
 if _c12_elapsed_h <= _C12_LATEST_START_H:
     _c12_limit = (_C12_END_H - _c12_elapsed_h) * 3600
     _c12_log('s6fall stage: start, limit %.0f min' % (_c12_limit / 60))
     _c12_t = _c12_time.time()
-    _c12_p = _c12_sp.Popen([_c12_sys.executable, '-u', '/tmp/s6fall_run.py'], start_new_session=True)
+    _c12_rc = 'not started'
     try:
-        _c12_rc = _c12_p.wait(timeout=_c12_limit)
-    except _c12_sp.TimeoutExpired:
-        _c12_rc = None
+        _c12_p = _c12_sp.Popen([_c12_sys.executable, '-u', '/tmp/s6fall_run.py'], start_new_session=True)
         try:
-            _c12_os.killpg(_c12_p.pid, _c12_sig.SIGKILL)
-        except ProcessLookupError:
-            pass
-        _c12_p.wait()
-        _c12_sp.run(['pkill', '-9', '-f', '/tmp/k1'], check=False)    # its workers run in their own sessions (cmdlines under /tmp/k1)
+            _c12_rc = _c12_p.wait(timeout=_c12_limit)
+        except _c12_sp.TimeoutExpired:
+            _c12_rc = None
+            _c12_kill(_c12_p)
+    except Exception as _c12_e:
+        _c12_info['error'] = repr(_c12_e)[:500]
     _c12_info['s6f_seconds'] = round(_c12_time.time() - _c12_t, 1)
     _c12_info['s6f_rc'] = _c12_rc
     if _c12_rc == 0 and _c12_os.path.isfile(_c12_sub):
