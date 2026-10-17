@@ -6309,6 +6309,21 @@ Tian, 10-18 session: "submit our latest models, if they have not been submitted 
   (`rsna-knee-anchor9586` v1, 23:22 UTC: the slug was deleted on 10-17 to free a queue slot and re-pushed as a new kernel; it waited for
   v80 to end, since a third push hits `Maximum batch GPU session count of 2 reached`).
 
+### 2026-10-17 — Submissions #99 (C12) and #100 (C13-V2) sent: both placeholders green; 10-17's five slots used · ⏳ PENDING
+
+- **#99 = C12** (`rsna-knee-forkc12` v1, ref 57328990, 23:30:31 UTC). Placeholder 0.15 h: R7 3 / 3 scored, s6fall `rc 0`, 0 failed,
+  93.8 s; `c12_anchor.json` `status ok`, ρ(R7, s6fall) mean 0.79 on 3 studies; `FINAL = beta0.45`. Checked locally, each at max
+  |diff| 0.0: `_anchor_c12.csv` = per finding 0.5 pct-rank(C8's `_anchor_0956.csv`) + 0.5 pct-rank(C11's `_anchor_0950.csv`); `_ours.csv`
+  = C8's; `submission.csv` = pct-rank(0.55 pct-rank(anchor) + 0.45 pct-rank(ours)), the same rule that reproduces C8's and C11's own
+  files. So inside one notebook R7 and s6fall keep the per-finding rank order of their single-stage runs (only ranks are checkable
+  here: with 3 studies an equal rank order does not prove equal raw outputs under R7's timm 1.0.25 / pydicom 3.0.1). Read vs C8 0.953: ✅ ≥ 0.955 / 🔁 0.953–0.954 / ❌ ≤ 0.952 (candidates.md C12). The full-test
+  runtime (R7 + s6fall + B18, est. 6–7.5 h) is unmeasured: a timeout falls back to R7 alone (= C8), which would read ≈ 0.953.
+- **#100 = C13-V2** (`rsna-knee-anchor9586` v1, ref 57329059, 23:33:29 UTC). Placeholder 0.17 h: `ASSETS_READY …
+  rsna-knee-r6-frozen-fe055406-w1 … flip_tta True`, `CONTROLLER_DONE` PASS 3 / 3, `NOTEBOOK_COMPLETE` with Raptor-half weights Lateral OA
+  0.15 / PF OA 0.65 / Synovitis 0.85 / Baker's 0.30, goodpjw2008's reader at per-finding weights 0.003–0.035 (the log line's "at weight
+  0.15" is a print label; the per-target dict is what is applied). No reference output of heliosli's to compare with. Expected 0.958
+  (the LB reads heliosli's V2 as 0.958); with C13 at 0.958 too, the two separate only by which becomes our best entry in the tie.
+
 ## Infrastructure
 
 ### 2026-09-27 — The "0.943 Speedy Raptors CoAtNet D4" notebook is our anchor **plus two CoAt readers**, not a faster graph; its "< 30 min" is a 3-study commit run · P-41 (threaded scan + 8 decode workers) smoke-green and byte-identical
@@ -6854,6 +6869,8 @@ and public LB score, so a public/private divergence can be traced to a specific 
 | 96 | 2026-10-17 | rsna-knee-infer v79 (`artifacts/infer_v15cj.py`; mounts `rsna-knee-ckpt-v15cj` in place of the dead `convnext-tiny-224-hf`, 49 sources) | **P-86 `v15cj` solo**: `v15c` (same seed) on `jevf_rap_v1` (2/3 Raptor rank + 1/3 OpenJev rank) at mix 0.75; RunPod 4090 | gold-58 SWA 0.9099 (`v15c` 0.9234; direction only) | ⏳ | placeholder green (`infer members (1)`, epoch 19, constant labels 0). sent 23:17:31 UTC (ref 57328739); vs `v15c` 0.942: ✅ ≥ 0.944 / leaning 0.943 / 🔁 0.942 / ❌ ≤ 0.941 (entry 2026-10-17 "Submissions #96–#98 sent") |
 | 97 | 2026-10-17 | rsna-knee-anchor958 v1 (`src/build_anchor_copy.py --anchor 0958`) | **C13**: heliosli's public 0.958 `blend-mine-in` verbatim, no fork arm (β 0) | none | ⏳ | placeholder green (PASS 3 / 3; `submission.csv` = fork958 v2's `_anchor_0958.csv`, max \|diff\| 0.0). sent 23:17:42 UTC (ref 57328744); expected 0.958, read by its tie position against heliosli / degnonguidi's copies (entry 2026-10-17 "Submissions #96–#98 sent") |
 | 98 | 2026-10-17 | rsna-knee-infer v80 (`artifacts/infer_b23.py`) | **B23** = `v15cj` + `v13b3` flat rank-mean (B18 with `v15cj` in place of `v15c`) | none | ⏳ | placeholder green (`infer members (2)`, decode-once verified). sent 23:22:18 UTC (ref 57328841); vs B18 0.944: ✅ ≥ 0.946 / leaning 0.945 / 🔁 0.944 / ❌ ≤ 0.943 (entry 2026-10-17 "Submissions #96–#98 sent") |
+| 99 | 2026-10-17 | rsna-knee-forkc12 v1 (`src/build_fork954.py --anchor c12 --members v15c v13b3 --beta 0.45 --gate-hours 7.5 --sec-per-study 3.0`) | **C12**: heliosli's R7 + nartaa's s6fall as one compact anchor (per finding 0.5 rank + 0.5 rank; R7 alone on a skip / timeout / failure) + B18 (`v15c` + `v13b3`) at β 0.45; OAI-free, fastMRI inside R7 | none | ⏳ | placeholder green (`c12_anchor.json` `status ok`; anchor = C8's R7 × C11's s6fall exactly, ours = C8's exactly, `FINAL = beta0.45`). sent 23:30:31 UTC (ref 57328990); vs C8 0.953: ✅ ≥ 0.955 / 🔁 0.953–0.954 / ❌ ≤ 0.952 (entry 2026-10-17 "Submissions #99 (C12) and #100 (C13-V2) sent") |
+| 100 | 2026-10-17 | rsna-knee-anchor9586 v1 (`src/build_anchor_copy.py --anchor 09586`; re-pushed after the 10-17 deletion) | **C13-V2**: heliosli's public "0.9586" notebook verbatim but `C_SLUG` → the `-w1` copy of R6 (the 0.958 with its four Raptor-half weights pushed 0.05 further + goodpjw2008's 2.5D reader at 0.003–0.035), no fork arm | none | ⏳ | placeholder green (PASS 3 / 3, R6 from `-w1`, flip TTA on). sent 23:33:29 UTC (ref 57329059); expected 0.958; vs C13 #97 only through which becomes our best entry in the tie (entry 2026-10-17 "Submissions #99 (C12) and #100 (C13-V2) sent") |
 
 ## Closed cards index (moved here from proposals.md on 2026-10-05)
 
