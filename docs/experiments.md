@@ -6408,6 +6408,92 @@ best entry, > C13 by sign (pick 2's strongest public ticket).** The picks are Ti
 - pick 1 = **C12 (0.954)** if fastMRI passes, else **C11 (0.952)**;
 - pick 2 = **C13-V2 (0.958)**, with C13 (0.958) and the 0.957 forks (C10 / C10w / C10w-b05) as the alternatives.
 
+### 2026-10-18 — C14 built: V2 + nartaa's s6fall inside V2's R6 half (0.6 R6 / 0.4 s6fall), rebuilt and checked against #100 before it blends · retraining the public models ruled out · ⏳ PENDING
+
+Tian, 10-18: C13-V2 becomes **pick 1** and C12 **pick 2**. His brief: "boost its score", and finish in the top 10 % of the **private**
+leaderboard (the public one too if possible). His limits:
+- stay under 9 h; tweaks that only look better publicly are allowed;
+- spend up to all of RunPod (≈ $4.2, no top-up);
+- stop our own pipeline work unless an own model can pass 0.95 (it cannot: our best solo is 0.942, 0.945 with OAI).
+
+**Recon 1: V2's structure and runtime** (read-only; a subagent, against our placeholder logs and the scoring bounds above).
+- **The stages** run one after another, each as its own subprocess:
+  - nartaa's CoAtNet-2 @384: both GPUs, plain + anatomical-mirror TTA, 1 SWA checkpoint;
+  - nartaa's CoAtNet @224: both GPUs, no TTA;
+  - R6: ConvNeXt-S, 4 folds + the Effusion / Baker's stackers, flip TTA, two workers;
+  - goodpjw2008's 2.5D reader: 3 folds, no TTA.
+- **The blend**, per finding c (pct = percentile rank):
+  - R_c = 0.65 pct(p384) + 0.35 pct(p224);
+  - A_c = w_c R_c + (1 − w_c) pct(R6), with w = Synovitis 0.85, Lateral OA 0.15, PF OA 0.65, Baker's 0.30, else 0.50;
+  - F_c = pct((1 − v_c) pct(A_c) + v_c pct(reader_c)), with v_c = 0.003–0.035.
+- **No unused checkpoints** in any mounted Dataset; the windows already cover the volume (K 94 of 96).
+- **Runtime estimate:** ≈ 4.0 h on the hidden test (3.3–5.0; ≤ 6 h by C10w's bound). R6 is ≈ 2.5–3.5 h of it.
+- **The authors' guards:** the CoAtNet subprocesses time out at 2 h each, with no fallback. R6 has an 8.3 h deadline. Part B is
+  skipped after 8.2 h.
+- **A side issue:** Part B's decoder wheels are built for Python 3.11 / 3.12, so pip fails on this Python 3.13 image and the reader
+  skips compressed DICOMs. It carries a weight of ≤ 0.035.
+
+**Recon 2: training code and the forum** (a subagent; 30 topics harvested for 10-14 → 10-18; downloads in the session scratchpad).
+- **New:** on 10-17 nartaa added `training_code/` (Apache-2.0) to `nartaa/rsna-knee-s6fall-weights` (forum 750180). It holds the S6
+  all-data trainer, the CoAtNet trainer with its OAI wrapper, the run scripts and the JEV-blend labels.
+- **No retrain fits by 10-21:**
+
+  | Model | Blocker | Cost |
+  |---|---|---|
+  | nartaa's CoAtNet-2 @384 with OAI (0.949) | his 96 × 384 corpus is private; the OAI knees need an NDA request | his log: ≈ 3 h on a 4090; ≈ 12–18 h on a T4 (est.) |
+  | s6fall (another seed) | fp16 patch for the T4 | logged 15 h on an RTX 5060 laptop GPU; ≈ 25–35 Kaggle GPU-h per model (est.): the whole budget for one seed |
+  | heliosli's R6 / R7 | the pixel cache, Opus / state targets and fastMRI store are private | ≈ 10× s6fall's compute |
+  | nartaa's CoAtNet without OAI, on the unused TPU quota | the only feasible one | ≈ 0.935–0.942 solo (est.), under the ≈ 0.950 break-even for a member of V2 |
+
+- **goodpjw2008's measured negatives on this recipe:**
+  - S6 next to R6: 0.957 vs 0.958;
+  - R7 at 0.4 next to R6: 0.958, no change;
+  - R7 with flip TTA: 0.957;
+  - gold-58-tuned weights: 0.957 / 0.955.
+- **No post** says how to beat 0.958, or reports seed averaging or these notebooks' hidden-test runtime.
+
+**Verdict on retraining: ❌ by reading (no GPU spent).** No public model can be retrained by 10-21 at a level that helps V2
+(proposals.md Dropped directions). **P-67 stops** (Tian: the own-pipeline work ends unless an own model can pass 0.95).
+
+**The build:** `src/build_anchor_copy.py --anchor 09586s6f` → `kaggle/rsna-knee-anchor9586s6f/`, 13 cells. The 10 V2 cells are #100's
+(cell 6's `-w1` patch; `--check` keeps the 09586 and 0958 renders byte-identical). Then come an intro, nartaa's s6fall script as C11
+patched it (component A not run, the public ids removed; `%%writefile`), and the run cell:
+1. **SELF_CHECK.** V2's final file is copied aside. Then it is rebuilt from V2's stage-3 globals (cell 8's loop, verbatim except the
+   ours rank) and Part B's `_own.csv` (goodpjw2008's mode-"end" formula, verbatim). s6fall starts only if the rebuild matches V2's file
+   to < 1e-6.
+2. **s6fall** runs as its own process, as in C12: it starts only before 6.0 h of notebook time and is killed at 8.4 h, including its
+   own-session workers.
+3. **The re-blend:** ours_c = 0.6 pct(R6) + 0.4 pct(s6fall), each ranked over its own scored studies. A study only one of them scored
+   takes that model's rank; a study both failed takes the CoAtNet half's. Then V2's stage-3 weights and Part B's weights are applied
+   unchanged.
+4. **Fallback:** on any skip, timeout, failure or self-check mismatch, the submission is V2's own file (#100). `s6x_receipt.json`
+   records which happened.
+- **The weights are my call, fixed before any run:** 0.6 / 0.4 follows the one public read of an R7 / s6fall pair (leoprovorov, 0.6 /
+  0.4). A 0.4 share of the R6 half is ≈ 0.2 of the blend.
+- **Mock test** (`s6x_mock_test.py` in the session scratchpad): V2's own cells 8 and 9 run on fake data (Part B's inference
+  subprocess mocked), then the run cell with a fake s6fall. All seven scenarios pass: ok with Part B, ok with Part B failed, studies
+  failed in R6 / s6fall / both, 3 studies, s6fall failing, started late, hanging. On every ok path the self-check reproduces V2's file
+  at max |diff| 0.0 (3e-8 when Part B failed: float32 text), and an independent recompute of the new formula matches at 0.0.
+- **Runtime:** V2 ≈ 4 h + s6fall ≈ 2–3 h ≈ 6.5 h (5.5–8.0), under the 8.4 h kill and the 9 h limit.
+- **Prediction (estimate):** −0.001 to +0.002 vs V2. s6fall's JEV label lineage is the case for it (C12: + 0.001 next to R7); goodpjw2008's
+  S6 / R7 negatives next to R6 are the case against.
+- **Read rule:** only our best entry shows on the LB, so C14 is read by our tie position against the teams that hold a fixed 0.958.
+  On 10-18 10:04 UTC #100 sat between stable teams then ranked 879 and 884.
+  - ✅ our best rises above #100's position (or reads 0.959) → C14 > V2 → pick 1 = C14;
+  - 🔁 / ❌ no move → C14 ≤ V2 → pick 1 stays C13-V2;
+  - a COMPLETE with `S6X_DONE` status other than ok is unreadable on the board; that status shows only in the placeholder.
+- **Next options, in order, one per read:** C15 = the mirror TTA on the 224 px CoAtNet (≈ +10 min; small genuine gain); C16 = the four
+  Raptor-half weights pushed further (public fit only, never a pick) (candidates.md).
+- **Placeholder green** (`rsna-knee-anchor9586s6f` v1, pushed ≈ 11:05 UTC, COMPLETE by 11:54 UTC, 0.16 h of notebook time; outputs
+  in `artifacts/kaggle_out/anchor9586s6f_v1/`):
+  - `SELF_CHECK ok {"stage3+partB": 0.0, ...}`: the rebuild matches V2's file with Part B applied;
+  - `_v2_final.csv` = #100's own placeholder `submission.csv`, max |diff| 0.0;
+  - s6fall `rc 0` in 90 s, 0 failed; `_s6f.csv` = C11's `_anchor_0950.csv`, max |diff| 0.0;
+  - `S6X_DONE` status `ok`; the final file differs from V2's (3 studies, so ranks move by up to 1/3); no NaN, no Traceback, no
+    `BLEND_FALLBACK`.
+- **Sent:** #101 at 11:54:38 UTC (ref 57353067) on Tian's go ("do it and submit as soon as possible"); `src/watch_submission.py`
+  runs. 10-18 has 4 slots left.
+
 ## Infrastructure
 
 ### 2026-09-27 — The "0.943 Speedy Raptors CoAtNet D4" notebook is our anchor **plus two CoAt readers**, not a faster graph; its "< 30 min" is a 3-study commit run · P-41 (threaded scan + 8 decode workers) smoke-green and byte-identical
@@ -6955,6 +7041,7 @@ and public LB score, so a public/private divergence can be traced to a specific 
 | 98 | 2026-10-17 | rsna-knee-infer v80 (`artifacts/infer_b23.py`) | **B23** = `v15cj` + `v13b3` flat rank-mean (B18 with `v15cj` in place of `v15c`) | none | **0.943** | **read 10-18 → ❌ −0.001 vs B18 0.944 by its rule; the blend rule held (members' mean 0.938 + 0.005) (entry 2026-10-18 "Submissions #96–#100").** placeholder green (`infer members (2)`, decode-once verified). sent 23:22:18 UTC (ref 57328841); vs B18 0.944: ✅ ≥ 0.946 / leaning 0.945 / 🔁 0.944 / ❌ ≤ 0.943 (entry 2026-10-17 "Submissions #96–#98 sent") |
 | 99 | 2026-10-17 | rsna-knee-forkc12 v1 (`src/build_fork954.py --anchor c12 --members v15c v13b3 --beta 0.45 --gate-hours 7.5 --sec-per-study 3.0`) | **C12**: heliosli's R7 + nartaa's s6fall as one compact anchor (per finding 0.5 rank + 0.5 rank; R7 alone on a skip / timeout / failure) + B18 (`v15c` + `v13b3`) at β 0.45; OAI-free, fastMRI inside R7 | none | **0.954** | **read 10-18 → 🔁 +0.001 vs C8 0.953 (Tian's "worth considering"), the low end of its 0.953–0.956 prediction; our best OAI-free number; the s6fall stage most likely ran (a fallback is C8's notebook exactly); COMPLETE by 10:04 UTC, so the R7 + s6fall + B18 run fits the limit on the full hidden test (entry 2026-10-18 "Submissions #96–#100").** placeholder green (`c12_anchor.json` `status ok`; anchor = C8's R7 × C11's s6fall exactly, ours = C8's exactly, `FINAL = beta0.45`). sent 23:30:31 UTC (ref 57328990); vs C8 0.953: ✅ ≥ 0.955 / 🔁 0.953–0.954 / ❌ ≤ 0.952 (entry 2026-10-17 "Submissions #99 (C12) and #100 (C13-V2) sent") |
 | 100 | 2026-10-17 | rsna-knee-anchor9586 v1 (`src/build_anchor_copy.py --anchor 09586`; re-pushed after the 10-17 deletion) | **C13-V2**: heliosli's public "0.9586" notebook verbatim but `C_SLUG` → the `-w1` copy of R6 (the 0.958 with its four Raptor-half weights pushed 0.05 further + goodpjw2008's 2.5D reader at 0.003–0.035), no fork arm | none | **0.958** | **read 10-18 → our best entry: rank 883 of 6,166 (719th of 1,041 at 0.958), ≈ 150 stable teams above the 0.958 anchor's verbatim score → C13-V2 > C13 by sign (entry 2026-10-18 "Submissions #96–#100"); COMPLETE by 10:04 UTC (no watcher).** placeholder green (PASS 3 / 3, R6 from `-w1`, flip TTA on). sent 23:33:29 UTC (ref 57329059); expected 0.958; vs C13 #97 only through which becomes our best entry in the tie (entry 2026-10-17 "Submissions #99 (C12) and #100 (C13-V2) sent") |
+| 101 | 2026-10-18 | rsna-knee-anchor9586s6f v1 (`src/build_anchor_copy.py --anchor 09586s6f`) | **C14**: heliosli's V2 (= #100) + nartaa's s6fall inside V2's R6 half: ours = 0.6 rank(R6) + 0.4 rank(s6fall), V2's stage-3 and Part B weights unchanged; fallback = V2's own file | none | ⏳ | placeholder green (SELF_CHECK 0.0; V2 part = #100's output exactly; s6fall = C11's exactly; status ok). sent 11:54:38 UTC (ref 57353067); vs #100 by tie position: above #100's place (stable neighbours 879 / 884 on 10-18 10:04 UTC) or 0.959 = C14 > V2; no move = C14 ≤ V2 (entry 2026-10-18 "C14 built") |
 
 ## Closed cards index (moved here from proposals.md on 2026-10-05)
 
