@@ -74,10 +74,52 @@ ANCHORS["09586s6f"] = dict(ANCHORS["09586"], slug="rsna-knee-anchor9586s6f", tit
                            dataset_sources=ANCHORS["09586"]["dataset_sources"] + [S6FALL_DATASET],
                            s6fall={"share": 0.4, "latest_start_h": 6.0, "end_h": 8.4})
 
+# C15 (10-18): the 384 px stage's anatomical-mirror TTA (cell 2: _mirror_tri + infer_pair_probs, probability mean of plain + mirror)
+# ported to the 224 px stage (cell 4), which runs one view. nartaa's RUNS.md: the 224 run "differs only in --arch, --res, --tag and
+# RAPTOR_CROP_FRAC=0.8" from the 384 run, whose 0.949 was scored with this mirror; both trained with NO flips and no laterality
+# normalisation, on the same 96-slice slot layout (asserted below against the cell's own SLOTS).
+_MIRROR224_HELPERS = '''SLOT_SIZES = [26, 22, 18, 12, 18]   # [C15] cell 2's mirror TTA, verbatim, for the 224 stage
+SAGITTAL_SLOTS = (0, 1)
+assert SLOT_SIZES == [s_[2] for s_ in SLOTS] and SAGITTAL_SLOTS == tuple(i_ for i_, s_ in enumerate(SLOTS) if s_[0] == "Sagittal")
+
+def _slot_index(D):
+    b = np.cumsum([0] + SLOT_SIZES)
+    if b[-1] != D: raise RuntimeError(f'slot sizes sum to {b[-1]}, volume has {D} slices')
+    s_ = np.searchsorted(b, np.arange(D), side='right') - 1
+    rel = (np.arange(D) - b[s_]) / np.maximum(1, np.array(SLOT_SIZES)[s_] - 1)
+    return s_, rel
+
+def _mirror_tri(tri, cs, D):
+    """final-g1-bundle MIRROR_TTA: true L/R mirror of (k,3,H,W) uint8 eval triplets (research/rnd4/mirror/mirror_f0.py). The slot of each
+    window's CENTRE slice decides the axis: sagittal (slots 0,1) -> reverse the 3 slice-channels; coronal/axial (2,3,4) -> flip the width.
+    Done on uint8 BEFORE the per-channel LUT, i.e. 'mirror the knee, then normalise'."""
+    s_, _ = _slot_index(D)
+    sag = torch.from_numpy(np.isin(s_[np.asarray(cs, dtype=np.int64)], SAGITTAL_SLOTS)).to(tri.device).view(-1, 1, 1, 1)
+    return torch.where(sag, tri.flip(1), tri.flip(-1))
+
+'''
+MIRROR224_PATCHES = [
+    ("_WLUT = {}\ndef gpu_windows(vol, mask, k, res, dev, norm=NORM):\n",
+     _MIRROR224_HELPERS + "_WLUT = {}\ndef gpu_windows(vol, mask, k, res, dev, norm=NORM, mirror=False):   # [C15] mirror\n"),
+    ("    tri = torch.from_numpy(np.ascontiguousarray(vol[np.stack([cs - 1, cs, cs + 1], 1)])).to(dev)   # (k,3,IMG,IMG) uint8\n",
+     "    tri = torch.from_numpy(np.ascontiguousarray(vol[np.stack([cs - 1, cs, cs + 1], 1)])).to(dev)   # (k,3,IMG,IMG) uint8\n"
+     "    if mirror:   # [C15] as cell 2: mirror the uint8 knee before the LUT, crop and resize\n"
+     "        tri = _mirror_tri(tri, cs, D)\n"),
+    ("                        arm_probs[a][i] = infer_probs(model, xw, d)\n",
+     "                        xm = gpu_windows(vol, mask, K_EVAL, res, d, norm=NORM, mirror=True)   # [C15] cell 2's infer_pair_probs:\n"
+     "                        arm_probs[a][i] = 0.5 * (infer_probs(model, xw, d) + infer_probs(model, xm, d))   # plain + mirror\n"
+     "                        del xm\n"),
+]
+for _tag, _base in (("09586m224", "09586"), ("09586s6fm224", "09586s6f")):
+    ANCHORS[_tag] = dict(ANCHORS[_base], slug=ANCHORS[_base]["slug"].replace("9586", "9586m") if _tag == "09586m224"
+                         else "rsna-knee-anchor9586s6fm",
+                         title="RSNA Knee Anchor9586m" if _tag == "09586m224" else "RSNA Knee Anchor9586s6fm",   # title -> slug
+                         patches={**ANCHORS["09586"]["patches"], 4: MIRROR224_PATCHES}, mirror224=True)
+
 S6X_INTRO = """# Anchor9586s6f: nartaa's s6fall inside V2's R6 half (candidates.md C14)
 
-Built by `src/build_anchor_copy.py --anchor 09586s6f`. Every cell above is heliosli's V2 notebook as `rsna-knee-anchor9586` runs it
-(#100). The next cell writes nartaa's public s6fall script (heliosli's S6 architecture retrained on JEV labels; component A, his
+Built by `src/build_anchor_copy.py --anchor __TAG__`. Every cell above is heliosli's V2 notebook as `rsna-knee-anchor9586` runs it
+(#100)__MIRROR__. The next cell writes nartaa's public s6fall script (heliosli's S6 architecture retrained on JEV labels; component A, his
 OAI-trained CoAtNet, not run; the public test ids removed; as C11 / C12 run it). The cell after it keeps V2's final file aside,
 rebuilds that file from V2's stage-3 and Part B inputs (and keeps V2's file unless the rebuild matches it), then runs s6fall as its
 own process under a time limit and re-blends: ours = __KEEP__ rank(R6) + __SHARE__ rank(s6fall) per finding, then V2's stage-3
@@ -248,7 +290,7 @@ _s6x_log('S6X_DONE ' + _s6x_json.dumps(_s6x_info))
 """
 
 
-def s6fall_cells(cfg):
+def s6fall_cells(cfg, tag="09586s6f", mirror224=False):
     """C14's two added cells: the patched s6fall script (C11's stage) and the guarded run + re-blend cell."""
     s6f = F954_ANCHORS["0950s6f"]
     if sha256_file(s6f["notebook"]) != s6f["sha256"]:
@@ -263,7 +305,10 @@ def s6fall_cells(cfg):
     bad = sorted(n for n in module_level_names(run_src) if not n.startswith("_s6x_") and not n.startswith("_S6X_"))
     if bad:
         raise SystemExit(f"the s6fall run cell binds {bad} at notebook scope (only _s6x_* names are allowed)")
-    intro = (S6X_INTRO.replace("__KEEP__", "%.1f" % (1.0 - cfg["share"])).replace("__SHARE__", "%.1f" % cfg["share"]))
+    intro = (S6X_INTRO.replace("__KEEP__", "%.1f" % (1.0 - cfg["share"])).replace("__SHARE__", "%.1f" % cfg["share"])
+             .replace("__TAG__", tag)
+             .replace("__MIRROR__", ", except that the 224 px CoAtNet stage (cell 4) also runs the 384 px stage's anatomical-mirror "
+                                    "TTA (C15)" if mirror224 else ""))
 
     def code(cid, src):
         return {"id": cid, "cell_type": "code", "metadata": {}, "outputs": [], "execution_count": None, "source": src}
@@ -289,6 +334,10 @@ def build(spec):
                 raise SystemExit(f"anchor cell {i}: patch target found {src.count(old)} times: {old!r}")
             src = src.replace(old, new)
         cells[i]["source"] = src
+    for i in spec["patches"]:                        # a patched %%writefile cell must still be valid Python
+        if txt[i].startswith("%%writefile"):
+            src_i = cell_text(cells[i])
+            compile(src_i.split(chr(10), 1)[1], f"anchor cell {i}", "exec")
     for c in cells:                                  # a clean copy: no stored outputs from the author's run
         if c["cell_type"] == "code":
             c["outputs"], c["execution_count"] = [], None
@@ -309,7 +358,7 @@ def build(spec):
                      "W_RAPTOR_C", "W_RAPTOR", "A224", "pct_on", "NB_T0", "OWN_W_PER_TARGET", "OWN_W"):
             if need not in anchor_names:
                 raise SystemExit(f"the s6fall run cell reads {need!r}, which no anchor cell binds")
-        extra, stage_src = s6fall_cells(spec["s6fall"])
+        extra, stage_src = s6fall_cells(spec["s6fall"], spec.get("tag", "09586s6f"), spec.get("mirror224", False))
         cells += extra
         provenance.update(s6fall=dict(spec["s6fall"], script=os.path.basename(F954_ANCHORS["0950s6f"]["notebook"]),
                                       script_sha256=F954_ANCHORS["0950s6f"]["sha256"],
@@ -335,7 +384,7 @@ def main(argv=None):
     ap.add_argument("--check", action="store_true", help="build in memory and compare with the files on disk")
     a = ap.parse_args(argv)
     os.chdir(ROOT)
-    spec = ANCHORS[a.anchor]
+    spec = dict(ANCHORS[a.anchor], tag=a.anchor)
     out, meta = build(spec)
     nb_text, meta_text = dump_json(out), dump_json(meta)
     check_no_competition_ids(nb_text, "the rendered notebook")

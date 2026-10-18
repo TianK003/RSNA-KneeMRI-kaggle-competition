@@ -6494,6 +6494,45 @@ patched it (component A not run, the public ids removed; `%%writefile`), and the
 - **Sent:** #101 at 11:54:38 UTC (ref 57353067) on Tian's go ("do it and submit as soon as possible"); `src/watch_submission.py`
   runs. 10-18 has 4 slots left.
 
+### 2026-10-18 — C15 built ahead of the C14 read: the 384 px stage's anatomical-mirror TTA ported to V2's 224 px CoAtNet, on V2 and on C14 · ⏳ PENDING
+
+Tian, 10-18: "Build it so we dont waste time later". C15 is sent only after #101 (C14) reads, on whichever of V2 / C14 reads
+higher, because only our best entry shows on the LB.
+- **Validity:** nartaa's `training_code/coatnet/RUNS.md` (Dataset `nartaa/rsna-knee-s6fall-weights`, 10-17) says the 224 run "differs
+  only in --arch, --res, --tag and RAPTOR_CROP_FRAC=0.8" from the 384 run. Both trained with "NO flips (laterality is signal)" and
+  without `--lat_norm`, and the 384 model's 0.949 was "scored 320 crop + mirror TTA". The two stages share the 96-slice slot layout
+  (`SLOTS` identical in cells 2 and 4).
+- **The port** (`src/build_anchor_copy.py`, `MIRROR224_PATCHES`, three replacements in cell 4, each found exactly once):
+  - cell 2's `SLOT_SIZES` / `SAGITTAL_SLOTS` / `_slot_index` / `_mirror_tri`, verbatim, with an assert that they match cell 4's own
+    `SLOTS`;
+  - `gpu_windows(..., mirror=False)` mirrors the uint8 triplets before the LUT, crop and resize, as cell 2 does;
+  - the CUDA branch scores 0.5 × (plain + mirror) in probability space, as cell 2's `infer_pair_probs`.
+  The XLA branch is unchanged (unused on T4). The patched `%%writefile` body compiles at build time.
+- **Two renders:**
+  - `--anchor 09586m224` → `rsna-knee-anchor9586m` (C15 on V2): 10 cells, differs from `rsna-knee-anchor9586` in cell 4 only;
+  - `--anchor 09586s6fm224` → `rsna-knee-anchor9586s6fm` (C15 on C14): 13 cells, differs from `rsna-knee-anchor9586s6f` in cell 4 and the
+    intro text only. Its run cell is C14's, mock-tested.
+  The 0958 / 09586 / 09586s6f renders stay byte-identical (`--check`).
+- **Runtime:** the 224 stage's GPU work doubles: ≈ +5–15 min on ≈ 4 h (V2) or ≈ 6.5 h (C14) (estimate).
+- **Prediction (estimate):** + 0.0000–0.0005. The 224 model holds at most 0.35 × 0.85 of a finding's weight, and mirror TTA is a
+  variance reduction nartaa measured on the sibling model.
+- **Read rule:** vs its base, by tie position (as C14): above the base's place = C15 > base; no move = C15 ≤ base.
+- **Placeholders green** (both v1, pushed 12:00 UTC, COMPLETE by 12:11 UTC, ≈ 0.16 h each; outputs in
+  `artifacts/kaggle_out/anchor9586m_v1/` and `anchor9586s6fm_v1/`):
+  - `RAPTOR224_STAGE_DONE seconds 25` in both (21 s without the mirror, C14's placeholder);
+  - the mirrored `raptor224_raw.csv` vs C14's plain one: mean |diff| 0.011, max 0.063, per-study Pearson 0.997–0.999 over the 12
+    findings; 10 of 12 findings keep their 3-study rank order. A valid mirror moves the probabilities a little; a wrong axis would
+    decorrelate them;
+  - R6's `ours_sub.csv` and Part B's `_own.csv` = C14's exactly;
+  - on V2, the final file = #100's on these 3 studies (the shift does not reorder 3 studies);
+  - on C14: `SELF_CHECK ok` (0.0), s6fall `rc 0`, `_s6f.csv` = C11's exactly, `S6X_DONE` status `ok`;
+  - no Traceback or fallback in either log.
+- **Run-to-run noise (a side finding):** the same 384 px stage on the same 3 studies differs by up to 1e-4 in probability
+  between runs (fp16 GPU noise), and the mirrored 224 output by 8e-5. Reruns of these notebooks are deterministic to ≈ 1e-4,
+  not bit-exact. At 1,284 studies that can swap a few near-tied ranks, far below a tick; the C13-is-deterministic reading
+  (heliosli and degnonguidi's copies adjacent in the tie) is consistent with it.
+- **Not sent:** C15 waits for #101 (C14) to read, then goes out on the higher base.
+
 ## Infrastructure
 
 ### 2026-09-27 — The "0.943 Speedy Raptors CoAtNet D4" notebook is our anchor **plus two CoAt readers**, not a faster graph; its "< 30 min" is a 3-study commit run · P-41 (threaded scan + 8 decode workers) smoke-green and byte-identical
