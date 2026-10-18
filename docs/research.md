@@ -1073,6 +1073,57 @@ What it needs (our estimate, ≈ 3–5 working days before the first arm):
               a unit check and a smoke; (5) a c03-style cache of the OAI knees uploaded as a private Dataset (≈ 28 GB by
               proportion to c03's 51 GB) or trained on a pod.
 
+#### 2.7.12 Endgame research: what extracts more from C14, against the literature and past RSNA winners (2026-10-18 night)
+
+Tian (10-18, after C14 read above V2): "what should we focus on now … find its pitfalls … research literature and open science
+reports and then compare to our findings … people higher on the leaderboard". Four subagents in parallel: a forum + public-notebook
+recon, a code audit of C14, a literature / past-RSNA review, an index of our own reads. The forum and audit findings are measured reads
+(experiments.md 2026-10-18 "Endgame research"); this section is the literature behind the decisions. Raw material (session scratchpad,
+not kept): 62 RSNA place-solution write-ups from the Kaggle API, two paired-AUC / per-finding-weight simulations. Tags: [P] primary text
+read, [A] abstract only, [S] secondary, [Sim] the subagent's binormal simulation (gold-58 prevalences, assumed AUCs).
+
+| Claim | Source | Effect | For us |
+|---|---|---|---|
+| Winners averaged diverse models (plain or CV-weighted); stacking overfit | RSNA 2023 Abdominal 3rd (discussion 447464); RSNA 2024 Lumbar 3rd (539453) [P] | Lumbar 3rd: a 30-model mean; Abdominal 3rd: stacking "slightly worse … due to overfit" | keep the flat rank-mean |
+| An ensemble gain on public is not guaranteed on private | Abdominal 2nd (447453) [P] | single 0.37 / 0.35 vs an 11-model ensemble 0.35 / 0.35 (public / private) | choose picks on construction |
+| Flip TTA paid only with the same flip (and a label swap) in training | RSNA 2025 Aneurysm 2nd (611867), 1st (611846); Lumbar 3rd [P] | Aneurysm 2nd: flip-swap training + 8× TTA +0.010 / +0.005; each public step moved private the same way at ≈ half the size | no precedent for TTA a model never trained with: C15 (mirror on the 224 CoAtNet) read a tick lower |
+| A TTA average is bounded by the mean error of its views, not the identity view's | Kimura 2024, arXiv 2402.06892 [P] | a worse view can make the average worse | add only views from the training distribution |
+| TTA flips many correct predictions to wrong | Shanmugam et al. 2021, arXiv 2011.11156 [P] | ≈ 1/3 of the changed predictions become wrong | generic caution |
+| Cross-target stacking did not help; co-occurrence learned inside the network did | Lumbar 4th (539443): "not effective"; Lumbar 5th (539472) [P] | — | no post-hoc co-occurrence step (also hoshinoyumemi: a gold-58 cross-finding re-rank lost 0.020 out of sample) |
+| Label cleaning by ensemble-OOF disagreement, two days before the deadline | Lumbar 2nd (539452) [P] | +1 % public and private | needs retraining |
+| A weaker member helps only if its error correlation with the ensemble is below σ_strong / σ_weak | Bates–Granger via arXiv 2205.04216 [S]; Smith &amp; Wallis 2009 [A] | vs a 0.958 blend: ρ &lt; 0.92 / 0.93 / 0.95 for a 0.944 / 0.946 / 0.950 member; at ρ 0.85 +0.0013 / +0.0018 / +0.0028 | explains both reads: our 0.944–0.946 legs cost the 0.958 anchor a tick (C10w, C10w-b05); s6fall (0.950, JEV labels) lifted V2 (C14) |
+| Estimated combination weights lose to equal weights through estimation error | Smith &amp; Wallis 2009 [A] | qualitative | do not push weights |
+| Adaptive overfitting on Kaggle is small, except on small test sets | Roelofs et al. 2019, NeurIPS [P] | ≤ ≈ 1 %; ≥ 10,000 examples recommended; top-10 % submissions show more of it | our public split is ≈ 390 studies |
+| Keeping +1-tick variants and recombining them attacks a public leaderboard | Blum &amp; Hardt 2015, arXiv 1502.04585 [A] | — | C16-type pushes are this |
+| A paired AUC difference is far less noisy than an absolute score | DeLong 1988; Hanley–McNeil 1983; [Sim] | absolute SD 0.0030; paired public SD 0.0016 / 0.0009 / 0.0006 at ρ 0.90 / 0.97 / 0.99; best of 5 equal variants +0.0005–0.0008 public, 0 private | a tie-position read of a change worth ≤ 0.0003 is a coin flip |
+| Per-finding weights tuned on public | [Sim] | equal members: +0.0002–0.0010 public, −0.0005 to 0 private; a real 0.02 per-label gap on 4 labels: +0.0011–0.0017 public, +0.0006–0.0015 private | tune only where a prior predicts a gap ≥ 0.02, and shrink rather than push |
+| ACL tear co-occurrence | PMC11410909 [P]; PMC11048204 [A] | bone bruise 92.9 %, lateral femoral condyle impaction 45.7 %, MCL 41.3 %, medial / lateral meniscus 57.4 / 25.2 % | sanity checks only |
+| Meniscal tears in OA knees | Englund 2008, PMC2897006 [A] | 63 / 60 % with OA vs 32 / 23 % without | sanity checks only |
+| Baker's cyst goes with effusion, meniscal tear and OA, not with ACL / MCL | Miller 1996, PubMed 8816552 [A] | P(cyst) 0.08–0.10 with one finding, 0.38 with all three | sanity checks only |
+| Effusion and synovitis are not separable on non-contrast MRI | MOAKS (Radiopaedia) [S]; Roemer 2016, Radiology [A] | MOAKS scores one "effusion-synovitis" | the Synovitis label is intrinsically noisy |
+| Lateral meniscus tears are intrinsically harder | Fritz 2020, PMC7299917 [P] | a model on 18,520 studies: medial 0.882 vs lateral 0.781 (radiologists lateral 0.83) | expect Lateral Meniscus to stay a weak finding |
+| Per-finding knee-MRI AUCs | CoPAS, PMC11368947 [P]; MRNet (Bien 2018, PLoS Med) [P] | CoPAS internal: ACL 0.949, contusion 0.821, cyst 0.862, effusion 0.787, MCL 0.782, meniscus 0.763; MRNet ACL 0.965, meniscus 0.847 | likely weakest of our 12: Lateral Meniscus, Synovitis, Contusion, Fracture, MCL |
+| Hierarchical conditional training (CheXpert) | Pham et al. 2021, arXiv 1911.06475 [P] | +0.009–0.019 mean AUC; +0.026–0.034 with label smoothing | training-time only |
+
+**Against our own reads** (experiments.md; the index in the "Endgame research" entry):
+- *Diverse members:* agrees. S6 on nartaa's CoAtNet gained +0.0055–0.0075, and s6fall lifted V2. Our legs cost a tick on every ≥ 0.957
+  anchor, at β 0.20 and at β 0.05.
+- *Weight tuning:* agrees. goodpjw2008's per-finding weights fitted on gold-58 read 0.957 / 0.955; our gold-58 per-label routing lost
+  0.006 out of sample; pubpriv_sim row 3a.
+- *TTA:* agrees. C15 −1 tick; R7 + flip TTA 0.957 (goodpjw2008); nartaa's own mirror on the 384 model +0.001, the one model trained in
+  that geometry.
+- *Rank-mean:* agrees by construction; we never compared rank vs probability averaging on the LB.
+- *Labels:* the leaders' recipe (LLM labels blended with image-model pseudo-labels at a fixed ratio; colum2131, azamat1ch, Archit Konde)
+  is our Raptor 0.5 mix, the one target change that transferred (+0.009). Our iterations on it (self-distillation, OOF students,
+  silent-cell mixes) did not transfer. The leaders' singles are 0.952–0.959 on the same backbones (ConvNeXt-T, EfficientNetV2-S,
+  CoAtNet, DINOv2-S at 224 px) against our 0.942. That gap is in the image pipeline and the label iteration, and it needs retraining.
+
+**What it means for the endgame:**
+1. Pick on construction, not on sub-tick public reads.
+2. Only add decorrelated strong members, or TTA views from each model's own training distribution.
+3. Do not push per-finding weights further (C16 dropped).
+4. No post-hoc co-occurrence step, no stacking.
+
 ### 2.8 Data-pipeline engineering
 
 **What we learned**

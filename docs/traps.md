@@ -1382,3 +1382,25 @@ script would have published competition data, which CLAUDE.md ("Rules") keeps ou
 train or test UID (checked against `data/train.csv` / `data/test.csv`). **Do:** before committing any pulled notebook or script, count
 the `test.csv` / `train.csv` StudyInstanceUIDs in it (a short Python check against the CSVs); if any is present, keep the file under
 `artifacts/anchors/` (gitignored). Stage files by name, never with `git add -A`.
+
+### 74. C14's run cell leaves the notebook without a submission file while s6fall runs, and the CoAtNet stages score a blank volume as a real study (Tier 2: a crash in that window would score nothing; found in the 2026-10-18 audit, never hit)
+
+**The window.** nartaa's s6fall launcher deletes `/kaggle/working/submission.csv` when it starts. C14's run cell (cell 12 of
+`rsna-knee-anchor9586s6f`) copies V2's file back only after s6fall returns or is killed. For the ≈ 1–2.5 h that s6fall runs on the
+hidden test there is no submission file. A kernel death in that window (an OOM kill, a host stop) fails the whole submission, even
+though V2's file was already complete. A timeout cannot cause it, because our 8.4 h kill fires before s6fall's 8 h watchdog and the
+9 h limit. #101 scored, so it did not happen there.
+
+**The blank volume.** The Raptor stages (cells 2 and 4, `_pre_one`) build an all-zero volume when a study's preprocessing raises or
+has no readable series, and still score it. Cell 8 flags only rows that are 0.5 in every column, so these studies enter the 384 /
+224 ranks as an undetected tied block.
+
+**Do (C17 and any later C14-based entry):**
+- run s6fall with `K1_KAGGLE_ROOT` pointing at a scratch root (`/tmp/k1root`, `input` linked to `/kaggle/input`, an empty
+  `working/`), and read its outputs from there, so V2's file stays in place throughout;
+- after the self-check, treat any study whose 12 Raptor values exactly repeat another study's row as failed, so it takes the other
+  half's rank;
+- let s6fall keep a partial result: raise its failure fraction, and turn deadline studies into failed studies under a guard that ends
+  before the 8.4 h kill.
+
+experiments.md 2026-10-18 "Endgame research".

@@ -6605,6 +6605,110 @@ the one without the mirror.
 **Verdicts: C14 ✅ (> V2 by sign) → pick 1 = C14 #101; C15 ❌ on V2, unread on C14 (expected under #101).** 10-18 has 2 slots left
 (to 00:00 UTC). Kaggle GPU 0.98 h used, 29.02 h left (the C15 placeholders took 0.3 h).
 
+### 2026-10-18 — Endgame research: the forum's top teams, a code audit of C14, and the literature against our reads · ✅ a read (no GPU, no submission) · Tian: pick 2 = a second C14-family ticket, C16 dropped, C17 built on 10-19
+
+Tian, ≈ 21:30 UTC: "what should we focus on now – how can we extract even more from this model … find its pitfalls … research
+literature and open science reports and then compare to our findings". Four subagents ran in parallel (21:35–22:05 UTC):
+- a forum + public-notebook recon: a fresh harvest of 154 topics and 1,106 posts, plus kernel and dataset listings;
+- a code audit of `rsna-knee-anchor9586s6f` (C14), with nartaa's training code checked against his SHA256SUMS;
+- a literature and past-RSNA review (research.md 2.7.12);
+- an index of our own reads.
+Raw material is in the session scratchpad (not kept). The subagents could not write report files.
+
+**1. The forum: no public path above 0.958.**
+- *Public notebooks:* none claims more than 0.958. heliosli's V2, goodpjw2008's and leoprovorov's notebooks are unchanged since our copies.
+  kaiwalyaatulraut's two notebooks (113 votes) are goodpjw2008's 0.958 v25 with the comments stripped. The count at ≥ 0.959 grew 163 →
+  170 between 10:04 and 21:02 UTC, all teams that were already submitting. hengck23 expects the usual last-week freeze on public
+  notebooks (745861).
+- *Hints from teams at ≥ 0.959, all own models:*
+
+  | Team (rank) | Hint | Source |
+  |---|---|---|
+  | azamat1ch (2) | 5-fold ConvNeXt-T 0.959 / EfficientNetV2-S 0.956 / CoAtNet 0.952; "only the competition data"; "labels … AI, not by hand. And don't rely on reports alone" | 735304, 748295 |
+  | colum2131 (28) | "pseudo-labels are generated from the images … I just blend the two at a fixed ratio" | 735304, 10-16 |
+  | datnt114 (55) | best public 0.961 with 5-fold OOF 0.937, gold-58 0.938; "i trust cv local" | 748011 |
+  | Ali Ozan Memetoglu (79) | Claude labels; few-shot gold examples in the prompt: local CV −0.004, public +0.002 | 745861 |
+  | Musa Tur Farazi (145) | "0.956 single model single fold", 224 px | 735304 |
+  | Adel Zebiche (163) | DINOv2 ViT-S fold 0 0.952 public / 0.934 gold, blend 0.957, 224 px, own labels, no external data | 749426, 10-14 |
+  | Tucker Arrants (1) | Qwen extraction, "no frontier models … most of my models are in the low 0.95 range" | 745214 |
+  | Mattia Angeli (313) | "around 60 variants … There isn't a hidden dataset or one special trick" | 750356, 10-18 |
+  | Cody_Null (176) | OAI "made very little difference in my pipeline" | 749145 |
+
+- *The one new public asset since 10-16: "B-leg".* These are ConvNeXt-S folds started from R6 v1 and trained 2 more epochs on Qwen2.5-7B
+  soft targets calibrated on gold-58. They were uploaded 10-18 by three members of one team (rank 1054). Seed 0 has 4 folds, seed 1 has
+  2. Gold-58 per fold reads 0.911 / 0.927, which is optimistic because the targets were calibrated on those studies. The licence is
+  "other", and nothing has read it on the LB.
+- *Avoid* `neronrx/mycelis`: its own logs show gold-58 at 0.58–0.67.
+- *Measured by others on the heliosli recipe:*
+  - goodpjw2008: S6 next to R6 0.957; R7 at 0.4 next to R6 0.958; R7 with flip TTA 0.957; weights tuned on gold-58 0.957 / 0.955;
+    his reader at full weight 0.954.
+  - leoprovorov: R7 0.6 + s6fall 0.4 = 0.957.
+  - nartaa: s6fall on folds 1–4 only = 0.948, vs 0.950 on all data.
+- *Rules and runtime:*
+  - The host has posted nothing since 10-14. Seven questions are open, on OAI, SKM-TEA, R7 / fastMRI and RadImageNet.
+  - Two participants say fastMRI needs "an application stating affiliation" (unverified).
+  - Tucker: "only the winning solutions (top 10) … audited thoroughly" (an opinion).
+  - Queues of 1–6 h were reported on 10-17 (750318), and one submission was stuck for over 24 h (748403).
+  - A strict DICOM reader crashed on a hidden rerun (prvsiyan). Chris Deotte: commit over ≈ 1,300 train studies first.
+
+**2. The C14 code audit: nothing degraded #101.** Its score comes from one run and is fixed. The pitfalls matter only for a new
+entry built on it:
+- **P1:** s6fall deletes `/kaggle/working/submission.csv` when it starts, and the run cell restores V2's file only after s6fall
+  returns. That leaves ≈ 1–2.5 h with no submission file, and a kernel death in that window scores nothing (traps 74).
+- **P2:** the two CoAtNet stages score an all-zero volume (a preprocessing failure) as a real study. Cell 8 flags only all-0.5 rows,
+  so such studies enter the ranks as an undetected tied block (traps 74). Expected cost ≈ 0, since the train set had no decode failures.
+- **P3:** s6fall is all-or-nothing. More than max(3, 0.25 % · N) failed studies, any worker deadline, or the 8.4 h kill turns the
+  entry silently into V2, even though the blend handles partial coverage correctly.
+- **P4:** in R6, a failed load of the SKM-TEA anchor in a loader worker renders that worker's later studies without the anchor,
+  silently. Not changed: it is V2's code.
+- **Decoding:**
+  - all 459 placeholder DICOMs are Explicit VR Little Endian (census with the repo venv), and no stage has pylibjpeg or GDCM;
+  - Part B's cp311 / cp312 wheels fail as one pip call on the image's Python 3.13;
+  - with no compressed data in train (P-19), none of this matters.
+- **Runtime** (estimates from the placeholder logs and FLOPs):
+
+  | Stage | Estimate |
+  |---|---|
+  | R6 | ≈ 2.7–3.1 h, GPU-bound; its flip TTA is ≈ 1.3–1.5 h of that |
+  | s6fall | ≈ 1–2 h, decode-bound |
+  | Raptor 384 | ≈ 0.3–0.7 h |
+  | Raptor 224 | ≈ 0.2–0.4 h |
+  | Part B | ≈ 0.3–0.5 h |
+  | **Total** | **≈ 5–7 h** |
+
+  That leaves ≈ 1–2.4 h of margin before s6fall's 6.0 h start gate. All stages are already fp16 and on both GPUs (except Part B), and
+  the CPU has ≈ 4 cores.
+- **Each model's training vs its inference:**
+
+  | Model | Training augmentation | Weights | Inference |
+  |---|---|---|---|
+  | CoAtNet 384 | intensity gain 0.9–1.1, 12 random windows, no flip, no affine, no laterality normalisation, full 384 px field | SWA of 3 epochs, 1 seed | 320 centre crop + mirror |
+  | CoAtNet 224 | the same, fixed 0.8 centre crop | — | — |
+  | s6fall | random 288 crop of the 320 render only, offset 0–32 px per axis, no mirror option | epoch 16, no EMA / SWA, seed 42, one checkpoint | centre crop, no TTA |
+  | R6 | trainer supports a mirror, but R6's manifest does not say whether it was used (R7 trained with mirror 0.5) | — | flip TTA |
+
+  So the training-matched views are s6fall's off-centre crops and the 384 model's full field.
+- **Unused assets:** none worth loading. One unloaded 1.2 GB heliosli fold-0 model (10-04, old recipe, unscored) is ignored.
+- **The blend arithmetic is correct:** each model is ranked over its own scored studies, with no probability mixing. One note: the
+  0.6 / 0.4 R6 / s6fall mix is not re-ranked, so it carries ≈ 2–3 % less effective weight, which follows V2's own convention.
+
+**3. Literature and past RSNA winners (research.md 2.7.12):**
+- the field's evidence agrees with our reads on member diversity, weight tuning, TTA, post-hoc co-occurrence and flat rank-means;
+- Bates–Granger explains both our leg costs and the s6fall lift;
+- on the private split C12 beats C14 &lt; 1 % of the time, and a second C14-family pick adds ≈ +0.0002 in expectation.
+
+**Decisions (Tian, 2026-10-18 ≈ 22:10 UTC):**
+- **Pick 2 = a second C14-family ticket**, no longer C12: the OAI-free hedge is dropped. C12 / C11 leave the shortlist, and the fastMRI
+  check no longer decides a pick.
+- **C16 is dropped**, as a public fit (proposals.md Dropped directions).
+- **C17 is built on the morning of 10-19:** C14 with P1–P3 fixed, plus training-matched TTA for s6fall (off-centre crops), and
+  optionally the 384 model's full field. It goes out alone, after an s6fall-only timing commit on ≈ 1,300 train studies
+  (candidates.md C17).
+- Not pursued, by the evidence above: B-leg (2 epochs from R6, so a high error correlation with it; gold numbers inflated; no LB read;
+  +0.7–2.5 h), more CoAtNet TTA, a post-hoc co-occurrence step, our own models, retraining.
+
+**Verdict: ✅ a read.** C14 is close to the ceiling of public assets without retraining. The picks are chosen on construction.
+
 ## Infrastructure
 
 ### 2026-09-27 — The "0.943 Speedy Raptors CoAtNet D4" notebook is our anchor **plus two CoAt readers**, not a faster graph; its "< 30 min" is a 3-study commit run · P-41 (threaded scan + 8 decode workers) smoke-green and byte-identical
