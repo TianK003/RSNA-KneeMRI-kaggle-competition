@@ -6,6 +6,133 @@ to read first after a break.
 
 ---
 
+## 2026-10-18 (21:00 → 22:20 UTC) — **#101–#103 read: C14 lifts us from rank 914 to 376 (top 6.1 %), the mirror costs V2 a tick** · endgame research (forum top teams, a C14 code audit, literature) · **Tian: pick 2 = a second C14-family ticket, C16 dropped, C17 built on 10-19**
+
+Tian, in order:
+1. "Pull the results of our latest runs and tell me what happened / how we improved / got worse and run /update."
+2. "Ultrathink about our next step … how can we extract even more from this model. Try to find its pitfalls and suggest changes to try –
+   research literature and open science reports and then compare to our findings … people higher on the leaderboard … synthesize this
+   in form of suggestions with grounded evidence."
+3. "OK, switch to a second C14 family for the second pick, drop C16 and build C17 in the morning. Mark that in docs, then run /handoff
+   and we finish the night here."
+
+Commits `697e7d7` (the #101–#103 read), `ddb3dfa` (research + decisions) and this one. **No handoff entry was written for the 10-17
+and earlier 10-18 sessions.** Their state is in experiments.md ("Submissions #96–#100", "C14 built", "C15 built") and in the commits
+from `a01acc1` to `630a2f7`.
+
+Nothing is in flight: no kernel, pod, watcher or background agent is running.
+
+### Where things stand
+
+| | Status |
+|---|---|
+| Public LB | **0.958, rank 376 of 6,190** (21:02 UTC; 206th of the 1,135 at 0.958; the top-10 % line, rank 619, lies inside the tie). The best entry is #101 C14, or #103; the two cannot be told apart |
+| Submissions | #101 C14 **0.958** ✅; #102 C15 on V2 **0.957** ❌; #103 C15 on C14 **0.958** (unreadable vs #101). 10-18's last 2 slots unused. **10-19 → 10-22: 5 per day** |
+| Picks (select by hand, by 10-22 23:59 UTC) | **pick 1 = #101 C14**. **pick 2 = C17** if it scores ≥ 0.958 (C17 becomes pick 1 if it reads above #101's place); otherwise **#103**. C12 / C11 are no longer picked; the fastMRI check is moot for the picks |
+| Docs | All logged: experiments.md "Submissions #101–#103" and "Endgame research"; research.md 2.7.12; traps 69 addendum and traps 74; candidates.md C17 (P1) and C16 (dropped); proposals.md Dropped directions (C16 / weight pushes, CoAtNet TTA, post-hoc co-occurrence, B-leg) and P-50 |
+| Code | Nothing new. **C17 is not built.** `src/watch_lb_snapshots.py` exists, but its 12:18 run logged nothing (traps 69 addendum) |
+| Budgets | Kaggle GPU **29.02 h** (the last budget). RunPod ≈ $4.2, no pods. OpenRouter $2.29 of $13 |
+| Kaggle CLI | **The token expired ≈ 22:03 UTC** (`credentials.json` written 10:03 UTC). Every call now says "Authentication required" or "Permission … denied" (traps 20) |
+| Repo | Pushed. Tian's untracked `discussion*.{py,xml}` were not added (public repo) |
+
+### What we talked about and decided
+
+- **#101–#103:**
+  - C14 beats V2 by sign, so pick 1 = C14 #101, by Tian's 10-18 rule.
+  - The mirror TTA is out (C15 closed).
+  - #103 cannot be separated from #101 and is expected under it.
+- **"What next":** four subagents ran in parallel (forum and public notebooks, a C14 code audit, literature and past RSNA winners, an
+  index of our own reads). Their joint answer: C14 is close to the ceiling of public assets without retraining, so pick on construction
+  and stop chasing public ticks.
+- **Tian's decisions (22:10 UTC):**
+  - **pick 2 = a second C14-family ticket.** On private, C12 beats C14 < 1 % of the time, so it only paid if OAI entries were
+    disqualified (forum opinion: only the top ~10 are audited); a sibling pick adds ≈ +0.0002 in expectation;
+  - **C16 dropped** (a public fit);
+  - **C17 built tomorrow morning.**
+- **Rejected by the evidence, not by Tian** (proposals.md Dropped directions):
+  - B-leg: R6 plus 2 more epochs, so its errors correlate with R6's; its gold-58 numbers are inflated; no LB read; +0.7–2.5 h;
+  - more CoAtNet TTA; post-hoc co-occurrence or stacking; our own models; retraining.
+
+### What we figured out
+
+1. **C14 > V2 by sign, and not by noise.** Stable 0.958 teams above us went 449 → 99. 79 of the 350 we passed last scored before V2 was
+   public, spread over ≈ 540 ranks (experiments.md "Submissions #101–#103").
+2. **The 224 px mirror TTA costs V2 a tick (#102 0.957).** Neither CoAtNet trained with flips, so the mirror was never in-distribution
+   (audit).
+3. **Two entries in flight on one board need a live snapshot as each scores.** The LB CSV's `LastSubmissionDate` is the latest scored
+   entry, not the best one (traps 69 addendum).
+4. **No public path above 0.958.** Every hint from a team at ≥ 0.959 is own single models at 0.952–0.959 trained on LLM labels blended
+   with image pseudo-labels; ours top out at 0.942 (experiments.md "Endgame research").
+5. **The literature matches our reads.** Diverse members pay, and Bates–Granger explains both our leg costs and the s6fall lift. Public
+   weight tuning, TTA a model never trained with, and post-hoc co-occurrence do not carry to private (research.md 2.7.12).
+6. **The C14 audit:**
+   - nothing degraded #101;
+   - three latent failure modes for a new C14-based entry (traps 74);
+   - runtime ≈ 5–7 h, with ≈ 1–2.4 h of margin before s6fall's 6.0 h start gate (estimates);
+   - **s6fall trained on random 288 crops of its 320 render but infers on the centre crop only.** That is the one training-matched TTA
+     left, and C17's main change.
+
+### ⏭ Next action, in order
+
+1. **Re-authenticate:** `kaggle auth login --force` (browser; traps 20). Check with `kaggle competitions submissions
+   rsna-knee-abnormality-detection --csv`.
+2. **The s6fall timing commit** (≈ 2–4 GPU-h). It is a Kaggle kernel that runs C11's s6fall stage (`build_fork954.py --anchor 0950s6f`
+   cells) over ≈ 1,300 train studies, with the off-centre crop TTA patched into its K1 launcher.
+   - **The study list is built inside the kernel** from `train.csv` (fixed seed, gold rows excluded). Never write train
+     StudyInstanceUIDs into the repo (public; traps 73).
+   - **Log decode and GPU time per study and per crop.** The audit did not read `s6_extras.bin`, so find where the K1 worker crops
+     before patching.
+   - **Decision rule:**
+     - s6fall with 5 crops (centre + 4 corners, averaged in probability space) on 1,284 studies ≤ s6fall plain + 0.75 h → 5 crops;
+     - else 3 crops (centre + 2 diagonal corners);
+     - if even that overruns, skip the TTA, skip C17, and pick 2 = #103;
+     - the 384 CoAtNet's full-field view (option 5) only if ≥ 0.75 h of spare margin is left.
+3. **Build C17** in `src/build_anchor_copy.py` as a new `--anchor` (e.g. `09586s6fx` → `kaggle/rsna-knee-anchor9586s6fx/`):
+   - (1) s6fall under `K1_KAGGLE_ROOT=/tmp/k1root` (`input` linked to `/kaggle/input`, an empty `working/`), outputs read from there;
+   - (2) after SELF_CHECK, a study whose 12 Raptor values exactly repeat another study's row counts as failed;
+   - (3) a higher s6fall failure fraction, and deadline studies turned into failed studies under a guard that ends before 8.4 h;
+   - (4) the crop TTA;
+   - `--check` keeps the 0958 / 09586 / 09586s6f renders byte-identical;
+   - **mock-test** (1)–(3): s6fall ok / failed / partial / late / hanging, and `submission.csv` present at every point.
+4. **The placeholder** (≈ 0.2 h; `kaggle kernels push -p kaggle/rsna-knee-anchor9586s6fx`). It is green when all of these hold:
+   - `SELF_CHECK ok` (0.0);
+   - s6fall `rc 0`, and its crop-averaged output correlates ≥ 0.99 with C11's centre-crop `_s6f.csv`;
+   - `S6X_DONE` status `ok`;
+   - `submission.csv` exists throughout;
+   - no Traceback and no fallback.
+5. **Send C17 alone, by 10-20.**
+   - Pull a baseline LB snapshot first (`kaggle competitions leaderboard rsna-knee-abnormality-detection -d -p artifacts/lb_<date>/`;
+     extract with Python, since the CSV name has colons).
+   - Submit with `kaggle competitions submit rsna-knee-abnormality-detection -k tiankljucanin/rsna-knee-anchor9586s6fx -v 1 -f
+     submission.csv -m "<what + read rule>"`.
+   - Stay in the session with bounded foreground polls, or run `src/watch_lb_snapshots.py <ref>` as a Windows scheduled task, until it
+     scores.
+   - **Read** against the stable 0.958 teams:
+     - our place rises → C17 > C14: **C17 = pick 1, #101 = pick 2**;
+     - no move at 0.958 → **#101 pick 1, C17 pick 2**;
+     - ≤ 0.957 or a scoring error → **pick 2 = #103**.
+6. **10-21:** re-read `kaggle kernels list --competition rsna-knee-abnormality-detection --sort-by dateRun` (no anchor expected).
+   **10-21/22:** select both picks by hand on the Submissions page.
+
+### Open decisions for Tian
+
+- Option (5) of C17, the 384 full-field view: decided by the timing commit unless Tian wants C17 kept minimal.
+- While C17 scores: stay in a session, or a scheduled-task snapshotter?
+- The final hand-selection (10-21/22).
+- P-87's Qwen arm: there is no time left to use it, so the card closes unless Tian says otherwise.
+
+### Things that will bite if forgotten
+
+- **The Kaggle token is dead since ≈ 22:03 UTC.** "Permission denied" on `kernels status` means the token, not the slug (traps 20).
+- **Never send two related entries without a live snapshot running.** #101 vs #103 is lost for good (traps 69 addendum).
+- **Anything added before C17's run cell eats s6fall's start-gate margin (≈ 1–2.4 h, estimated).** An overrun silently makes the entry
+  V2 (traps 74 P3).
+- **Queues reached 1–6 h on 10-17, and one submission was stuck for more than 24 h** (forum 750318 / 748403). C17 must go out by 10-20.
+- **Train UIDs and the `discussion*` dumps stay out of git** (the repo is public, traps 73).
+- **`Expand-Archive` fails on the LB zip** (a colon in the CSV name). Extract with Python, as in `artifacts/lb_1018b/`.
+
+---
+
 ## 2026-10-16 (18:25 → 20:20 UTC) — **#92–#94 read** (C11 0.952, C10 0.957, C10w 0.957 ❌ with the arm run) · **we are rank 617 at 0.957** · public vs private modelled (`src/pubpriv_sim.py`) + forum read · image teachers surveyed (none worth a pass) · Fable dropped · **#95 = C10w at β 0.05 sent** (Tian's test)
 
 Tian, in order:
