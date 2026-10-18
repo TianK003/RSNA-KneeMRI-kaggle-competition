@@ -169,11 +169,13 @@ agreement with the teacher, not truth. A one-seed LB delta needs ≥ 0.004 (P-44
 | 2026-10-16 | **C9, submission #91 (`rsna-knee-fork956` v5, `--anchor 0956v`)**: varshithakolupuri's public 0.956 variant (nartaa's 384 + unused 224 px CoAtNets at 0.65 / 0.35 of the Raptor half, R7) + B21 (`v15co` + `v13b3`) at β 0.20 | — | **0.956** | **🔁 at three decimals; C9 > C7 by sign (team 16679021, 10 places above C7 in the tie on 10-14, is now directly below us; a best cannot fall) → pick 2 = C9 by its rule. Rank 774 of 6,079 (26th of 701 at 0.956): the public frontier moved to 0.958 (R6 + flip TTA = 0.957; + heliosli's per-finding Raptor weights = 0.958), and nartaa's `s6fall` (0.950 alone, no OAI / fastMRI) is public → C10 / C11** (entry 2026-10-16 "Submission #91 and the 0.957 / 0.958 frontier") |
 | 2026-10-16 | **C11 / C10 / C10w, submissions #92 / #93 / #94 (`rsna-knee-forks6f` v1, `rsna-knee-fork957` v1, `rsna-knee-fork958` v1)**: nartaa's `s6fall` alone + B18 at β 0.45 (no OAI, no fastMRI); heliosli's R6 + flip TTA notebook + B21 at β 0.20; his 0.958 `blend-mine-in` + B21 at β 0.20 | — | **0.952 / 0.957 / 0.957** | **🔁 / 🔁 / ❌. C11 sits at the low end of its 0.952–0.954 prediction (k ≈ 0.015–0.023 vs B18, at or under S6's 0.020–0.028) and becomes the fastMRI-free pick 1 in place of C6. C10 = its anchor at three decimals and +0.001 over C9, so it is pick 2's candidate. C10w reads one tick under its 0.958 anchor, and the arm ran: the anchor is deterministic (degnonguidi's hash copy sits directly under heliosli in the tie). On a ≥ 0.957 anchor B21 at β 0.20 is break-even to a cost, which closes leg work for pick 2. Our best is 0.957, rank 617 of 6,103 (12th of 315 at 0.957)** (entry 2026-10-16 "Submissions #92–#94") |
 | 2026-10-17 | **C10w-b05, submission #95 (`rsna-knee-fork958` v2)**: heliosli's 0.958 `blend-mine-in` + B21 (`v15co` + `v13b3`) at β 0.05; one change vs C10w (β 0.20 → 0.05); Tian's test against the generic copy | — | **0.957** | **❌ by its rule: one tick under the 0.958 anchor at β 0.05 too, so the anchor sits in the bottom ≈ 0.0006 of its tick and k < 0.012. #95 is our best entry unrounded (above C10 / C10w, read by a stable team crossing us in the tie): the cost shrinks with β, as the fork rule says. Rank 960 of 6,137 (8th of 231 at 0.957)** (entry 2026-10-17 "Submission #95") |
+| 2026-10-18 | **`v15cj` / C13 / B23 / C12 / C13-V2, submissions #96–#100** (`rsna-knee-infer` v79, `rsna-knee-anchor958` v1, `rsna-knee-infer` v80, `rsna-knee-forkc12` v1, `rsna-knee-anchor9586` v1): P-86 `v15cj` solo (`v15c` on an OpenJev share); heliosli's 0.958 verbatim; `v15cj` + `v13b3`; R7 + s6fall + B18 at β 0.45 (OAI-free, fastMRI inside R7); heliosli's "0.9586" verbatim (R6 from `-w1`) | gold-58 0.9099 (`v15cj`) | **0.936 / 0.958 / 0.943 / 0.954 / 0.958** | **❌ / = anchor / ❌ / 🔁 / our best. P-86 closed (−0.006 vs `v15c`; the label side stays closed). C12 = C8 + 0.001: pick 1 if fastMRI passes (else C11 0.952). C13-V2 sits ≈ 150 stable teams above the 0.958 anchor's verbatim score in the tie, so V2 > C13 by sign: pick 2's strongest public ticket. Rank 883 of 6,166 (719th of 1,041 at 0.958)** (entry 2026-10-18 "Submissions #96–#100") |
 
 **External reference points** (not ours — for calibrating ambition):
 
 | Score | What |
 |---|---|
+| 0.969 | Public LB #1 (2026-10-18 10:04 UTC; `RB & Matheus & Tucker & Tony`), 2nd 0.968 (`azamatt`), 10th 0.966, 100th 0.960; **1,204 teams ≥ 0.958 of 6,166 (1,041 at exactly 0.958)**, 163 ≥ 0.959, 1,402 ≥ 0.957 (198 at exactly), 1,782 ≥ 0.956, 1,968 ≥ 0.954, 2,171 ≥ 0.950. No public notebook run since 10-17 13:10 UTC claims more than 0.958. **Our C13-V2 #100 = 0.958, rank 883** (719th of 1,041 at 0.958) (entry 2026-10-18 "Submissions #96–#100") |
 | 0.969 | Public LB #1 (2026-10-17 13:08 UTC; `RB & Matheus & Tucker & Tony`), 2nd 0.968 (`azamatt`), 10th 0.965, 100th 0.959; **952 teams ≥ 0.958 of 6,137 (815 at exactly 0.958)**, 137 ≥ 0.959, 1,183 ≥ 0.957 (231 at exactly), 1,647 ≥ 0.956 (464 at exactly), 1,860 ≥ 0.954, 2,084 ≥ 0.950. heliosli's new public notebook (titled 0.9586: the 0.958 with its weights pushed further + goodpjw2008's 2.5D reader at ≤ 0.035) reads 0.958 by the LB. **Our C10w-b05 #95 = 0.957, rank 960** (8th of 231 at 0.957) (entry 2026-10-17 "Submission #95") |
 | 0.968 | Public LB #1 (2026-10-16 18:30 UTC); 10th 0.964, 50th 0.961, 100th 0.959; **605 teams ≥ 0.958 of 6,103 (481 at exactly 0.958; 278 at 11:29), 920 ≥ 0.957 (315 at exactly)**, 124 ≥ 0.959, 1,513 ≥ 0.956 (593 at exactly), 1,756 ≥ 0.954, 1,996 ≥ 0.950. The 0.958 block is copies of heliosli's `blend-mine-in` (degnonguidi's hash copy sits directly under heliosli, ranks 480 / 481). The top 9 did not move. **Our C10 / C10w (#93 / #94) = 0.957, rank 617** (12th of 315 at 0.957; 774 at 11:29). No new public anchor: heliosli's 0.957 notebook re-ran at 18:32 UTC with byte-identical code cells (entry 2026-10-16 "Submissions #92–#94") |
 | 0.968 | Public LB #1 (2026-10-16 11:29 UTC); 10th 0.964; **748 teams ≥ 0.957 of 6,079 (360 at exactly 0.957), 388 ≥ 0.958 (278 at exactly 0.958)**, 1,449 ≥ 0.956 (701 at exactly), 1,695 ≥ 0.954, 1,939 ≥ 0.950. 0.957 = heliosli's R6 + flip TTA notebook; 0.958 = + his per-finding Raptor weights (`blend-mine-in-private-lb-luck-to-all-upvoters`). **Our C9 #91 = 0.956, rank 774** (26th in the 0.956 tie; heliosli 0.958 rank 314) (entry 2026-10-16 "Submission #91 and the 0.957 / 0.958 frontier") |
@@ -6195,6 +6197,9 @@ or the anchor side (C12). Recorded in proposals.md Dropped directions.
       grew by only 13 teams in the 9 h it has been public. His best did rise inside the tie, from 393rd of 525 to 182nd of 815 (7 new
       submissions), and the old anchor's verbatim copy sits 668th. So his new best, plausibly this notebook, is a higher 0.958 than
       the old anchor. Its four-decimal titles stay unverifiable, as before.
+    - **CORRECTED 2026-10-18:** not this notebook as we run it. Our verbatim V2 (#100, R6 from `-w1`) sits between stable teams that
+      were 653rd / 654th on this snapshot, ≈ 517th of the 815, well under heliosli's 182nd. His best then was another version, or V2
+      does not reproduce that score from our account (entry 2026-10-18 "Submissions #96–#100").
   - **goodpjw2008 `does-s6-help-next-to-r6-lb-0-957`** (v8, 10-17) posts two measured negatives on the 0.958 recipe:
     - S6 next to R6 reads 0.957, against 0.958 without it (v4);
     - per-finding weights tuned on the 58 gold studies read 0.957 (v6) and 0.955 (v7), against heliosli's weights at 0.958.
@@ -6225,6 +6230,8 @@ question ("how we fare against everyone's generic notebook copy") has its answer
     Part B (goodpjw2008's 2.5D reader) mounts the reader's Dataset and his kernel, as heliosli's metadata does. A stray paste of the
     weight line sits inside a comment of cell 6 (code, notebook scope): inert.
 - **Pushed** 13:28 UTC (v1 each); both sat in Kaggle's GPU queue for over 27 min.
+- **READ 2026-10-18: C13 #97 = 0.958 and C13-V2 #100 = 0.958; V2 is our best entry, above the anchor's verbatim score inside the
+  tie** (entry 2026-10-18 "Submissions #96–#100" below).
 
 ### 2026-10-17 — C12 built: heliosli's R7 + nartaa's s6fall as one OAI-free compact anchor + B18 at β 0.45 (`src/build_fork954.py --anchor c12`) · ⏳ PENDING
 
@@ -6243,6 +6250,7 @@ Tian, 10-17: "build it" (candidates.md C12, pick 1 if fastMRI is accepted; pred.
 - **Environment:** R7's stage installs timm 1.0.25 / pydicom 3.0.1 (traps 68) before s6fall runs. That is the stack heliosli's own S6
   path uses. C11 ran s6fall on the image's versions, so the placeholder compares C12's s6fall output with C11's `_anchor_0950.csv`.
 - **Render:** `rsna-knee-forkc12`, 12 cells, 10 Datasets: R7's, s6fall's and heliosli's code, no nartaa / OAI Dataset.
+- **READ 2026-10-18: C12 #99 = 0.954 → 🔁 +0.001 vs C8** (entry 2026-10-18 "Submissions #96–#100" below).
 
 ### 2026-10-17 — P-86 on RunPod: `v15cj` = `v15c` on `jevf_rap_v1` (2/3 Raptor rank + 1/3 OpenJev rank) at mix 0.75 · training · ⏳ PENDING
 
@@ -6276,6 +6284,8 @@ Tian, 10-17: "run P-86 … now".
   - Pod time ≈ 1.75 h (13:38 → ≈ 15:23), ≈ $1.6 at $0.89/h (the case said ≈ $1.5); RunPod ≈ $4.2 left.
 - **Gold-58 curve (direction only, floor 0.05):** epoch 4 0.9146, 9 0.9170 (peak), 12 0.9159, 14 0.9116, 19 0.9092; **SWA 17–19
   0.9099** (`v15c` 0.9234, `v15cr` 0.9121). Gold has inverted target changes before (traps 39); the read is the LB.
+- **READ 2026-10-18: `v15cj` #96 = 0.936 → ❌ −0.006 vs `v15c`; B23 #98 = 0.943 → ❌; P-86 closed** (entry 2026-10-18 "Submissions
+  #96–#100" below). Gold-58 pointed the same way this time.
 
 ### 2026-10-17 — P-67 session D planned: `v14mx` (study-level mixup) ‖ `v14sh` (sharpen), not `v14mx` ‖ `v14r288` · ⏳ PENDING
 
@@ -6308,6 +6318,7 @@ Tian, 10-18 session: "submit our latest models, if they have not been submitted 
 - **Placeholders pushed, not yet sent:** C12 (`rsna-knee-forkc12` v1, 23:18 UTC; first run of the builder) and C13-V2
   (`rsna-knee-anchor9586` v1, 23:22 UTC: the slug was deleted on 10-17 to free a queue slot and re-pushed as a new kernel; it waited for
   v80 to end, since a third push hits `Maximum batch GPU session count of 2 reached`).
+- **READ 2026-10-18: #96 0.936 (❌), #97 0.958 (= the anchor), #98 0.943 (❌)** (entry 2026-10-18 "Submissions #96–#100" below).
 
 ### 2026-10-17 — Submissions #99 (C12) and #100 (C13-V2) sent: both placeholders green; 10-17's five slots used · ⏳ PENDING
 
@@ -6323,6 +6334,79 @@ Tian, 10-18 session: "submit our latest models, if they have not been submitted 
   0.15 / PF OA 0.65 / Synovitis 0.85 / Baker's 0.30, goodpjw2008's reader at per-finding weights 0.003–0.035 (the log line's "at weight
   0.15" is a print label; the per-target dict is what is applied). No reference output of heliosli's to compare with. Expected 0.958
   (the LB reads heliosli's V2 as 0.958); with C13 at 0.958 too, the two separate only by which becomes our best entry in the tie.
+- **READ 2026-10-18: #99 C12 = 0.954 (🔁 +0.001 vs C8), #100 C13-V2 = 0.958, our best entry, above C13** (entry 2026-10-18
+  "Submissions #96–#100" below).
+
+### 2026-10-18 — Submissions #96–#100: `v15cj` 0.936 (❌, P-86 closed), B23 0.943 (❌), C12 0.954 (🔁 +0.001 vs C8: our best OAI-free number), C13 0.958 and C13-V2 0.958 (V2 is our best entry, above the anchor's verbatim score in the tie) · rank 883 of 6,166
+
+**Read** (10:04 UTC: `kaggle competitions submissions`; the full LB CSV, `artifacts/lb_1018/`, against `artifacts/lb_1017/` of 10-17
+13:08 UTC). Scoring time: #96 26.5 min (`src/watch_submission.py`). The other four are bounded only: COMPLETE by 10:04 UTC, ≤ 10.8 h
+after sending (no watcher).
+
+| # | what | parts (weight) | LB | pre-registered read | verdict |
+|---|---|---|---|---|---|
+| 96 | `v15cj` solo (P-86; infer v79) | `v15c` on `jevf_rap_v1` at mix 0.75 | **0.936** | vs `v15c` 0.942, same seed: ✅ ≥ 0.944 / leaning 0.943 / 🔁 0.942 / ❌ ≤ 0.941 | **❌ −0.006: P-86 closed** |
+| 97 | C13 = heliosli's 0.958 `blend-mine-in` verbatim (`rsna-knee-anchor958` v1) | the anchor (1.0) | **0.958** | expected 0.958 (deterministic); read by tie position | **= the anchor; tie position unread (not our best entry)** |
+| 98 | B23 = `v15cj` + `v13b3` (infer v80) | 0.936 / 0.940 | **0.943** | vs B18 0.944: ✅ ≥ 0.946 / leaning 0.945 / 🔁 0.944 / ❌ ≤ 0.943 | **❌ −0.001** |
+| 99 | C12 = R7 + s6fall (per finding 0.5 / 0.5 rank) + B18 at β 0.45 (`rsna-knee-forkc12` v1) | the pair (0.55) / B18 0.944 (0.45) | **0.954** | vs C8 0.953: ✅ ≥ 0.955 / 🔁 0.953–0.954 / ❌ ≤ 0.952 | **🔁 +0.001 (Tian's "worth considering"); our best OAI-free number** |
+| 100 | C13-V2 = heliosli's "0.9586" notebook verbatim, R6 from `-w1` (`rsna-knee-anchor9586` v1) | the anchor (1.0) | **0.958** | expected 0.958; vs C13 only through which becomes our best entry | **our best entry, above the 0.958 anchor's verbatim score → V2 > C13 by sign** |
+
+**P-86 (#96, #98): the OpenJev share costs `v15c` 0.006.**
+- **The solo:** 0.936 against its same-seed parent's 0.942. That is 1.5× the one-seed floor (0.004) and 6× the ConvNeXt seed spread
+  (s_c = 0.001). Gold-58 pointed the same way (SWA 0.9099 vs 0.9234), direction only; this time it did not invert (traps 39).
+- **The blend:** B23 = the members' mean 0.938 + 0.005, against B18's 0.941 + 0.003. The extra gain is B22's "different targets
+  count like a family" effect, and the level cost is larger than it. The blend rule held a seventh time.
+- **Every change to the LLM half of the targets since Raptor has read under its parent on the LB:**
+  - `v13ec` (an Opus share by the same rank-composite construction, B0): −0.003 vs its same-seed parent;
+  - `v15cr` (Opus labels alone, no Raptor): −0.010;
+  - `v15cj` (an OpenJev share): −0.006.
+  The two composite arms cannot separate the source from the construction (2/3 Raptor rank + 1/3 other rank, quantile-matched). With
+  four days left there is no slot to test that. **`v15c` stays in the pick-1 leg (B18), and the label side stays closed.**
+
+**C12 (#99): 0.954, the low end of its 0.953–0.956 prediction.**
+- **The s6fall stage most likely ran.** On a skip, a timeout or a failure the anchor is R7 alone, and the notebook is C8's (the same
+  anchor cells, the same leg), which read 0.953.
+- **Runtime:** it is COMPLETE, and a code-competition rerun scores the public and private rows in one run. So R7 + s6fall + B18 fit
+  the time limit on the full hidden test.
+- **The fork arithmetic:** C12 − C8 ∈ (0, 0.002) at three decimals. With the leg and its k unchanged, the pair's anchor sits
+  0–0.0036 above R7 alone (0.55 × Δ anchor).
+- **For pick 1:** C12 replaces C8 by Tian's +0.001 bar, if fastMRI passes. It is also the sturdier construction: two compact models of
+  different label lineages (Opus vs JEV) instead of one. If fastMRI fails, pick 1 stays C11 (0.952). **So the fastMRI check is now worth
+  0.002 on pick 1, the largest lever left** (brainstorm.md).
+
+**C13 and C13-V2 (#97, #100): both 0.958, and V2 is above the anchor inside the tie.**
+- **Our best entry** is 0.958: rank 883 of 6,166, 719th of the 1,041 teams at 0.958 (rank 960 at 0.957 on 10-17).
+- **The stable reference:** 296 teams sat at 0.958 in both snapshots with no submission in between, so their unrounded scores are
+  fixed. Their relative order is unchanged (checked).
+- **The anchor's verbatim score:** degnonguidi's hash-identical copy was 805th on 10-17. It sat between stable teams now ranked 1,029
+  and 1,042. degnonguidi has resubmitted since (10-17 17:12 UTC), so the 10-17 row is the reference.
+- **Our best** sits between stable teams now ranked 879 and 884 (10-17: 653 / 654), ≈ 150 stable places above the anchor's copy.
+- **So our best is #100.** C13 is deterministic: heliosli and degnonguidi's hash copy sat adjacent on 10-16, and C13's placeholder
+  output is heliosli's own, exactly. So C13 scores the anchor's unrounded value, and **C13-V2 > the 0.958 anchor = C13, by sign.**
+  Only the sign is readable. The anchor sits in the bottom ≈ 0.0006 of its tick (entry 2026-10-17 "Submission #95"), so V2 lies
+  between it and 0.9585.
+- **heliosli's own best is not the public V2 as we run it.** On 10-17 it was 182nd of 815 at 0.958, above our V2 (≈ 517th of the
+  815 by the stable neighbours). The #95 entry's "plausibly this notebook" is corrected there. His best is now 7th of 1,041 (69
+  submissions).
+- **For pick 2:** C13-V2 is the strongest public ticket. Its two changes over the anchor are:
+  - four Raptor-half weights pushed 0.05 further the same way: a public-fit direction, probing unconfirmed;
+  - goodpjw2008's 2.5D reader at ≤ 0.035: a small diverse member, trained on competition data only (Apache 2.0).
+  The public vs private model (entry 2026-10-16 "Public vs private") keeps ≈ 80 % of a per-finding weight gain on private when the
+  halves truly differ. So V2 ≥ C13 on private too, on expectation, by a sub-tick inside the private noise. Its external data is the
+  anchor's: OAI through nartaa's CoAtNets (accepted for pick 2 on 10-09), and R6, fastMRI unconfirmed.
+
+**The LB at 10:04 UTC** (6,166 teams):
+- Top 0.969 (`RB & Matheus & Tucker & Tony`), 2nd 0.968 (`azamatt`), 10th 0.966, 100th 0.960.
+- 163 ≥ 0.959 (59 at exactly); **1,204 ≥ 0.958, 1,041 at exactly** (815 on 10-17; 346 of the 1,041 last submitted on 10-18); 1,402
+  ≥ 0.957 (198 at exactly); 1,782 ≥ 0.956; 1,968 ≥ 0.954; 2,171 ≥ 0.950.
+- The anchors' authors: heliosli 0.958 (171), nartaa 0.958 (310), goodpjw2008 0.958 (441), degnonguidi 0.958 (534).
+- **No new public anchor:** `kaggle kernels list --sort-by dateRun` at 10:05 UTC lists nothing since 10-17 13:10 UTC that claims more
+  than 0.958; heliosli's V2 (run 10-17 04:21 UTC) is the newest.
+
+**Verdicts: P-86 ❌ (closed-cards index); B23 ❌; C12 🔁 (+0.001 vs C8, pick 1 if fastMRI passes); C13 = its anchor; C13-V2 0.958, our
+best entry, > C13 by sign (pick 2's strongest public ticket).** The picks are Tian's on 10-21:
+- pick 1 = **C12 (0.954)** if fastMRI passes, else **C11 (0.952)**;
+- pick 2 = **C13-V2 (0.958)**, with C13 (0.958) and the 0.957 forks (C10 / C10w / C10w-b05) as the alternatives.
 
 ## Infrastructure
 
@@ -6866,11 +6950,11 @@ and public LB score, so a public/private divergence can be traced to a specific 
 | 93 | 2026-10-16 | rsna-knee-fork957 v1 (`src/build_fork954.py --anchor 0957 --members v15co v13b3 --beta 0.20 --gate-hours 7.5 --sec-per-study 3.0`) | **C10**: heliosli's public R6 + flip TTA notebook (verbatim but `C_SLUG` → the `-w1` copy of R6; Raptor half 0.65 × 384 + 0.35 × 224, R6 0.5) + B21 (`v15co` + `v13b3`) at β 0.20 | none | **0.957** | **read 10-16 18:29 UTC → 🔁 = the anchor at three decimals (C10 − anchor ≈ −0.0009 to +0.0002 by the fork rule). Its tie position is unread, since C10w is most likely our best entry; +0.001 over C9 → pick 2's candidate (entry 2026-10-16 "Submissions #92–#94"); COMPLETE within ≤ 6.1 h (the watcher died with the session).** placeholder green (R6 from `-w1`, flip TTA on, PASS 3 / 3; `_anchor_0957.csv` = heliosli's own output exactly; `_ours.csv` = C9's exactly; `FINAL = beta0.20`). sent 12:23:30 UTC on Tian's go (ref 57268876); vs the anchor 0.957: ✅ ≥ 0.958 / 🔁 0.957 / ❌ ≤ 0.956 (entry 2026-10-16 "C11, C10 and C10w built and sent") |
 | 94 | 2026-10-16 | rsna-knee-fork958 v1 (`src/build_fork954.py --anchor 0958 --members v15co v13b3 --beta 0.20 --gate-hours 7.5 --sec-per-study 3.0`) | **C10w**: heliosli's public 0.958 `blend-mine-in` (verbatim: C10's anchor + Raptor-half weights Synovitis 0.80 / Lateral OA 0.20 / PF OA 0.60 / Baker's 0.35, others 0.50) + B21 (`v15co` + `v13b3`) at β 0.20 | none | **0.957** | **read 10-16 18:29 UTC → ❌ by its rule (≤ 0.957), with the arm run: the anchor is deterministic (heliosli and degnonguidi's hash copy sit adjacent at 0.958), so B21 at β 0.20 pushed it below 0.9575. Our best entry is most likely this one: rank 617 of 6,103, 12th of 315 at 0.957 (entry 2026-10-16 "Submissions #92–#94"); COMPLETE within ≤ 5.9 h (the watcher died with the session).** placeholder green (per-finding weights in the receipt; `_anchor_0958.csv` = heliosli's own output exactly; `_ours.csv` = C9's exactly; `FINAL = beta0.20`). sent 12:32:48 UTC on Tian's go (ref 57269124); vs the anchor 0.958: ✅ ≥ 0.959 / 🔁 0.958 / ❌ ≤ 0.957 (entry 2026-10-16 "C11, C10 and C10w built and sent") |
 | 95 | 2026-10-16 | rsna-knee-fork958 v2 (`src/build_fork954.py --anchor 0958 --members v15co v13b3 --beta 0.05 --gate-hours 7.5 --sec-per-study 3.0`) | **C10w-b05**: heliosli's public 0.958 `blend-mine-in` (verbatim) + B21 (`v15co` + `v13b3`) at β 0.05; one change vs C10w (β 0.20 → 0.05); Tian's test against the generic copy | none | **0.957** | **read 10-17 13:08 UTC → ❌ by its rule (≤ 0.957): even at β 0.05 the leg costs the 0.958 anchor its tick. It is now our best entry unrounded (a team with no new submission moved from above our best to below it in the 0.957 tie), so #95 > C10 / C10w: the cost shrinks with β, as the fork rule says. Rank 960 of 6,137, 8th of 231 at 0.957 (entry 2026-10-17 "Submission #95").** placeholder green (anchor / ours = v1's exactly; `submission.csv` = the β 0.05 blend exactly; `FINAL = beta0.05`). sent 20:13:17 UTC on Tian's go (ref 57282094); vs the anchor's verbatim copies in the 0.958 tie (heliosli 517 / degnonguidi 518 at 20:12 UTC, `artifacts/lb_1016c/`): ✅ ranked above them / 🔁 below them / ❌ ≤ 0.957 (entry 2026-10-16 "C10w at β 0.05 built and sent") |
-| 96 | 2026-10-17 | rsna-knee-infer v79 (`artifacts/infer_v15cj.py`; mounts `rsna-knee-ckpt-v15cj` in place of the dead `convnext-tiny-224-hf`, 49 sources) | **P-86 `v15cj` solo**: `v15c` (same seed) on `jevf_rap_v1` (2/3 Raptor rank + 1/3 OpenJev rank) at mix 0.75; RunPod 4090 | gold-58 SWA 0.9099 (`v15c` 0.9234; direction only) | ⏳ | placeholder green (`infer members (1)`, epoch 19, constant labels 0). sent 23:17:31 UTC (ref 57328739); vs `v15c` 0.942: ✅ ≥ 0.944 / leaning 0.943 / 🔁 0.942 / ❌ ≤ 0.941 (entry 2026-10-17 "Submissions #96–#98 sent") |
-| 97 | 2026-10-17 | rsna-knee-anchor958 v1 (`src/build_anchor_copy.py --anchor 0958`) | **C13**: heliosli's public 0.958 `blend-mine-in` verbatim, no fork arm (β 0) | none | ⏳ | placeholder green (PASS 3 / 3; `submission.csv` = fork958 v2's `_anchor_0958.csv`, max \|diff\| 0.0). sent 23:17:42 UTC (ref 57328744); expected 0.958, read by its tie position against heliosli / degnonguidi's copies (entry 2026-10-17 "Submissions #96–#98 sent") |
-| 98 | 2026-10-17 | rsna-knee-infer v80 (`artifacts/infer_b23.py`) | **B23** = `v15cj` + `v13b3` flat rank-mean (B18 with `v15cj` in place of `v15c`) | none | ⏳ | placeholder green (`infer members (2)`, decode-once verified). sent 23:22:18 UTC (ref 57328841); vs B18 0.944: ✅ ≥ 0.946 / leaning 0.945 / 🔁 0.944 / ❌ ≤ 0.943 (entry 2026-10-17 "Submissions #96–#98 sent") |
-| 99 | 2026-10-17 | rsna-knee-forkc12 v1 (`src/build_fork954.py --anchor c12 --members v15c v13b3 --beta 0.45 --gate-hours 7.5 --sec-per-study 3.0`) | **C12**: heliosli's R7 + nartaa's s6fall as one compact anchor (per finding 0.5 rank + 0.5 rank; R7 alone on a skip / timeout / failure) + B18 (`v15c` + `v13b3`) at β 0.45; OAI-free, fastMRI inside R7 | none | ⏳ | placeholder green (`c12_anchor.json` `status ok`; anchor = C8's R7 × C11's s6fall exactly, ours = C8's exactly, `FINAL = beta0.45`). sent 23:30:31 UTC (ref 57328990); vs C8 0.953: ✅ ≥ 0.955 / 🔁 0.953–0.954 / ❌ ≤ 0.952 (entry 2026-10-17 "Submissions #99 (C12) and #100 (C13-V2) sent") |
-| 100 | 2026-10-17 | rsna-knee-anchor9586 v1 (`src/build_anchor_copy.py --anchor 09586`; re-pushed after the 10-17 deletion) | **C13-V2**: heliosli's public "0.9586" notebook verbatim but `C_SLUG` → the `-w1` copy of R6 (the 0.958 with its four Raptor-half weights pushed 0.05 further + goodpjw2008's 2.5D reader at 0.003–0.035), no fork arm | none | ⏳ | placeholder green (PASS 3 / 3, R6 from `-w1`, flip TTA on). sent 23:33:29 UTC (ref 57329059); expected 0.958; vs C13 #97 only through which becomes our best entry in the tie (entry 2026-10-17 "Submissions #99 (C12) and #100 (C13-V2) sent") |
+| 96 | 2026-10-17 | rsna-knee-infer v79 (`artifacts/infer_v15cj.py`; mounts `rsna-knee-ckpt-v15cj` in place of the dead `convnext-tiny-224-hf`, 49 sources) | **P-86 `v15cj` solo**: `v15c` (same seed) on `jevf_rap_v1` (2/3 Raptor rank + 1/3 OpenJev rank) at mix 0.75; RunPod 4090 | gold-58 SWA 0.9099 (`v15c` 0.9234; direction only) | **0.936** | **read 10-18 → ❌ −0.006 vs `v15c` 0.942 (same seed; 1.5× the one-seed floor): P-86 closed; scored in 26.5 min (entry 2026-10-18 "Submissions #96–#100").** placeholder green (`infer members (1)`, epoch 19, constant labels 0). sent 23:17:31 UTC (ref 57328739); vs `v15c` 0.942: ✅ ≥ 0.944 / leaning 0.943 / 🔁 0.942 / ❌ ≤ 0.941 (entry 2026-10-17 "Submissions #96–#98 sent") |
+| 97 | 2026-10-17 | rsna-knee-anchor958 v1 (`src/build_anchor_copy.py --anchor 0958`) | **C13**: heliosli's public 0.958 `blend-mine-in` verbatim, no fork arm (β 0) | none | **0.958** | **read 10-18 → = the anchor, as expected (deterministic); its tie position is unread, since #100 is our best entry and sits above the anchor's verbatim score (entry 2026-10-18 "Submissions #96–#100"); COMPLETE by 10:04 UTC (no watcher).** placeholder green (PASS 3 / 3; `submission.csv` = fork958 v2's `_anchor_0958.csv`, max \|diff\| 0.0). sent 23:17:42 UTC (ref 57328744); expected 0.958, read by its tie position against heliosli / degnonguidi's copies (entry 2026-10-17 "Submissions #96–#98 sent") |
+| 98 | 2026-10-17 | rsna-knee-infer v80 (`artifacts/infer_b23.py`) | **B23** = `v15cj` + `v13b3` flat rank-mean (B18 with `v15cj` in place of `v15c`) | none | **0.943** | **read 10-18 → ❌ −0.001 vs B18 0.944 by its rule; the blend rule held (members' mean 0.938 + 0.005) (entry 2026-10-18 "Submissions #96–#100").** placeholder green (`infer members (2)`, decode-once verified). sent 23:22:18 UTC (ref 57328841); vs B18 0.944: ✅ ≥ 0.946 / leaning 0.945 / 🔁 0.944 / ❌ ≤ 0.943 (entry 2026-10-17 "Submissions #96–#98 sent") |
+| 99 | 2026-10-17 | rsna-knee-forkc12 v1 (`src/build_fork954.py --anchor c12 --members v15c v13b3 --beta 0.45 --gate-hours 7.5 --sec-per-study 3.0`) | **C12**: heliosli's R7 + nartaa's s6fall as one compact anchor (per finding 0.5 rank + 0.5 rank; R7 alone on a skip / timeout / failure) + B18 (`v15c` + `v13b3`) at β 0.45; OAI-free, fastMRI inside R7 | none | **0.954** | **read 10-18 → 🔁 +0.001 vs C8 0.953 (Tian's "worth considering"), the low end of its 0.953–0.956 prediction; our best OAI-free number; the s6fall stage most likely ran (a fallback is C8's notebook exactly); COMPLETE by 10:04 UTC, so the R7 + s6fall + B18 run fits the limit on the full hidden test (entry 2026-10-18 "Submissions #96–#100").** placeholder green (`c12_anchor.json` `status ok`; anchor = C8's R7 × C11's s6fall exactly, ours = C8's exactly, `FINAL = beta0.45`). sent 23:30:31 UTC (ref 57328990); vs C8 0.953: ✅ ≥ 0.955 / 🔁 0.953–0.954 / ❌ ≤ 0.952 (entry 2026-10-17 "Submissions #99 (C12) and #100 (C13-V2) sent") |
+| 100 | 2026-10-17 | rsna-knee-anchor9586 v1 (`src/build_anchor_copy.py --anchor 09586`; re-pushed after the 10-17 deletion) | **C13-V2**: heliosli's public "0.9586" notebook verbatim but `C_SLUG` → the `-w1` copy of R6 (the 0.958 with its four Raptor-half weights pushed 0.05 further + goodpjw2008's 2.5D reader at 0.003–0.035), no fork arm | none | **0.958** | **read 10-18 → our best entry: rank 883 of 6,166 (719th of 1,041 at 0.958), ≈ 150 stable teams above the 0.958 anchor's verbatim score → C13-V2 > C13 by sign (entry 2026-10-18 "Submissions #96–#100"); COMPLETE by 10:04 UTC (no watcher).** placeholder green (PASS 3 / 3, R6 from `-w1`, flip TTA on). sent 23:33:29 UTC (ref 57329059); expected 0.958; vs C13 #97 only through which becomes our best entry in the tie (entry 2026-10-17 "Submissions #99 (C12) and #100 (C13-V2) sent") |
 
 ## Closed cards index (moved here from proposals.md on 2026-10-05)
 
@@ -6947,3 +7031,4 @@ proposals.md holds live cards only (Tian, 2026-10-05). One line per measured or 
 | P-84 | Slice band ≈ 6–94 % instead of 2–98 % (`v15cb` = `v15c` + `trim_ends 1` on the 24-slice slots; RunPod L40S, $1.75) | 🔁 measured: #83 `v15cb` **0.943** vs `v15c` 0.942 (+0.001, ✅ needed ≥ 0.946); gold-58 0.9229 vs 0.9234. At unchanged density the band is not our lever (Dread's +0.009 came with a denser band; a re-cache does not fit the days left); `trim_ends` stays off by default and out of the final members | experiments.md 2026-10-12 "Single-model levers", "P-84 on RunPod + Submission #83" |
 | P-83 | ConvNeXt-S on the `v15c` recipe at 288 px (`v15s`, the size step inside our best family; RunPod ≈ $2.5–3.5) | retired 2026-10-12, never built: its gate (A14 ≥ 0.950) failed. #81 A14 = heliosli's S6 alone (ConvNeXt-S @ 384, knee-centred views, 4 folds) **0.944** = our ConvNeXt-T level, so a ConvNeXt-S at 288 on our recipe predicts ≈ `v15c` ± 0.002, under the 0.004 bar. A row in Dropped directions | experiments.md 2026-10-12 "Submission #81"; 2026-10-11 "Model families" |
 | P-85 | Report-only targets for a diversity leg (`v15cr` = `v15c` on `claude_v1` alone, no Raptor; RunPod A40, ≈ $1.86) | ✅ the mechanism / 🔁 as a leg / ❌ as a member: #85 solo **0.932** (−0.010 vs `v15c`); #84 nartaa's 0.949 + it at β 0.35 **0.950** → k ≈ 0.026–0.035 = S6's range (B18 on the same anchor 0.012–0.021): without Raptor our ConvNeXt is as complementary to nartaa's Raptor fine-tune as S6 is, but the fork = C4b − 0.001. The decorrelation and the level loss sit on the Raptor-carried labels (Effusion, Baker's, Fracture, Synovitis; gold, direction only), so a per-label hybrid is dropped; pick 1 keeps B18 | experiments.md 2026-10-12 "P-85 on RunPod", "Submissions #84–#85" |
+| P-86 | One JEV arm: `v15c` on 0.25 LLM + 0.25 OpenJev + 0.5 Raptor (`v15cj`, `jevf_rap_v1` at mix 0.75, same seed; RunPod 4090, ≈ $1.6) | ❌ DEAD END: #96 `v15cj` **0.936** (−0.006 vs `v15c` 0.942, 1.5× the one-seed floor; gold-58 0.9099 vs 0.9234, the same direction); #98 B23 (`v15cj` + `v13b3`) **0.943** vs B18 0.944. The third LLM-half change to read under its parent (`v13ec` −0.003, `v15cr` −0.010); JEV is dropped, the label side stays closed | experiments.md 2026-10-18 "Submissions #96–#100"; 2026-10-17 "P-86 on RunPod" |
