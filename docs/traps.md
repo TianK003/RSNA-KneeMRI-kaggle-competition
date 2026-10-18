@@ -1336,6 +1336,16 @@ not be restarted unasked. **Do:** make every unattended job self-sufficient on i
 the chain's ship retries); from the laptop, poll in the foreground in bounded loops (≤ 10 min per call), or close memory-hungry apps
 before leaving background watchers. A submission's timing row then comes from two manual polls, as for #79 / #80.
 
+**Addendum 2026-10-18: a dead watcher can lose a read for good (cost: #101 vs #103 is unreadable).** Only our best entry shows on the
+LB. #101 (C14) and #103 (C14 + the mirror TTA) were sent 24 min apart and could be told apart only by the moment each one moved our
+place in the tie, so `src/watch_lb_snapshots.py` was to save the full LB as each scored. By 21:02 UTC all three entries had scored and
+the watcher had logged nothing: no `artifacts/lb_snap_<ref>/`, no `artifacts/lb_snapshots.csv`. The cause is unread (the session
+ended, or the harness reaped it). Once both entries have scored, no later submission recovers the order. **Do:** when two entries are
+read against each other through the same board, send the second only after the first scores, or stay in the session and poll in the
+foreground until each scores. Before leaving a background watcher, check that it has written its first poll line. `LastSubmissionDate`
+in the LB CSV does not help: it is the sent time of the team's most recent *scored* submission, not of its best one (experiments.md
+2026-10-18 "Submissions #101–#103").
+
 ### 70. A module-level "log once" set inside Dataset code logs once per DataLoader worker process, not once per run (Tier 3, 2026-10-12)
 
 `trim_end_windows` (`src/kaggle_pipeline.py`, `_TRIM_LOGGED`) was meant to print its windows-per-slot line once per (version, phase)

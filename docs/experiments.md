@@ -170,11 +170,13 @@ agreement with the teacher, not truth. A one-seed LB delta needs ≥ 0.004 (P-44
 | 2026-10-16 | **C11 / C10 / C10w, submissions #92 / #93 / #94 (`rsna-knee-forks6f` v1, `rsna-knee-fork957` v1, `rsna-knee-fork958` v1)**: nartaa's `s6fall` alone + B18 at β 0.45 (no OAI, no fastMRI); heliosli's R6 + flip TTA notebook + B21 at β 0.20; his 0.958 `blend-mine-in` + B21 at β 0.20 | — | **0.952 / 0.957 / 0.957** | **🔁 / 🔁 / ❌. C11 sits at the low end of its 0.952–0.954 prediction (k ≈ 0.015–0.023 vs B18, at or under S6's 0.020–0.028) and becomes the fastMRI-free pick 1 in place of C6. C10 = its anchor at three decimals and +0.001 over C9, so it is pick 2's candidate. C10w reads one tick under its 0.958 anchor, and the arm ran: the anchor is deterministic (degnonguidi's hash copy sits directly under heliosli in the tie). On a ≥ 0.957 anchor B21 at β 0.20 is break-even to a cost, which closes leg work for pick 2. Our best is 0.957, rank 617 of 6,103 (12th of 315 at 0.957)** (entry 2026-10-16 "Submissions #92–#94") |
 | 2026-10-17 | **C10w-b05, submission #95 (`rsna-knee-fork958` v2)**: heliosli's 0.958 `blend-mine-in` + B21 (`v15co` + `v13b3`) at β 0.05; one change vs C10w (β 0.20 → 0.05); Tian's test against the generic copy | — | **0.957** | **❌ by its rule: one tick under the 0.958 anchor at β 0.05 too, so the anchor sits in the bottom ≈ 0.0006 of its tick and k < 0.012. #95 is our best entry unrounded (above C10 / C10w, read by a stable team crossing us in the tie): the cost shrinks with β, as the fork rule says. Rank 960 of 6,137 (8th of 231 at 0.957)** (entry 2026-10-17 "Submission #95") |
 | 2026-10-18 | **`v15cj` / C13 / B23 / C12 / C13-V2, submissions #96–#100** (`rsna-knee-infer` v79, `rsna-knee-anchor958` v1, `rsna-knee-infer` v80, `rsna-knee-forkc12` v1, `rsna-knee-anchor9586` v1): P-86 `v15cj` solo (`v15c` on an OpenJev share); heliosli's 0.958 verbatim; `v15cj` + `v13b3`; R7 + s6fall + B18 at β 0.45 (OAI-free, fastMRI inside R7); heliosli's "0.9586" verbatim (R6 from `-w1`) | gold-58 0.9099 (`v15cj`) | **0.936 / 0.958 / 0.943 / 0.954 / 0.958** | **❌ / = anchor / ❌ / 🔁 / our best. P-86 closed (−0.006 vs `v15c`; the label side stays closed). C12 = C8 + 0.001: pick 1 if fastMRI passes (else C11 0.952). C13-V2 sits ≈ 150 stable teams above the 0.958 anchor's verbatim score in the tie, so V2 > C13 by sign: pick 2's strongest public ticket. Rank 883 of 6,166 (719th of 1,041 at 0.958)** (entry 2026-10-18 "Submissions #96–#100") |
+| 2026-10-18 | **C14 / C15 on V2 / C15 on C14, submissions #101–#103** (`rsna-knee-anchor9586s6f` v1, `rsna-knee-anchor9586m` v1, `rsna-knee-anchor9586s6fm` v1): V2 + nartaa's s6fall inside the R6 half (0.6 / 0.4 rank); V2 + the 384 px stage's anatomical-mirror TTA ported to the 224 px CoAtNet; both | — | **0.958 / 0.957 / 0.958** | **✅ / ❌ / unreadable. Our best entry rose from rank 914 to 376 of 6,190 (stable 0.958 teams above us 449 → 99; 79 of the 350 passed cannot hold V2), so C14 > V2 by sign → pick 1 = C14 #101. The mirror costs V2 a tick (#102 < #100). #103 vs #101 cannot be read (the snapshot watcher logged nothing); expected under #101. Top 6.1 %, 206th of 1,135 at 0.958** (entry 2026-10-18 "Submissions #101–#103") |
 
 **External reference points** (not ours — for calibrating ambition):
 
 | Score | What |
 |---|---|
+| 0.969 | Public LB #1 (2026-10-18 21:02 UTC; `RB & Matheus & Tucker & Tony`), 2nd 0.968 (`azamatt`), 10th 0.966, 100th 0.960; **1,305 teams ≥ 0.958 of 6,190 (1,135 at exactly 0.958)**, 170 ≥ 0.959, 1,497 ≥ 0.957 (192 at exactly), 1,850 ≥ 0.956, 2,021 ≥ 0.954, 2,217 ≥ 0.950. No public notebook since 10-17 13:10 UTC claims more than 0.958. **Our C14 (#101; or #103) = 0.958, rank 376** (206th of 1,135 at 0.958; top 6.1 %) (entry 2026-10-18 "Submissions #101–#103") |
 | 0.969 | Public LB #1 (2026-10-18 10:04 UTC; `RB & Matheus & Tucker & Tony`), 2nd 0.968 (`azamatt`), 10th 0.966, 100th 0.960; **1,204 teams ≥ 0.958 of 6,166 (1,041 at exactly 0.958)**, 163 ≥ 0.959, 1,402 ≥ 0.957 (198 at exactly), 1,782 ≥ 0.956, 1,968 ≥ 0.954, 2,171 ≥ 0.950. No public notebook run since 10-17 13:10 UTC claims more than 0.958. **Our C13-V2 #100 = 0.958, rank 883** (719th of 1,041 at 0.958) (entry 2026-10-18 "Submissions #96–#100") |
 | 0.969 | Public LB #1 (2026-10-17 13:08 UTC; `RB & Matheus & Tucker & Tony`), 2nd 0.968 (`azamatt`), 10th 0.965, 100th 0.959; **952 teams ≥ 0.958 of 6,137 (815 at exactly 0.958)**, 137 ≥ 0.959, 1,183 ≥ 0.957 (231 at exactly), 1,647 ≥ 0.956 (464 at exactly), 1,860 ≥ 0.954, 2,084 ≥ 0.950. heliosli's new public notebook (titled 0.9586: the 0.958 with its weights pushed further + goodpjw2008's 2.5D reader at ≤ 0.035) reads 0.958 by the LB. **Our C10w-b05 #95 = 0.957, rank 960** (8th of 231 at 0.957) (entry 2026-10-17 "Submission #95") |
 | 0.968 | Public LB #1 (2026-10-16 18:30 UTC); 10th 0.964, 50th 0.961, 100th 0.959; **605 teams ≥ 0.958 of 6,103 (481 at exactly 0.958; 278 at 11:29), 920 ≥ 0.957 (315 at exactly)**, 124 ≥ 0.959, 1,513 ≥ 0.956 (593 at exactly), 1,756 ≥ 0.954, 1,996 ≥ 0.950. The 0.958 block is copies of heliosli's `blend-mine-in` (degnonguidi's hash copy sits directly under heliosli, ranks 480 / 481). The top 9 did not move. **Our C10 / C10w (#93 / #94) = 0.957, rank 617** (12th of 315 at 0.957; 774 at 11:29). No new public anchor: heliosli's 0.957 notebook re-ran at 18:32 UTC with byte-identical code cells (entry 2026-10-16 "Submissions #92–#94") |
@@ -6493,6 +6495,8 @@ patched it (component A not run, the public ids removed; `%%writefile`), and the
     `BLEND_FALLBACK`.
 - **Sent:** #101 at 11:54:38 UTC (ref 57353067) on Tian's go ("do it and submit as soon as possible"); `src/watch_submission.py`
   runs. 10-18 has 4 slots left.
+- **READ 2026-10-18 (21:02 UTC): #101 = 0.958, and our best entry rose from rank 914 to 376 → C14 > V2 by sign (✅); pick 1 = C14
+  #101** (entry 2026-10-18 "Submissions #101–#103" below; #103 = C14 + the mirror is not separable from it).
 
 ### 2026-10-18 — C15 built ahead of the C14 read: the 384 px stage's anatomical-mirror TTA ported to V2's 224 px CoAtNet, on V2 and on C14 · ⏳ PENDING
 
@@ -6537,6 +6541,69 @@ higher, because only our best entry shows on the LB.
   `artifacts/lb_snapshots.csv`). Entries that score at different times stay separable: our place among the stable teams moves after
   an entry scores only if it beat our previous best. Baseline at 12:18 UTC (`artifacts/lb_snap_baseline_1218/`): rank 914 of 6,172
   at 0.958 (883 at 10:04; the tie grew). 10-18 has 2 slots left.
+- **READ 2026-10-18 (21:02 UTC): #102 C15 on V2 = 0.957 (❌, under V2); #103 C15 on C14 = 0.958, not separable from #101 (the
+  watcher logged nothing, traps 69 addendum), expected under it** (entry "Submissions #101–#103" below).
+
+### 2026-10-18 — Submissions #101–#103: C14 0.958 and C15-on-C14 0.958 lift our best entry from rank 914 to 376 (C14 > V2 by sign, ✅; pick 1 = C14 #101) · C15 on V2 0.957 (❌: the 224 px mirror TTA costs V2 a tick) · #101 vs #103 unreadable (the snapshot watcher logged nothing)
+
+**Read** (21:02 UTC: `kaggle competitions submissions`; the full LB CSV, `artifacts/lb_1018b/`, against the 12:18 UTC baseline
+`artifacts/lb_snap_baseline_1218/` and 10:04 UTC `artifacts/lb_1018/`). All three COMPLETE by 21:02 UTC, ≤ 9.1 h after sending. The
+scoring times are unknown: `src/watch_lb_snapshots.py` left no `artifacts/lb_snap_<ref>/` and no `artifacts/lb_snapshots.csv`.
+
+| # | what | LB | pre-registered read | verdict |
+|---|---|---|---|---|
+| 101 | C14 = V2 + nartaa's s6fall inside the R6 half, 0.6 / 0.4 rank (`rsna-knee-anchor9586s6f` v1) | **0.958** | vs #100 by tie position: ✅ our best rises above #100's place / no move = C14 ≤ V2 | **✅ with #103: our best rose 914 → 376** |
+| 102 | C15 on V2 = V2 + the anatomical-mirror TTA on the 224 px CoAtNet (`rsna-knee-anchor9586m` v1) | **0.957** | vs #100 by tie position | **❌ a tick under V2: < V2 by sign** |
+| 103 | C15 on C14 (`rsna-knee-anchor9586s6fm` v1) | **0.958** | vs #101 by tie position (needs the snapshots) | **unreadable vs #101; expected under it** |
+
+**Our best entry moved: rank 914 of 6,172 (12:18 UTC) → 376 of 6,190 (21:02 UTC).**
+- **The stable reference:** 664 teams held 0.958 at both times with no scored submission in between (same LastSubmissionDate), so
+  their unrounded scores are fixed. Stable teams above us: **449 → 99**. We passed 350 of them.
+- **Which entries can it be:** #102 reads 0.957, so it is not our best. **max(#101, #103) > #100 by sign.**
+- **Not a noise hop over a cluster of V2 copies.** 79 of the 350 passed teams last scored before V2 was public (10-17 04:21 UTC), so
+  they cannot hold V2. At 12:18 they sat at ranks 373–910 (median 774), spread over the whole stretch we crossed. Rerun noise
+  (≈ 1e-4 in probability, entry "C15 built") cannot carry an entry past 79 distinct scores spread over ≈ 540 ranks.
+- **LastSubmissionDate does not name the best entry.** It is the sent time of the team's most recent *scored* submission: 10-13
+  17:02 UTC showed C8's 10:19:19 while C7 was our best. Ours now reads 12:18:06 = #103's sent time.
+
+**#101 vs #103 cannot be separated, now or later.** The board shows only the max, and both have scored. A resubmission adds a third
+entry to the same max. The snapshot watcher was the only way to tell them apart (traps 69 addendum). By parts:
+- the mirror is a cost on V2 (#102). It acts in the Raptor half and s6fall in the R6 half, and the two meet only through the
+  stage-3 rank blend. So its sign should carry: #103 ≈ #101 + (#102 − #100) < #101;
+- the other reading (#101 ≤ #100 < #103) needs s6fall to help only together with the mirror, or #101's s6fall stage to have been
+  skipped (fallback = V2's file) while #103's ran. #103 is the slower notebook (+ ≈ 5–15 min before the 6.0 h start gate). Neither is
+  likely.
+- **So the C14 recipe > V2 (✅ by its rule, sign only), and #101 is the likely best entry.** The magnitude is unread. 350 stable
+  teams is ≈ 30 % of the tie's population, which is clumped by copies, so it does not convert to an AUC.
+
+**C15 on V2 (#102): ❌.** 0.957 vs V2's 0.958, so < V2 strictly.
+- **Size:** ≥ V2 − 0.9575, which is > 0 but may be small. V2 sits low in its tick: ≈ 150 stable teams above the 0.958 anchor, which
+  is in the bottom ≈ 0.0006 (entry 2026-10-18 "Submissions #96–#100").
+- **Not a timeout:** the 224 px stage takes ≈ 5–15 min on the hidden test (estimate), against its 2 h subprocess limit.
+- **Why it costs is unread.** nartaa measured the mirror on the 384 px model only (+0.001; proposals.md Dropped directions,
+  "Geometric TTA"). The placeholder ruled out a wrong axis (r 0.997–0.999 vs the plain output), not a weaker mirrored view at 224 px.
+- C15 is closed on both bases: the mirror stays out of pick 1.
+
+**For pick 1: C14 #101 replaces C13-V2 #100**, by Tian's 10-18 rule ("or C14 if it reads above V2"). Of the two C14 entries it is
+the one without the mirror.
+- **External data:** V2's (OAI through nartaa's CoAtNets, accepted 10-09; R6 fastMRI unconfirmed) plus s6fall (no OAI, no fastMRI;
+  CC BY-NC 4.0).
+- **On private:** s6fall is a separate model on another label lineage (JEV), not a weight fit, so its lift should carry to private
+  on expectation (entry 2026-10-16 "Public vs private"). It stays inside the private noise (SD ≈ 0.003).
+- **Runtime:** #101 and #103 COMPLETE, so V2 + s6fall fits the time limit on the full hidden test. A fallback would complete too; the
+  tie move is what shows that s6fall ran in at least one of them.
+
+**The LB at 21:02 UTC** (6,190 teams):
+- Top 0.969 (`RB & Matheus & Tucker & Tony`), 2nd 0.968 (`azamatt`), 10th 0.966 (`BarryZhou`), 100th 0.960.
+- 170 ≥ 0.959 (58 at exactly); **1,305 ≥ 0.958, 1,135 at exactly** (728 of them last scored on 10-18); 1,497 ≥ 0.957 (192 at
+  exactly); 1,850 ≥ 0.956; 2,021 ≥ 0.954; 2,217 ≥ 0.950.
+- **We are rank 376, 206th of the 1,135 at 0.958: top 6.1 %.** The public top-10 % line (rank 619) lies inside the 0.958 tie.
+- The anchors' authors, all 0.958: heliosli rank 178, nartaa 333, goodpjw2008 493, degnonguidi 611.
+- **No new public anchor:** `kaggle kernels list --sort-by dateRun` (21:05 UTC) lists no notebook since 10-17 13:10 UTC whose title
+  claims more than 0.958.
+
+**Verdicts: C14 ✅ (> V2 by sign) → pick 1 = C14 #101; C15 ❌ on V2, unread on C14 (expected under #101).** 10-18 has 2 slots left
+(to 00:00 UTC). Kaggle GPU 0.98 h used, 29.02 h left (the C15 placeholders took 0.3 h).
 
 ## Infrastructure
 
