@@ -304,11 +304,14 @@ ANCHORS["09586s6fx"] = dict(ANCHORS["09586s6f"], slug="rsna-knee-anchor9586s6fx"
 # C18 (10-19): nartaa's 384 px CoAtNet scored on the field it trained on.  RUNS.md (nartaa/rsna-knee-s6fall-weights, training_code/
 # coatnet): the 0.949 checkpoint trained with --res 384 and crop 1.0 (the full 140 mm field, no random crop, no affine) and its SWA
 # epochs were picked by gold-58 AUC evaluated at 384 (train_knee.py _resize); it was "scored 320 crop + mirror TTA".  V2's cell 2
-# scores the 320 px centre crop; INPUT_RES drives the backbone img_size, the crop offset (IMG - res) // 2 and the asserts, so one
-# line gives the full field (mirror TTA kept).  Cost: (384 / 320)^2 = 1.44x on that stage.
+# scores the 320 px centre crop; INPUT_RES drives the backbone img_size, the crop offset (IMG - res) // 2 and the window asserts,
+# but infer_pair_probs (the mirror TTA) hard-codes the window shape (94, 3, 320, 320): the first C18 placeholders (10-19 v1) failed
+# that bare assert on 3 of 3 studies, so it is patched too (mirror TTA kept).  Cost: (384 / 320)^2 = 1.44x on that stage.
 C18_PATCHES = [("INPUT_RES = 320\n",
                 "INPUT_RES = 384   # [C18] the full 384 px field this checkpoint trained and was SWA-selected on (nartaa's RUNS.md: "
-                "res 384, crop 1.0); V2 scored a 320 px centre crop\n")]
+                "res 384, crop 1.0); V2 scored a 320 px centre crop\n"),
+               ("    assert plain.shape==mirrored.shape==(94,3,320,320)\n",
+                "    assert plain.shape==mirrored.shape==(94,3,INPUT_RES,INPUT_RES)   # [C18] V2 hard-coded its 320 crop here\n")]
 C18_NOTE = (", except that the 384 px CoAtNet stage (cell 2) scores its full 384 px field, the one it trained on, instead of a "
             "320 px centre crop (C18)")
 # C19 (10-19, Tian: pick 2): the four per-finding Raptor-half weights back to the 0.958 notebook's values.  V2 pushed each a further
@@ -709,6 +712,10 @@ def build(spec):
                 raise SystemExit(f"anchor cell {i}: patch target found {src.count(old)} times: {old!r}")
             src = src.replace(old, new)
         cells[i]["source"] = src
+    if spec["patches"].get(2) == C18_PATCHES:        # C18: no 320 px literal may survive in cell 2's code (the v1 placeholders failed on one)
+        left = [ln for ln in cell_text(cells[2]).split(chr(10)) if "320" in ln.split("#", 1)[0]]
+        if left:
+            raise SystemExit(f"C18: cell 2 still holds a 320 literal in code: {left}")
     for i in spec["patches"]:                        # a patched %%writefile cell must still be valid Python
         if txt[i].startswith("%%writefile"):
             src_i = cell_text(cells[i])
