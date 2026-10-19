@@ -873,6 +873,12 @@ UTC (**≈ 3 h 40 min**), while `rsna-knee-infer` v19, pushed 49 min *after* it 
 first-in-first-out per account. Why is unknown (the fork mounts far more inputs than
 the infer kernel; that is a guess, not a finding). Once it ran, the placeholder took 6 min. Unchanged rule: never re-push a queued version.
 
+**Third instance, 2026-10-19 (Monday, the competition's last week): ≈ 6 h 20 min, the longest yet.** `rsna-knee-s6xtime` v1 and
+`rsna-knee-anchor9586s6fx` v1 (C17's placeholder), pushed 09:43 / 09:47 UTC, both started ≈ 16:00 / 16:07 with a full quota and nothing
+else of ours running. It cost the plan a choice: a 3-crop rebuild would have queued again, so the tested 5-crop C17 was sent instead
+(experiments.md 2026-10-19 "C17 built and timed"). **Do, in the endgame:** push every placeholder that might be needed as early as
+possible (a placeholder spends no submission), and decide anything a timing run gates before that run is queued, not after.
+
 ### 42. Arm-dict fields that look per-arm are per-session — `seed` changed only the banner, `teacher_mix` / `teacher_tables` would be recorded and ignored, and the `PARALLEL_ARMS` fallback trained the default arms (Tier 1, found in the 2026-09-27 review, never ran)
 
 Three silent gaps, found by two of the four reviewers independently and confirmed in the code:
@@ -1345,6 +1351,9 @@ read against each other through the same board, send the second only after the f
 foreground until each scores. Before leaving a background watcher, check that it has written its first poll line. `LastSubmissionDate`
 in the LB CSV does not help: it is the sent time of the team's most recent *scored* submission, not of its best one (experiments.md
 2026-10-18 "Submissions #101–#103").
+**Since 2026-10-19 the watcher prints a `poll HH:MM:SS UTC: … pending [...]` line on every poll**, so a dead watcher is visible: read its
+log once right after starting it (C17's first line: `poll 18:04:28 UTC: 50 submissions read`). A poll that reads 0 submissions means the
+token expired (traps 20): run `kaggle auth login --force`, and the watcher picks the new token up on its next poll.
 
 ### 70. A module-level "log once" set inside Dataset code logs once per DataLoader worker process, not once per run (Tier 3, 2026-10-12)
 

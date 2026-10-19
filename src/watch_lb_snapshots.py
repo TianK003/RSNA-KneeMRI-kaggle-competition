@@ -83,6 +83,8 @@ def main(argv=None):
                 w.writerow(line)
             pending.discard(ref)
         if pending:
+            print("poll %s UTC: %d submissions read, pending %s" % (datetime.now(timezone.utc).strftime("%H:%M:%S"), len(subs),
+                                                                    sorted(pending)), flush=True)   # heartbeat (traps 69)
             time.sleep(a.every)
     print("DONE, still pending: %s" % sorted(pending), flush=True)
     return 0 if not pending else 3

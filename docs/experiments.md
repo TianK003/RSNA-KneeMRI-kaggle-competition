@@ -6709,6 +6709,78 @@ entry built on it:
 
 **Verdict: ✅ a read.** C14 is close to the ceiling of public assets without retraining. The picks are chosen on construction.
 
+### 2026-10-19 — C17 built and timed: s6fall's 5-crop TTA costs +1.52 h per process on the hidden test (over the 0.75 h gate) · placeholder green · sent as #104 on Tian's call · C18 / C19 built · Tian: pick 2 = C19 · ⏳ PENDING
+
+Tian, 10-19 morning: "build C17 and submit it"; then, asked for 0.959 and the private top 5 %: "pick C19 as 2nd pick so we don't have
+two near identical models running. Let's wait for C17 to score, then continue." Commit `1f6c439` (code only; this entry logs it).
+
+**What was built** (`src/build_anchor_copy.py`; mock suite `src/c17_mock_test.py`, 11 run-cell scenarios + 6 s6fall-patch checks, all
+pass; every earlier render byte-identical):
+- **C17** (`--anchor 09586s6fx` → `kaggle/rsna-knee-anchor9586s6fx/`) = C14 + the traps-74 fixes + s6fall's crop TTA:
+  - s6fall runs under its own `K1_KAGGLE_ROOT` (`/tmp/s6xroot`), so V2's `submission.csv` stays in place until one `os.replace`;
+  - its hang guard = the notebook's time left (kill at 8.4 h, its guard 15 min earlier); a B deadline keeps the studies scored so far;
+    up to 50 % may fail (was max(3, 0.25 %));
+  - a Raptor row that exactly repeats another study's row counts as failed;
+  - a floor: mean rank corr(R6, s6fall) < 0.5 over ≥ 100 studies → V2's file;
+  - **crop TTA:** 5 crops of the 320 render, (oy, ox) = centre (16, 16) + the 4 corners, probability mean. nartaa's launcher
+    recompiles `compact_infer.main` in memory, and the sha-checked file on disk is unchanged.
+- **C18** = `INPUT_RES = 320` → `384` in cell 2: nartaa's 384 px CoAtNet scored on the full field it trained and was SWA-selected on
+  (his RUNS.md: res 384, crop 1.0), mirror TTA kept, ≈ 1.44× that stage's cost. Rendered on C17 (`rsna-knee-anchor9586s6fxf`) and on
+  C14 (`-s6ff`); neither pushed.
+- **C19** = cell 8's four per-finding Raptor-half weights back to the 0.958 notebook's (Lateral OA 0.20, PF OA 0.60, Synovitis 0.80,
+  Baker's 0.35), a builder suffix `w` on any base. Not rendered yet.
+
+**The s6fall timing commit** (`rsna-knee-s6xtime` v1, `src/build_s6x_timing.py`; `artifacts/kaggle_out/s6xtime/s6x_timing.json`;
+1.72 h). C17's own s6fall script drove its B stage on 520 non-gold training studies, drawn inside the kernel with a fixed seed
+(no UID in the repo or the output). Two cost-balanced halves of 260 ran at once, one per GPU: plain vs C17's 5 crops. Then the 58 gold
+studies ran plain and with 9 crops.
+
+| | plain (C14) | 5 crops (C17) |
+|---|---|---|
+| steady s / study | 6.87 (decode-bound: GPU waits 4.6 s / study) | 15.37 (GPU-bound: 16.2 GPU-s / study, waits 0.3 s) |
+| **projected hidden test, per process (1,284 / 2 studies)** | **1.23 h** | **2.74 h (+1.52 h)** |
+| scored / fallback / timed out | 260 / 0 / no | 260 / 0 / no |
+
+- **GPU cost per crop:** ≈ 3.3 s / study (phase 1: 2.8 → 16.2 s for 1 → 5 crops; phase 2: 3.6 → 29.9 s for 1 → 9). So 3 crops
+  would run ≈ 9.5 s / study, i.e. ≈ 1.65–1.75 h per process (+0.4–0.5 h). This is extrapolated, not measured.
+- **Crop agreement (260 studies):** rank corr of the centre crop vs each other crop ≥ 0.983 (mean 0.995). Centre vs the 5-crop mean is
+  0.994–0.999 per finding.
+- **The patched centre crop = the plain path:** max |Δ| 5.5e-7 on gold.
+- **Gold-58 macro AUC** (direction only; the floor is 0.05): centre 0.9314, 3 diagonal crops 0.9329, 5 corners 0.9329, 5 mid-diagonals
+  0.9328, 9 crops 0.9330. Every multi-crop variant reads ≈ +0.0015. The crop count does not matter.
+- **The handoff's gate** (10-18) allows ≤ plain + 0.75 h, so that s6fall finishes even if it starts at its 6.0 h gate (6.0 + 1.23 +
+  0.75 + ≈ 0.1 h ≈ 8.1 h, under the 8.15 h guard). **5 crops fail it** (+1.52 h). 3 crops would pass by the extrapolation.
+
+**The C17 placeholder** (`rsna-knee-anchor9586s6fx` v1, 5 crops; `artifacts/kaggle_out/anchor9586s6fx/`; 0.18 h) is green on every
+criterion:
+- `SELF_CHECK ok` (stage 3 + Part B 0.0);
+- 0 duplicate Raptor rows;
+- s6fall `rc 0` under its own root, with guard 480 min and `C17_CROPS` = the 5 offsets;
+- `S6X_DONE` status `ok`;
+- V2's part = #100's output exactly;
+- s6fall's raw probabilities vs C14's centre crop on the 3 studies: r 0.9993, mean |Δ| 0.033 (the crops ran);
+- no Traceback, no fallback, `submission.csv` (3 × 13, no NaN) present throughout.
+
+**Both kernels sat `QUEUED` ≈ 6 h 20 min** (pushed 09:43 / 09:47 UTC, started ≈ 16:00 / 16:07): the longest queue yet (traps 41).
+
+**Decision (Tian, 10-19 ≈ 18:00 UTC): send the 5-crop C17 as tested.** The alternative was a 3-crop rebuild, which would have had to
+pass through the queue again before it could be sent. The arithmetic behind it:
+- V2's part is estimated at ≈ 4.0 h (3.3–5.0; Recon 1), so a 5-crop s6fall ends ≈ 6.9 h (6.2–7.9);
+- it runs out of time only if V2's part takes > 5.3 h. Then the deadline keeps the scored studies, and the rest take R6's rank (the
+  P3 fix).
+- **Sent 18:04:10 UTC as #104** (ref 57405050). Baseline `artifacts/lb_snap_baseline_1019/` (18:04 UTC): **rank 442 of 6,219, 254th
+  of the 1,271 tied at 0.958**; 188 ≥ 0.959, 1,459 ≥ 0.958; the top 5 % line is rank 311, the top 10 % line rank 622. Watcher:
+  `src/watch_lb_snapshots.py 57405050` (log `artifacts/watch_lb_57405050.log`).
+- **Read:** our place rises → C17 > C14 → C17 = pick 1; no move at 0.958 → #101 stays pick 1; ≤ 0.957 or an error → C17 is not a
+  pick. Nothing else is sent until it scores.
+
+**Picks (Tian, 10-19 10:11 UTC): pick 2 = C19**, on whichever base reads best: the un-pushed weights. A C19 pick wins if V2's pushes
+were public overfit, and a pick on V2's weights wins if they were real. That raises P(top 5 %) more than a near-copy sibling would
+(≈ +0.0002). **RunPod: not used**: the strong public models cannot be retrained, a second s6fall seed would cost ≈ 25–35 GPU-h, and
+our own models cost a 0.958 blend.
+
+**Verdict: ⏳ PENDING** (C17 on the LB). The timing is a measurement. The gold crop read is 🔁: +0.0015 is far under the floor.
+
 ## Infrastructure
 
 ### 2026-09-27 — The "0.943 Speedy Raptors CoAtNet D4" notebook is our anchor **plus two CoAt readers**, not a faster graph; its "< 30 min" is a 3-study commit run · P-41 (threaded scan + 8 decode workers) smoke-green and byte-identical
@@ -7256,9 +7328,10 @@ and public LB score, so a public/private divergence can be traced to a specific 
 | 98 | 2026-10-17 | rsna-knee-infer v80 (`artifacts/infer_b23.py`) | **B23** = `v15cj` + `v13b3` flat rank-mean (B18 with `v15cj` in place of `v15c`) | none | **0.943** | **read 10-18 → ❌ −0.001 vs B18 0.944 by its rule; the blend rule held (members' mean 0.938 + 0.005) (entry 2026-10-18 "Submissions #96–#100").** placeholder green (`infer members (2)`, decode-once verified). sent 23:22:18 UTC (ref 57328841); vs B18 0.944: ✅ ≥ 0.946 / leaning 0.945 / 🔁 0.944 / ❌ ≤ 0.943 (entry 2026-10-17 "Submissions #96–#98 sent") |
 | 99 | 2026-10-17 | rsna-knee-forkc12 v1 (`src/build_fork954.py --anchor c12 --members v15c v13b3 --beta 0.45 --gate-hours 7.5 --sec-per-study 3.0`) | **C12**: heliosli's R7 + nartaa's s6fall as one compact anchor (per finding 0.5 rank + 0.5 rank; R7 alone on a skip / timeout / failure) + B18 (`v15c` + `v13b3`) at β 0.45; OAI-free, fastMRI inside R7 | none | **0.954** | **read 10-18 → 🔁 +0.001 vs C8 0.953 (Tian's "worth considering"), the low end of its 0.953–0.956 prediction; our best OAI-free number; the s6fall stage most likely ran (a fallback is C8's notebook exactly); COMPLETE by 10:04 UTC, so the R7 + s6fall + B18 run fits the limit on the full hidden test (entry 2026-10-18 "Submissions #96–#100").** placeholder green (`c12_anchor.json` `status ok`; anchor = C8's R7 × C11's s6fall exactly, ours = C8's exactly, `FINAL = beta0.45`). sent 23:30:31 UTC (ref 57328990); vs C8 0.953: ✅ ≥ 0.955 / 🔁 0.953–0.954 / ❌ ≤ 0.952 (entry 2026-10-17 "Submissions #99 (C12) and #100 (C13-V2) sent") |
 | 100 | 2026-10-17 | rsna-knee-anchor9586 v1 (`src/build_anchor_copy.py --anchor 09586`; re-pushed after the 10-17 deletion) | **C13-V2**: heliosli's public "0.9586" notebook verbatim but `C_SLUG` → the `-w1` copy of R6 (the 0.958 with its four Raptor-half weights pushed 0.05 further + goodpjw2008's 2.5D reader at 0.003–0.035), no fork arm | none | **0.958** | **read 10-18 → our best entry: rank 883 of 6,166 (719th of 1,041 at 0.958), ≈ 150 stable teams above the 0.958 anchor's verbatim score → C13-V2 > C13 by sign (entry 2026-10-18 "Submissions #96–#100"); COMPLETE by 10:04 UTC (no watcher).** placeholder green (PASS 3 / 3, R6 from `-w1`, flip TTA on). sent 23:33:29 UTC (ref 57329059); expected 0.958; vs C13 #97 only through which becomes our best entry in the tie (entry 2026-10-17 "Submissions #99 (C12) and #100 (C13-V2) sent") |
-| 101 | 2026-10-18 | rsna-knee-anchor9586s6f v1 (`src/build_anchor_copy.py --anchor 09586s6f`) | **C14**: heliosli's V2 (= #100) + nartaa's s6fall inside V2's R6 half: ours = 0.6 rank(R6) + 0.4 rank(s6fall), V2's stage-3 and Part B weights unchanged; fallback = V2's own file | none | ⏳ | placeholder green (SELF_CHECK 0.0; V2 part = #100's output exactly; s6fall = C11's exactly; status ok). sent 11:54:38 UTC (ref 57353067); vs #100 by tie position: above #100's place (stable neighbours 879 / 884 on 10-18 10:04 UTC) or 0.959 = C14 > V2; no move = C14 ≤ V2 (entry 2026-10-18 "C14 built") |
-| 102 | 2026-10-18 | rsna-knee-anchor9586m v1 (`src/build_anchor_copy.py --anchor 09586m224`) | **C15 on V2**: heliosli's V2 (= #100) with the 384 px stage's anatomical-mirror TTA ported to the 224 px CoAtNet | none | ⏳ | placeholder green (mirrored 224 output r 0.997–0.999 vs plain; final = #100's on the 3 studies). sent 12:18:02 UTC (ref 57353764) on Tian's call to send both C15s before #101 reads; read by an LB snapshot taken as each of #101–#103 scores (`src/watch_lb_snapshots.py`; baseline `artifacts/lb_snap_baseline_1218/`: rank 914, 0.958) (entry 2026-10-18 "C15 built") |
-| 103 | 2026-10-18 | rsna-knee-anchor9586s6fm v1 (`src/build_anchor_copy.py --anchor 09586s6fm224`) | **C15 on C14**: V2 + nartaa's s6fall in the R6 half (0.6 / 0.4; = #101) + the 224 px CoAtNet mirror TTA | none | ⏳ | placeholder green (SELF_CHECK 0.0, s6fall = C11's exactly, status ok). sent 12:18:06 UTC (ref 57353769); read as #102 (entry 2026-10-18 "C15 built") |
+| 101 | 2026-10-18 | rsna-knee-anchor9586s6f v1 (`src/build_anchor_copy.py --anchor 09586s6f`) | **C14**: heliosli's V2 (= #100) + nartaa's s6fall inside V2's R6 half: ours = 0.6 rank(R6) + 0.4 rank(s6fall), V2's stage-3 and Part B weights unchanged; fallback = V2's own file | none | **0.958** | **read 10-18 21:02 UTC → ✅ C14 > V2 by sign: with #103 our best entry rose from rank 914 to 376 (stable 0.958 teams above us 449 → 99) → pick 1 (entry 2026-10-18 "Submissions #101–#103").** placeholder green (SELF_CHECK 0.0; V2 part = #100's output exactly; s6fall = C11's exactly; status ok). sent 11:54:38 UTC (ref 57353067); vs #100 by tie position: above #100's place (stable neighbours 879 / 884 on 10-18 10:04 UTC) or 0.959 = C14 > V2; no move = C14 ≤ V2 (entry 2026-10-18 "C14 built") |
+| 102 | 2026-10-18 | rsna-knee-anchor9586m v1 (`src/build_anchor_copy.py --anchor 09586m224`) | **C15 on V2**: heliosli's V2 (= #100) with the 384 px stage's anatomical-mirror TTA ported to the 224 px CoAtNet | none | **0.957** | **read 10-18 → ❌ a tick under V2: the 224 px mirror TTA costs V2 (entry 2026-10-18 "Submissions #101–#103").** placeholder green (mirrored 224 output r 0.997–0.999 vs plain; final = #100's on the 3 studies). sent 12:18:02 UTC (ref 57353764) on Tian's call to send both C15s before #101 reads; read by an LB snapshot taken as each of #101–#103 scores (`src/watch_lb_snapshots.py`; baseline `artifacts/lb_snap_baseline_1218/`: rank 914, 0.958) (entry 2026-10-18 "C15 built") |
+| 103 | 2026-10-18 | rsna-knee-anchor9586s6fm v1 (`src/build_anchor_copy.py --anchor 09586s6fm224`) | **C15 on C14**: V2 + nartaa's s6fall in the R6 half (0.6 / 0.4; = #101) + the 224 px CoAtNet mirror TTA | none | **0.958** | **read 10-18 → unreadable vs #101 (the snapshot watcher logged nothing, traps 69 addendum); expected under it.** placeholder green (SELF_CHECK 0.0, s6fall = C11's exactly, status ok). sent 12:18:06 UTC (ref 57353769); read as #102 (entry 2026-10-18 "C15 built") |
+| 104 | 2026-10-19 | rsna-knee-anchor9586s6fx v1 (`src/build_anchor_copy.py --anchor 09586s6fx`) | **C17**: C14 (= #101) + the traps-74 fixes (s6fall under its own scratch root; exact-duplicate Raptor rows = failed; s6fall keeps partial results, 50 % fail cap, notebook-time guard; a rank-corr floor R6 vs s6fall) + s6fall 5-crop TTA (centre + 4 corners of the 320 render, probability mean) | none | ⏳ | placeholder green (SELF_CHECK 0.0; s6fall rc 0, raw r 0.9993 vs C14's centre crop; status ok). Timing: +1.52 h per process on the hidden test, over the 0.75 h gate; sent on Tian's call. sent 18:04:10 UTC (ref 57405050); baseline rank 442 of 6,219, 254th of 1,271 at 0.958 (`artifacts/lb_snap_baseline_1019/`); vs #101 by tie position: rise = C17 pick 1, no move = #101 pick 1, ≤ 0.957 = no C17 pick (entry 2026-10-19 "C17 built and timed") |
 
 ## Closed cards index (moved here from proposals.md on 2026-10-05)
 
