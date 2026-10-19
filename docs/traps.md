@@ -1413,3 +1413,18 @@ has no readable series, and still score it. Cell 8 flags only rows that are 0.5 
   before the 8.4 h kill.
 
 experiments.md 2026-10-18 "Endgame research".
+
+### 75. A size constant in a public notebook can be hard-coded twice: C18 changed `INPUT_RES` and V2's mirror TTA still asserted 320 px (Tier 2: a placeholder and its queue slot, caught before any send, 2026-10-19)
+
+C18 (`build_anchor_copy.py --anchor 09586s6ff / 09586s6fxf`) changed one line in V2's cell 2, `INPUT_RES = 320` → `384`, to score
+nartaa's 384 px CoAtNet on its full training field. The builder comment held that `INPUT_RES` "drives the backbone img_size, the crop
+offset and the asserts", and it does drive the window asserts in `eval_windows` / `gpu_windows`. But `infer_pair_probs` (the mirror TTA)
+carries its own literal: `assert plain.shape==mirrored.shape==(94,3,320,320)`. This bare assert has no message. It fired on every study,
+and V2's per-study `except` logged `FALLBACK (AssertionError: )` and wrote an all-0.5 row. Cell 7 then stopped the notebook with
+"Raptor failed on 3 of 3 studies", so both v1 placeholders ended in ERROR after ≈ 10 min. On the hidden test the same guard would
+have errored the submission. Without it, the stage would have degraded silently into a constant column.
+
+**Do:** before patching a size or shape constant in someone else's code, grep the whole cell for its *value* (here `320`), not only its
+name, and patch every code use. The C18 spec now patches both lines, and `build()` refuses a C18 render if `320` survives in cell 2
+outside a comment (tested against the v1 patch: it fires). A per-study `FALLBACK (AssertionError: )` with an empty message means a
+bare assert: read the asserts first (experiments.md 2026-10-19 "C18 placeholders"; commit `7f1d980`).

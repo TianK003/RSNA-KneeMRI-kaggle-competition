@@ -6781,6 +6781,35 @@ our own models cost a 0.958 blend.
 
 **Verdict: ⏳ PENDING** (C17 on the LB). The timing is a measurement. The gold crop read is 🔁: +0.0015 is far under the floor.
 
+### 2026-10-19 — C18 placeholders: v1 failed on a 320 px literal in V2's mirror TTA (fixed), v2 on C17 green, v2 on C14 queued · ⏳ PENDING
+
+Tian, 10-19 ≈ 18:10 UTC: "I want you to do a test run for C18." Both renders were pushed, so that whichever base #104 favours is ready
+when it reads. Nothing was sent.
+
+**v1** (`rsna-knee-anchor9586s6fxf` v1 on C17, `rsna-knee-anchor9586s6ff` v1 on C14; pushed 18:11 UTC, started at once): **both ERROR**
+after ≈ 10 min.
+- The 384 stage logged `FALLBACK (AssertionError: )` on 3 / 3 studies, and cell 7 stopped the notebook with "Raptor failed on 3 of 3
+  studies".
+- **Cause:** V2's `infer_pair_probs` asserts the window shape as a literal `(94,3,320,320)`. The C18 patch had changed only
+  `INPUT_RES` (traps 75).
+- **Fix** (commit `7f1d980`): the C18 spec patches that assert to `(94,3,INPUT_RES,INPUT_RES)`, and `build()` refuses a C18 render
+  with a `320` left in cell 2's code (it fires on the v1 patch). The two C18 renders change by that one line; every other render
+  (C17's included) is byte-identical; `src/c17_mock_test.py` passes.
+
+**v2 on C17** (`rsna-knee-anchor9586s6fxf` v2, pushed 18:27, COMPLETE 18:45 UTC; `artifacts/kaggle_out/anchor9586s6fxf_v2/`): **green**.
+- `SELF_CHECK ok` (0.0); Raptor-384 / -224 failed 0 / 0; no `FALLBACK`, no Traceback; 0 duplicate Raptor rows.
+- s6fall `rc 0` with the 5 crops; `S6X_DONE` status `ok`; `submission.csv` 3 × 13, no NaN.
+- **The full 384 field moves the 384 model's raw output:** r 0.9973 vs C17's 320 centre crop on the 3 studies (36 values), mean |Δ| 0.013.
+- **Stage time:** 147 s vs C17's 53 s. Most of the gap is fixed: model load 69 / 93 s per GPU vs 4 / 7 s, which looks like a cold read
+  of the weights from the mount, not the patch. The GPU part after the load is ≈ 20 s vs 16 s, in line with the expected 1.44×. The
+  hidden-test cost is still the estimate, ≈ +0.13–0.3 h before s6fall starts.
+
+**v2 on C14** (`rsna-knee-anchor9586s6ff` v2, pushed 18:27 UTC): **QUEUED** at 19:47 UTC (traps 41).
+
+**#104 (C17)** was still pending at 19:45 UTC (watcher alive, `artifacts/watch_lb_57405050.log`).
+
+**Verdict: ⏳ PENDING.** C18 on C17 is ready to send. C18 on C14 still needs its placeholder. Neither goes out before #104 reads.
+
 ## Infrastructure
 
 ### 2026-09-27 — The "0.943 Speedy Raptors CoAtNet D4" notebook is our anchor **plus two CoAt readers**, not a faster graph; its "< 30 min" is a 3-study commit run · P-41 (threaded scan + 8 decode workers) smoke-green and byte-identical
