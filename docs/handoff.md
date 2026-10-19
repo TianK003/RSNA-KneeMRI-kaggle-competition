@@ -6,6 +6,105 @@ to read first after a break.
 
 ---
 
+## 2026-10-19 (09:28 → 19:50 UTC, three sittings) — **C17 built, timed and sent as #104 (⏳)** · 5 crops over the runtime gate, sent anyway on Tian's call · **Tian: pick 2 = C19** · C18's placeholder failed on a hard-coded 320, fixed, green on C17
+
+Tian, in order:
+1. 09:28: "Read the handoff and build C17 and submit it, check the current leaderboard." 09:50: aim for 0.959 and the private top 5 %;
+   RunPod is free to use. 10:11: "pick C19 as 2nd pick so we don't have two near identical models running. Let's wait for C17 to score,
+   then continue."
+2. 15:09 / 15:19: "the notebooks are still in the queue? Should I cancel them and re-queue?" (Kept queued: a re-push starts at the back.)
+3. 17:55: "The work we queued is finally done, check its results and if successful submit it." Then, after the timing question: send
+   the tested 5-crop C17 now. 18:10: "I want you to do a test run for C18." 19:47: "Has it run yet? Run /update and then /handoff."
+
+Commits `1f6c439` (C17 / C18 / C19 builders, timing kernel, mock suite), `90163dd` (#104 logged), `898bd16`, `7f1d980` (the C18 fix),
+`949c206` (C18 placeholders logged) and this one. No handoff was written for the morning sitting: this entry covers all of 10-19.
+
+### ⏳ Still in flight as this was written (19:50 UTC)
+
+| In flight | What it is | Started | How to check | How to read it |
+|---|---|---|---|---|
+| **#104 = C17** (ref 57405050) | `rsna-knee-anchor9586s6fx` v1: C14 + the traps-74 fixes + s6fall's 5-crop TTA | sent 18:04:10 UTC | `kaggle competitions submissions rsna-knee-abnormality-detection --csv` (first rows). A local watcher (`src/watch_lb_snapshots.py 57405050`, log `artifacts/watch_lb_57405050.log`) saves `artifacts/lb_snap_57405050/` + a row in `artifacts/lb_snapshots.csv` the moment it scores. It dies with the laptop or at token expiry (≈ 21:28 UTC); a `0 submissions read` heartbeat means the token expired | Expected ≈ 01:00–03:00 UTC (notebook ≈ 6.9 h, 6.2–7.9; worst ≈ 08:00–09:00 with a scoring queue). Compare with the baseline `artifacts/lb_snap_baseline_1019/` (18:04 UTC: **rank 442 of 6,219, 254th of 1,271 at 0.958**). Count, in both snapshots, only the *stable* 0.958 teams (same Score and LastSubmissionDate in both). **Fewer stable teams above us → C17 > C14 → C17 = pick 1.** Same count → #101 stays pick 1. ≤ 0.957 or ERROR → C17 is no pick (an ERROR would be a runtime kill: see "Things that will bite") |
+| **C18 on C14 placeholder** | `rsna-knee-anchor9586s6ff` v2 (C14 + the 384 CoAtNet on its full field) | pushed 18:27 UTC, **QUEUED** at 19:49 | `kaggle kernels status tiankljucanin/rsna-knee-anchor9586s6ff`; when COMPLETE, `kaggle kernels output tiankljucanin/rsna-knee-anchor9586s6ff -p artifacts/kaggle_out/anchor9586s6ff_v2` (a local watcher does this until ≈ 21:27 UTC) | Green = as C18 on C17 (experiments.md 2026-10-19 "C18 placeholders"): `SELF_CHECK ok` 0.0; `blend_receipt.json` raptor384_failed 0; no `FALLBACK` / Traceback in the log; `s6x_receipt.json` status `ok`, s6f_rc 0. Only needed if #104 reads "no move" or worse |
+
+### Where things stand
+
+| | Status |
+|---|---|
+| Public LB | **0.958, rank 442 of 6,219** (18:04 UTC; 254th of the 1,271 at 0.958; top-5 % line = rank 311, top-10 % = 622). Best entry #101 C14 (or #103) |
+| Submissions | **#104 C17 ⏳.** 10-19: 4 slots left until 00:00 UTC; 10-20 → 10-22: 5 a day |
+| Picks | pick 1 = **#101 C14**, or C17 / C18 if one reads above #101's place. **pick 2 = C19** (Tian, 10-19 10:11 UTC) on the best base; if C19 cannot score by 10-22, the better of C17 (≥ 0.958) and #103 |
+| Renders | C17 `rsna-knee-anchor9586s6fx` v1 (= #104). **C18 on C17 `-s6fxf` v2 ✅ green, ready to send. C18 on C14 `-s6ff` v2 ⏳ queued.** C19 (suffix `w`): builder only, not rendered |
+| Docs | All logged: experiments.md 2026-10-19 "C17 built and timed" and "C18 placeholders"; Submissions row #104 (and the stale ⏳ of #101–#103 filled); traps 41 (third queue), 69 (watcher heartbeat), **75** (the 320 literal); candidates.md C17 / C18 / C19 rows and the P-50 rule; CLAUDE.md state |
+| Budgets | Kaggle GPU **26.54 h** left (the last budget). RunPod ≈ $4.2 unused (no productive use). OpenRouter $2.29 of $13 |
+| Repo | Pushed. Tian's untracked `discussion*.{py,xml}` were not added (public repo) |
+
+### What we talked about and decided
+
+- **Pick 2 = C19** (Tian, 10:11): the best base with the 0.958 notebook's four weights instead of V2's pushed ones. One pick wins if V2's
+  pushes were real, the other if they were public overfit. That covers more of the private outcome than a near-copy sibling (≈ +0.0002).
+- **Top 5 % / 0.959:** the honest odds of 0.959 are ≈ 10–25 % per candidate. Only changes the models were trained for carry to private,
+  so C17's crops and C18's full field qualify, while further weight pushes do not. RunPod: no productive use in 3 days. The public models
+  can't be retrained, a second s6fall seed would cost ≈ 25–35 GPU-h, and our own models cost a 0.958 blend.
+- **The queue (15:19):** both kernels sat `QUEUED` 5.5 h with a full quota. We kept them queued, since a re-push starts over (traps 41).
+- **5 crops vs the gate (≈ 18:00, Tian):** 5 crops cost +1.52 h per process against the 0.75 h allowance. Tian chose to **send the
+  tested 5-crop version** rather than rebuild at 3 crops and queue again. V2's part ≈ 4.0 h → s6fall ends ≈ 6.9 h, under its 8.15 h
+  guard. An overrun only needs V2 > 5.3 h, and the P3 fix keeps the scored studies.
+- **C18 test runs (Tian, 18:10):** both bases, so C18 can go out the moment #104 reads. Nothing is sent before then.
+- **Laptop overnight:** it can be off. Kaggle scores on its servers, and a single entry in flight reads by stable teams at any time.
+
+### What we figured out
+
+1. **5 crops = +1.52 h per process on the hidden test (s6fall 1.23 → 2.74 h); every multi-crop variant reads ≈ +0.0015 on gold-58**
+   (centre 0.9314; 3, 5 and 9 crops 0.9328–0.9330: direction only). The crop count doesn't matter; the cost does (experiments.md 2026-10-19
+   "C17 built and timed").
+2. **C17's placeholder is green**, and the crops ran: raw s6fall r 0.9993 vs C14's centre crop.
+3. **The queue reached 6 h 20 min** (traps 41, third instance). Push every placeholder that might be needed early; a placeholder costs no
+   submission.
+4. **C18 v1 failed on V2's hard-coded `(94,3,320,320)` assert in the mirror TTA**: 3 / 3 studies fell back, and cell 7 stopped the
+   notebook. Fixed, with a builder guard (traps 75). **v2 on C17 is green.** The full 384 field moves the 384 model's output (r 0.9973 vs
+   the 320 crop), and the per-study GPU cost is ≈ 1.25×.
+5. **The Submissions table had kept #101–#103 at ⏳** since 10-18; it is filled now.
+
+### ⏭ Next action, in order
+
+1. **Re-authenticate:** `! kaggle auth login --force`. Then `kaggle competitions submissions rsna-knee-abnormality-detection --csv`.
+2. **Read #104** (rule in the in-flight table). If the watcher saved `artifacts/lb_snap_57405050/`, use it. Otherwise take
+   `kaggle competitions leaderboard rsna-knee-abnormality-detection -d -p artifacts/lb_1020/` and extract the zip with Python (a colon
+   in the CSV name). Count stable 0.958 teams above us vs `artifacts/lb_snap_baseline_1019/`. Then `/update`: Submissions row #104,
+   Scoreboard row, candidates.md.
+3. **Send C18 alone, on the winning base,** with a fresh baseline snapshot first and the snapshot watcher after (check its first
+   `poll` line):
+   - C17 > C14: `kaggle competitions submit rsna-knee-abnormality-detection -k tiankljucanin/rsna-knee-anchor9586s6fxf -v 2 -f submission.csv -m "<C18 on C17 + read rule>"`;
+   - otherwise, once `-s6ff` v2 is green: the same with `-k tiankljucanin/rsna-knee-anchor9586s6ff -v 2`.
+   **Use v2, not v1** (v1 errored). Read: our place rises → keep the 384 field in C19's base.
+4. **C19 (pick 2), render and placeholder as soon as #104 reads**, without waiting for C18. Render both candidate bases and push both
+   placeholders, then send the one matching C18's read:
+   - on C17: `--anchor 09586s6fxw` and `09586s6fxfw`;
+   - on C14: `09586s6fw` and `09586s6ffw`.
+   Command: `.venv/Scripts/python.exe src/build_anchor_copy.py --anchor <tag>`, then `--check`, `src/c17_mock_test.py`, and
+   `kaggle kernels push -p kaggle/rsna-knee-anchor9586<…>w`. Green = the C18 criteria plus cell 8's weights = Lateral OA 0.20, PF OA
+   0.60, Synovitis 0.80, Baker's 0.35. Send by **10-21** (scoring takes ≈ 7–9 h).
+5. **10-21:** re-read `kaggle kernels list --competition rsna-knee-abnormality-detection --sort-by dateRun` for a new public anchor.
+   **10-21/22: select both picks by hand** on the Submissions page (Kaggle's default takes the two best public entries).
+
+### Open decisions for Tian
+
+- Push the C19 placeholders while C18 is still scoring (recommended: queues reach 6 h), or only after C18 reads?
+- The final hand-selection (10-21/22).
+- P-87's Qwen arm: no time left to use it, so the card closes unless Tian says otherwise.
+
+### Things that will bite if forgotten
+
+- **Send nothing else until #104 is read.** Only our best entry shows, and two entries in flight cannot be told apart (traps 69).
+- **The token expires ≈ 21:28 UTC.** The watchers then poll blind, and the morning needs `kaggle auth login --force`.
+- **C18 on C17 stacks runtime:** 5-crop s6fall + the 384 stage (+0.13–0.3 h) → s6fall ends ≈ 7.0–8.2 h. An overrun keeps the scored
+  studies (graceful), but a C18-on-C17 entry is the most likely of ours to hit the guard.
+- **Queues of up to 6 h 20 min** for a placeholder (traps 41): push early, never re-push a queued version.
+- **Hard-coded sizes in public code** (traps 75): grep the value, not just the name, before patching a constant.
+- **The repo is public:** `discussion*` dumps and anything with StudyInstanceUIDs stay out of git (traps 73).
+
+---
+
 ## 2026-10-18 (21:00 → 22:20 UTC) — **#101–#103 read: C14 lifts us from rank 914 to 376 (top 6.1 %), the mirror costs V2 a tick** · endgame research (forum top teams, a C14 code audit, literature) · **Tian: pick 2 = a second C14-family ticket, C16 dropped, C17 built on 10-19**
 
 Tian, in order:
