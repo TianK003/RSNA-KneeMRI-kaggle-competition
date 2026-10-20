@@ -6936,6 +6936,58 @@ submission.
 **Verdicts: #105 ❌ by its rule (the full field costs on public; C18 is no pick); both C19 placeholders ✅ green; C19 = `-s6fw`.**
 10-20: 4 slots left. Kaggle GPU 4.04 h used, 25.96 h left.
 
+### 2026-10-20 — Endgame survey 2: public notebooks, weight datasets and the forum since 10-18 · no new asset above the 0.958 plateau · ✅ a read (no GPU, no submission)
+
+Tian, 10-20 ≈ 16:40 UTC: "ultrathink about how to improve the score … review other public notebooks with high score and propose a new
+experiment/candidate".
+
+**Public notebooks** (`kaggle kernels list --sort-by dateRun` and `--sort-by scoreDescending`, ≈ 16:50 UTC; seven pulled as text into
+the session scratchpad, not kept). Nothing claims or shows more than 0.958.
+- `evgendvorkin/rsna-versia-7` (473 votes, top of the score-sorted list, re-run 10-20 15:29 UTC) is goodpjw2008's 0.958 recipe
+  reproduced: R6 (rostigor's copy) + flip, the 0.958 notebook's four weights, A224 0.35, the 2.5D reader. It mounts R7's bundle but
+  never references it.
+- `bliverrigpdoge/r7-raptor-knee-centred-convnext` (113 votes; the team is at 0.959, rank 192) is heliosli's R7 notebook plus the
+  author's own knee-centred ConvNeXt-S / EfficientNetV2-S ensemble at 0.2. Those weights are in a private dataset: "a fork skips that
+  step and gives you the base 0.956".
+- `lavinwins/rsna-gold-medal` (125 votes) is the 0.943 pipeline with a new combination layer. `seanmoch`'s tri-reader is Rabari's
+  0.954. The other two new notebooks are DIY training.
+
+**Public weight datasets updated since 10-17** (`kaggle datasets list --sort-by updated`): re-hosts (manatoshoji03's CoAtNet extras and
+S6 bundle), `tensorhydra/rsna-knee-oai-weights` (owner not on the LB), cyruspinto's ConvNeXt-B / Swin-B-384 / 384 px ConvNeXt
+"engines" (team at 0.958, rank 738, below us), `neronrx/mycelis` (avoid: its own logs read gold 0.58–0.67), label tables. None comes
+from a team above the plateau. **nartaa's s6fall dataset holds one checkpoint**, so there is no free second fold or seed.
+
+**Forum** (fresh harvest, `artifacts/forum_1020/`: 139 topics, 22 comments since 10-18): nothing on beating 0.958. Kaggle staff
+(747455, 10-19) again decline to rule on OAI-trained weights: "each team is responsible".
+
+**A misread corrected:** the 10-18 shorthand "R7 at 0.4 next to R6: 0.958" is goodpjw2008's *null* on the 0.958 recipe (no change),
+not a gain (entry 2026-10-18 "C14 built", recon 2).
+
+**What our last sends say, taken together:**
+
+| Change | Entry | Public read |
+|---|---|---|
+| a new member ≥ 0.949 with different labels (s6fall in V2's R6 half) | #101 C14 | **+350 places in the tie: the one real lift** |
+| the 224 px CoAtNet's mirror TTA | #102 | −1 tick |
+| s6fall's 5-crop TTA (+ robustness fixes) | #104 C17 | no move |
+| the 384 px CoAtNet on its full field | #105 C18 | −1 tick |
+| our B21 leg on the 0.958 anchor, β 0.20 / 0.05 | #94 / #95 | −1 tick / −1 tick |
+| S6 / R7 next to R6; gold-58-tuned weights (goodpjw2008) | his v4–v7 | −1 tick / none / −1 to −3 ticks |
+
+- **On this plateau only new information moves the score:** a member at ≈ 0.949 or better whose errors differ from the blend's.
+  Re-viewing the same members (TTA, fields) or re-weighting them does not.
+- **A weight change near the optimum is worth almost nothing.** If the gain is roughly quadratic in s6fall's share s with its peak at
+  s* = 0.5–0.7, then moving s from 0.4 to 0.5 adds 4–13 % of what s6fall itself added (≈ 0.00002–0.0001).
+- **No strong new member is available.** There is no new public asset, and retraining stays ruled out (proposals.md Dropped
+  directions: one s6fall seed ≈ 25–35 Kaggle GPU-h; the CoAtNet corpus and the OAI knees are private; a CoAtNet without OAI is priced
+  at ≈ 0.935–0.942, under the ≈ 0.950 break-even for a V2 member).
+- **What the teams at 0.960–0.969 have** is their own single models at 0.952–0.959 (entry 2026-10-18 "Endgame research"). Ours top out
+  at 0.946.
+
+**Verdict: ✅ a read.** C14 stays at the ceiling of the public assets. Pick 2 stays C19 on C14. No new candidate has an expected gain
+that justifies a slot: the remaining options (R7 as a third compact member, a share change, more s6fall crops) are each priced at
+≈ 0.0000–0.0003, and R7 costs ≈ +1.75–2 h of runtime. Tian decides whether to spend slots on them.
+
 ## Infrastructure
 
 ### 2026-09-27 — The "0.943 Speedy Raptors CoAtNet D4" notebook is our anchor **plus two CoAt readers**, not a faster graph; its "< 30 min" is a 3-study commit run · P-41 (threaded scan + 8 decode workers) smoke-green and byte-identical
