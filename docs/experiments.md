@@ -7039,6 +7039,23 @@ the two errors were not counted (traps 76). Baseline `artifacts/lb_snap_baseline
 18:01:17 UTC). The hedge `rsna-knee-anchor9586s6fw` v2 (identical notebook, pushed 17:40 UTC in case v1 was the problem) is no longer
 needed; it stays as the resend if #106 errors on the hidden test.
 
+**Placeholders, 18:11 UTC** (outputs `artifacts/kaggle_out/anchor9586s6fr7_v1/`, `…/anchor9586s6fw_v2/`):
+- **C20 (`rsna-knee-anchor9586s6fr7` v1): green.**
+  - SELF_CHECK 0.
+  - Stage R: `ASSETS_READY …/rsna-knee-compact-r7cnxfsss … flip_tta False`; the controller `PASS`, bundle `8c7b666e27dc0e8f`, 3 / 3
+    scored, 0 fallbacks; 9.5 GPU-s / study (R6 + flip: 18.9); stage R took 226 s and started at 0.21 h.
+  - `R7X_DONE` status `ok`.
+  - **R7's output is bit-identical to C12's R7** (`forkc12_v1/_c12_r7.csv`, the 0.956 notebook's own stage: max |Δ| 0.0). The 0.956
+    notebook and V2 embed byte-identical worker sources (all seven sha256 equal), so this is the R7 that read ≈ 0.948–0.951 behind C8.
+    R7 differs from R6 on the same studies by up to 0.38.
+  - C14's own stages are unchanged against #101's placeholder: s6fall, R6, V2's file and Part B exactly; the two CoAtNets to GPU noise
+    (5.6e-5 / 2.3e-4).
+  - The final file equals C14's on the 3 placeholder studies: three studies give coarse ranks that R7 at 0.24 of the R6 half
+    does not reorder (the mock suite shows R7 moving the final on 40 studies).
+  - Hidden-test runtime: stage R took 0.57× V2's R6 + flip stage on the placeholder (200 s vs 350 s), so ≈ 1.5–1.8 h if R6 + flip is
+    ≈ 2.7–3.1 h (up to ≈ 2.4 h if decoding dominates at scale), and the notebook ≈ 6.7–7.6 h.
+- **C19's hedge (`-s6fw` v2): green**: S6X `ok`, the four weights, `raptor_raw.csv` = v1's to 4.9e-5. It is only needed if #106 errors.
+
 ## Infrastructure
 
 ### 2026-09-27 — The "0.943 Speedy Raptors CoAtNet D4" notebook is our anchor **plus two CoAt readers**, not a faster graph; its "< 30 min" is a 3-study commit run · P-41 (threaded scan + 8 decode workers) smoke-green and byte-identical
