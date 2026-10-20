@@ -1355,6 +1355,14 @@ in the LB CSV does not help: it is the sent time of the team's most recent *scor
 log once right after starting it (C17's first line: `poll 18:04:28 UTC: 50 submissions read`). A poll that reads 0 submissions means the
 token expired (traps 20): run `kaggle auth login --force`, and the watcher picks the new token up on its next poll.
 
+**Addendum 2026-10-20: the scoring time is part of the read when an entry runs near the time limit (cost: #104 is ambiguous).** The
+10-19 handoff let the laptop go off overnight, since a single entry in flight reads by stable teams at any time. That holds for the
+tie position, but the watcher (last poll 20:20 UTC) also lost #104's scoring time. C17's 5-crop s6fall was estimated to end at ≈ 6.9 h
+of an 8.15 h guard, and a cut would have handed the unscored studies R6's rank. So "no move" cannot be split into "the crops don't
+help" and "s6fall ran out of time" (experiments.md 2026-10-20 "Submission #104 read"). **Do:** for an entry whose estimated runtime is
+within ≈ 1.5 h of a guard, keep the laptop on (AC, lid open, traps 53) until it scores, or accept that the read is "as run". The
+scoring time bounds the runtime from above, and there is no other channel: a scored submission's own outputs and log are never shown.
+
 ### 70. A module-level "log once" set inside Dataset code logs once per DataLoader worker process, not once per run (Tier 3, 2026-10-12)
 
 `trim_end_windows` (`src/kaggle_pipeline.py`, `_TRIM_LOGGED`) was meant to print its windows-per-slot line once per (version, phase)
