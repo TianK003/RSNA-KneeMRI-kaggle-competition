@@ -1363,6 +1363,14 @@ help" and "s6fall ran out of time" (experiments.md 2026-10-20 "Submission #104 r
 within ≈ 1.5 h of a guard, keep the laptop on (AC, lid open, traps 53) until it scores, or accept that the read is "as run". The
 scoring time bounds the runtime from above, and there is no other channel: a scored submission's own outputs and log are never shown.
 
+**Addendum 2026-10-20 (16:44 UTC): a "stable" team needs an unchanged SubmissionCount too.** The rule used since 10-18 (same Score and
+LastSubmissionDate in both CSVs) let one team through whose best had changed: rank 525 → 340, SubmissionCount 27 → 28. It had an entry
+in flight that was sent *before* its LastSubmissionDate entry and scored later, so LastSubmissionDate stayed put while its best moved.
+That one team read as "stable teams above us 146 → 147" during #105's read, when our best could not have moved, and shifted 207 teams'
+relative order. With SubmissionCount added: 823 strict stable teams, 140 → 140 above us, order fully preserved (experiments.md
+2026-10-20 "Submission #105 read"). **Do:** count stable teams on Score + LastSubmissionDate + SubmissionCount, and check that their
+order is preserved before reading a move of one.
+
 ### 70. A module-level "log once" set inside Dataset code logs once per DataLoader worker process, not once per run (Tier 3, 2026-10-12)
 
 `trim_end_windows` (`src/kaggle_pipeline.py`, `_TRIM_LOGGED`) was meant to print its windows-per-slot line once per (version, phase)
