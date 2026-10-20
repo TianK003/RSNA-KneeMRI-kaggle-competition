@@ -6988,6 +6988,51 @@ not a gain (entry 2026-10-18 "C14 built", recon 2).
 that justifies a slot: the remaining options (R7 as a third compact member, a share change, more s6fall crops) are each priced at
 ≈ 0.0000–0.0003, and R7 costs ≈ +1.75–2 h of runtime. Tian decides whether to spend slots on them.
 
+**Tian's answers (≈ 17:20 UTC):** send C19 now; after C19 scores, spend one slot on **R7 as a third R6-half model** (C20, entry below).
+
+### 2026-10-20 — C19 send hit two Kaggle "system errors"; C20 (C14 + heliosli's R7 as a third R6-half member) built, mock-tested and its placeholder pushed · ⏳ PENDING
+
+**C19 (`rsna-knee-anchor9586s6fw` v1, green):** baseline snapshot `artifacts/lb_snap_baseline_1020b/` (17:23 UTC: rank 514 of 6,276, 303rd
+of 1,401 at 0.958). Two sends, 17:23:31 (ref 57447491) and 17:24:45 UTC (ref 57447525), both turned `ERROR` within seconds with
+`error_description` "A system error. Please try resubmitting to resolve the error and contact Kaggle Support if it persists."
+(`total_bytes` 0). The CLI printed `Expecting value: line 1 column 1 (char 0)` on both, an empty server reply.
+- **Not our notebook:** the kernel is `COMPLETE`, its metadata is byte-identical to C14's (#101) apart from id / title / file, all five
+  Datasets and the kernel source still resolve, its log ends like #105's, and #105 (the same image, the same sources) was accepted at
+  07:35 UTC.
+- **Kaggle's count stayed at 105** (LB CSV 17:39 UTC), so the two errors were not counted. They are not numbered here; C19 will be
+  #106 once a send goes through.
+- **A suspect, not shown:** the forum harvest made hundreds of API calls from ≈ 16:55 to 17:15 UTC and one dataset listing hit a 429
+  at ≈ 17:05. The forum has no recent reports of submission errors.
+
+**C20 = C14 + heliosli's R7 as a third member of V2's R6 half** (Tian: "R7 as a third R6-half model"; built from
+`src/build_anchor_copy.py --anchor 09586s6fr7` → `kaggle/rsna-knee-anchor9586s6fr7/`, 15 cells):
+- **Why R7 runs through V2's own controller:** R7's `manifest.json` (bundle `8c7b666e27dc0e8f`) pins exactly V2's seven embedded
+  sources (`compact_infer.py`, `probe_dual.py`, the trainer md5 `8622009e` …: all seven sha256 equal), the same `anatomy.pt`, the same
+  ConvNeXt-S / crop 352 / views v4 / 4 folds, and `flip_tta: false`. R6's manifest has the same trainer and anatomy hashes.
+- **Stage R** (cell 14, after C14's s6fall stage):
+  1. SELF_CHECK: with R7's weight at 0 the three-member blend rebuilds C14's final file (< 1e-6), else C14's file stays.
+  2. R7: V2's cells 6–7 as this render holds them, with five line patches (R7's Dataset `heliosli/rsna-knee-compact-r7cnxfsss`, its
+     bundle id, `FLIP_TTA = False`, its own scratch dir `probe_r7` and output dir `/kaggle/working/r7`), carried as a zlib + base64
+     payload with its sha256 and executed in its own namespace. It starts only before 6.3 h of notebook time; the controller's own
+     deadline is V2's 8.3 h and keeps the studies it scored.
+  3. R7's scored studies by V2's cell-8 rule; ≥ 50 % coverage and a mean R6 / R7 Spearman ≥ 0.5 (when ≥ 30 rows) are required.
+  4. ours = 0.36 rank(R6) + 0.24 rank(R7) + 0.40 rank(s6fall) per finding, renormalised over the members that scored the study (s6fall
+     keeps C14's 0.4; R6 : R7 = 0.6 : 0.4 in the rest, goodpjw2008's neutral mix), then C14's stage-3 and Part B functions.
+  5. Any skip / failure: C14's own file. Receipt: `r7x_receipt.json`.
+- **Runtime estimate** on the hidden test: V2 ≈ 4.0 h + s6fall 1.23 h + R7 ≈ 1.75–2 h (9.8 GPU-s / study, no flip) ≈ 7.0–7.3 h.
+- **Checks:** `--check` keeps every existing render byte-identical; `src/c20_mock_test.py` passes: the real payload is C14's cells 6–7
+  plus exactly the five patches; ten scenarios on fake data through V2's cell 8, Part B, C14's s6fall cell and stage R. Three ok cases
+  match an independent recompute (≤ 3e-8), including partial failures and a study none of the three scored. Six fallbacks restore C14's
+  file exactly: < 50 % coverage, controller failure, uncorrelated R7, payload sha mismatch, a late start, a failed s6fall stage. A bug
+  the suite caught: the start gate compared a rounded elapsed time (fixed).
+- **Placeholder** `rsna-knee-anchor9586s6fr7` v1 pushed 17:39 UTC (QUEUED); watcher log `artifacts/watch_anchor9586s6fr7.log`, outputs
+  `artifacts/kaggle_out/anchor9586s6fr7_v1/`. **Green** = SELF_CHECK 0; `R7X_DONE` status `ok` with r7_scored 3; R7's
+  `r7/ours_sub.csv` ≈ C12's R7 (`artifacts/kaggle_out/forkc12_v1/_c12_r7.csv`, the 0.956 notebook's stage); C14's stages unchanged.
+- **Read rule (pre-registered):** sent alone after C19 scores, against a fresh baseline: our place among strict stable teams rises →
+  C20 > our best → **pick 1 = C20** (pick 2 stays C19); no move, ≤ 0.957 or ERROR → C20 is no pick.
+
+**Verdict: ⏳ PENDING** (C19 not yet accepted; C20's placeholder queued).
+
 ## Infrastructure
 
 ### 2026-09-27 — The "0.943 Speedy Raptors CoAtNet D4" notebook is our anchor **plus two CoAt readers**, not a faster graph; its "< 30 min" is a 3-study commit run · P-41 (threaded scan + 8 decode workers) smoke-green and byte-identical

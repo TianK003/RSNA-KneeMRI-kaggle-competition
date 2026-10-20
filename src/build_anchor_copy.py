@@ -19,6 +19,9 @@ the metadata mounts what the author's own kernel mounts and pins the author's Do
            s6fall starts, the run cell rebuilds V2's own final file from the stage-3 / Part B inputs in memory and keeps V2's file
            unless that matches (SELF_CHECK); s6fall starts only before 6.0 h of notebook time and is killed at 8.4 h; on any skip,
            timeout or failure the submission is V2's own file (#100)                         -> kaggle/rsna-knee-anchor9586s6f/
+    09586s6fr7 C20 (Tian 10-20: "R7 as a third R6-half model"): C14 + heliosli's R7 run through V2's own cells 6-7 (a patched copy in
+           its own namespace and directories, after the s6fall stage), then ours = 0.36 rank(R6) + 0.24 rank(R7) + 0.40 rank(s6fall);
+           SELF_CHECK rebuilds C14's file first; R7 starts before 6.3 h only; any failure = C14's file -> kaggle/rsna-knee-anchor9586s6fr7/
     09586s6fx C17 (Tian 10-18: a second C14-family ticket): C14 + the 2026-10-18 audit's fixes (traps 74: s6fall under its own
            scratch root so V2's submission.csv is never absent; its hang guard = the notebook's time left, a deadline keeps the scored
            studies, up to 50 % may fail; exact-duplicate Raptor rows count as failed; a rank-corr floor R6 vs s6fall) + s6fall's
@@ -333,6 +336,248 @@ for _b in ("09586s6f", "09586s6fx"):        # C18 on C14 / on C17; C19 on either
     _variant(_b, "f", "f", {2: C18_PATCHES}, C18_NOTE)
 for _b in ("09586s6f", "09586s6fx", "09586s6ff", "09586s6fxf"):
     _variant(_b, "w", "w", {8: C19_PATCHES}, C19_NOTE)
+
+# C20 (10-20, Tian: "R7 as a third R6-half model"): C14 + heliosli's R7 (bundle 8c7b666e27dc0e8f, the 0.956 notebook's compact model)
+# inside V2's R6 half next to R6 and s6fall.  R7's manifest pins exactly V2's seven embedded sources (compact_infer / probe_dual /
+# the trainer md5 8622009e ...) and the same anatomy.pt, so V2's own cells 6-7 run it with four constants changed; they run as a
+# patched copy in their own namespace and directories, after the s6fall stage.  Weights: s6fall keeps its 0.4; R6 : R7 = 0.6 : 0.4 in
+# the rest (goodpjw2008's "R7 at 0.4 next to R6", read as no change on the 0.958 recipe), so 0.36 / 0.24 / 0.40.  R7 runs without
+# flip TTA (its manifest: flip_tta false; ~9.8 GPU-s / study, ~1.75-2 h on the hidden test).
+R7X_SLUG = "heliosli/rsna-knee-compact-r7cnxfsss"
+R7X_CELL6_PATCHES = [
+    ("C_SLUG = '%s-w1'   # [anchor9586: the -w1 copy = v1 = R6; this slug's latest version holds R7, traps 72] [d957] the frozen "
+     "copy of the R6 bundle dataset (manifest sha256 6508ce6921eda986.. = 57068142's)\n" % _R6,
+     "C_SLUG = 'rsna-knee-compact-r7cnxfsss'   # [C20] R7's bundle Dataset (the 0.956 notebook's compact model, as C8 / C12 ran it)\n"),
+    ("BUNDLE_ID = 'fe055406fad6a12f'\n", "BUNDLE_ID = '8c7b666e27dc0e8f'   # [C20] R7\n"),
+    ("FLIP_TTA = True   # [d957] package E: v4c's flip TTA on R6\n",
+     "FLIP_TTA = False   # [C20] R7's manifest: flip_tta false (R7 trained with mirror 0.5, but its own notebook scored no flip)\n"),
+    ("TMP = TMP / 'probe'\n", "TMP = TMP / 'probe_r7'   # [C20] R7's own scratch dir: R6's stays as V2 left it\n"),
+    ("WORK = Path('/kaggle/working')\n",
+     "WORK = Path('/kaggle/working/r7')   # [C20] R7's ours_sub.csv, receipt and worker logs beside V2's, never over them\n"
+     "WORK.mkdir(parents=True, exist_ok=True)\n"),
+]
+ANCHORS["09586s6fr7"] = dict(ANCHORS["09586s6f"], slug="rsna-knee-anchor9586s6fr7", title="RSNA Knee Anchor9586s6fr7",
+                             dataset_sources=ANCHORS["09586s6f"]["dataset_sources"] + [R7X_SLUG],
+                             r7x={"w_r6": 0.36, "w_r7": 0.24, "w_s6f": 0.40, "latest_start_h": 6.3, "min_frac": 0.5,
+                                  "rho_floor": 0.5, "rho_min_rows": 30})
+
+R7X_INTRO = """# Anchor9586s6fr7: heliosli's R7 as a third member of C14's R6 half (candidates.md C20)
+
+Built by `src/build_anchor_copy.py --anchor 09586s6fr7`. Every cell above is C14 (`rsna-knee-anchor9586s6f`, #101). The next cell
+runs heliosli's R7 (bundle 8c7b666e27dc0e8f: 4 ConvNeXt-S folds, no flip TTA, as its manifest says) through V2's own compact
+controller: a copy of cells 6-7 with R7's Dataset, bundle id, no flip and its own scratch and output directories, run in its own
+namespace. It then re-blends: ours = __W_R6__ rank(R6) + __W_R7__ rank(R7) + __W_S6F__ rank(s6fall) per finding, each over the studies it
+scored, then V2's stage-3 and Part B weights unchanged. Before R7 starts, the cell rebuilds C14's file with R7's weight at 0
+(SELF_CHECK). R7 starts only before __LATEST__ h of notebook time; its controller stops at V2's 8.3 h and keeps the studies it scored. On a
+skip, a failure, under __MINPCT__ % coverage or a low R6 / R7 rank correlation, the submission is C14's own file.
+Credits: heliosli (V2, R6, R7, S6 architecture, inference code, SKM-TEA anatomy model), nartaa (CoAtNets; s6fall weights,
+CC BY-NC 4.0), goodpjw2008 (2.5D reader).
+"""
+
+R7X_RUN_CELL = r"""# Anchor9586s6fr7 (C20): stage R -- heliosli's R7 through V2's own compact controller (cells 6-7, patched copy, own namespace and
+# directories), then ours = w_r6 rank(R6) + w_r7 rank(R7) + w_s6f rank(s6fall) per finding, V2's stage 3 and Part B unchanged.
+# Reads V2's globals (ours, our_fail, labels, test_ids, pct_on, NB_T0) and the s6fall cell's (_s6x_*, _S6X_SHARE); binds only _r7x_*
+# names.  Any skip / failure / low coverage: C14's own file (#101) is the submission.
+import base64 as _r7x_b64, csv as _r7x_csv, hashlib as _r7x_hl, json as _r7x_json, os as _r7x_os, shutil as _r7x_sh
+import time as _r7x_time, zlib as _r7x_zlib
+import numpy as _r7x_np
+import pandas as _r7x_pd
+_R7X_W_R6, _R7X_W_R7, _R7X_W_S6F = __W_R6__, __W_R7__, __W_S6F__
+_R7X_LATEST_START_H = __LATEST__
+_R7X_MIN_FRAC = __MIN_FRAC__
+_R7X_RHO_FLOOR, _R7X_RHO_MIN_ROWS = __RHO_FLOOR__, __RHO_MIN_ROWS__
+_R7X_CODE = (('cell6', '__C6_B64__', '__C6_SHA__'),
+             ('cell7', '__C7_B64__', '__C7_SHA__'))
+_r7x_sub = '/kaggle/working/submission.csv'
+_r7x_c14_path = '/kaggle/working/_c14_final.csv'
+_r7x_out = '/kaggle/working/r7/ours_sub.csv'
+_r7x_sh.copyfile(_r7x_sub, _r7x_c14_path)            # C14's final file: the submission unless every step below succeeds
+_r7x_info = {'weights': {'r6': _R7X_W_R6, 'r7': _R7X_W_R7, 's6f': _R7X_W_S6F}, 'rows': len(test_ids)}
+_r7x_status = 'not_run'
+
+
+def _r7x_log(msg):
+    print('[r7x %5.2fh] %s' % ((_r7x_time.time() - NB_T0) / 3600, msg), flush=True)
+
+
+def _r7x_final(members):
+    # ours per finding = the weighted mean of each member's percentile rank over its own scored rows, renormalised over the members
+    # that scored the study (none: NaN, which stage 3 replaces by the Raptor rank, as V2 does); then V2's stage 3 and Part B
+    ro = {}
+    for c in labels:
+        num, den = _r7x_np.zeros(len(test_ids)), _r7x_np.zeros(len(test_ids))
+        for w, vals, ok in members:
+            r = pct_on(vals[c].values, ok)
+            num = num + _r7x_np.where(ok, w * r, 0.0)
+            den = den + _r7x_np.where(ok, w, 0.0)
+        ro[c] = _r7x_np.where(den > 0, num / _r7x_np.where(den > 0, den, 1.0), _r7x_np.nan)
+    fail = _r7x_np.ones(len(test_ids), dtype=bool)
+    for _, _, ok in members:
+        fail &= ~ok
+    new = _s6x_stage3(ro, fail)
+    return _s6x_part_b(new, _s6x_own) if _s6x_use_b else new
+
+
+# 1. SELF_CHECK: C14 must be complete, and the three-member blend with R7's weight at 0 must rebuild C14's file
+try:
+    if globals().get('_s6x_status') != 'ok':
+        raise RuntimeError('the s6fall stage ended %r: C20 adds R7 to a complete C14 only' % globals().get('_s6x_status'))
+    _r7x_c14 = _r7x_pd.read_csv(_r7x_c14_path, dtype={'StudyInstanceUID': str})
+    _r7x_re = _r7x_final([(1.0 - _S6X_SHARE, ours, ~our_fail), (_S6X_SHARE, _s6x_s6, _s6x_ok)])
+    assert _r7x_re['StudyInstanceUID'].tolist() == _r7x_c14['StudyInstanceUID'].tolist(), 'row order differs from C14'
+    _r7x_d = float(_r7x_np.abs(_r7x_re[labels].values.astype(_r7x_np.float64)
+                               - _r7x_c14[labels].values.astype(_r7x_np.float64)).max())
+    _r7x_info['selfcheck_max_abs_diff'] = _r7x_d
+    if not _r7x_d < 1e-6:
+        raise RuntimeError('the C14 rebuild differs from its file by %g' % _r7x_d)
+    _r7x_status = 'selfcheck_ok'
+    _r7x_log('SELF_CHECK ok %g' % _r7x_d)
+except Exception as _r7x_e:
+    _r7x_status = 'selfcheck_failed'
+    _r7x_info['error'] = repr(_r7x_e)[:500]
+    _r7x_log('SELF_CHECK FAILED: %r' % (_r7x_e,))
+
+# 2. R7: V2's cells 6-7, patched, in their own namespace (the controller's deadline is V2's own: 8.3 h of notebook time)
+if _r7x_status == 'selfcheck_ok':
+    _r7x_status = 'skipped_late'
+    _r7x_elapsed_h = (_r7x_time.time() - NB_T0) / 3600
+    _r7x_info['start_h'] = round(_r7x_elapsed_h, 3)
+    if _r7x_elapsed_h <= _R7X_LATEST_START_H:
+        _r7x_t = _r7x_time.time()
+        _r7x_g = {'__name__': '__r7x__', 'NB_T0': NB_T0, 'display': globals().get('display', print)}
+        try:
+            for _r7x_k, _r7x_b, _r7x_h in _R7X_CODE:
+                _r7x_txt = _r7x_zlib.decompress(_r7x_b64.b64decode(_r7x_b)).decode('utf-8')
+                if _r7x_hl.sha256(_r7x_txt.encode('utf-8')).hexdigest() != _r7x_h:
+                    raise RuntimeError(_r7x_k + ': payload sha256 differs')
+                _r7x_log('R7 %s: start' % _r7x_k)
+                exec(compile(_r7x_txt, 'anchor9586s6fr7-' + _r7x_k, 'exec'), _r7x_g)
+            _r7x_status = 'ran'
+        except Exception as _r7x_e:
+            _r7x_status = 'r7_failed'
+            _r7x_info['error'] = repr(_r7x_e)[:500]
+            _r7x_log('R7 FAILED: %r' % (_r7x_e,))
+        _r7x_info['r7_seconds'] = round(_r7x_time.time() - _r7x_t, 1)
+
+# 3. R7's scored studies (V2's cell-8 rule for R6), the guards, and the three-member re-blend
+if _r7x_status == 'ran':
+    try:
+        _r7x_scored = set()
+        for _r7x_f in sorted(_r7x_g['pred'].glob('worker*/predictions.csv')):
+            with open(_r7x_f, encoding='utf-8') as _r7x_fh:
+                for _r7x_row in _r7x_csv.DictReader(_r7x_fh):
+                    try:
+                        _r7x_v = [float(_r7x_row[_r7x_c]) for _r7x_c in labels]
+                    except (KeyError, ValueError, TypeError):
+                        continue
+                    if all(0. <= _r7x_x <= 1. for _r7x_x in _r7x_v):
+                        _r7x_scored.add(_r7x_row['StudyInstanceUID'])
+        _r7x_ok = _r7x_np.array([u in _r7x_scored for u in test_ids])
+        _r7x_info['r7_scored'] = int(_r7x_ok.sum())
+        if _r7x_ok.sum() < _R7X_MIN_FRAC * len(test_ids):
+            raise RuntimeError('R7 scored %d of %d studies' % (_r7x_ok.sum(), len(test_ids)))
+        _r7x_r7 = _r7x_pd.read_csv(_r7x_out, dtype={'StudyInstanceUID': str})
+        assert sorted(_r7x_r7['StudyInstanceUID']) == sorted(test_ids), 'R7: rows differ from test.csv'
+        assert set(labels) <= set(_r7x_r7.columns), 'R7: columns differ'
+        _r7x_r7 = _r7x_r7.set_index('StudyInstanceUID').loc[test_ids, labels]
+        _r7x_both = ~our_fail & _r7x_ok
+        _r7x_rho = {}
+        if _r7x_both.sum() >= 3:
+            for _r7x_c in labels:
+                _r7x_rho[_r7x_c] = round(float(_r7x_pd.Series(ours[_r7x_c].values[_r7x_both]).corr(
+                    _r7x_pd.Series(_r7x_r7[_r7x_c].values[_r7x_both]), method='spearman')), 4)
+        _r7x_info['rho_r6_r7'] = _r7x_rho
+        _r7x_info['rho_mean'] = round(float(_r7x_np.nanmean(list(_r7x_rho.values()))), 4) if _r7x_rho else None
+        if _r7x_both.sum() >= _R7X_RHO_MIN_ROWS and not (_r7x_info['rho_mean'] or 0.0) >= _R7X_RHO_FLOOR:
+            raise RuntimeError('R6 / R7 mean rank correlation %r under %r' % (_r7x_info['rho_mean'], _R7X_RHO_FLOOR))
+        _r7x_new = _r7x_final([(_R7X_W_R6, ours, ~our_fail), (_R7X_W_S6F, _s6x_s6, _s6x_ok), (_R7X_W_R7, _r7x_r7, _r7x_ok)])
+        _r7x_vals = _r7x_new[labels].values.astype(_r7x_np.float64)
+        assert _r7x_new['StudyInstanceUID'].tolist() == _r7x_c14['StudyInstanceUID'].tolist(), 'row order changed'
+        assert _r7x_np.isfinite(_r7x_vals).all() and ((_r7x_vals >= 0) & (_r7x_vals <= 1)).all(), 'final out of range'
+        _r7x_new[_r7x_c14.columns.tolist()].to_csv(_r7x_sub + '.r7x.tmp', index=False)
+        _r7x_os.replace(_r7x_sub + '.r7x.tmp', _r7x_sub)
+        _r7x_info['max_abs_change_vs_c14'] = float(_r7x_np.abs(_r7x_vals - _r7x_c14[labels].values).max())
+        _r7x_status = 'ok'
+    except Exception as _r7x_e:
+        _r7x_status = 'combine_failed'
+        _r7x_info['error'] = repr(_r7x_e)[:500]
+        _r7x_log('R7 combine FAILED: %r' % (_r7x_e,))
+if _r7x_status != 'ok':
+    _r7x_sh.copyfile(_r7x_c14_path, _r7x_sub)            # C14's own file (#101)
+_r7x_info['status'] = _r7x_status
+_r7x_info['total_hours'] = round((_r7x_time.time() - NB_T0) / 3600, 3)
+with open('/kaggle/working/r7x_receipt.json', 'w', encoding='utf-8') as _r7x_fh:
+    _r7x_json.dump(_r7x_info, _r7x_fh, indent=1)
+_r7x_log('R7X_DONE ' + _r7x_json.dumps(_r7x_info))
+"""
+
+
+def _free_names(src):
+    """Names a module reads but never binds anywhere, minus builtins (what an exec'd copy needs from its globals)."""
+    import builtins
+    import symtable
+    free, bound = set(), set()
+
+    def walk(t, top):
+        for s in t.get_symbols():
+            if top and (s.is_assigned() or s.is_imported()):
+                bound.add(s.get_name())
+            elif (top and s.is_referenced()) or s.is_global():
+                free.add(s.get_name())
+        for ch in t.get_children():
+            walk(ch, False)
+    walk(symtable.symtable(src, "cell", "exec"), True)
+    return {n for n in free - bound if not hasattr(builtins, n)}
+
+
+def r7x_cells(cells, cfg):
+    """C20's two added cells: an intro and the stage-R run cell, which carries V2's cells 6-7 (as this render holds them, plus
+    R7X_CELL6_PATCHES) as a zlib + base64 payload with its sha256."""
+    import base64
+    import hashlib
+    import zlib
+    c6, c7 = cell_text(cells[6]), cell_text(cells[7])
+    if not c7.lstrip().startswith("deadline = T0 + DEADLINE_HOURS * 3600") or "probe_dual.py" not in c7:
+        raise SystemExit("C20: cell 7 is not V2's compact-controller run cell")
+    if "DEADLINE_HOURS = 8.3\n" not in c6:
+        raise SystemExit("C20: cell 6 no longer sets V2's 8.3 h controller deadline")
+    for old, new in R7X_CELL6_PATCHES:
+        if c6.count(old) != 1:
+            raise SystemExit(f"C20: cell-6 patch target found {c6.count(old)} times: {old!r}")
+        c6 = c6.replace(old, new)
+    for name, src in (("cell6", c6), ("cell7", c7)):
+        compile(src, "c20-" + name, "exec")              # plain Python: no IPython magic may survive in the payload
+    need = (_free_names(c6) | _free_names(c7)) - module_level_names(c6) - module_level_names(c7)
+    missing = sorted(need - {"NB_T0", "display"})       # the two names stage R seeds into the payload's namespace
+    if missing:
+        raise SystemExit(f"C20: cells 6-7 read {missing}, which the stage-R namespace does not provide")
+    if not (0 < cfg["w_r7"] < 1 and abs(cfg["w_r6"] + cfg["w_r7"] + cfg["w_s6f"] - 1.0) < 1e-12
+            and cfg["latest_start_h"] < 8.3 and 0 < cfg["min_frac"] <= 1):
+        raise SystemExit("C20: weights must sum to 1 with 0 < w_r7 < 1; latest start < 8.3 h; 0 < min_frac <= 1")
+    payload = {}
+    for name, src in (("cell6", c6), ("cell7", c7)):
+        payload[name] = (base64.b64encode(zlib.compress(src.encode("utf-8"), 9)).decode("ascii"),
+                         hashlib.sha256(src.encode("utf-8")).hexdigest())
+    run = R7X_RUN_CELL
+    for k, v in (("__W_R6__", repr(cfg["w_r6"])), ("__W_R7__", repr(cfg["w_r7"])), ("__W_S6F__", repr(cfg["w_s6f"])),
+                 ("__LATEST__", repr(cfg["latest_start_h"])), ("__MIN_FRAC__", repr(cfg["min_frac"])),
+                 ("__RHO_FLOOR__", repr(cfg["rho_floor"])), ("__RHO_MIN_ROWS__", repr(cfg["rho_min_rows"])),
+                 ("__C6_B64__", payload["cell6"][0]), ("__C6_SHA__", payload["cell6"][1]),
+                 ("__C7_B64__", payload["cell7"][0]), ("__C7_SHA__", payload["cell7"][1])):
+        if run.count(k) != 1:
+            raise SystemExit(f"C20: template placeholder {k} found {run.count(k)} times")
+        run = run.replace(k, v)
+    compile(run, "anchor9586s6fr7-run", "exec")
+    bad = sorted(n for n in module_level_names(run) if not n.startswith("_r7x_") and not n.startswith("_R7X_"))
+    if bad:
+        raise SystemExit(f"the R7 run cell binds {bad} at notebook scope (only _r7x_* names are allowed)")
+    intro = (R7X_INTRO.replace("__W_R6__", "%.2f" % cfg["w_r6"]).replace("__W_R7__", "%.2f" % cfg["w_r7"])
+             .replace("__W_S6F__", "%.2f" % cfg["w_s6f"]).replace("__LATEST__", "%.1f" % cfg["latest_start_h"])
+             .replace("__MINPCT__", "%d" % round(100 * cfg["min_frac"])))
+    return [{"id": "anchor9586s6fr7-intro", "cell_type": "markdown", "metadata": {}, "source": intro},
+            {"id": "anchor9586s6fr7-run", "cell_type": "code", "metadata": {}, "outputs": [], "execution_count": None,
+             "source": run}], {"cell6_sha256": payload["cell6"][1], "cell7_sha256": payload["cell7"][1],
+                                "cell6_patches": [n for _, n in R7X_CELL6_PATCHES]}
 
 # nartaa's launcher: compact_infer.main() recompiled from its own source with three replacements (score every K1_CROPS crop, average
 # the probabilities).  compact_infer.py on disk is unchanged: its sha256 is checked by the script and echoed in every receipt.  B's
@@ -750,6 +995,23 @@ def build(spec):
                                "B failure cap 0.25 % -> 50 %", "C17: crop TTA in the B launcher (K1_CROPS, probability mean)"]
         provenance.update(s6fall=dict(spec["s6fall"], script=os.path.basename(F954_ANCHORS["0950s6f"]["notebook"]),
                                       script_sha256=F954_ANCHORS["0950s6f"]["sha256"], script_patches=script_patches))
+    if "r7x" in spec:                                # C20: stage R after the s6fall stage
+        if "s6fall" not in spec or "crops" in spec["s6fall"]:
+            raise SystemExit("C20 builds on C14's s6fall stage (09586s6f-based, no C17 crops)")
+        bound = set()
+        for c in cells:
+            if c["cell_type"] == "code":
+                try:
+                    bound |= module_level_names(cell_text(c))
+                except SyntaxError:
+                    pass
+        for need in ("ours", "our_fail", "labels", "test_ids", "pct_on", "NB_T0", "_s6x_status", "_s6x_s6", "_s6x_ok",
+                     "_s6x_own", "_s6x_use_b", "_s6x_stage3", "_s6x_part_b", "_S6X_SHARE"):
+            if need not in bound:
+                raise SystemExit(f"the R7 run cell reads {need!r}, which no earlier cell binds")
+        extra, r7prov = r7x_cells(cells, spec["r7x"])
+        cells += extra
+        provenance.update(r7x=dict(spec["r7x"], dataset=R7X_SLUG, bundle_id="8c7b666e27dc0e8f", **r7prov))
     out = {"cells": cells,
            "metadata": {"kernelspec": nb["metadata"].get("kernelspec", {"display_name": "Python 3", "language": "python",
                                                                          "name": "python3"}),
