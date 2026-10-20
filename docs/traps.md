@@ -1444,3 +1444,16 @@ have errored the submission. Without it, the stage would have degraded silently 
 name, and patch every code use. The C18 spec now patches both lines, and `build()` refuses a C18 render if `320` survives in cell 2
 outside a comment (tested against the v1 patch: it fires). A per-study `FALLBACK (AssertionError: )` with an empty message means a
 bare assert: read the asserts first (experiments.md 2026-10-19 "C18 placeholders"; commit `7f1d980`).
+
+### 76. A code submission can fail at submit time with Kaggle's "A system error": an instant ERROR, not counted, gone on a later resend (Tier 3, 2026-10-20)
+
+C19 (`rsna-knee-anchor9586s6fw` v1, a green placeholder) was sent at 17:23:31 and again at 17:24:45 UTC. Both times the CLI printed only
+`Expecting value: line 1 column 1 (char 0)` (an empty server reply), and the submission turned `ERROR` within seconds. The CSV
+listing shows no reason. The Python API does: `api.competition_submissions(...)[i].error_description` = "A system error. Please try
+resubmitting to resolve the error and contact Kaggle Support if it persists.", with `total_bytes` 0. Nothing was wrong with the kernel:
+it was `COMPLETE`, its metadata matched C14's byte for byte, every Dataset resolved, and #105 (the same image and sources) had been
+accepted at 07:35 UTC. Kaggle's SubmissionCount stayed at 105, and the third send at 18:00:34 UTC went through with "3 submissions
+remaining today", so the errors cost no slot. A plausible trigger, not shown: the forum harvest's hundreds of API calls ending ≈ 17:15
+UTC (a dataset listing got a 429 at ≈ 17:05). **Do:** read `error_description` through the Python API before acting on an instant
+ERROR; on "A system error", wait ≈ 30 min and resend the same version rather than rebuilding; keep bulk API work (forum harvests,
+dataset listings) away from send times (experiments.md 2026-10-20 "C19 send hit two Kaggle system errors; C20 built").
