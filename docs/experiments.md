@@ -7283,6 +7283,32 @@ Candidates, best first:
    (3 epochs on nartaa's 384), manatoshoji03's re-hosted CoAtNets, hengck23's MaViT (0.926 in a 2-model blend): same family or too weak.
    cyruspinto's engines have no public inference code.
 
+**Tian's decisions (≈ 09:00 UTC, after the review):** send the V-JEPA solo once green; build C21m if it reads ≥ 0.945 (15 % fixed);
+no retraining (a second s6fall seed: ≈ 24 h end to end, $3–4 of the ≈ $4.2 RunPod left, ≈ +0.0003–0.0006); no public weight-variant
+tickets.
+
+### 2026-10-21 — C21: the V-JEPA solo sent as #108; C21m (best base + V-JEPA at 15 %) built, mock-tested, both placeholders pushed · ⏳ PENDING
+
+**V-JEPA solo** (`src/vjepa_solo.py` → `kaggle/rsna-knee-vjepa-solo/`): the author's `infer.py` read from the Dataset and patched in
+memory (bf16 → fp16 autocast, the competition dir by glob, `submission.csv` in the sample's order). **Placeholder green** (v1, 08:46 →
+08:49 UTC): 3 / 3 studies in 13.6 s after a ≈ 95 s model load (≈ 4.5 s / study with decoding on one T4 → ≈ 1.6 h on ≈ 1,284 studies
+in one process); fp16 vs fp32 max |Δ| 1.1e-3, mean 3.2e-4; `submission.csv` 3 × 13, no NaN. **Sent as #108** at 08:51:01 UTC (ref
+57474403; "3 submissions remaining today"); watcher `src/watch_submission.py --ref 57474403` (log `artifacts/watch_sub_57474403.log`).
+A solo cannot become our best entry, so #107's tie read is undisturbed. **Read rule:** ≥ 0.945 → C21m; < 0.945 → dropped.
+
+**C21m** (`build_anchor_copy.py --anchor 09586s6fwvj` on C19, `--anchor 09586s6fr7wvj` on C20 on C19; `VJX_CFG`): a stage V after every
+other stage, on the base's final file. One worker process per GPU over interleaved halves of the studies (the author's `infer.py`
+functions in fp16, a partial CSV every 10 studies), start gate 7.0 h, stop 8.5 h; then per finding final = rank(0.85 pct(base) + 0.15
+pct(V-JEPA)) over the studies V-JEPA scored, the base's rank elsewhere. Guards: ≥ 50 % coverage, a mean base / V-JEPA Spearman ≥ 0.35
+over ≥ 30 studies; any failure = the base's own file. Every existing render byte-identical. **`src/c21_mock_test.py` passes 9 / 9 on
+both bases:** the blend = an independent recompute (1e-16); a worker failing (exactly 50 % coverage) still blends; a timeout keeps the
+scored studies (one worker halfway + one complete: 40 / 60 → blends; both halfway: 20 / 60 → base); both failing, garbage output (ρ
+−0.08), a corrupted payload and a late start all restore the base's file exactly; the real payload = `VJX_WORKER`. Two harness bugs
+were fixed before the pass (a dtype-sensitive equality, a tag normalisation that touched the R7 note). **Placeholders** `-s6fwvj` v1 and
+`-s6fr7wvj` v1 pushed 08:58 UTC (watchers `artifacts/watch_anchor9586s6fwvj.log`, `…s6fr7wvj.log`); the base is chosen by #107.
+
+**Verdict: ⏳ PENDING** (#108 on the LB; the C21m placeholders queued).
+
 ## Infrastructure
 
 ### 2026-09-27 — The "0.943 Speedy Raptors CoAtNet D4" notebook is our anchor **plus two CoAt readers**, not a faster graph; its "< 30 min" is a 3-study commit run · P-41 (threaded scan + 8 decode workers) smoke-green and byte-identical

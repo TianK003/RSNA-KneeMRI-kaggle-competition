@@ -24,6 +24,9 @@ the metadata mounts what the author's own kernel mounts and pins the author's Do
            SELF_CHECK rebuilds C14's file first; R7 starts before 6.3 h only; any failure = C14's file -> kaggle/rsna-knee-anchor9586s6fr7/
     09586s6fr7w C20 on C19 (Tian 10-21): the same with cell 8's four Raptor-half weights at the 0.958 notebook's (C19, #106), so the
            SELF_CHECK and every fallback are C19's file                                       -> kaggle/rsna-knee-anchor9586s6fr7w/
+    09586s6fwvj / 09586s6fr7wvj  C21m (Tian 10-21, if the V-JEPA solo reads >= 0.945): C19 / C20 on C19 + nurikw3's V-JEPA 2.1 as a
+           third component of the final file at a fixed 15 % (VJX_CFG), start-gated; any failure = the base's file
+                                                                                  -> kaggle/rsna-knee-anchor9586s6fwvj/ (-s6fr7wvj/)
     09586s6fx C17 (Tian 10-18: a second C14-family ticket): C14 + the 2026-10-18 audit's fixes (traps 74: s6fall under its own
            scratch root so V2's submission.csv is never absent; its hang guard = the notebook's time left, a deadline keeps the scored
            studies, up to 50 % may fail; exact-duplicate Raptor rows count as failed; a rank-corr floor R6 vs s6fall) + s6fall's
@@ -366,10 +369,19 @@ ANCHORS["09586s6fr7"] = dict(ANCHORS["09586s6f"], slug="rsna-knee-anchor9586s6fr
 # render with cell 8's four Raptor-half weights at the 0.958 notebook's.  Stage R's _s6x_stage3 reads W_RAPTOR_C at call time, so its
 # SELF_CHECK, its re-blend and every fallback use C19's weights: the fallback file is C19's (#106), not C14's.
 _variant("09586s6fr7", "w", "w", {8: C19_PATCHES}, C19_NOTE)
+# C21m on either base (C19 or C20 on C19, whichever #107 favours): + V-JEPA as a third component of the final file (VJX_* below).
+# Runtime: ~4.5 s / study on one T4 (10-21 placeholder) -> ~0.8 h with one worker per GPU on ~1,284 studies; the start gate leaves
+# 1.3 h + margin before the 8.5 h stop, and a late finish keeps the scored studies (>= 50 % coverage required).
+VJX_SLUG = "nurikw3/rsna-knee-vjepa21-checkpoints"
+VJX_CFG = {"gamma": 0.15, "latest_start_h": 7.0, "end_h": 8.5, "min_frac": 0.5, "rho_floor": 0.35, "rho_min_rows": 30, "nshard": 2}
 ANCHORS["09586s6fr7w"]["r7x_note"] = (
     "**C20 on C19** (`--anchor 09586s6fr7w`, Tian 10-21): cell 8's four per-finding Raptor-half weights are the 0.958 notebook's "
     "(C19, `rsna-knee-anchor9586s6fw`, #106), not V2's. Wherever this cell and the next say C14, read C19: the SELF_CHECK rebuilds "
     "C19's file and every fallback is C19's own file.")
+for _b, _name in (("09586s6fw", "C19 (`rsna-knee-anchor9586s6fw`, #106)"),
+                  ("09586s6fr7w", "C20 on C19 (`rsna-knee-anchor9586s6fr7w`, #107)")):
+    ANCHORS[_b + "vj"] = dict(ANCHORS[_b], slug=ANCHORS[_b]["slug"] + "vj", title=ANCHORS[_b]["title"] + "vj",
+                              dataset_sources=ANCHORS[_b]["dataset_sources"] + [VJX_SLUG], vjx=dict(VJX_CFG, base=_name))
 
 R7X_INTRO = """# Anchor9586s6fr7: heliosli's R7 as a third member of C14's R6 half (candidates.md C20)
 
@@ -590,6 +602,249 @@ def r7x_cells(cells, cfg, note=""):
             {"id": "anchor9586s6fr7-run", "cell_type": "code", "metadata": {}, "outputs": [], "execution_count": None,
              "source": run}], {"cell6_sha256": payload["cell6"][1], "cell7_sha256": payload["cell7"][1],
                                 "cell6_patches": [n for _, n in R7X_CELL6_PATCHES]}
+
+
+# C21m (10-21, Tian: "build C21 if the V-JEPA solo reads >= 0.945"): nurikw3's public V-JEPA 2.1 ViT-B (5 folds; Dataset CC0, the
+# vendored facebookresearch/vjepa2 code MIT) as a third component of the FINAL file, after every other stage: per finding,
+# rank((1 - gamma) pct(base) + gamma pct(V-JEPA)) over the studies V-JEPA scored, the base's rank elsewhere.  gamma is fixed a
+# priori (Tian: 15 %), never tuned on the LB.  V-JEPA runs as one worker process per GPU over interleaved halves of the studies, each
+# writing a partial CSV every 10 studies, so the deadline keeps what was scored.  Any skip / failure / low coverage / low rank
+# correlation with the base: the base's own file.  The worker is the author's infer.py functions in fp16 (the 10-21 placeholder:
+# fp16 vs fp32 max |d| 1.1e-3; ~4.5 s / study on one T4 with decoding).
+VJX_WORKER = r'''"""C21m worker: one shard of the test studies through nurikw3's V-JEPA 2.1 5-fold models in fp16; a partial CSV every 10."""
+import glob, os, sys, time, types
+from pathlib import Path
+import numpy as np
+import pandas as pd
+import torch
+
+SHARD, NSHARD, OUT = int(sys.argv[1]), int(sys.argv[2]), sys.argv[3]
+
+
+def find_one(tail):
+    for depth in range(1, 6):
+        hits = sorted(glob.glob("/kaggle/input/" + "*/" * depth + tail))
+        if hits:
+            return Path(hits[0])
+    raise SystemExit(tail + " not found under /kaggle/input")
+
+
+VJ = find_one("f0_best.pt").parent
+COMP = find_one("test_series.csv").parent
+sys.path[:0] = [str(VJ), str(VJ / "vjepa2")]
+mod = types.ModuleType("vj_infer")
+mod.__file__ = str(VJ / "infer.py")
+exec(compile((VJ / "infer.py").read_text(encoding="utf-8"), mod.__file__, "exec"), mod.__dict__)
+test = pd.read_csv(COMP / "test.csv", dtype={"StudyInstanceUID": str})
+series = pd.read_csv(COMP / "test_series.csv", dtype={"StudyInstanceUID": str})
+by = {str(u): g for u, g in series.groupby("StudyInstanceUID", sort=False)}
+uids = test.StudyInstanceUID.tolist()[SHARD::NSHARD]
+t0 = time.time()
+models = [mod.load_model(cp) for cp in sorted(VJ.glob("f*_best.pt"))]
+print("VJX shard %d: %d folds loaded in %.0f s, %d studies" % (SHARD, len(models), time.time() - t0, len(uids)), flush=True)
+rows, failed = [], 0
+
+
+def flush():
+    pd.DataFrame(rows, columns=["StudyInstanceUID"] + list(mod.TARGETS)).to_csv(OUT + ".tmp", index=False)
+    os.replace(OUT + ".tmp", OUT)
+
+
+with torch.inference_mode():
+    for i, uid in enumerate(uids):
+        try:
+            gray, present = mod.load_study_tensor(COMP, uid, by.get(uid))
+            if not gray.any():
+                raise ValueError("no pixels")
+            x = torch.from_numpy(gray).unsqueeze(0).cuda()
+            p = torch.from_numpy(present).unsqueeze(0).cuda()
+            with torch.autocast("cuda", dtype=torch.float16):
+                probs = [torch.sigmoid(m(x, p)).float().squeeze(0).cpu().numpy() for m in models]
+            rows.append([uid] + [float(v) for v in np.mean(probs, axis=0)])
+        except Exception as e:
+            failed += 1
+            print("VJX shard %d: study %d failed: %s" % (SHARD, i, type(e).__name__), flush=True)
+        if (i + 1) % 10 == 0 or i + 1 == len(uids):
+            flush()
+        if (i + 1) % 100 == 0:
+            print("VJX shard %d: %d / %d in %.0f s" % (SHARD, i + 1, len(uids), time.time() - t0), flush=True)
+flush()
+print("VJX_SHARD_DONE %d scored %d failed %d in %.0f s" % (SHARD, len(rows), failed, time.time() - t0), flush=True)
+'''
+
+VJX_INTRO = """# C21m: nurikw3's V-JEPA 2.1 as a third component of the final file (candidates.md C21)
+
+Built by `src/build_anchor_copy.py --anchor __TAG__`. Every cell above is __BASE__. The next cell runs nurikw3's public V-JEPA 2.1
+ViT-B (5 folds, Dataset `nurikw3/rsna-knee-vjepa21-checkpoints`, CC0; vendored `facebookresearch/vjepa2` code, MIT) in fp16, one worker
+per GPU, and re-ranks: final = rank((1 - __GAMMA__) pct(base) + __GAMMA__ pct(V-JEPA)) per finding over the studies V-JEPA scored. It
+starts only before __LATEST__ h of notebook time and stops at __END__ h, keeping what it scored. On a skip, a failure, under __MINPCT__ %
+coverage or a mean rank correlation with the base under __RHO__, the submission is the base's own file.
+Credits: heliosli (V2, R6, R7, inference code, SKM-TEA anatomy model), nartaa (CoAtNets; s6fall weights, CC BY-NC 4.0), goodpjw2008
+(2.5D reader), nurikw3 (V-JEPA 2.1 fine-tune).
+"""
+
+VJX_RUN_CELL = r"""# C21m: stage V -- nurikw3's V-JEPA 2.1 (5 folds, fp16, one worker per GPU) as a third component of the final file:
+# final = rank((1 - gamma) pct(base) + gamma pct(V-JEPA)) per finding over the studies V-JEPA scored, the base's rank elsewhere.
+# Reads the notebook's test_ids, labels and NB_T0; binds only _vjx_* names.  Any skip / failure / low coverage: the base's own file.
+import base64 as _vjx_b64, hashlib as _vjx_hl, json as _vjx_json, os as _vjx_os, shutil as _vjx_sh, signal as _vjx_sig
+import subprocess as _vjx_sp, sys as _vjx_sys, time as _vjx_time, zlib as _vjx_zlib
+import numpy as _vjx_np
+import pandas as _vjx_pd
+import torch as _vjx_torch
+_VJX_GAMMA = __GAMMA__
+_VJX_LATEST_START_H, _VJX_END_H = __LATEST__, __END__
+_VJX_MIN_FRAC, _VJX_RHO_FLOOR, _VJX_RHO_MIN_ROWS = __MIN_FRAC__, __RHO_FLOOR__, __RHO_MIN_ROWS__
+_VJX_NSHARD = max(1, min(__NSHARD__, _vjx_torch.cuda.device_count()))
+_VJX_WORKER = ('__W_B64__', '__W_SHA__')
+_vjx_sub = '/kaggle/working/submission.csv'
+_vjx_base_path = '/kaggle/working/_base_final.csv'
+_vjx_dir = '/kaggle/working/vjx'
+_vjx_sh.copyfile(_vjx_sub, _vjx_base_path)            # the base's final file: the submission unless every step below succeeds
+_vjx_info = {'gamma': _VJX_GAMMA, 'rows': len(test_ids), 'nshard': _VJX_NSHARD}
+_vjx_status = 'not_run'
+_vjx_ps = []
+
+
+def _vjx_log(msg):
+    print('[vjx %5.2fh] %s' % ((_vjx_time.time() - NB_T0) / 3600, msg), flush=True)
+
+
+def _vjx_kill(p):
+    for step in (lambda: _vjx_os.killpg(p.pid, _vjx_sig.SIGKILL), lambda: p.kill(), lambda: p.wait(timeout=60)):
+        try:
+            step()
+        except Exception as e:
+            _vjx_log('kill step: %s' % type(e).__name__)
+
+
+# 1. the base file must be a complete submission over test_ids
+try:
+    _vjx_base = _vjx_pd.read_csv(_vjx_base_path, dtype={'StudyInstanceUID': str})
+    assert sorted(_vjx_base['StudyInstanceUID']) == sorted(test_ids), 'base rows differ from test_ids'
+    assert set(labels) <= set(_vjx_base.columns), 'base columns'
+    _vjx_status = 'base_ok'
+except Exception as _vjx_e:
+    _vjx_status = 'base_failed'
+    _vjx_info['error'] = repr(_vjx_e)[:500]
+    _vjx_log('base check FAILED: %r' % (_vjx_e,))
+
+# 2. V-JEPA workers under the notebook-time limit; their partial CSVs survive a timeout
+if _vjx_status == 'base_ok':
+    _vjx_elapsed_h = (_vjx_time.time() - NB_T0) / 3600
+    _vjx_info['start_h'] = round(_vjx_elapsed_h, 3)
+    _vjx_status = 'skipped_late'
+    if _vjx_elapsed_h <= _VJX_LATEST_START_H:
+        _vjx_t = _vjx_time.time()
+        try:
+            _vjx_txt = _vjx_zlib.decompress(_vjx_b64.b64decode(_VJX_WORKER[0])).decode('utf-8')
+            if _vjx_hl.sha256(_vjx_txt.encode('utf-8')).hexdigest() != _VJX_WORKER[1]:
+                raise RuntimeError('worker payload sha256 differs')
+            _vjx_os.makedirs(_vjx_dir, exist_ok=True)
+            with open('/tmp/vjx_run.py', 'w', encoding='utf-8') as _vjx_fh:
+                _vjx_fh.write(_vjx_txt)
+            _vjx_limit = (_VJX_END_H - _vjx_elapsed_h) * 3600
+            _vjx_log('V-JEPA stage: %d worker(s), limit %.0f min' % (_VJX_NSHARD, _vjx_limit / 60))
+            for _vjx_k in range(_VJX_NSHARD):
+                _vjx_ps.append(_vjx_sp.Popen([_vjx_sys.executable, '-u', '/tmp/vjx_run.py', str(_vjx_k), str(_VJX_NSHARD),
+                                              '%s/shard%d.csv' % (_vjx_dir, _vjx_k)],
+                                             env=dict(_vjx_os.environ, CUDA_VISIBLE_DEVICES=str(_vjx_k)), start_new_session=True))
+            _vjx_rcs = []
+            for _vjx_p in _vjx_ps:
+                try:
+                    _vjx_rcs.append(_vjx_p.wait(timeout=max(1.0, _vjx_limit - (_vjx_time.time() - _vjx_t))))
+                except _vjx_sp.TimeoutExpired:
+                    _vjx_rcs.append(None)
+                    _vjx_kill(_vjx_p)
+            _vjx_info['worker_rc'] = _vjx_rcs
+            _vjx_status = 'ran'
+        except Exception as _vjx_e:
+            _vjx_status = 'vjx_failed'
+            _vjx_info['error'] = repr(_vjx_e)[:500]
+            _vjx_log('V-JEPA FAILED: %r' % (_vjx_e,))
+            for _vjx_p in _vjx_ps:
+                _vjx_kill(_vjx_p)
+        _vjx_info['vjx_seconds'] = round(_vjx_time.time() - _vjx_t, 1)
+
+# 3. gather, guard, blend
+if _vjx_status == 'ran':
+    try:
+        _vjx_parts = [_vjx_pd.read_csv(f, dtype={'StudyInstanceUID': str})
+                      for f in ('%s/shard%d.csv' % (_vjx_dir, k) for k in range(_VJX_NSHARD)) if _vjx_os.path.isfile(f)]
+        if not _vjx_parts:
+            raise RuntimeError('no V-JEPA output')
+        _vjx_b = _vjx_base.set_index('StudyInstanceUID')
+        _vjx_v = _vjx_pd.concat(_vjx_parts).drop_duplicates('StudyInstanceUID').set_index('StudyInstanceUID').reindex(_vjx_b.index)
+        _vjx_vv = _vjx_v[labels].values.astype(_vjx_np.float64)
+        _vjx_ok = _vjx_np.isfinite(_vjx_vv).all(axis=1) & ((_vjx_vv >= 0) & (_vjx_vv <= 1)).all(axis=1)
+        _vjx_info['scored'] = int(_vjx_ok.sum())
+        if _vjx_ok.sum() < _VJX_MIN_FRAC * len(_vjx_b):
+            raise RuntimeError('V-JEPA scored %d of %d studies' % (_vjx_ok.sum(), len(_vjx_b)))
+        _vjx_rho = {}
+        if _vjx_ok.sum() >= 3:
+            for _vjx_c in labels:
+                _vjx_rho[_vjx_c] = round(float(_vjx_pd.Series(_vjx_b[_vjx_c].values[_vjx_ok]).corr(
+                    _vjx_pd.Series(_vjx_v[_vjx_c].values[_vjx_ok]), method='spearman')), 4)
+        _vjx_info['rho_base_vjx'] = _vjx_rho
+        _vjx_info['rho_mean'] = round(float(_vjx_np.nanmean(list(_vjx_rho.values()))), 4) if _vjx_rho else None
+        if _vjx_ok.sum() >= _VJX_RHO_MIN_ROWS and not (_vjx_info['rho_mean'] or 0.0) >= _VJX_RHO_FLOOR:
+            raise RuntimeError('base / V-JEPA mean rank correlation %r under %r' % (_vjx_info['rho_mean'], _VJX_RHO_FLOOR))
+        _vjx_new = _vjx_b.copy()
+        for _vjx_c in labels:
+            _vjx_a = _vjx_b[_vjx_c].rank(method='average', pct=True).values
+            _vjx_r = _vjx_np.full(len(_vjx_b), _vjx_np.nan)
+            _vjx_r[_vjx_ok] = _vjx_pd.Series(_vjx_v[_vjx_c].values[_vjx_ok]).rank(method='average', pct=True).values
+            _vjx_m = _vjx_np.where(_vjx_ok, (1.0 - _VJX_GAMMA) * _vjx_a + _VJX_GAMMA * _vjx_r, _vjx_a)
+            _vjx_new[_vjx_c] = _vjx_pd.Series(_vjx_m).rank(method='average', pct=True).values
+        _vjx_vals = _vjx_new[labels].values.astype(_vjx_np.float64)
+        assert _vjx_np.isfinite(_vjx_vals).all() and ((_vjx_vals >= 0) & (_vjx_vals <= 1)).all(), 'final out of range'
+        _vjx_new.reset_index()[_vjx_base.columns.tolist()].to_csv(_vjx_sub + '.vjx.tmp', index=False)
+        _vjx_os.replace(_vjx_sub + '.vjx.tmp', _vjx_sub)
+        _vjx_info['max_abs_change_vs_base'] = float(_vjx_np.abs(_vjx_vals - _vjx_b[labels].values.astype(_vjx_np.float64)).max())
+        _vjx_status = 'ok'
+    except Exception as _vjx_e:
+        _vjx_status = 'combine_failed'
+        _vjx_info['error'] = repr(_vjx_e)[:500]
+        _vjx_log('V-JEPA combine FAILED: %r' % (_vjx_e,))
+if _vjx_status != 'ok':
+    _vjx_sh.copyfile(_vjx_base_path, _vjx_sub)            # the base's own file
+_vjx_info['status'] = _vjx_status
+_vjx_info['total_hours'] = round((_vjx_time.time() - NB_T0) / 3600, 3)
+with open('/kaggle/working/vjx_receipt.json', 'w', encoding='utf-8') as _vjx_fh:
+    _vjx_json.dump(_vjx_info, _vjx_fh, indent=1)
+_vjx_log('VJX_DONE ' + _vjx_json.dumps(_vjx_info))
+"""
+
+
+def vjx_cells(tag, base_name, cfg):
+    """C21m's two added cells: an intro and the stage-V run cell, which carries VJX_WORKER as a zlib + base64 payload with its sha256."""
+    import base64
+    import hashlib
+    import zlib
+    if not (0 < cfg["gamma"] < 1 and cfg["latest_start_h"] < cfg["end_h"] <= 8.6 and 0 < cfg["min_frac"] <= 1):
+        raise SystemExit("C21m: 0 < gamma < 1, latest start < end <= 8.6 h, 0 < min_frac <= 1")
+    compile(VJX_WORKER, "c21m-worker", "exec")
+    b64 = base64.b64encode(zlib.compress(VJX_WORKER.encode("utf-8"), 9)).decode("ascii")
+    sha = hashlib.sha256(VJX_WORKER.encode("utf-8")).hexdigest()
+    run = VJX_RUN_CELL
+    for k, v in (("__GAMMA__", repr(cfg["gamma"])), ("__LATEST__", repr(cfg["latest_start_h"])), ("__END__", repr(cfg["end_h"])),
+                 ("__MIN_FRAC__", repr(cfg["min_frac"])), ("__RHO_FLOOR__", repr(cfg["rho_floor"])),
+                 ("__RHO_MIN_ROWS__", repr(cfg["rho_min_rows"])), ("__NSHARD__", repr(cfg["nshard"])),
+                 ("__W_B64__", b64), ("__W_SHA__", sha)):
+        if run.count(k) != 1:
+            raise SystemExit(f"C21m: template placeholder {k} found {run.count(k)} times")
+        run = run.replace(k, v)
+    compile(run, "c21m-run", "exec")
+    bad = sorted(n for n in module_level_names(run) if not n.startswith("_vjx_") and not n.startswith("_VJX_"))
+    if bad:
+        raise SystemExit(f"the V-JEPA run cell binds {bad} at notebook scope (only _vjx_* names are allowed)")
+    intro = VJX_INTRO
+    for k, v in (("__TAG__", tag), ("__BASE__", base_name), ("__GAMMA__", "%.2f" % cfg["gamma"]),
+                 ("__LATEST__", "%.1f" % cfg["latest_start_h"]), ("__END__", "%.1f" % cfg["end_h"]),
+                 ("__MINPCT__", "%d" % round(100 * cfg["min_frac"])), ("__RHO__", "%.2f" % cfg["rho_floor"])):
+        intro = intro.replace(k, v)
+    return [{"id": "c21m-intro", "cell_type": "markdown", "metadata": {}, "source": intro},
+            {"id": "c21m-run", "cell_type": "code", "metadata": {}, "outputs": [], "execution_count": None, "source": run}], \
+        {"worker_sha256": sha, "dataset": VJX_SLUG}
 
 # nartaa's launcher: compact_infer.main() recompiled from its own source with three replacements (score every K1_CROPS crop, average
 # the probabilities).  compact_infer.py on disk is unchanged: its sha256 is checked by the script and echoed in every receipt.  B's
@@ -1024,6 +1279,20 @@ def build(spec):
         extra, r7prov = r7x_cells(cells, spec["r7x"], spec.get("r7x_note", ""))
         cells += extra
         provenance.update(r7x=dict(spec["r7x"], dataset=R7X_SLUG, bundle_id="8c7b666e27dc0e8f", **r7prov))
+    if "vjx" in spec:                                # C21m: stage V after every other stage, on the base's final file
+        bound = set()
+        for c in cells:
+            if c["cell_type"] == "code":
+                try:
+                    bound |= module_level_names(cell_text(c))
+                except SyntaxError:
+                    pass
+        for need in ("test_ids", "labels", "NB_T0"):
+            if need not in bound:
+                raise SystemExit(f"the V-JEPA run cell reads {need!r}, which no earlier cell binds")
+        extra, vjprov = vjx_cells(spec["tag"], spec["vjx"]["base"], spec["vjx"])
+        cells += extra
+        provenance.update(vjx=dict(spec["vjx"], **vjprov))
     out = {"cells": cells,
            "metadata": {"kernelspec": nb["metadata"].get("kernelspec", {"display_name": "Python 3", "language": "python",
                                                                          "name": "python3"}),
