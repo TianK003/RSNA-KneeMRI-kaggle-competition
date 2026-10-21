@@ -6,6 +6,93 @@ to read first after a break.
 
 ---
 
+## 2026-10-21 (07:35 → 12:20 UTC) — **#106 C19 read above C14 → pick 1 = C19** · C20 on C19 sent (#107 ⏳) · endgame review: metadata / site / sex / PatientID all dead, no public lever · **V-JEPA (the one new public family) read 0.836 → dropped**
+
+Tian, in order: "pull the results of the latest run … did we go up or down overnight?"; "Send C20 on C19 first — tell me what it does
+over C19 and what the expected gain is"; "review all the work … ultrathink … deep research … is there anything else we could try …
+retrain to reach .95?"; four answers to my questions (send the V-JEPA solo; C21m if it reads ≥ 0.945; no retraining; no weight-variant
+tickets); finally "get the results of jepa-v and run /update and /handoff". The 10-20 afternoon (C19 sent as #106 after two Kaggle
+"system errors", C20 built) has no handoff entry of its own: see experiments.md 2026-10-20 "C19 send hit two Kaggle system errors; C20
+built". Commits `3c8a643` … `e3940c4` (12 today) and this one.
+
+### ⏳ Still in flight as this was written (12:20 UTC)
+
+| In flight | What it is | Started | How to check | How to read it |
+|---|---|---|---|---|
+| **#107 = C20 on C19** (ref 57473156) | `rsna-knee-anchor9586s6fr7w` v1: C19 + heliosli's R7 as a third R6-half member (0.36 R6 / 0.24 R7 / 0.40 s6fall); any R7 skip = C19's file | sent 08:15:06 UTC; runtime ≈ 6.7–7.6 h | `kaggle competitions submissions rsna-knee-abnormality-detection` (row 57473156). **No watcher is running** (reaped, see below) | Once COMPLETE, pull the LB (`kaggle competitions leaderboard rsna-knee-abnormality-detection -d -p artifacts/lb_1021b`, unzip) and count **strict stable 0.958 teams** (same Score, SubmissionCount and LastSubmissionDate in both CSVs, ours excluded) above our row, now vs `artifacts/lb_snap_baseline_1021/` (08:14 UTC, rank 511, 283rd of 1,469). Fewer above → C20 on C19 > C19 → **pick 1 = #107, pick 2 = C19 #106**. Same count → picks stay #106 + #101. 0.957 or ERROR → no pick. Only #107 can move our best entry (#108 cannot reach 0.958) |
+| **#108 = the bugged V-JEPA solo** (ref 57474403) | `rsna-knee-vjepa-solo` v1: V-JEPA with every > 24-slice series blank (traps 78) | sent 08:51:01 UTC | same listing | **Decides nothing.** Above #109's 0.836 → the authors trained with the same loader bug (a footnote for traps 78); either way far under 0.945 |
+
+### Where things stand
+
+| | Status |
+|---|---|
+| Public LB | **0.958, rank 511 of 6,305** (08:14 UTC baseline; 283rd of the 1,469 at 0.958; top-5 % line = rank 315). Teams that crossed 0.958 → 0.959 overnight came mostly from the top ~60 of the tie: crossing from 283rd needs an s6fall-sized lift (+280–350 places) |
+| Best entry | **#106 C19 on C14** (above C14 inside the tie: strict stable teams above us 122 → 107) |
+| Picks | **pick 1 = C19 #106, pick 2 = C14 #101** (Tian's two weight sets); pick 1 = #107 if it raises our place. **Select both by hand** in the browser before 10-22 23:59 UTC |
+| Submissions | 10-21: #107 ⏳, #108 ⏳, #109 = 0.836 ❌; **2 slots left today**, 5 on 10-22; last useful send ≈ 10-22 12:00–14:00 UTC |
+| GPU | Kaggle 5.72 h used, **24.28 h left** (12:13 UTC; the last weekly budget); **two GPU sessions at once per account** |
+| Repo | clean except the untracked `discussion*.py/xml` files Tian keeps at the root (not ours, left alone) |
+
+### What we talked about and decided
+
+- **C20 goes on C19, not C14** (Tian): #106 read above C14, so R7 must be read against our best base. Expected public gain ≈ 0 (R7 is
+  R6's sibling: same trainer, views, folds; goodpjw2008 measured R7 next to R6 as no change). A lottery ticket by Tian's choice.
+- **Endgame review** (Tian asked for ultrathink + deep research; three subagents + my own analysis): no public or cheap lever above
+  0.958 exists; every ≥ 0.959 team has its own 0.95+ singles on image-informed labels; two teams inside the tie report their own models
+  did not move the public blend.
+- **Retraining our own model to 0.95: no** (Tian agreed). Our best single is 0.942 (0.945 with OAI) after ~60 arms; one arm = a full
+  session + a placeholder + ≈ 7 h of scoring; our 0.946 leg costs the 0.958 anchor at β 0.05 and 0.20. A second s6fall seed on RunPod
+  (its code is Apache-2.0 since 10-17) was costed at ≈ 24 h end to end and $3–4 of the ≈ $4.2 left for +0.0003–0.0006: declined.
+- **No public weight-variant tickets** (Tian): sub-tick on public, no private value.
+- **V-JEPA:** the solo was sent (Tian); C21m (best base + V-JEPA at a fixed 15 %, start-gated) was pre-approved at solo ≥ 0.945. The
+  solo read 0.836, so C21m is not sent.
+
+### What we figured out
+
+1. **C19 > C14 by sign** (strict stable teams above us 122 → 107): V2's 0.05 weight pushes cost on C14's members (experiments.md
+   2026-10-21 "Submission #106 read").
+2. **DICOM headers carry no usable new information.** Site / protocol predict the report labels (0.653) but not the image-read gold
+   (0.573: reporting habit, since the host's labels are read from the images); a site prior costs on gold (−0.0325 / −0.0064), so does
+   per-site centering (0.894 → 0.884); sex −0.008; **PatientID is unique per study** (4,407 / 4,407: no linkage, no leak); an effusion
+   proxy for synovitis −0.078 (experiments.md 2026-10-21 "Site / protocol metadata", "PatientID linkage check").
+3. **The last useful send is ≈ 10-22 12:00–14:00 UTC:** an entry still scoring at 23:59 UTC most likely cannot be selected
+   (experiments.md 2026-10-21 "Endgame survey 3").
+4. **The only new public family, nurikw3's V-JEPA 2.1, reads 0.836 alone** (#109), after we found and fixed a bug in its author's
+   loader that blanked every series with > 24 slices (traps 78). No public asset is left to test (experiments.md 2026-10-21
+   "Submission #109 read").
+
+### ⏭ Next action, in order
+
+1. **Read #107** by the rule in the in-flight table as soon as it is COMPLETE (sent 08:15 UTC, so ≈ 15:00–16:00 UTC). Log it with
+   `/update` (Submissions table row 107, scoreboard, candidates C20 row → delete).
+2. **If #107 rose:** pick 1 = #107, pick 2 = #106. C22 (jessky's distill50 compact folds the C20 way, replacing R7) is the only
+   follow-up left; it needs a build like `09586s6fr7` (its own bundle and inference path, unverified) + a placeholder + ≈ 7–8 h of scoring,
+   so it must be sent by ≈ 10-22 08:00 UTC to be safe. Tian's call; I would not (expected ≈ 0, and the runtime margin is thin).
+3. **If #107 did not rise:** nothing else to send. Before the picks, re-run `kaggle kernels list --competition rsna-knee-abnormality-detection
+   --sort-by dateRun` once for a newer public anchor (none expected: the publishing lock).
+4. **Select the two picks by hand** on the competition's Submissions page before 10-22 23:59 UTC (the CLI cannot select): C19 #106 +
+   C14 #101, or #107 + #106 per step 1. Kaggle's default would take the two best public entries, which need not be these.
+
+### Open decisions for Tian
+
+- C22 if #107 rises (step 2).
+- The final selection itself (a browser action).
+- Whether to restart a background poll for #107 (I did not: Claude Code reaped the watchers for low memory).
+
+### Things that will bite if forgotten
+
+- **Claude Code reaps background shells when the laptop is low on memory** (≈ 10:10 UTC today: the #107 snapshot watcher, the #108
+  watcher and the keep-awake helper died; traps 69). Reads that need a snapshot at scoring time are lost; one entry that can move our
+  best is still readable from a later LB CSV. Start Claude Code with `CLAUDE_CODE_DISABLE_BG_SHELL_PRESSURE_REAP=1` to stop it.
+- **Two GPU sessions per account:** a third kernel push is refused ("Maximum batch GPU session count of 2 reached").
+- **A placeholder that writes a full, NaN-free file can still feed the model blank input** (traps 78): log per-study input coverage
+  on any third-party inference path.
+- **Committed renders pushed today** (re-pushing any starts a run): `rsna-knee-anchor9586s6fr7w` v1 (= #107), `rsna-knee-vjepa-solo`
+  v1 / v2 (= #108 / #109), `rsna-knee-anchor9586s6fwvj` v1 / v2 and `-s6fr7wvj` v1 (C21m, not sent), `rsna-knee-hdrscan` v1 (CPU).
+- The Kaggle CLI token expires every ≈ 12 h; a fresh CLI call refreshes it (traps 20).
+
+---
+
 ## 2026-10-20 (07:30 → 07:50 UTC) — **#104 C17 read: 0.958, no move in the tie → #101 stays pick 1, base = C14** · **C18 on C14 sent as #105 (⏳)** · both C19 placeholders pushed (queued)
 
 Tian, in order: "pull the results off our latest submission, then submit C18 if it makes sense and run /update, read the handoff
