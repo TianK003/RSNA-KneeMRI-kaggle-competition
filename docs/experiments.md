@@ -7151,7 +7151,120 @@ v1's (`anchor9586s6fr7_v1/r7/ours_sub.csv`); `blend_receipt.json` carries C19's 
 **Read rule (pre-registered):** sent alone vs a fresh baseline: our place among strict stable teams rises → C20 on C19 > C19 → **pick 1
 = C20 on C19, pick 2 = C19 #106**; no move, ≤ 0.957 or ERROR → no pick (picks stay #106 + #101).
 
-**Verdict: ⏳ PENDING.**
+**Placeholder green** (COMPLETE 08:12 UTC, 15 min; `artifacts/kaggle_out/anchor9586s6fr7w_v1/`):
+- `r7x_receipt.json`: status `ok`, SELF_CHECK 0.0, r7_scored 3, start 0.165 h, R7 211 s.
+- R7's `r7/ours_sub.csv` = C20 v1's exactly (0.0).
+- C19's stages vs the `-s6fw` placeholder: R6 `ours_sub.csv` and `_s6f.csv` exact; `raptor_raw` / `raptor224_raw` to 6.0e-5 / 9.8e-5 (GPU
+  noise); the pre-R7 final (`_c14_final.csv`) = C19's final exactly.
+- `blend_receipt.json` `weights.raptor_per_class` = C19's four (Lateral OA 0.2, PF OA 0.6, Synovitis 0.8, Baker's 0.35); C20 v1 has
+  V2's (0.15 / 0.65 / 0.85 / 0.30).
+- The final file = the pre-R7 file on the 3 studies, as for C20 v1 (three coarse ranks R7 does not reorder).
+- `submission.csv` 3 × 13, no NaN; no Traceback, 0 fallbacks.
+
+**Sent as #107** at 08:15:06 UTC (ref 57473156; "4 submissions remaining today"). Baseline `artifacts/lb_snap_baseline_1021/` (08:14 UTC:
+rank 511 of 6,305, 283rd of 1,469 at 0.958, 228 ≥ 0.959). Watcher `src/watch_lb_snapshots.py 57473156 --every 300 --max-h 14` (log
+`artifacts/watch_lb_57473156.log`); a keep-awake helper (`SetThreadExecutionState`, 16 h, no settings changed) runs beside it so the
+laptop does not idle-sleep (the 10-20 watcher died that way).
+
+**Verdict: ⏳ PENDING** (#107 on the LB).
+
+### 2026-10-21 — Site / protocol metadata: a strong predictor of the report labels, none of the image-read gold; neither a site prior nor per-site centering helps · ❌ (direction only, gold-58)
+
+Tian, 10-21: "review all the work … deep research … is there anything else we could try". The headers of the 3 local placeholder
+studies keep PatientSex (7 / 12 series), Manufacturer, ManufacturerModelName, MagneticFieldStrength, coil, SoftwareVersions,
+SeriesDescription and a UUID-style PatientID; PatientAge, every date, InstitutionName and StationName are blank. Metadata had never been
+tried as a signal. `artifacts/census/manifest.csv` holds vendor / model / field strength / FOV / side / protocol slots for all 4,407
+training studies. Scripts: the session scratchpad `meta/site_prior.py`, `meta/site_center.py` (not kept).
+
+**1. Metadata as a member** (site key = vendor | model | field, 52 keys, 36 with ≥ 20 studies; plus vendor, the six protocol slots,
+n_slots, FOV, side; per-label logistic regression, 5-fold CV on the 4,349 non-gold studies; labels = report targets ≥ 0.5):
+
+| | macro AUC |
+|---|---|
+| metadata alone vs the report labels (CV) | **0.653** (Synovitis 0.755, ACL 0.698, Lateral OA 0.686, MCL 0.670) |
+| metadata alone vs **gold-58** (fitted on all non-gold) | **0.573** (Synovitis 0.471, Effusion 0.471, MCL 0.446, Fracture 0.392) |
+| the P-67 proxy `v14p` pooled 5-fold OOF vs report labels: alone → + metadata (stacked) | 0.862 → **0.875 (+0.0136)** |
+| the same on **gold-58**: stacked / a gentle fusion rank(img) + 0.15 rank(meta) | **−0.0325 / −0.0064** (9 of 12 labels down) |
+
+**Why:** the host's gold and test labels were read from the images by two MSK readers plus an adjudicator, independently of the
+reports (733826). The site signal in the report labels is mostly each site's reporting habit (Synovitis: AUC 0.755 on reports, 0.471 on
+gold). A prior fitted to report labels adds that habit, not pathology.
+
+**2. The reverse: per-site centering of the image model's scores** (remove each site's mean rank, shrunk with k = 10, over the
+population; the hidden-test version would compute site means transductively). `v14p` OOF:
+
+| α | report labels (4,349) | gold-58 |
+|---|---|---|
+| 0 | 0.862 | **0.894** |
+| 0.5 | 0.854 | **0.884** |
+| 1.0 | 0.836 | **0.857** |
+
+The model's site means track the report labels' site means (Spearman 0.55 macro over sites with ≥ 30 studies), but removing them costs
+on gold too: what the model learned per site is mostly real case mix (e.g. OA), which the image-read labels share.
+
+**Verdict: ❌ both, direction only** (gold-58: SE ≈ 0.09 per label, the floor is 0.05 macro; but the sign is the same at every strength
+and the mechanism, report-habit vs image-read truth, is documented). Metadata enters neither the blend nor a post-process. PatientID is
+the one header field still open (entry below).
+
+### 2026-10-21 — PatientID linkage check: one PatientID per study, no repeats · PatientSex adds nothing beyond the image model · ❌ (CPU, no GPU)
+
+**Header scan** (`src/hdr_scan.py` → private CPU kernel `rsna-knee-hdrscan` v1, 12.5 min; one header per series, train + the 3
+placeholder test studies; `artifacts/kaggle_out/hdrscan_v1/hdr_scan.csv` holds a salted hash of PatientID, never the raw value):
+- **train: 4,407 studies, 4,407 distinct PatientIDs**, none empty, consistent across every series of a study. No patient has two
+  studies, so there is no patient linkage between studies, and no leak to weigh. The host assigned a fresh PatientID per study.
+- test placeholders: 3 studies, none of their PatientIDs in train.
+- PatientSex: M 2,076, F 1,894, O 199, blank 238 (train).
+
+**PatientSex as a signal** (3,922 non-gold and 48 gold studies with M / F): univariate AUC of "male" is weak on both label sets and
+agrees in direction (ACL 0.556 reports / 0.611 gold, Contusion 0.559 / 0.639; the OA labels lean female: 0.445–0.454 / 0.244–0.372).
+Added to the `v14p` OOF as a gentle fusion (rank + 0.15 × sign), gold-58 moves **−0.0079** macro (7 of 12 labels down): the image
+model already carries what sex tells.
+
+**Verdict: ❌ both** (linkage: a fact, none exists; sex: direction only on gold). The DICOM headers hold no usable new information.
+
+**One more label-definition check (same session):** gold Synovitis is positive in 47 % of gold studies vs 12 % in the report labels,
+and on non-contrast MRI graders often judge synovitis from the joint fluid. Mixing the model's Effusion score into its Synovitis score
+lowers gold Synovitis AUC monotonically (`v14p` OOF: 0.816 → 0.803 → 0.783 → 0.760 → 0.738 at effusion shares 0 → 1), so the
+model's own Synovitis score already beats an effusion proxy. ❌ (direction only), as the dropped cross-label row predicts.
+
+### 2026-10-21 — Endgame survey 3: forum since 10-20, literature on late-stage gains, deadline rules · no public lever above 0.958 · ✅ a read (no GPU)
+
+Two subagents (≈ 08:15–08:45 UTC, 72 + ≈ 60 read-only Kaggle API calls ≥ 3 s apart; raw material in the session scratchpad
+`research_1021/`, not kept).
+
+**Forum** (2 new topics, 3 updated since 10-20 16:00 UTC, plus all six harvests searched):
+- **Nobody at ≥ 0.959 credits a public asset.** All name their own models on image-informed labels: azamat1ch (5-fold ConvNeXt-T 0.959,
+  "labels … AI, not by hand … don't rely on reports alone"), colum2131 (ConvNeXt-T 0.953 + DINOv2-S 0.951 = 0.955; image pseudo-labels
+  blended with LLM labels at a fixed ratio), Archit Konde (OOF image predictions fill report-silent cells; "in-fold predictions just
+  parrot the labels back"), datnt114 (public 0.961 with 5-fold OOF 0.937), Musa (0.956 single fold), Adel (DINOv2 0.952).
+- **Two teams inside the 0.958 tie report that their own models added to the public blend did not move it:** nishchal jain (own
+  ConvNeXt-T + CoAtNet + R6, 0.958, 743416, 10-18) and Raagav Anand (748181, 10-21). Our forks read the same (C10w #94, C10w-b05 #95).
+- **No new public asset with a score.** New datasets since 10-18: `neronrx/mycelis-rsna-knee-4fold-hive` (ConvNeXt 384, no
+  description; the same owner's earlier logs read gold 0.58–0.67), `subsh2004/rsna-knee-raptor-specialist` (meniscus / fracture),
+  `kiritohayate95/rsna-knee-weak-label-final` (a 10-source label blend, gold 0.902), re-hosts. Kaggle confirmed a one-week public-notebook
+  lock before the deadline (748181).
+- **nartaa released s6fall's training code under Apache-2.0** (749359, 10-17); s6fall was not selected on gold (epoch 16, no SWA / EMA).
+  The licence is settled; the compute is not (one seed ≈ 25–35 Kaggle GPU-h, proposals.md Dropped directions).
+- **Bilateral studies:** 7 training studies hold both knees (735639); whether the test set has any is unanswered.
+- **fastMRI:** participants say NYU's form asks for an institution and intended use (748480, 750259; unverified). If so, Carr's second
+  clause (an affiliation limit fails) would cover R7 (C20 / #107) and possibly R6 (in every 0.958 entry of ours).
+- **Platform:** Kaggle acknowledged slow dataset reads on 10-20 (a new caching system for Datasets; Name That LLM forum, 750924), with
+  reruns running past their limits elsewhere; queues of 4–6 h on 10-17 (750318).
+
+**Deadline rules** (`deadline 2026-10-22 23:59:00` UTC, read from the API): no current staff answer. Will Cukierski (staff, 2017,
+topic 29388): a submission cannot be selected until it has finished; one still running at the close counts only through
+auto-selection (the top two by public score, when two others are not selected by hand). A 2024 non-staff answer calls it a late
+submission. **Working rule: an entry still scoring at 23:59 UTC does not count**, so the last useful send is ≈ 10-22 12:00–14:00 UTC
+(7–9 h to score), and both picks are selected by hand from scored entries.
+
+**Literature** (web; sources in the session scratchpad): metadata adds ≈ 0 to strong image models (ChestX-ray14 82.1 → 82.2; the 2020
+melanoma winner's metadata models only matched image-only ones; a hip-fracture metadata lift vanished on a matched test set); CNNs
+encode site, vendor and sex at ≥ 98 %; site priors from report labels encode reporting style (PANDA is the analogue); averaging method
+(rank / mean / power) moves results by a few 1e-4; test-time pseudo-labelling needs retraining inside the rerun; no write-up of this
+competition carries anything new. RSNA 2019 (hemorrhage) had a stage-1 PatientID overlap that did not carry to stage 2.
+
+**Verdict: ✅ a read.** No public or cheap lever above the 0.958 plateau exists; the teams above it have their own 0.95+ singles. Our
+own headers, site and sex checks (entries above) agree. The deadline rule moves the last send to ≈ 10-22 12:00–14:00 UTC.
 
 ## Infrastructure
 
@@ -7706,6 +7819,7 @@ and public LB score, so a public/private divergence can be traced to a specific 
 | 104 | 2026-10-19 | rsna-knee-anchor9586s6fx v1 (`src/build_anchor_copy.py --anchor 09586s6fx`) | **C17**: C14 (= #101) + the traps-74 fixes (s6fall under its own scratch root; exact-duplicate Raptor rows = failed; s6fall keeps partial results, 50 % fail cap, notebook-time guard; a rank-corr floor R6 vs s6fall) + s6fall 5-crop TTA (centre + 4 corners of the 320 render, probability mean) | none | **0.958** | **read 10-20 07:33 UTC → 🔁 no move: stable 0.958 teams above us 94 → 94 (nearest stable teams 441 / 446 → 488 / 493), so C17 ≤ our best by sign → #101 stays pick 1, C14 = the base; a runtime cut of the 5-crop s6fall is not ruled out (scoring time unknown, the watcher died at 20:20 UTC) (entry 2026-10-20 "Submission #104 read").** placeholder green (SELF_CHECK 0.0; s6fall rc 0, raw r 0.9993 vs C14's centre crop; status ok). Timing: +1.52 h per process on the hidden test, over the 0.75 h gate; sent on Tian's call. sent 18:04:10 UTC (ref 57405050); baseline rank 442 of 6,219, 254th of 1,271 at 0.958 (`artifacts/lb_snap_baseline_1019/`); vs #101 by tie position: rise = C17 pick 1, no move = #101 pick 1, ≤ 0.957 = no C17 pick (entry 2026-10-19 "C17 built and timed") |
 | 105 | 2026-10-20 | rsna-knee-anchor9586s6ff v2 (`src/build_anchor_copy.py --anchor 09586s6ff`) | **C18 on C14**: C14 (= #101) + nartaa's 384 px CoAtNet scored on its full 384 field (`INPUT_RES` 320 → 384; the mirror-TTA assert patched to `INPUT_RES`, traps 75) | none | **0.957** | **read 10-20 16:44 UTC → ❌ one tick under C14: the full field costs on public; C19 goes on C14 (`-s6fw`); our best entry did not move (strict stable teams above us 140 → 140) (entry 2026-10-20 "Submission #105 read").** placeholder green (SELF_CHECK 0.0; Raptor-384 0 failed; s6fall rc 0, status ok; 384 raw r 0.9973 vs C14's 320 crop). sent 07:35:58 UTC (ref 57428117); baseline rank 489 of 6,255, 288th of 1,348 at 0.958 (`artifacts/lb_snap_baseline_1020/`); watcher `src/watch_lb_snapshots.py 57428117`; vs our best by tie position: rise = C18 pick 1 + C19 on C18's base, no move or ≤ 0.957 = C19 on C14 (entry 2026-10-20 "Submission #104 read") |
 | 106 | 2026-10-20 | rsna-knee-anchor9586s6fw v1 (`src/build_anchor_copy.py --anchor 09586s6fw`) | **C19 on C14** (pick 2 by construction, Tian 10-19): C14 (= #101) with cell 8's four per-finding Raptor-half weights back to the 0.958 notebook's (Lateral OA 0.20, PF OA 0.60, Synovitis 0.80, Baker's 0.35; V2 pushed each 0.05 further) | none | **0.958** | **read 10-21 07:38 UTC → our place rose (strict stable teams above us 122 → 107): C19 > our previous best by sign → our best entry, pick 1 (pick 2 = C14 #101); rank 511 of 6,305, 284th of 1,466 at 0.958 (entry 2026-10-21 "Submission #106 read").** placeholder green (SELF_CHECK 0.0; `raptor_raw.csv` = C14's to 8e-5; s6fall rc 0). Sent 18:00:34 UTC (ref 57448686) after two sends at 17:23 / 17:24 UTC turned ERROR with Kaggle's "A system error" (not counted; traps 76). Baseline rank 515 of 6,277, 303rd of 1,405 at 0.958 (`artifacts/lb_snap_baseline_1020c/`); watcher `src/watch_lb_snapshots.py 57448686`. Expected 0.957–0.958; a pick by construction; our place rising would also make it pick 1; ERROR → pick 2 = #104 (entry 2026-10-20 "C19 send hit two Kaggle system errors; C20 built") |
+| 107 | 2026-10-21 | rsna-knee-anchor9586s6fr7w v1 (`src/build_anchor_copy.py --anchor 09586s6fr7w`) | **C20 on C19** (Tian 10-21: "Send C20 on C19 first"): C19 (= #106) + heliosli's R7 as a third member of the R6 half (0.36 R6 / 0.24 R7 / 0.40 s6fall) through V2's own compact controller; any R7 skip / failure = C19's file | none | ⏳ | placeholder green (SELF_CHECK 0; R7X ok 3 / 3; R7 = C20 v1's exactly; C19's stages unchanged; C19's four weights in the receipt). Sent 08:15:06 UTC (ref 57473156). Baseline rank 511 of 6,305, 283rd of 1,469 at 0.958 (`artifacts/lb_snap_baseline_1021/`); watcher `src/watch_lb_snapshots.py 57473156`. Expected ≈ 0 (R7 is R6's sibling); our place rises → pick 1 = it, pick 2 = C19; no move / ≤ 0.957 / ERROR → no pick (entry 2026-10-21 "C20 on C19 built") |
 
 ## Closed cards index (moved here from proposals.md on 2026-10-05)
 

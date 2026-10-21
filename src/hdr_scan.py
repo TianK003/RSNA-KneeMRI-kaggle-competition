@@ -1,0 +1,63 @@
+# %% [markdown]
+# # RSNA Knee header scan: does PatientID link studies?
+#
+# One DICOM header per series (`stop_before_pixels`), train and test. The log prints counts only: how many studies share a
+# PatientID within train, and how many test studies have a PatientID that also occurs in train. The output CSV carries a
+# salted hash of PatientID (never the raw value), so it stays linkable without holding the identifier. Private kernel, CPU.
+#
+# Built from `src/hdr_scan.py` by `src/nbgen.py`; experiments.md 2026-10-21 "PatientID linkage check".
+
+# %%
+import glob, hashlib, os, time
+from collections import Counter
+import pandas as pd
+import pydicom
+
+T0 = time.time()
+
+
+def find_tree(name):
+    # never hard-code /kaggle/input (CLAUDE.md constraint 4): depth-limited globs, shallowest first
+    for depth in range(1, 5):
+        hits = sorted(glob.glob("/kaggle/input/" + "*/" * depth + name))
+        if hits:
+            return hits[0]
+    raise SystemExit(f"{name} not found under /kaggle/input")
+
+
+SALT = "rsna-knee-hdrscan-2026-10-21"
+rows = []
+for split in ("train_series", "test_series"):
+    root = find_tree(split)
+    studies = sorted(e.path for e in os.scandir(root) if e.is_dir())
+    print(split, "studies:", len(studies), flush=True)
+    for k, sp in enumerate(studies):
+        series = sorted(e.path for e in os.scandir(sp) if e.is_dir())
+        pids, sexes = [], []
+        for se in series:
+            f = next((e.path for e in os.scandir(se) if e.name.endswith(".dcm")), None)
+            if f is None:
+                continue
+            ds = pydicom.dcmread(f, stop_before_pixels=True, specific_tags=["PatientID", "PatientSex"])
+            pids.append(str(getattr(ds, "PatientID", "") or ""))
+            sexes.append(str(getattr(ds, "PatientSex", "") or ""))
+        pid = Counter(pids).most_common(1)[0][0] if pids else ""
+        rows.append({"StudyInstanceUID": os.path.basename(sp), "split": split.split("_")[0], "n_series": len(series),
+                     "pid_hash": hashlib.sha256((SALT + pid).encode()).hexdigest()[:20] if pid else "",
+                     "pid_consistent": len(set(pids)) == 1, "pid_empty": pid == "",
+                     "sex": Counter(s for s in sexes if s).most_common(1)[0][0] if any(sexes) else ""})
+        if k % 500 == 0:
+            print(f"  {split} {k}/{len(studies)}  {time.time() - T0:.0f}s", flush=True)
+
+df = pd.DataFrame(rows)
+df.to_csv("/kaggle/working/hdr_scan.csv", index=False)
+tr, te = df[df.split == "train"], df[df.split == "test"]
+c = tr[tr.pid_hash != ""].pid_hash.value_counts()
+print("\n== train: studies", len(tr), "| empty PatientID", int(tr.pid_empty.sum()), "| PatientID inconsistent across series",
+      int((~tr.pid_consistent).sum()))
+print("== train: unique PatientIDs", len(c), "| PatientIDs with >1 study", int((c > 1).sum()),
+      "| studies in such groups", int(c[c > 1].sum()), "| max studies per PatientID", int(c.max()) if len(c) else 0)
+print("== test : studies", len(te), "| PatientID also in train", int(te.pid_hash.isin(set(c.index)).sum()),
+      "| PatientIDs repeated within test", int((te[te.pid_hash != ""].pid_hash.value_counts() > 1).sum()))
+print("== sex  : train", tr.sex.value_counts().to_dict(), "| test", te.sex.value_counts().to_dict())
+print(f"done in {time.time() - T0:.0f}s")

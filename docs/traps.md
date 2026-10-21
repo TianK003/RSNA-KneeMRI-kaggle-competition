@@ -1457,3 +1457,13 @@ remaining today", so the errors cost no slot. A plausible trigger, not shown: th
 UTC (a dataset listing got a 429 at ≈ 17:05). **Do:** read `error_description` through the Python API before acting on an instant
 ERROR; on "A system error", wait ≈ 30 min and resend the same version rather than rebuilding; keep bulk API work (forum harvests,
 dataset listings) away from send times (experiments.md 2026-10-20 "C19 send hit two Kaggle system errors; C20 built").
+
+### 77. `scripts/harvest_forum.py` misses topics silently: the topic-search API returns 20 relevance-ranked topics per query, with no pagination and no date sort (Tier 2 for research: a "complete" harvest that is not, found 2026-10-21)
+
+The 10-21 forum subagent found that four known topics (748295, 750318, 744056, 748480) were absent from `artifacts/forum_1020/`, although
+the harvest ran 53 queries. The global search (`ApiListTopicsRequest` with a search term) returns at most 20 topics per query, ranked by
+relevance, so a topic that no query ranks in its top 20 never appears, and the harvest still looks complete (139 topics). A listing with
+**no search term, category "competitions" and sort `new`** returns topics newest first and covered every new topic since 10-20 15:45 UTC.
+**Do:** for "what is new since X", list with sort `new` and filter by date (the agent's reader is `scratchpad/research_1021/scripts/
+fetch_forum.py`, not kept: port the listing mode into `harvest_forum.py` before the next harvest); never treat a search-only harvest as
+exhaustive (experiments.md 2026-10-21 "Endgame survey 3").
