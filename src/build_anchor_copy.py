@@ -22,6 +22,8 @@ the metadata mounts what the author's own kernel mounts and pins the author's Do
     09586s6fr7 C20 (Tian 10-20: "R7 as a third R6-half model"): C14 + heliosli's R7 run through V2's own cells 6-7 (a patched copy in
            its own namespace and directories, after the s6fall stage), then ours = 0.36 rank(R6) + 0.24 rank(R7) + 0.40 rank(s6fall);
            SELF_CHECK rebuilds C14's file first; R7 starts before 6.3 h only; any failure = C14's file -> kaggle/rsna-knee-anchor9586s6fr7/
+    09586s6fr7w C20 on C19 (Tian 10-21): the same with cell 8's four Raptor-half weights at the 0.958 notebook's (C19, #106), so the
+           SELF_CHECK and every fallback are C19's file                                       -> kaggle/rsna-knee-anchor9586s6fr7w/
     09586s6fx C17 (Tian 10-18: a second C14-family ticket): C14 + the 2026-10-18 audit's fixes (traps 74: s6fall under its own
            scratch root so V2's submission.csv is never absent; its hang guard = the notebook's time left, a deadline keeps the scored
            studies, up to 50 % may fail; exact-duplicate Raptor rows count as failed; a rank-corr floor R6 vs s6fall) + s6fall's
@@ -360,6 +362,14 @@ ANCHORS["09586s6fr7"] = dict(ANCHORS["09586s6f"], slug="rsna-knee-anchor9586s6fr
                              dataset_sources=ANCHORS["09586s6f"]["dataset_sources"] + [R7X_SLUG],
                              r7x={"w_r6": 0.36, "w_r7": 0.24, "w_s6f": 0.40, "latest_start_h": 6.3, "min_frac": 0.5,
                                   "rho_floor": 0.5, "rho_min_rows": 30})
+# C20 on C19 (10-21, Tian: "Send C20 on C19 first"): #106 C19 read above C14 inside the tie, so R7 is read on C19's base -- the C20
+# render with cell 8's four Raptor-half weights at the 0.958 notebook's.  Stage R's _s6x_stage3 reads W_RAPTOR_C at call time, so its
+# SELF_CHECK, its re-blend and every fallback use C19's weights: the fallback file is C19's (#106), not C14's.
+_variant("09586s6fr7", "w", "w", {8: C19_PATCHES}, C19_NOTE)
+ANCHORS["09586s6fr7w"]["r7x_note"] = (
+    "**C20 on C19** (`--anchor 09586s6fr7w`, Tian 10-21): cell 8's four per-finding Raptor-half weights are the 0.958 notebook's "
+    "(C19, `rsna-knee-anchor9586s6fw`, #106), not V2's. Wherever this cell and the next say C14, read C19: the SELF_CHECK rebuilds "
+    "C19's file and every fallback is C19's own file.")
 
 R7X_INTRO = """# Anchor9586s6fr7: heliosli's R7 as a third member of C14's R6 half (candidates.md C20)
 
@@ -530,9 +540,9 @@ def _free_names(src):
     return {n for n in free - bound if not hasattr(builtins, n)}
 
 
-def r7x_cells(cells, cfg):
-    """C20's two added cells: an intro and the stage-R run cell, which carries V2's cells 6-7 (as this render holds them, plus
-    R7X_CELL6_PATCHES) as a zlib + base64 payload with its sha256."""
+def r7x_cells(cells, cfg, note=""):
+    """C20's two added cells: an intro (plus `note`, if any) and the stage-R run cell, which carries V2's cells 6-7 (as this render
+    holds them, plus R7X_CELL6_PATCHES) as a zlib + base64 payload with its sha256."""
     import base64
     import hashlib
     import zlib
@@ -574,6 +584,8 @@ def r7x_cells(cells, cfg):
     intro = (R7X_INTRO.replace("__W_R6__", "%.2f" % cfg["w_r6"]).replace("__W_R7__", "%.2f" % cfg["w_r7"])
              .replace("__W_S6F__", "%.2f" % cfg["w_s6f"]).replace("__LATEST__", "%.1f" % cfg["latest_start_h"])
              .replace("__MINPCT__", "%d" % round(100 * cfg["min_frac"])))
+    if note:
+        intro = intro.rstrip("\n") + "\n\n" + note + "\n"
     return [{"id": "anchor9586s6fr7-intro", "cell_type": "markdown", "metadata": {}, "source": intro},
             {"id": "anchor9586s6fr7-run", "cell_type": "code", "metadata": {}, "outputs": [], "execution_count": None,
              "source": run}], {"cell6_sha256": payload["cell6"][1], "cell7_sha256": payload["cell7"][1],
@@ -1009,7 +1021,7 @@ def build(spec):
                      "_s6x_own", "_s6x_use_b", "_s6x_stage3", "_s6x_part_b", "_S6X_SHARE"):
             if need not in bound:
                 raise SystemExit(f"the R7 run cell reads {need!r}, which no earlier cell binds")
-        extra, r7prov = r7x_cells(cells, spec["r7x"])
+        extra, r7prov = r7x_cells(cells, spec["r7x"], spec.get("r7x_note", ""))
         cells += extra
         provenance.update(r7x=dict(spec["r7x"], dataset=R7X_SLUG, bundle_id="8c7b666e27dc0e8f", **r7prov))
     out = {"cells": cells,

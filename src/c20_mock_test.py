@@ -8,7 +8,8 @@ and r7x_receipt.json exist at the end of every scenario.  The real payload is ch
 patched cells 6-7 (sha256), and those differ from C14's cells only by build_anchor_copy.R7X_CELL6_PATCHES.
 
     export PYTHONUTF8=1
-    .venv/Scripts/python.exe src/c20_mock_test.py
+    .venv/Scripts/python.exe src/c20_mock_test.py        # C20 (on C14)
+    .venv/Scripts/python.exe src/c20_mock_test.py w      # C20 on C19 (--anchor 09586s6fr7w): the base and every fallback = C19's file
 """
 import base64
 import glob as globmod
@@ -31,9 +32,13 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "src"))
 from build_anchor_copy import R7X_CELL6_PATCHES  # noqa: E402
 
-SLUG = "rsna-knee-anchor9586s6fr7"
+VARIANT = sys.argv[1] if len(sys.argv) > 1 else ""      # "w": C20 on C19
+assert VARIANT in ("", "w"), VARIANT
+SLUG = "rsna-knee-anchor9586s6fr7" + VARIANT
 NB = os.path.join(ROOT, "kaggle", SLUG, SLUG + ".ipynb")
-C14 = os.path.join(ROOT, "kaggle", "rsna-knee-anchor9586s6f", "rsna-knee-anchor9586s6f.ipynb")
+BASE_SLUG = "rsna-knee-anchor9586s6f" + VARIANT              # C14 (#101), or C19 (#106) for the w render
+C14 = os.path.join(ROOT, "kaggle", BASE_SLUG, BASE_SLUG + ".ipynb")
+C19_W = "W_RAPTOR_C = {'Medial OA': 0.5, 'Lateral OA': 0.2, 'PF OA': 0.6, 'Synovitis': 0.8, \"Baker's\": 0.35}"
 LABELS = ["ACL", "MCL", "Medial Meniscus", "Lateral Meniscus", "Medial OA", "Lateral OA", "PF OA", "Effusion", "Synovitis",
           "Baker's", "Contusion", "Fracture"]
 W = lambda p: str(p).replace("\\", "/")   # noqa: E731
@@ -66,8 +71,11 @@ def check_real_payload():
     c14 = json.load(open(C14, encoding="utf-8"))
     for i in range(10):                                   # V2's cells: byte-identical to C14's
         assert TXT(NBJ["cells"][i]) == TXT(c14["cells"][i]), ("V2 cell differs from C14's", i)
-    for i in (11, 12):                                    # C14's s6fall script and run cell
-        assert TXT(NBJ["cells"][i]) == TXT(c14["cells"][i]), ("s6fall cell differs from C14's", i)
+    for i in (11, 12):                                    # the base's s6fall script and run cell
+        assert TXT(NBJ["cells"][i]) == TXT(c14["cells"][i]), ("s6fall cell differs from the base's", i)
+    tag = "--anchor 09586s6f" + VARIANT + "`"              # the s6fall intro: the base's, apart from the build command's tag
+    assert TXT(NBJ["cells"][10]) == TXT(c14["cells"][10]).replace(tag, "--anchor 09586s6fr7" + VARIANT + "`"), "s6fall intro"
+    assert len(NBJ["cells"]) == len(c14["cells"]) + 2, "the render is not the base + the two stage-R cells"
     blobs = dict((k, (b, h)) for k, b, h in re.findall(r"\('(cell[67])', '([A-Za-z0-9+/=]+)', '([0-9a-f]{64})'\)", R7X))
     dec = {k: zlib.decompress(base64.b64decode(b)).decode("utf-8") for k, (b, h) in blobs.items()}
     for k, (b, h) in blobs.items():
@@ -84,7 +92,13 @@ def check_real_payload():
     meta = json.load(open(os.path.join(ROOT, "kaggle", SLUG, "kernel-metadata.json")))
     assert "heliosli/rsna-knee-compact-r7cnxfsss" in meta["dataset_sources"] and meta["machine_shape"] == "NvidiaTeslaT4"
     assert meta["enable_internet"] is False and meta["competition_sources"] == ["rsna-knee-abnormality-detection"]
-    print("  real payload: cells 6-7 = C14's + the %d R7 patches; metadata mounts R7, T4, no internet" % len(R7X_CELL6_PATCHES))
+    base_meta = json.load(open(os.path.join(ROOT, "kaggle", BASE_SLUG, "kernel-metadata.json")))
+    assert meta["dataset_sources"] == base_meta["dataset_sources"] + ["heliosli/rsna-knee-compact-r7cnxfsss"], "mounts != base + R7"
+    for k in ("kernel_sources", "docker_image", "machine_shape", "enable_gpu"):
+        assert meta[k] == base_meta[k], k
+    assert (C19_W in CELL8) == (VARIANT == "w"), "cell 8's Raptor-half weights are not the expected set"
+    print("  real payload: cells 6-7 = %s's + the %d R7 patches; cells 0-12 = %s's; metadata = base + R7, T4, no internet"
+          % (BASE_SLUG, len(R7X_CELL6_PATCHES), BASE_SLUG))
 
 
 def scenario(name, n=40, r7_mode="ok", r7_fail_rows=(), r6_fail_rows=(), s6_fail_rows=(), s6_mode="ok", partb=True, seed=0,
@@ -223,7 +237,7 @@ def scenario(name, n=40, r7_mode="ok", r7_fail_rows=(), r6_fail_rows=(), s6_fail
 
 
 def main():
-    print("C20 stage R mock tests (%s)" % SLUG)
+    print("C20 stage R mock tests (%s; base %s)" % (SLUG, BASE_SLUG))
     check_real_payload()
     scenario("ok + Part B")
     scenario("ok, Part B failed", partb=False, seed=1)

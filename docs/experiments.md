@@ -7120,6 +7120,39 @@ competition since the 10-20 survey. heliosli's newest public notebook, `try-merg
 **Verdict: 🔁 at three decimals; ✅ by its rule: C19 > our previous best by sign → C19 #106 = pick 1, C14 #101 = pick 2.** 10-21: 5
 slots; Kaggle GPU 4.50 h used, 25.50 h left (`kaggle quota` 07:38 UTC; the C20 and `-s6fw` v2 placeholders took 0.46 h).
 
+### 2026-10-21 — C20 on C19 built and mock-tested; placeholder pushed · ⏳ PENDING
+
+Tian, 10-21 ≈ 07:50 UTC: "Send C20 on C19 first".
+
+**What it is:** C20 (C14 + R7 as a third R6-half member, 0.36 R6 / 0.24 R7 / 0.40 s6fall) with cell 8's four Raptor-half weights at
+the 0.958 notebook's, so it differs from #106 C19 by R7 alone. R7's share of the final file is ≈ 0.24 × the compact half's: ≈ 0.12 at
+the default 0.5, 0.19 Lateral OA, 0.16 Baker's, 0.10 PF OA, 0.05 Synovitis.
+- **Expected gain ≈ 0 on public** (≈ 0.0000–0.0003, sign unknown; entry 2026-10-20 "Endgame survey 2").
+- The only source of a gain is diversity. R7 is R6's sibling: the same ConvNeXt-S, trainer md5 `8622009e`, anatomy model, views,
+  crop and 4 folds, and Opus report targets. It differs by its target version, its fastMRI auxiliary loss and no flip TTA.
+- It takes 40 % of R6's share, and R6 is the stronger model: R7 alone ≈ 0.948–0.951 (C8), and swapping R7 out for R6 + flip moved
+  heliosli's 0.956 to 0.957.
+- goodpjw2008 measured R7 at 0.4 next to R6 on the 0.958 recipe as no change at three decimals.
+
+**Build:** `src/build_anchor_copy.py --anchor 09586s6fr7w` → `kaggle/rsna-knee-anchor9586s6fr7w/` (15 cells, patched [6, 8]): a
+`_variant` of `09586s6fr7` with `C19_PATCHES`. Stage R's `_s6x_stage3` reads `W_RAPTOR_C` at call time, so its SELF_CHECK, re-blend
+and every fallback use C19's weights: the fallback file is C19's. The R7 intro carries a note saying so (`r7x_cells(..., note)`; no
+note on C20, so its render is unchanged).
+- `--check` keeps every existing render byte-identical.
+- `src/c20_mock_test.py w` (new argument: the `w` render against C19's) passes all 10 scenarios. Three ok cases match an independent
+  recompute with C19's weights (≤ 3e-8); six fallbacks restore C19's file exactly. The real payload = C19's cells 6–7 + the five R7
+  patches; cells 0–12 = C19's apart from the build tag; mounts = C19's + R7.
+- The plain suite (C20 on C14) passes unchanged.
+
+**Placeholder** `rsna-knee-anchor9586s6fr7w` v1 pushed 07:57 UTC; watcher log `artifacts/watch_anchor9586s6fr7w.log`, outputs
+`artifacts/kaggle_out/anchor9586s6fr7w_v1/`. **Green** = SELF_CHECK 0; `R7X_DONE` status `ok`, r7_scored 3; `r7/ours_sub.csv` = C20
+v1's (`anchor9586s6fr7_v1/r7/ours_sub.csv`); `blend_receipt.json` carries C19's four weights; C19's stages unchanged against `-s6fw`.
+
+**Read rule (pre-registered):** sent alone vs a fresh baseline: our place among strict stable teams rises → C20 on C19 > C19 → **pick 1
+= C20 on C19, pick 2 = C19 #106**; no move, ≤ 0.957 or ERROR → no pick (picks stay #106 + #101).
+
+**Verdict: ⏳ PENDING.**
+
 ## Infrastructure
 
 ### 2026-09-27 — The "0.943 Speedy Raptors CoAtNet D4" notebook is our anchor **plus two CoAt readers**, not a faster graph; its "< 30 min" is a 3-study commit run · P-41 (threaded scan + 8 decode workers) smoke-green and byte-identical
