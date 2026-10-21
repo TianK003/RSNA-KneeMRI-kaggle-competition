@@ -173,11 +173,13 @@ agreement with the teacher, not truth. A one-seed LB delta needs ≥ 0.004 (P-44
 | 2026-10-18 | **C14 / C15 on V2 / C15 on C14, submissions #101–#103** (`rsna-knee-anchor9586s6f` v1, `rsna-knee-anchor9586m` v1, `rsna-knee-anchor9586s6fm` v1): V2 + nartaa's s6fall inside the R6 half (0.6 / 0.4 rank); V2 + the 384 px stage's anatomical-mirror TTA ported to the 224 px CoAtNet; both | — | **0.958 / 0.957 / 0.958** | **✅ / ❌ / unreadable. Our best entry rose from rank 914 to 376 of 6,190 (stable 0.958 teams above us 449 → 99; 79 of the 350 passed cannot hold V2), so C14 > V2 by sign → pick 1 = C14 #101. The mirror costs V2 a tick (#102 < #100). #103 vs #101 cannot be read (the snapshot watcher logged nothing); expected under #101. Top 6.1 %, 206th of 1,135 at 0.958** (entry 2026-10-18 "Submissions #101–#103") |
 | 2026-10-20 | **C17, submission #104** (`rsna-knee-anchor9586s6fx` v1): C14 + the traps-74 robustness fixes + s6fall's 5-crop TTA (centre + 4 corners of its 320 render) | gold-58 multi-crop ≈ +0.0015 (direction only) | **0.958** | **🔁 no move: stable 0.958 teams above us 94 → 94 (the nearest stable teams bracket us at 441 / 446 → 488 / 493), so C17 ≤ our best by sign → #101 stays pick 1, C14 = the base for C18 / C19. A runtime cut of the 5-crop s6fall is not ruled out (scoring time unknown). Rank 489 of 6,255 (288th of 1,348 at 0.958; top 7.8 %)** (entry 2026-10-20 "Submission #104 read") |
 | 2026-10-20 | **C18 on C14, submission #105** (`rsna-knee-anchor9586s6ff` v2): C14 + nartaa's 384 px CoAtNet scored on its full 384 field instead of V2's 320 centre crop | — | **0.957** | **❌ one tick under C14 (#101 0.958): the full field costs on public, so C18 is no pick and C19 goes on C14 (`-s6fw`). The third inference-side change to the tuned public members that reads ≤ 0 (with #102, #104). Our best entry did not move (strict stable 0.958 teams above us 140 → 140). Rank 513 of 6,275 (302nd of 1,396 at 0.958; top 8.2 %)** (entry 2026-10-20 "Submission #105 read") |
+| 2026-10-21 | **C19 on C14, submission #106** (`rsna-knee-anchor9586s6fw` v1): C14 with the four per-finding Raptor-half weights back to the 0.958 notebook's (Lateral OA 0.20, PF OA 0.60, Synovitis 0.80, Baker's 0.35; V2 pushed each 0.05 further) | — | **0.958** | **🔁 at three decimals, ✅ by its rule: our place rose (strict stable 0.958 teams above us 122 → 107), so C19 > our previous best (#101, or #103 / #104) by sign → our best entry and pick 1; pick 2 = C14 #101 (V2's weights). A small margin (15 stable teams, against C14's 350 over V2). On C14's members V2's weight pushes cost on public. Rank 511 of 6,305 (284th of 1,466 at 0.958; top 8.1 %)** (entry 2026-10-21 "Submission #106 read") |
 
 **External reference points** (not ours — for calibrating ambition):
 
 | Score | What |
 |---|---|
+| 0.969 | Public LB #1 (2026-10-21 07:38 UTC; `RB & Matheus & Tucker & Tony` and `CentralyDS`), 3rd–6th 0.968, 10th 0.967, 100th 0.960; **1,693 teams ≥ 0.958 of 6,305 (1,466 at exactly 0.958)**, 227 ≥ 0.959 (`Heliosli` now among them, from a private entry), 1,868 ≥ 0.957 (175 at exactly), 2,122 ≥ 0.956, 2,267 ≥ 0.954, 2,445 ≥ 0.950. No public notebook for this competition since 10-17 claims more than 0.958. **Our best (#106 C19) = 0.958, rank 511** (284th of 1,466 at 0.958; top 8.1 %; the top-5 % line is rank 315) (entry 2026-10-21 "Submission #106 read") |
 | 0.969 | Public LB #1 (2026-10-20 07:33 UTC; `RB & Matheus & Tucker & Tony`), 2nd / 3rd 0.968 (`azamatt`, `CentralyDS`), 10th 0.967, 100th 0.960; **1,549 teams ≥ 0.958 of 6,255 (1,348 at exactly 0.958)**, 201 ≥ 0.959, 1,725 ≥ 0.957 (176 at exactly), 2,016 ≥ 0.956, 2,176 ≥ 0.954, 2,360 ≥ 0.950. No public notebook since 10-17 claims more than 0.958. **Our best (#101 C14, or #103 / #104) = 0.958, rank 489** (288th of 1,348 at 0.958; top 7.8 %; the top-5 % line is rank 312) (entry 2026-10-20 "Submission #104 read") |
 | 0.969 | Public LB #1 (2026-10-18 21:02 UTC; `RB & Matheus & Tucker & Tony`), 2nd 0.968 (`azamatt`), 10th 0.966, 100th 0.960; **1,305 teams ≥ 0.958 of 6,190 (1,135 at exactly 0.958)**, 170 ≥ 0.959, 1,497 ≥ 0.957 (192 at exactly), 1,850 ≥ 0.956, 2,021 ≥ 0.954, 2,217 ≥ 0.950. No public notebook since 10-17 13:10 UTC claims more than 0.958. **Our C14 (#101; or #103) = 0.958, rank 376** (206th of 1,135 at 0.958; top 6.1 %) (entry 2026-10-18 "Submissions #101–#103") |
 | 0.969 | Public LB #1 (2026-10-18 10:04 UTC; `RB & Matheus & Tucker & Tony`), 2nd 0.968 (`azamatt`), 10th 0.966, 100th 0.960; **1,204 teams ≥ 0.958 of 6,166 (1,041 at exactly 0.958)**, 163 ≥ 0.959, 1,402 ≥ 0.957 (198 at exactly), 1,782 ≥ 0.956, 1,968 ≥ 0.954, 2,171 ≥ 0.950. No public notebook run since 10-17 13:10 UTC claims more than 0.958. **Our C13-V2 #100 = 0.958, rank 883** (719th of 1,041 at 0.958) (entry 2026-10-18 "Submissions #96–#100") |
@@ -7056,6 +7058,68 @@ needed; it stays as the resend if #106 errors on the hidden test.
     ≈ 2.7–3.1 h (up to ≈ 2.4 h if decoding dominates at scale), and the notebook ≈ 6.7–7.6 h.
 - **C19's hedge (`-s6fw` v2): green**: S6X `ok`, the four weights, `raptor_raw.csv` = v1's to 4.9e-5. It is only needed if #106 errors.
 
+**READ 2026-10-21 (07:38 UTC):** #106 C19 = 0.958 and above our previous best inside the tie (strict stable teams above us 122 → 107)
+→ C19 is our best entry and pick 1 by its rule; C20 is now read against C19 (entry 2026-10-21 "Submission #106 read").
+
+### 2026-10-21 — Submission #106 read: C19 on C14 = 0.958, above our previous best inside the tie (strict stable 0.958 teams above us 122 → 107) → C19 is our best entry, pick 1 by its rule · 🔁 at three decimals, ✅ by its rule (#106)
+
+Tian, 10-21 ≈ 07:35 UTC: "Pull the results of the latest run and tell me if it has improved our score".
+
+**Read** (07:38 UTC: `kaggle competitions submissions`; the full LB CSV `artifacts/lb_1021/` against the baseline
+`artifacts/lb_snap_baseline_1020c/`, 18:00:31 UTC, 3 s before #106 was sent). #106 COMPLETE at **0.958**. No other entry of ours was sent
+or scored in between, so a move of our best entry can only be #106. The snapshot watcher (`src/watch_lb_snapshots.py 57448686`) last
+polled at 22:58:30 UTC with #106 still pending and then stopped (the laptop went off; its process is gone). The scoring time is lost
+(≥ 4.97 h after the send). With one entry in flight, the read does not need the snapshot.
+
+| # | what | LB | pre-registered read | verdict |
+|---|---|---|---|---|
+| 106 | C19 on C14 = C14 with cell 8's four per-finding Raptor-half weights back to the 0.958 notebook's (Lateral OA 0.20, PF OA 0.60, Synovitis 0.80, Baker's 0.35) (`rsna-knee-anchor9586s6fw` v1) | **0.958** | a pick by construction; our place rising also makes it pick 1 | **our place rose → C19 = our best entry, pick 1** |
+
+**Our place rose.** Counted on strict stable teams (same Score, SubmissionCount and LastSubmissionDate in both CSVs; ours excluded):
+824 teams, **122 above us at baseline, 107 now**.
+- The 15 that crossed are every stable team between baseline ranks 476 and 514, the 15 directly above us. The nearest stable teams
+  now are baseline ranks 466 / 471 above us and 476 / 480 below. No stable team moved the other way.
+- A stable team's best entry cannot change, so our best entry's unrounded score rose past theirs. C19 > our previous best (C14 #101,
+  or #103 / #104, which could not be separated) by sign, strictly: the teams it passed sat above that entry.
+- **The margin is small.** C19 passed 15 stable teams; C14 passed 350 over V2 (#101). The tie is not uniform in score (copies cluster),
+  so the 15 do not convert to a number.
+- **Our rank: 515 of 6,277 → 511 of 6,305** (303rd of 1,405 → 284th of 1,466 at 0.958; top 8.1 %). The tie grew by 61 teams and 15
+  more teams reached ≥ 0.959, so the rank moves less than the place.
+
+**What it says** (direction only, sub-tick):
+- On C14's members the four weights V2 pushed 0.05 further (Lateral OA 0.15, PF OA 0.65, Synovitis 0.85, Baker's 0.30) score under the
+  0.958 notebook's on public. V2's lead over the 0.958 notebook (#100 > #97, ≈ 150 stable teams) therefore came from goodpjw2008's 2.5D
+  reader, or from the pushes on V2's members only, with s6fall in the R6 half reversing them. The two are not separable.
+- **C19 is now both** our best public entry and the private-robust choice (shrinking a public fit, research.md 2.7.12). It is the
+  fourth change of the tuned members' blend we read; the first three inference-side changes read ≤ 0 (#102, #104, #105), and this one is
+  a weight change back toward a published point, not a new view.
+
+**What it means for the picks:** the pair is the same set, in the other order. Pick 1 = **C19 #106** (our best entry), pick 2 =
+**C14 #101** (V2's pushed weights: the ticket that wins if the pushes were real on private). Tian's 10-19 design (one pick on each
+weight set) is unchanged. Kaggle's default would take #106 and the best of #101 / #103 / #104 by the unrounded score, which need not be
+#101. **Select both by hand.**
+
+**What it means for C20** (C14 + R7, built on C14 with V2's pushed weights): its rule reads it against our best entry, which is now
+C19. To raise our place C20 must beat C19, so it must gain more from R7 than C19 gained from the weights. If it does not, its read does
+not say whether R7 helps. **C20 on C19** (C19's four weights + R7, read directly against C19) asks the R7 question on our best base.
+`build_anchor_copy.py` has no `09586s6fr7w` render yet: it needs one more `_variant` on the `w` loop, the C20 mock suite on it, and a
+placeholder (≈ 0.2 GPU-h plus Kaggle's queue). Not built or sent: this session's opening message names no build or submission.
+
+**The LB at 07:38 UTC** (6,305 teams):
+- Top 0.969 (`RB & Matheus & Tucker & Tony`, and now `CentralyDS`); 3rd–6th 0.968 (`Claudio Verdú Ruiz`, `azamatt`, `Sergey
+  Bryansky`, `joinT fusion`); 10th 0.967; 100th 0.960.
+- 146 ≥ 0.960; 227 ≥ 0.959 (81 at exactly; +15 since 10-20 18:00 UTC, among them `Heliosli` 0.958 → 0.959); **1,693 ≥ 0.958, 1,466 at
+  exactly**; 1,868 ≥ 0.957 (175 at exactly); 2,122 ≥ 0.956; 2,267 ≥ 0.954; 2,445 ≥ 0.950.
+- **We are rank 511, 284th of the 1,466 at 0.958: top 8.1 %.** The top-5 % line is rank 315, the top-10 % line rank 630; both lie
+  inside the 0.958 tie.
+
+**Public notebooks** (`kaggle kernels list --competition … --sort-by dateRun` and `--user heliosli`, 07:40 UTC): nothing new for this
+competition since the 10-20 survey. heliosli's newest public notebook, `try-merging-it-you-might-get-lucky-and-win-gold` (run 10-20
+01:50 UTC), mounts `arc-prize-2026-arc-agi-3`: an ARC Prize notebook, unrelated. His 0.959 here is from a private entry.
+
+**Verdict: 🔁 at three decimals; ✅ by its rule: C19 > our previous best by sign → C19 #106 = pick 1, C14 #101 = pick 2.** 10-21: 5
+slots; Kaggle GPU 4.50 h used, 25.50 h left (`kaggle quota` 07:38 UTC; the C20 and `-s6fw` v2 placeholders took 0.46 h).
+
 ## Infrastructure
 
 ### 2026-09-27 — The "0.943 Speedy Raptors CoAtNet D4" notebook is our anchor **plus two CoAt readers**, not a faster graph; its "< 30 min" is a 3-study commit run · P-41 (threaded scan + 8 decode workers) smoke-green and byte-identical
@@ -7608,7 +7672,7 @@ and public LB score, so a public/private divergence can be traced to a specific 
 | 103 | 2026-10-18 | rsna-knee-anchor9586s6fm v1 (`src/build_anchor_copy.py --anchor 09586s6fm224`) | **C15 on C14**: V2 + nartaa's s6fall in the R6 half (0.6 / 0.4; = #101) + the 224 px CoAtNet mirror TTA | none | **0.958** | **read 10-18 → unreadable vs #101 (the snapshot watcher logged nothing, traps 69 addendum); expected under it.** placeholder green (SELF_CHECK 0.0, s6fall = C11's exactly, status ok). sent 12:18:06 UTC (ref 57353769); read as #102 (entry 2026-10-18 "C15 built") |
 | 104 | 2026-10-19 | rsna-knee-anchor9586s6fx v1 (`src/build_anchor_copy.py --anchor 09586s6fx`) | **C17**: C14 (= #101) + the traps-74 fixes (s6fall under its own scratch root; exact-duplicate Raptor rows = failed; s6fall keeps partial results, 50 % fail cap, notebook-time guard; a rank-corr floor R6 vs s6fall) + s6fall 5-crop TTA (centre + 4 corners of the 320 render, probability mean) | none | **0.958** | **read 10-20 07:33 UTC → 🔁 no move: stable 0.958 teams above us 94 → 94 (nearest stable teams 441 / 446 → 488 / 493), so C17 ≤ our best by sign → #101 stays pick 1, C14 = the base; a runtime cut of the 5-crop s6fall is not ruled out (scoring time unknown, the watcher died at 20:20 UTC) (entry 2026-10-20 "Submission #104 read").** placeholder green (SELF_CHECK 0.0; s6fall rc 0, raw r 0.9993 vs C14's centre crop; status ok). Timing: +1.52 h per process on the hidden test, over the 0.75 h gate; sent on Tian's call. sent 18:04:10 UTC (ref 57405050); baseline rank 442 of 6,219, 254th of 1,271 at 0.958 (`artifacts/lb_snap_baseline_1019/`); vs #101 by tie position: rise = C17 pick 1, no move = #101 pick 1, ≤ 0.957 = no C17 pick (entry 2026-10-19 "C17 built and timed") |
 | 105 | 2026-10-20 | rsna-knee-anchor9586s6ff v2 (`src/build_anchor_copy.py --anchor 09586s6ff`) | **C18 on C14**: C14 (= #101) + nartaa's 384 px CoAtNet scored on its full 384 field (`INPUT_RES` 320 → 384; the mirror-TTA assert patched to `INPUT_RES`, traps 75) | none | **0.957** | **read 10-20 16:44 UTC → ❌ one tick under C14: the full field costs on public; C19 goes on C14 (`-s6fw`); our best entry did not move (strict stable teams above us 140 → 140) (entry 2026-10-20 "Submission #105 read").** placeholder green (SELF_CHECK 0.0; Raptor-384 0 failed; s6fall rc 0, status ok; 384 raw r 0.9973 vs C14's 320 crop). sent 07:35:58 UTC (ref 57428117); baseline rank 489 of 6,255, 288th of 1,348 at 0.958 (`artifacts/lb_snap_baseline_1020/`); watcher `src/watch_lb_snapshots.py 57428117`; vs our best by tie position: rise = C18 pick 1 + C19 on C18's base, no move or ≤ 0.957 = C19 on C14 (entry 2026-10-20 "Submission #104 read") |
-| 106 | 2026-10-20 | rsna-knee-anchor9586s6fw v1 (`src/build_anchor_copy.py --anchor 09586s6fw`) | **C19 on C14** (pick 2 by construction, Tian 10-19): C14 (= #101) with cell 8's four per-finding Raptor-half weights back to the 0.958 notebook's (Lateral OA 0.20, PF OA 0.60, Synovitis 0.80, Baker's 0.35; V2 pushed each 0.05 further) | none | ⏳ | placeholder green (SELF_CHECK 0.0; `raptor_raw.csv` = C14's to 8e-5; s6fall rc 0). Sent 18:00:34 UTC (ref 57448686) after two sends at 17:23 / 17:24 UTC turned ERROR with Kaggle's "A system error" (not counted; traps 76). Baseline rank 515 of 6,277, 303rd of 1,405 at 0.958 (`artifacts/lb_snap_baseline_1020c/`); watcher `src/watch_lb_snapshots.py 57448686`. Expected 0.957–0.958; a pick by construction; our place rising would also make it pick 1; ERROR → pick 2 = #104 (entry 2026-10-20 "C19 send hit two Kaggle system errors; C20 built") |
+| 106 | 2026-10-20 | rsna-knee-anchor9586s6fw v1 (`src/build_anchor_copy.py --anchor 09586s6fw`) | **C19 on C14** (pick 2 by construction, Tian 10-19): C14 (= #101) with cell 8's four per-finding Raptor-half weights back to the 0.958 notebook's (Lateral OA 0.20, PF OA 0.60, Synovitis 0.80, Baker's 0.35; V2 pushed each 0.05 further) | none | **0.958** | **read 10-21 07:38 UTC → our place rose (strict stable teams above us 122 → 107): C19 > our previous best by sign → our best entry, pick 1 (pick 2 = C14 #101); rank 511 of 6,305, 284th of 1,466 at 0.958 (entry 2026-10-21 "Submission #106 read").** placeholder green (SELF_CHECK 0.0; `raptor_raw.csv` = C14's to 8e-5; s6fall rc 0). Sent 18:00:34 UTC (ref 57448686) after two sends at 17:23 / 17:24 UTC turned ERROR with Kaggle's "A system error" (not counted; traps 76). Baseline rank 515 of 6,277, 303rd of 1,405 at 0.958 (`artifacts/lb_snap_baseline_1020c/`); watcher `src/watch_lb_snapshots.py 57448686`. Expected 0.957–0.958; a pick by construction; our place rising would also make it pick 1; ERROR → pick 2 = #104 (entry 2026-10-20 "C19 send hit two Kaggle system errors; C20 built") |
 
 ## Closed cards index (moved here from proposals.md on 2026-10-05)
 
