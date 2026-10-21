@@ -1480,3 +1480,5 @@ bug. It surfaced only because the C21m worker's own "no pixels" guard rejected t
 and `VJX_WORKER`): order the already-read headers in place (`_order_loaded`), applied to the real `infer.py` text and checked to
 compile. **Do:** on any third-party inference path, log per-study input coverage (views or slices actually loaded) on the placeholder
 and read it before a send; a full, NaN-free output proves nothing about the inputs (experiments.md 2026-10-21 "V-JEPA loader bug").
+**The cost, measured (10-21):** the bugged solo #108 read **0.554**, near chance, against the fixed solo's 0.836 (#109): the bug costs
+0.28 AUC on the hidden test while its placeholder looked green (experiments.md 2026-10-21 "Submissions #107 / #108 read").

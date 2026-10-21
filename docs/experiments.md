@@ -174,12 +174,14 @@ agreement with the teacher, not truth. A one-seed LB delta needs ≥ 0.004 (P-44
 | 2026-10-20 | **C17, submission #104** (`rsna-knee-anchor9586s6fx` v1): C14 + the traps-74 robustness fixes + s6fall's 5-crop TTA (centre + 4 corners of its 320 render) | gold-58 multi-crop ≈ +0.0015 (direction only) | **0.958** | **🔁 no move: stable 0.958 teams above us 94 → 94 (the nearest stable teams bracket us at 441 / 446 → 488 / 493), so C17 ≤ our best by sign → #101 stays pick 1, C14 = the base for C18 / C19. A runtime cut of the 5-crop s6fall is not ruled out (scoring time unknown). Rank 489 of 6,255 (288th of 1,348 at 0.958; top 7.8 %)** (entry 2026-10-20 "Submission #104 read") |
 | 2026-10-20 | **C18 on C14, submission #105** (`rsna-knee-anchor9586s6ff` v2): C14 + nartaa's 384 px CoAtNet scored on its full 384 field instead of V2's 320 centre crop | — | **0.957** | **❌ one tick under C14 (#101 0.958): the full field costs on public, so C18 is no pick and C19 goes on C14 (`-s6fw`). The third inference-side change to the tuned public members that reads ≤ 0 (with #102, #104). Our best entry did not move (strict stable 0.958 teams above us 140 → 140). Rank 513 of 6,275 (302nd of 1,396 at 0.958; top 8.2 %)** (entry 2026-10-20 "Submission #105 read") |
 | 2026-10-21 | **C19 on C14, submission #106** (`rsna-knee-anchor9586s6fw` v1): C14 with the four per-finding Raptor-half weights back to the 0.958 notebook's (Lateral OA 0.20, PF OA 0.60, Synovitis 0.80, Baker's 0.35; V2 pushed each 0.05 further) | — | **0.958** | **🔁 at three decimals, ✅ by its rule: our place rose (strict stable 0.958 teams above us 122 → 107), so C19 > our previous best (#101, or #103 / #104) by sign → our best entry and pick 1; pick 2 = C14 #101 (V2's weights). A small margin (15 stable teams, against C14's 350 over V2). On C14's members V2's weight pushes cost on public. Rank 511 of 6,305 (284th of 1,466 at 0.958; top 8.1 %)** (entry 2026-10-21 "Submission #106 read") |
-| 2026-10-21 | **C21 V-JEPA solo, submissions #108 / #109** (`rsna-knee-vjepa-solo` v1 / v2): nurikw3's public V-JEPA 2.1 ViT-B 5-fold alone, fp16; v1 with the author's loader bug (series with > 24 slices blank, traps 78), v2 fixed | — | **⏳ / 0.836** | **❌ #109 = 0.836, 0.109 under the 0.945 bar: the one new public family is far too weak to be a member; C21m not sent. #108 (bugged) pending** (entry 2026-10-21 "Submission #109 read") |
+| 2026-10-21 | **C21 V-JEPA solo, submissions #108 / #109** (`rsna-knee-vjepa-solo` v1 / v2): nurikw3's public V-JEPA 2.1 ViT-B 5-fold alone, fp16; v1 with the author's loader bug (series with > 24 slices blank, traps 78), v2 fixed | — | **0.554 / 0.836** | **❌ #109 = 0.836, 0.109 under the 0.945 bar: the one new public family is far too weak to be a member; C21m not sent. #108 (bugged) 0.554: the fix was right, the authors did not train with the bug** (entries 2026-10-21 "Submission #109 read", "Submissions #107 / #108 read") |
+| 2026-10-21 | **C20 on C19, submission #107** (`rsna-knee-anchor9586s6fr7w` v1): C19 (= #106) + heliosli's R7 as a third member of the R6 half (0.36 R6 / 0.24 R7 / 0.40 s6fall) | — | **0.958** | **🔁 no move: strict stable 0.958 teams above us 108 → 108 (0 crossed; the nearest stable teams bracket us at 510 / 513 before and after), so C20 on C19 ≤ C19 by sign → no pick; picks stay C19 #106 + C14 #101. R7 next to R6 adds nothing visible, as goodpjw2008 measured; C22 not triggered. Rank 533 of 6,342 (299th of 1,534 at 0.958; top 8.4 %)** (entry 2026-10-21 "Submissions #107 / #108 read") |
 
 **External reference points** (not ours — for calibrating ambition):
 
 | Score | What |
 |---|---|
+| 0.969 | Public LB #1 (2026-10-21 20:41 UTC; `CentralyDS`, `RB & Matheus & Tucker & Tony`, `BarryZhou`), 4th–8th 0.968, 10th 0.967, 100th 0.961; **1,768 teams ≥ 0.958 of 6,342 (1,534 at exactly 0.958)**, 234 ≥ 0.959 (83 at exactly), 151 ≥ 0.960, 1,953 ≥ 0.957 (185 at exactly), 2,192 ≥ 0.956, 2,331 ≥ 0.954, 2,502 ≥ 0.950. No new public anchor (`kernels list` 20:45 UTC). **Our best (#106 C19) = 0.958, rank 533** (299th of 1,534 at 0.958; top 8.4 %; the top-5 % line is rank 317) (entry 2026-10-21 "Submissions #107 / #108 read") |
 | 0.969 | Public LB #1 (2026-10-21 07:38 UTC; `RB & Matheus & Tucker & Tony` and `CentralyDS`), 3rd–6th 0.968, 10th 0.967, 100th 0.960; **1,693 teams ≥ 0.958 of 6,305 (1,466 at exactly 0.958)**, 227 ≥ 0.959 (`Heliosli` now among them, from a private entry), 1,868 ≥ 0.957 (175 at exactly), 2,122 ≥ 0.956, 2,267 ≥ 0.954, 2,445 ≥ 0.950. No public notebook for this competition since 10-17 claims more than 0.958. **Our best (#106 C19) = 0.958, rank 511** (284th of 1,466 at 0.958; top 8.1 %; the top-5 % line is rank 315) (entry 2026-10-21 "Submission #106 read") |
 | 0.969 | Public LB #1 (2026-10-20 07:33 UTC; `RB & Matheus & Tucker & Tony`), 2nd / 3rd 0.968 (`azamatt`, `CentralyDS`), 10th 0.967, 100th 0.960; **1,549 teams ≥ 0.958 of 6,255 (1,348 at exactly 0.958)**, 201 ≥ 0.959, 1,725 ≥ 0.957 (176 at exactly), 2,016 ≥ 0.956, 2,176 ≥ 0.954, 2,360 ≥ 0.950. No public notebook since 10-17 claims more than 0.958. **Our best (#101 C14, or #103 / #104) = 0.958, rank 489** (288th of 1,348 at 0.958; top 7.8 %; the top-5 % line is rank 312) (entry 2026-10-20 "Submission #104 read") |
 | 0.969 | Public LB #1 (2026-10-18 21:02 UTC; `RB & Matheus & Tucker & Tony`), 2nd 0.968 (`azamatt`), 10th 0.966, 100th 0.960; **1,305 teams ≥ 0.958 of 6,190 (1,135 at exactly 0.958)**, 170 ≥ 0.959, 1,497 ≥ 0.957 (192 at exactly), 1,850 ≥ 0.956, 2,021 ≥ 0.954, 2,217 ≥ 0.950. No public notebook since 10-17 13:10 UTC claims more than 0.958. **Our C14 (#101; or #103) = 0.958, rank 376** (206th of 1,135 at 0.958; top 6.1 %) (entry 2026-10-18 "Submissions #101–#103") |
@@ -7169,6 +7171,9 @@ laptop does not idle-sleep (the 10-20 watcher died that way).
 
 **Verdict: ⏳ PENDING** (#107 on the LB).
 
+**READ 2026-10-21 (20:41 UTC):** #107 = 0.958, no move inside the tie (strict stable teams above us 108 → 108) → no pick (entry
+2026-10-21 "Submissions #107 / #108 read").
+
 ### 2026-10-21 — Site / protocol metadata: a strong predictor of the report labels, none of the image-read gold; neither a site prior nor per-site centering helps · ❌ (direction only, gold-58)
 
 Tian, 10-21: "review all the work … deep research … is there anything else we could try". The headers of the 3 local placeholder
@@ -7362,6 +7367,59 @@ Tian, 10-21 ≈ 12:10 UTC: "Get the results of jepa-v and run /update and /hando
 **Verdict: ❌ V-JEPA as a member (solo 0.836).** The public-asset search is exhausted: no public model left to test. Picks stay C19 #106
 + C14 #101 unless #107 (C20 on C19, R7, still pending at 12:13 UTC) raises our place. 10-21: 2 slots left; Kaggle GPU 5.72 h used,
 24.28 h left (`kaggle quota` 12:13 UTC).
+
+**READ 2026-10-21 (20:41 UTC):** #108 (bugged) = 0.554, under #109, so the authors did not train with the bug (entry 2026-10-21
+"Submissions #107 / #108 read").
+
+### 2026-10-21 — Submissions #107 / #108 read: C20 on C19 = 0.958, no move inside the tie (strict stable 0.958 teams above us 108 → 108) → no pick, picks stay C19 #106 + C14 #101 · the bugged V-JEPA solo = 0.554 · 🔁 (#107) / ❌ (#108)
+
+Tian, 10-21 ≈ 20:38 UTC: "pull results of our latest runs, then run /update and choose between sending another run or potentially
+calling it done and selecting final picks".
+
+**Read** (20:41 UTC: `kaggle competitions submissions --csv`; the full LB CSV `artifacts/lb_1021b/` against the baseline
+`artifacts/lb_snap_baseline_1021/`, 08:14:52 UTC, 14 s before #107 was sent). Both COMPLETE. #108 / #109 cannot reach 0.958, so a move
+of our best entry could only be #107. No watcher was running (reaped ≈ 10:10 UTC, traps 69); with one entry able to move our best, the
+read needs no snapshot.
+
+| # | what | LB | pre-registered read | verdict |
+|---|---|---|---|---|
+| 107 | C20 on C19 = C19 + heliosli's R7 as a third R6-half member (0.36 R6 / 0.24 R7 / 0.40 s6fall) (`rsna-knee-anchor9586s6fr7w` v1) | **0.958** | our place rises → pick 1 = it, pick 2 = C19; no move / ≤ 0.957 / ERROR → no pick | **no move → no pick** |
+| 108 | V-JEPA 2.1 ViT-B 5-fold solo with the author's loader bug (series with > 24 slices blank; `rsna-knee-vjepa-solo` v1) | **0.554** | decides nothing; above #109 → the authors trained with the bug | **under #109 (0.836) → they did not** |
+
+**#107: our place did not move.** Counted on strict stable teams (same Score, SubmissionCount and LastSubmissionDate in both CSVs; ours
+excluded): 852 teams at 0.958, **108 above us at baseline, 108 now, 0 crossed** (the 107 of the #106 read was counted on the 10-20 →
+10-21 pair; this pair has a different stable set). The nearest stable teams bracket us at baseline ranks 510 above and 513 below,
+before and after.
+- C20 on C19 did not pass even the stable team directly above C19 → **C20 on C19 ≤ C19 + (C19's gap to that team)**: not shown above
+  C19. By its rule it is no pick.
+- **What it says** (direction only): R7 as a third R6-half member at 0.24 adds nothing visible on public, as goodpjw2008 measured on the
+  0.958 recipe (R7 next to R6, no change) and as expected (R7 is R6's sibling: same trainer, anatomy model, views and folds). With
+  #102, #104, #105 and now #107, **every change to the tuned public blend since s6fall (#101) has read ≤ 0 on public** except the weight
+  return (#106). The candidate list's only R7-dependent follow-up, C22 (jessky's distill50 compact folds the C20 way, "only if #107 shows
+  a third compact member helps"), is not triggered.
+
+**#108: 0.554, under the fixed solo's 0.836.** Blanking every series with > 24 slices takes the model near chance, so most hidden-test
+studies carry their informative views in long series, and the authors' training loaded them (a model trained on the bug would read the
+bugged input better than the fixed one). This closes traps 78's open question: the fix was right, and V-JEPA is still dropped at 0.836.
+
+**The LB at 20:41 UTC** (6,342 teams; +37 since 08:14):
+- Top 0.969 (`CentralyDS`, `RB & Matheus & Tucker & Tony`, and now `BarryZhou`); 4th–8th 0.968; 10th 0.967; 100th 0.961.
+- 151 ≥ 0.960; 234 ≥ 0.959 (83 at exactly); **1,768 ≥ 0.958, 1,534 at exactly** (+65 since 08:14); 1,953 ≥ 0.957 (185 at exactly);
+  2,192 ≥ 0.956; 2,331 ≥ 0.954; 2,502 ≥ 0.950.
+- Five teams left the 0.958 tie upward since 08:14, all from its top (baseline places 20–32 in the tie, quartiles); none from near our
+  place. `Heliosli` 0.959, rank 215.
+- **We are rank 533 of 6,342, 299th of the 1,534 at 0.958: top 8.4 %.** The top-5 % line is rank 317, the top-10 % line rank 634; both
+  lie inside the tie. The rank drift (511 → 533) is the tie growing, not a change of ours.
+
+**Public notebooks** (`kaggle kernels list --competition … --sort-by dateRun`, 20:45 UTC): six runs since the 07:40 survey that our docs
+did not cover (`alia22/notebooka35d630793`, `marinostsl/notebook7260fc5481`, `sergiofigal04/knee-detection`, `basith007/model-ensembling`,
+`hardikrunwal/rsna-1`, `toghrulaliyev/rsna-knee-aze-team-dd6d24`). Metadata and code read, not run (scratch copies): four have internet
+on or no mounts (not submission notebooks), the other two mount their own or private sources (CoAtNet features + DINOv2-B; DINOv2-L +
+Qwen 2.5 7B). None mounts heliosli's or nartaa's assets or names a score. **No new public anchor.**
+
+**Verdict: 🔁 #107 (no move: C20 on C19 is no pick); ❌ #108 (closes the bug question).** **Picks stay pick 1 = C19 #106, pick 2 = C14
+#101.** 10-21: 2 slots left (#107–#109 used 3); 10-22: 5. Kaggle GPU
+5.72 h used, 24.28 h left (`kaggle quota` 20:45 UTC).
 
 ## Infrastructure
 
@@ -7916,8 +7974,8 @@ and public LB score, so a public/private divergence can be traced to a specific 
 | 104 | 2026-10-19 | rsna-knee-anchor9586s6fx v1 (`src/build_anchor_copy.py --anchor 09586s6fx`) | **C17**: C14 (= #101) + the traps-74 fixes (s6fall under its own scratch root; exact-duplicate Raptor rows = failed; s6fall keeps partial results, 50 % fail cap, notebook-time guard; a rank-corr floor R6 vs s6fall) + s6fall 5-crop TTA (centre + 4 corners of the 320 render, probability mean) | none | **0.958** | **read 10-20 07:33 UTC → 🔁 no move: stable 0.958 teams above us 94 → 94 (nearest stable teams 441 / 446 → 488 / 493), so C17 ≤ our best by sign → #101 stays pick 1, C14 = the base; a runtime cut of the 5-crop s6fall is not ruled out (scoring time unknown, the watcher died at 20:20 UTC) (entry 2026-10-20 "Submission #104 read").** placeholder green (SELF_CHECK 0.0; s6fall rc 0, raw r 0.9993 vs C14's centre crop; status ok). Timing: +1.52 h per process on the hidden test, over the 0.75 h gate; sent on Tian's call. sent 18:04:10 UTC (ref 57405050); baseline rank 442 of 6,219, 254th of 1,271 at 0.958 (`artifacts/lb_snap_baseline_1019/`); vs #101 by tie position: rise = C17 pick 1, no move = #101 pick 1, ≤ 0.957 = no C17 pick (entry 2026-10-19 "C17 built and timed") |
 | 105 | 2026-10-20 | rsna-knee-anchor9586s6ff v2 (`src/build_anchor_copy.py --anchor 09586s6ff`) | **C18 on C14**: C14 (= #101) + nartaa's 384 px CoAtNet scored on its full 384 field (`INPUT_RES` 320 → 384; the mirror-TTA assert patched to `INPUT_RES`, traps 75) | none | **0.957** | **read 10-20 16:44 UTC → ❌ one tick under C14: the full field costs on public; C19 goes on C14 (`-s6fw`); our best entry did not move (strict stable teams above us 140 → 140) (entry 2026-10-20 "Submission #105 read").** placeholder green (SELF_CHECK 0.0; Raptor-384 0 failed; s6fall rc 0, status ok; 384 raw r 0.9973 vs C14's 320 crop). sent 07:35:58 UTC (ref 57428117); baseline rank 489 of 6,255, 288th of 1,348 at 0.958 (`artifacts/lb_snap_baseline_1020/`); watcher `src/watch_lb_snapshots.py 57428117`; vs our best by tie position: rise = C18 pick 1 + C19 on C18's base, no move or ≤ 0.957 = C19 on C14 (entry 2026-10-20 "Submission #104 read") |
 | 106 | 2026-10-20 | rsna-knee-anchor9586s6fw v1 (`src/build_anchor_copy.py --anchor 09586s6fw`) | **C19 on C14** (pick 2 by construction, Tian 10-19): C14 (= #101) with cell 8's four per-finding Raptor-half weights back to the 0.958 notebook's (Lateral OA 0.20, PF OA 0.60, Synovitis 0.80, Baker's 0.35; V2 pushed each 0.05 further) | none | **0.958** | **read 10-21 07:38 UTC → our place rose (strict stable teams above us 122 → 107): C19 > our previous best by sign → our best entry, pick 1 (pick 2 = C14 #101); rank 511 of 6,305, 284th of 1,466 at 0.958 (entry 2026-10-21 "Submission #106 read").** placeholder green (SELF_CHECK 0.0; `raptor_raw.csv` = C14's to 8e-5; s6fall rc 0). Sent 18:00:34 UTC (ref 57448686) after two sends at 17:23 / 17:24 UTC turned ERROR with Kaggle's "A system error" (not counted; traps 76). Baseline rank 515 of 6,277, 303rd of 1,405 at 0.958 (`artifacts/lb_snap_baseline_1020c/`); watcher `src/watch_lb_snapshots.py 57448686`. Expected 0.957–0.958; a pick by construction; our place rising would also make it pick 1; ERROR → pick 2 = #104 (entry 2026-10-20 "C19 send hit two Kaggle system errors; C20 built") |
-| 107 | 2026-10-21 | rsna-knee-anchor9586s6fr7w v1 (`src/build_anchor_copy.py --anchor 09586s6fr7w`) | **C20 on C19** (Tian 10-21: "Send C20 on C19 first"): C19 (= #106) + heliosli's R7 as a third member of the R6 half (0.36 R6 / 0.24 R7 / 0.40 s6fall) through V2's own compact controller; any R7 skip / failure = C19's file | none | ⏳ | placeholder green (SELF_CHECK 0; R7X ok 3 / 3; R7 = C20 v1's exactly; C19's stages unchanged; C19's four weights in the receipt). Sent 08:15:06 UTC (ref 57473156). Baseline rank 511 of 6,305, 283rd of 1,469 at 0.958 (`artifacts/lb_snap_baseline_1021/`); watcher `src/watch_lb_snapshots.py 57473156`. Expected ≈ 0 (R7 is R6's sibling); our place rises → pick 1 = it, pick 2 = C19; no move / ≤ 0.957 / ERROR → no pick (entry 2026-10-21 "C20 on C19 built") |
-| 108 | 2026-10-21 | rsna-knee-vjepa-solo v1 (`src/vjepa_solo.py`) | **C21 solo, bugged**: nurikw3's public V-JEPA 2.1 ViT-B 5-fold alone, the author's `infer.py` in fp16 | none | ⏳ | **runs with the author's loader bug** (series with > 24 slices load as blank; traps 78): reads V-JEPA with blank long series, not V-JEPA. Sent 08:51:01 UTC (ref 57474403) (entry 2026-10-21 "V-JEPA loader bug") |
+| 107 | 2026-10-21 | rsna-knee-anchor9586s6fr7w v1 (`src/build_anchor_copy.py --anchor 09586s6fr7w`) | **C20 on C19** (Tian 10-21: "Send C20 on C19 first"): C19 (= #106) + heliosli's R7 as a third member of the R6 half (0.36 R6 / 0.24 R7 / 0.40 s6fall) through V2's own compact controller; any R7 skip / failure = C19's file | none | **0.958** | **read 10-21 20:41 UTC → no move inside the tie (strict stable teams above us 108 → 108, 0 crossed): no pick; picks stay C19 #106 + C14 #101; rank 533 of 6,342, 299th of 1,534 at 0.958 (entry 2026-10-21 "Submissions #107 / #108 read").** placeholder green (SELF_CHECK 0; R7X ok 3 / 3; R7 = C20 v1's exactly; C19's stages unchanged; C19's four weights in the receipt). Sent 08:15:06 UTC (ref 57473156). Baseline rank 511 of 6,305, 283rd of 1,469 at 0.958 (`artifacts/lb_snap_baseline_1021/`); watcher `src/watch_lb_snapshots.py 57473156`. Expected ≈ 0 (R7 is R6's sibling); our place rises → pick 1 = it, pick 2 = C19; no move / ≤ 0.957 / ERROR → no pick (entry 2026-10-21 "C20 on C19 built") |
+| 108 | 2026-10-21 | rsna-knee-vjepa-solo v1 (`src/vjepa_solo.py`) | **C21 solo, bugged**: nurikw3's public V-JEPA 2.1 ViT-B 5-fold alone, the author's `infer.py` in fp16 | none | **0.554** | **read 10-21 20:41 UTC → under #109's 0.836: the authors did not train with the bug; decides nothing (entry 2026-10-21 "Submissions #107 / #108 read").** **runs with the author's loader bug** (series with > 24 slices load as blank; traps 78): reads V-JEPA with blank long series, not V-JEPA. Sent 08:51:01 UTC (ref 57474403) (entry 2026-10-21 "V-JEPA loader bug") |
 | 109 | 2026-10-21 | rsna-knee-vjepa-solo v2 | **C21 solo, fixed**: the same with the loader bug fixed (`_order_loaded`) | none | **0.836** | **read 12:13 UTC → ❌ 0.109 under the 0.945 bar: V-JEPA dropped, C21m not sent (entry 2026-10-21 "Submission #109 read").** placeholder green (views 3 / 4 / 5, fp16 vs fp32 1.2e-3). Sent 10:29:11 UTC (ref 57477603). Read: ≥ 0.945 → C21m (best base + V-JEPA at 15 %); < 0.945 → dropped (entry 2026-10-21 "V-JEPA loader bug") |
 
 ## Closed cards index (moved here from proposals.md on 2026-10-05)
