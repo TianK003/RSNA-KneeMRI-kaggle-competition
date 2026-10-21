@@ -1467,3 +1467,16 @@ relevance, so a topic that no query ranks in its top 20 never appears, and the h
 **Do:** for "what is new since X", list with sort `new` and filter by date (the agent's reader is `scratchpad/research_1021/scripts/
 fetch_forum.py`, not kept: port the listing mode into `harvest_forum.py` before the next harvest); never treat a search-only harvest as
 exhaustive (experiments.md 2026-10-21 "Endgame survey 3").
+
+### 78. A public inference script can blank most of its input silently: nurikw3's V-JEPA `infer.py` loads only series with ≤ 24 slices, and a placeholder "green" by output shape hid it (Tier 1: corrupts every prediction it makes while looking fine, found 2026-10-21)
+
+In `_load_source_slices`, a series with more than 24 files takes a fast path: read every header with `stop_before_pixels`, then
+`_ordered_datasets(<the list of datasets>)`. But `_ordered_datasets` calls `pydicom.dcmread()` on each element, as if it held paths:
+pydicom 3 raises `TypeError: dcmread: Expected a file path, file-like or readable buffer, but got FileDataset`. `load_study_tensor`
+wraps the call in `try/except`, so the view stays an all-zero stack, `present[0]` is forced True when nothing loaded, and the model
+predicts from blank input. On the 3 placeholder studies, 5 of the 8 candidate views failed and study 0 was blank in every view; the
+solo placeholder (v1) still wrote a full 3 × 13 `submission.csv` with no NaN and an fp16 / fp32 match, and was sent as #108 with the
+bug. It surfaced only because the C21m worker's own "no pixels" guard rejected the blank study. **Fix** (both `src/vjepa_solo.py` v2
+and `VJX_WORKER`): order the already-read headers in place (`_order_loaded`), applied to the real `infer.py` text and checked to
+compile. **Do:** on any third-party inference path, log per-study input coverage (views or slices actually loaded) on the placeholder
+and read it before a send; a full, NaN-free output proves nothing about the inputs (experiments.md 2026-10-21 "V-JEPA loader bug").

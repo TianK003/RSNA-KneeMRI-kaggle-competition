@@ -7309,6 +7309,29 @@ were fixed before the pass (a dtype-sensitive equality, a tag normalisation that
 
 **Verdict: ⏳ PENDING** (#108 on the LB; the C21m placeholders queued).
 
+### 2026-10-21 — V-JEPA loader bug: every series with > 24 slices loaded as blank; #108 runs with it; fixed in the solo v2 and C21m · ⏳ PENDING
+
+The C21m placeholders (v1, both COMPLETE by ≈ 09:20 UTC; `artifacts/kaggle_out/anchor9586s6fwvj_v1/`) blended (status `ok`, 2 of 3
+studies scored), but worker 0 logged "study 0 failed: ValueError": the worker's own "no pixels" guard. Reproduced locally on the 3
+placeholder studies (`data/sample_dicom`, the author's loader up to the resize): **every series with > 24 slices raises
+`TypeError … got FileDataset`** in `_ordered_datasets`, which re-reads already-loaded headers as paths; `load_study_tensor` swallows it
+and leaves the view blank. 5 of the 8 candidate views failed; study 0 was blank in all 5 (its axial series has 160 files). With the fix
+(`_order_loaded`: order the read headers by ImagePositionPatient in place) all 7 views present locally load, slice order monotone
+(traps 78).
+- **#108 (the solo, sent 08:51 UTC) runs with the bug**: on the hidden test only ≤ 24-slice series reach the model, so its score
+  under-reads V-JEPA. It is read as "V-JEPA with blank long series", not as V-JEPA.
+- **Fixed** in `src/vjepa_solo.py` (v2: the patch + a views-loaded count per study in the log) and in `VJX_WORKER` (same patch + a views
+  count in `VJX_SHARD_DONE`); both patches applied to the real `infer.py` text, compile, and produce identical code; the C21m renders
+  rebuilt (existing renders byte-identical), `src/c21_mock_test.py` 9 / 9 on both bases.
+- **Pushed 10:26 UTC:** `rsna-knee-vjepa-solo` v2 and `rsna-knee-anchor9586s6fwvj` v2. `-s6fr7wvj` v2 was refused: "Maximum batch GPU
+  session count of 2 reached" (an account runs two GPU sessions at once); it is needed only if #107 rises.
+- **Next:** solo v2 green with ≥ 3 views loaded per placeholder study → send it (Tian's go for the solo covers the corrected run);
+  its read decides C21m (≥ 0.945).
+
+Claude Code stopped three background shells at ≈ 10:10 UTC because the laptop ran critically low on memory: the #107 snapshot watcher,
+the #108 watcher and the keep-awake helper (traps 69). Not restarted: #108 cannot become our best entry, so #107 reads from any later
+LB CSV against `artifacts/lb_snap_baseline_1021/`.
+
 ## Infrastructure
 
 ### 2026-09-27 — The "0.943 Speedy Raptors CoAtNet D4" notebook is our anchor **plus two CoAt readers**, not a faster graph; its "< 30 min" is a 3-study commit run · P-41 (threaded scan + 8 decode workers) smoke-green and byte-identical

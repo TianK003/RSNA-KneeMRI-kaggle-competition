@@ -632,9 +632,28 @@ def find_one(tail):
 VJ = find_one("f0_best.pt").parent
 COMP = find_one("test_series.csv").parent
 sys.path[:0] = [str(VJ), str(VJ / "vjepa2")]
+SRC = (VJ / "infer.py").read_text(encoding="utf-8")
+# the author's loader bug: a series with > 24 slices passed already-read datasets to _ordered_datasets(), which re-reads them as paths
+# (TypeError, swallowed -> a blank view); order the read headers in place instead (experiments.md 2026-10-21 "V-JEPA loader bug")
+BUG = "        headers = _ordered_datasets([pydicom.dcmread(path, stop_before_pixels=True) for path in files])\n"
+FIX = "        headers = _order_loaded([pydicom.dcmread(path, stop_before_pixels=True) for path in files])\n"
+ORDER_LOADED = """def _order_loaded(datasets):
+    if len(datasets) <= 1:
+        return datasets
+    try:
+        ipp = np.asarray([list(map(float, ds.ImagePositionPatient)) for ds in datasets])
+        axis = int(np.argmax(np.ptp(ipp, axis=0)))
+        return [datasets[i] for i in np.argsort(ipp[:, axis])]
+    except Exception:
+        return datasets
+
+
+"""
+assert SRC.count(BUG) == 1 and SRC.count("def _load_source_slices(series_dir):") == 1, "infer.py changed: loader patch targets"
+SRC = SRC.replace(BUG, FIX).replace("def _load_source_slices(series_dir):", ORDER_LOADED + "def _load_source_slices(series_dir):")
 mod = types.ModuleType("vj_infer")
 mod.__file__ = str(VJ / "infer.py")
-exec(compile((VJ / "infer.py").read_text(encoding="utf-8"), mod.__file__, "exec"), mod.__dict__)
+exec(compile(SRC, mod.__file__, "exec"), mod.__dict__)
 test = pd.read_csv(COMP / "test.csv", dtype={"StudyInstanceUID": str})
 series = pd.read_csv(COMP / "test_series.csv", dtype={"StudyInstanceUID": str})
 by = {str(u): g for u, g in series.groupby("StudyInstanceUID", sort=False)}
@@ -642,7 +661,7 @@ uids = test.StudyInstanceUID.tolist()[SHARD::NSHARD]
 t0 = time.time()
 models = [mod.load_model(cp) for cp in sorted(VJ.glob("f*_best.pt"))]
 print("VJX shard %d: %d folds loaded in %.0f s, %d studies" % (SHARD, len(models), time.time() - t0, len(uids)), flush=True)
-rows, failed = [], 0
+rows, failed, views = [], 0, []
 
 
 def flush():
@@ -654,6 +673,7 @@ with torch.inference_mode():
     for i, uid in enumerate(uids):
         try:
             gray, present = mod.load_study_tensor(COMP, uid, by.get(uid))
+            views.append(int(sum(bool(v.any()) for v in gray)))
             if not gray.any():
                 raise ValueError("no pixels")
             x = torch.from_numpy(gray).unsqueeze(0).cuda()
@@ -669,7 +689,8 @@ with torch.inference_mode():
         if (i + 1) % 100 == 0:
             print("VJX shard %d: %d / %d in %.0f s" % (SHARD, i + 1, len(uids), time.time() - t0), flush=True)
 flush()
-print("VJX_SHARD_DONE %d scored %d failed %d in %.0f s" % (SHARD, len(rows), failed, time.time() - t0), flush=True)
+print("VJX_SHARD_DONE %d scored %d failed %d in %.0f s; views loaded per study %s" % (
+    SHARD, len(rows), failed, time.time() - t0, {k: views.count(k) for k in range(6)}), flush=True)
 '''
 
 VJX_INTRO = """# C21m: nurikw3's V-JEPA 2.1 as a third component of the final file (candidates.md C21)

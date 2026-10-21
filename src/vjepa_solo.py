@@ -5,7 +5,8 @@
 # `facebookresearch/vjepa2` code is MIT), scored alone with the author's own `infer.py`, read from the Dataset and patched in memory:
 # - fp16 autocast instead of bf16 (a T4 has no bf16 tensor cores);
 # - the competition directory found by a depth-limited glob (Kaggle mounts competitions under `/kaggle/input/competitions/`);
-# - the predictions written as `submission.csv` in the sample's column order.
+# - the predictions written as `submission.csv` in the sample's column order;
+# - the author's loader bug fixed: a series with > 24 slices loaded as blank (its headers were re-read as paths).
 # On the placeholder test (≤ 10 studies) the cell also scores fp32 and prints the fp16 / fp32 difference and the time per study.
 # Built from `src/vjepa_solo.py` by `src/nbgen.py`; experiments.md 2026-10-21 "C21: V-JEPA solo".
 
@@ -38,6 +39,29 @@ AMP = "torch.autocast('cuda', dtype=torch.bfloat16)"
 SRC = (VJ / "infer.py").read_text(encoding="utf-8")
 assert SRC.count(AMP) == 1, "infer.py changed: the bf16 autocast line is not there exactly once"
 SRC = SRC.replace(AMP, "AMP_CTX()")
+# the author's loader bug: for a series with > 24 slices it passes already-read datasets to _ordered_datasets(), which re-reads its
+# arguments as paths -> TypeError, swallowed by load_study_tensor -> that view stays blank (placeholder: 5 of 8 views).  Order the
+# read headers in place instead (experiments.md 2026-10-21 "V-JEPA loader bug").
+BUG = "        headers = _ordered_datasets([pydicom.dcmread(path, stop_before_pixels=True) for path in files])\n"
+FIX = "        headers = _order_loaded([pydicom.dcmread(path, stop_before_pixels=True) for path in files])\n"
+ORDER_LOADED = """def _order_loaded(datasets):
+    # [rsna-knee fix] order already-read headers by ImagePositionPatient without re-reading them
+    if len(datasets) <= 1:
+        return datasets
+    try:
+        ipp = np.asarray([list(map(float, ds.ImagePositionPatient)) for ds in datasets])
+        axis = int(np.argmax(np.ptp(ipp, axis=0)))
+        return [datasets[i] for i in np.argsort(ipp[:, axis])]
+    except Exception:
+        return datasets
+
+
+"""
+assert SRC.count(BUG) == 1 and SRC.count("def _load_source_slices(series_dir):") == 1, "infer.py changed: loader patch targets"
+SRC = SRC.replace(BUG, FIX).replace("def _load_source_slices(series_dir):", ORDER_LOADED + "def _load_source_slices(series_dir):")
+
+
+VIEWS = []                                               # views loaded per study (0..5), for the log
 
 
 def load_infer(amp_ctx):
@@ -45,6 +69,13 @@ def load_infer(amp_ctx):
     mod.__file__ = str(VJ / "infer.py")                  # its THIS_DIR = the Dataset, so its own sys.path inserts hold
     mod.AMP_CTX = amp_ctx
     exec(compile(SRC, str(VJ / "infer.py"), "exec"), mod.__dict__)
+    inner = mod.load_study_tensor
+
+    def counted(root, uid, rows):
+        gray, present = inner(root, uid, rows)
+        VIEWS.append(int(sum(bool(v.any()) for v in gray)))
+        return gray, present
+    mod.load_study_tensor = counted                      # run_inference looks it up in the module namespace
     return mod
 
 
@@ -56,6 +87,7 @@ t = time.time()
 pred = fp16.run_inference(competition_dir=COMP, output_csv=Path("/kaggle/working/vjepa_fp16.csv"), checkpoint_dir=VJ)
 sec = time.time() - t
 print(f"fp16: {len(pred)} studies in {sec:.0f} s ({sec / max(len(pred), 1):.1f} s / study, model load included)", flush=True)
+print("views loaded per study (0..5):", {k: VIEWS.count(k) for k in range(6)}, flush=True)
 
 pred = pred.set_index("StudyInstanceUID")
 sub = pd.DataFrame({"StudyInstanceUID": test.StudyInstanceUID})
