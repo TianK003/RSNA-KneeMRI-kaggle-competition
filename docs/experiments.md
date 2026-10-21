@@ -7266,6 +7266,23 @@ competition carries anything new. RSNA 2019 (hemorrhage) had a stage-1 PatientID
 **Verdict: ✅ a read.** No public or cheap lever above the 0.958 plateau exists; the teams above it have their own 0.95+ singles. Our
 own headers, site and sex checks (entries above) agree. The deadline rule moves the last send to ≈ 10-22 12:00–14:00 UTC.
 
+**Public asset hunt** (a third subagent, 141 read-only API calls ≥ 3 s apart, nothing over 20 MB downloaded; it also refreshed the
+expired Kaggle token at ≈ 08:12 UTC, valid to 20:12): **no public asset shows a solo ≥ 0.945, nothing public claims ≥ 0.959, and no
+dataset of our members' authors changed since 10-17** (heliosli last 10-15, nartaa's s6fall 10-17 = the training-code addition).
+Candidates, best first:
+1. **`nurikw3/rsna-knee-vjepa21-checkpoints`** (10-19; team "Vibechillers", 0.958, rank 355, i.e. ≈ 150 places above us in the tie):
+   V-JEPA 2.1 ViT-B (a video SSL ViT), fully fine-tuned, 5 folds, 5 views × 16 frames at 320 px straight from DICOM, a 2-layer
+   transformer head, no laterality normalisation; labels and external data not stated; CC0, vendored `facebookresearch/vjepa2` code MIT
+   (licence and source manifest read 10-21); 5 × 364 MB. **The only new family available** (new pretraining, new input pipeline). No
+   solo score anywhere; its team still reads 0.958 (a weak negative). → **C21** (candidates.md).
+2. **`jessky/rsna-knee-local-cv-cnx50`** (10-12; team "zentropy", 0.958, rank 497, 216 submissions): 5 folds of the S6-architecture
+   compact ConvNeXt-S on report-hash folds (gold excluded), targets `labels_distill50` ("incorporates an external OOF teacher"), its own
+   compact inference path; Apache-2.0, 932 MB, ≈ 1.9–2.3 h. The s6fall pattern (same network, other labels); runner-up, read through
+   #107 (a third compact member).
+3. `tensorhydra/rsna-knee-oai-weights` (4 folds of nartaa's 384 OAI recipe; same family), `subsh2004/rsna-knee-raptor-specialist`
+   (3 epochs on nartaa's 384), manatoshoji03's re-hosted CoAtNets, hengck23's MaViT (0.926 in a 2-model blend): same family or too weak.
+   cyruspinto's engines have no public inference code.
+
 ## Infrastructure
 
 ### 2026-09-27 — The "0.943 Speedy Raptors CoAtNet D4" notebook is our anchor **plus two CoAt readers**, not a faster graph; its "< 30 min" is a 3-study commit run · P-41 (threaded scan + 8 decode workers) smoke-green and byte-identical
