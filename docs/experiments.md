@@ -174,6 +174,7 @@ agreement with the teacher, not truth. A one-seed LB delta needs ≥ 0.004 (P-44
 | 2026-10-20 | **C17, submission #104** (`rsna-knee-anchor9586s6fx` v1): C14 + the traps-74 robustness fixes + s6fall's 5-crop TTA (centre + 4 corners of its 320 render) | gold-58 multi-crop ≈ +0.0015 (direction only) | **0.958** | **🔁 no move: stable 0.958 teams above us 94 → 94 (the nearest stable teams bracket us at 441 / 446 → 488 / 493), so C17 ≤ our best by sign → #101 stays pick 1, C14 = the base for C18 / C19. A runtime cut of the 5-crop s6fall is not ruled out (scoring time unknown). Rank 489 of 6,255 (288th of 1,348 at 0.958; top 7.8 %)** (entry 2026-10-20 "Submission #104 read") |
 | 2026-10-20 | **C18 on C14, submission #105** (`rsna-knee-anchor9586s6ff` v2): C14 + nartaa's 384 px CoAtNet scored on its full 384 field instead of V2's 320 centre crop | — | **0.957** | **❌ one tick under C14 (#101 0.958): the full field costs on public, so C18 is no pick and C19 goes on C14 (`-s6fw`). The third inference-side change to the tuned public members that reads ≤ 0 (with #102, #104). Our best entry did not move (strict stable 0.958 teams above us 140 → 140). Rank 513 of 6,275 (302nd of 1,396 at 0.958; top 8.2 %)** (entry 2026-10-20 "Submission #105 read") |
 | 2026-10-21 | **C19 on C14, submission #106** (`rsna-knee-anchor9586s6fw` v1): C14 with the four per-finding Raptor-half weights back to the 0.958 notebook's (Lateral OA 0.20, PF OA 0.60, Synovitis 0.80, Baker's 0.35; V2 pushed each 0.05 further) | — | **0.958** | **🔁 at three decimals, ✅ by its rule: our place rose (strict stable 0.958 teams above us 122 → 107), so C19 > our previous best (#101, or #103 / #104) by sign → our best entry and pick 1; pick 2 = C14 #101 (V2's weights). A small margin (15 stable teams, against C14's 350 over V2). On C14's members V2's weight pushes cost on public. Rank 511 of 6,305 (284th of 1,466 at 0.958; top 8.1 %)** (entry 2026-10-21 "Submission #106 read") |
+| 2026-10-21 | **C21 V-JEPA solo, submissions #108 / #109** (`rsna-knee-vjepa-solo` v1 / v2): nurikw3's public V-JEPA 2.1 ViT-B 5-fold alone, fp16; v1 with the author's loader bug (series with > 24 slices blank, traps 78), v2 fixed | — | **⏳ / 0.836** | **❌ #109 = 0.836, 0.109 under the 0.945 bar: the one new public family is far too weak to be a member; C21m not sent. #108 (bugged) pending** (entry 2026-10-21 "Submission #109 read") |
 
 **External reference points** (not ours — for calibrating ambition):
 
@@ -7334,6 +7335,34 @@ Claude Code stopped three background shells at ≈ 10:10 UTC because the laptop 
 the #108 watcher and the keep-awake helper (traps 69). Not restarted: #108 cannot become our best entry, so #107 reads from any later
 LB CSV against `artifacts/lb_snap_baseline_1021/`.
 
+**READ 2026-10-21 (12:13 UTC):** #109 = 0.836 → V-JEPA dropped, C21m not sent (entry 2026-10-21 "Submission #109 read").
+
+### 2026-10-21 — Submission #109 read: the V-JEPA solo (loader fixed) = 0.836, far under the 0.945 bar → V-JEPA dropped, C21m not sent · ❌
+
+Tian, 10-21 ≈ 12:10 UTC: "Get the results of jepa-v and run /update and /handoff".
+
+**Read** (`kaggle competitions submissions`, 12:13 UTC): **#109 (ref 57477603, `rsna-knee-vjepa-solo` v2: nurikw3's V-JEPA 2.1 ViT-B,
+5 folds, fp16, the author's loader bug fixed) COMPLETE at 0.836**; sent 10:29:11 UTC, so it scored in < 1.75 h.
+
+| # | what | LB | pre-registered read | verdict |
+|---|---|---|---|---|
+| 109 | V-JEPA 2.1 ViT-B 5-fold solo, loader fixed (`rsna-knee-vjepa-solo` v2) | **0.836** | ≥ 0.945 → C21m (best base + V-JEPA at 15 %); < 0.945 → dropped | **❌ dropped: 0.109 under the bar** |
+
+- **What it says:** the only new public family scores 0.836 alone, 0.12 under the blend and 0.10 under our own weakest member grade.
+  By the fork rule a member that far under the anchor costs at any weight (k would have to exceed ≈ 0.12 / (1 − γ)); our own 0.918
+  DINOv2 already read −0.001 at β 0.10 on a 0.942 anchor (#17). C21m is not sent; its two renders stay in the repo unused.
+- **Not separable yet:** whether the authors trained with the same loader bug. If so, fixing it at inference shifted the input
+  distribution and #108 (bugged, still pending at 12:13 UTC) can read above #109. Both are far under 0.945 either way, so no decision
+  waits on #108.
+- Its owners' team still reads 0.958 with this model public: consistent with a weak member.
+- **The C21m placeholder** `rsna-knee-anchor9586s6fwvj` v2 (fixed worker) was green before the read: SELF_CHECK ok, S6X ok, `VJX_DONE`
+  scored 3 / 3, views loaded 3 / 4 / 5 per study, the workers took 708 s on 1–2 studies (model load included, slower than the solo's
+  ≈ 40 s load). `-s6fr7wvj` v2 was never pushed (the 2-session GPU cap) and is not needed.
+
+**Verdict: ❌ V-JEPA as a member (solo 0.836).** The public-asset search is exhausted: no public model left to test. Picks stay C19 #106
++ C14 #101 unless #107 (C20 on C19, R7, still pending at 12:13 UTC) raises our place. 10-21: 2 slots left; Kaggle GPU 5.72 h used,
+24.28 h left (`kaggle quota` 12:13 UTC).
+
 ## Infrastructure
 
 ### 2026-09-27 — The "0.943 Speedy Raptors CoAtNet D4" notebook is our anchor **plus two CoAt readers**, not a faster graph; its "< 30 min" is a 3-study commit run · P-41 (threaded scan + 8 decode workers) smoke-green and byte-identical
@@ -7889,7 +7918,7 @@ and public LB score, so a public/private divergence can be traced to a specific 
 | 106 | 2026-10-20 | rsna-knee-anchor9586s6fw v1 (`src/build_anchor_copy.py --anchor 09586s6fw`) | **C19 on C14** (pick 2 by construction, Tian 10-19): C14 (= #101) with cell 8's four per-finding Raptor-half weights back to the 0.958 notebook's (Lateral OA 0.20, PF OA 0.60, Synovitis 0.80, Baker's 0.35; V2 pushed each 0.05 further) | none | **0.958** | **read 10-21 07:38 UTC → our place rose (strict stable teams above us 122 → 107): C19 > our previous best by sign → our best entry, pick 1 (pick 2 = C14 #101); rank 511 of 6,305, 284th of 1,466 at 0.958 (entry 2026-10-21 "Submission #106 read").** placeholder green (SELF_CHECK 0.0; `raptor_raw.csv` = C14's to 8e-5; s6fall rc 0). Sent 18:00:34 UTC (ref 57448686) after two sends at 17:23 / 17:24 UTC turned ERROR with Kaggle's "A system error" (not counted; traps 76). Baseline rank 515 of 6,277, 303rd of 1,405 at 0.958 (`artifacts/lb_snap_baseline_1020c/`); watcher `src/watch_lb_snapshots.py 57448686`. Expected 0.957–0.958; a pick by construction; our place rising would also make it pick 1; ERROR → pick 2 = #104 (entry 2026-10-20 "C19 send hit two Kaggle system errors; C20 built") |
 | 107 | 2026-10-21 | rsna-knee-anchor9586s6fr7w v1 (`src/build_anchor_copy.py --anchor 09586s6fr7w`) | **C20 on C19** (Tian 10-21: "Send C20 on C19 first"): C19 (= #106) + heliosli's R7 as a third member of the R6 half (0.36 R6 / 0.24 R7 / 0.40 s6fall) through V2's own compact controller; any R7 skip / failure = C19's file | none | ⏳ | placeholder green (SELF_CHECK 0; R7X ok 3 / 3; R7 = C20 v1's exactly; C19's stages unchanged; C19's four weights in the receipt). Sent 08:15:06 UTC (ref 57473156). Baseline rank 511 of 6,305, 283rd of 1,469 at 0.958 (`artifacts/lb_snap_baseline_1021/`); watcher `src/watch_lb_snapshots.py 57473156`. Expected ≈ 0 (R7 is R6's sibling); our place rises → pick 1 = it, pick 2 = C19; no move / ≤ 0.957 / ERROR → no pick (entry 2026-10-21 "C20 on C19 built") |
 | 108 | 2026-10-21 | rsna-knee-vjepa-solo v1 (`src/vjepa_solo.py`) | **C21 solo, bugged**: nurikw3's public V-JEPA 2.1 ViT-B 5-fold alone, the author's `infer.py` in fp16 | none | ⏳ | **runs with the author's loader bug** (series with > 24 slices load as blank; traps 78): reads V-JEPA with blank long series, not V-JEPA. Sent 08:51:01 UTC (ref 57474403) (entry 2026-10-21 "V-JEPA loader bug") |
-| 109 | 2026-10-21 | rsna-knee-vjepa-solo v2 | **C21 solo, fixed**: the same with the loader bug fixed (`_order_loaded`) | none | ⏳ | placeholder green (views 3 / 4 / 5, fp16 vs fp32 1.2e-3). Sent 10:29:11 UTC (ref 57477603). Read: ≥ 0.945 → C21m (best base + V-JEPA at 15 %); < 0.945 → dropped (entry 2026-10-21 "V-JEPA loader bug") |
+| 109 | 2026-10-21 | rsna-knee-vjepa-solo v2 | **C21 solo, fixed**: the same with the loader bug fixed (`_order_loaded`) | none | **0.836** | **read 12:13 UTC → ❌ 0.109 under the 0.945 bar: V-JEPA dropped, C21m not sent (entry 2026-10-21 "Submission #109 read").** placeholder green (views 3 / 4 / 5, fp16 vs fp32 1.2e-3). Sent 10:29:11 UTC (ref 57477603). Read: ≥ 0.945 → C21m (best base + V-JEPA at 15 %); < 0.945 → dropped (entry 2026-10-21 "V-JEPA loader bug") |
 
 ## Closed cards index (moved here from proposals.md on 2026-10-05)
 
