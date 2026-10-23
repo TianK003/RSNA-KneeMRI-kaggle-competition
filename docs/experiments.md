@@ -176,11 +176,13 @@ agreement with the teacher, not truth. A one-seed LB delta needs ≥ 0.004 (P-44
 | 2026-10-21 | **C19 on C14, submission #106** (`rsna-knee-anchor9586s6fw` v1): C14 with the four per-finding Raptor-half weights back to the 0.958 notebook's (Lateral OA 0.20, PF OA 0.60, Synovitis 0.80, Baker's 0.35; V2 pushed each 0.05 further) | — | **0.958** | **🔁 at three decimals, ✅ by its rule: our place rose (strict stable 0.958 teams above us 122 → 107), so C19 > our previous best (#101, or #103 / #104) by sign → our best entry and pick 1; pick 2 = C14 #101 (V2's weights). A small margin (15 stable teams, against C14's 350 over V2). On C14's members V2's weight pushes cost on public. Rank 511 of 6,305 (284th of 1,466 at 0.958; top 8.1 %)** (entry 2026-10-21 "Submission #106 read") |
 | 2026-10-21 | **C21 V-JEPA solo, submissions #108 / #109** (`rsna-knee-vjepa-solo` v1 / v2): nurikw3's public V-JEPA 2.1 ViT-B 5-fold alone, fp16; v1 with the author's loader bug (series with > 24 slices blank, traps 78), v2 fixed | — | **0.554 / 0.836** | **❌ #109 = 0.836, 0.109 under the 0.945 bar: the one new public family is far too weak to be a member; C21m not sent. #108 (bugged) 0.554: the fix was right, the authors did not train with the bug** (entries 2026-10-21 "Submission #109 read", "Submissions #107 / #108 read") |
 | 2026-10-21 | **C20 on C19, submission #107** (`rsna-knee-anchor9586s6fr7w` v1): C19 (= #106) + heliosli's R7 as a third member of the R6 half (0.36 R6 / 0.24 R7 / 0.40 s6fall) | — | **0.958** | **🔁 no move: strict stable 0.958 teams above us 108 → 108 (0 crossed; the nearest stable teams bracket us at 510 / 513 before and after), so C20 on C19 ≤ C19 by sign → no pick; picks stay C19 #106 + C14 #101. R7 next to R6 adds nothing visible, as goodpjw2008 measured; C22 not triggered. Rank 533 of 6,342 (299th of 1,534 at 0.958; top 8.4 %)** (entry 2026-10-21 "Submissions #107 / #108 read") |
+| 2026-10-23 | **Final private LB (unverified)**: our picks C19 #106 + C14 #101 | — | **0.958 public → 0.942 private** | **✅ final: rank 771 of 6,425 (top 12.0 %; public rank 570, 314th of 1,638 at 0.958). Every entry of ours lost ≈ 0.015 (SD 0.0014; own models 0.0146, heliosli anchors 0.0157); our 11 best entries all 0.942; best own blend B22 0.932, best single `v15c` 0.928** (entry 2026-10-23 "Final private LB") |
 
 **External reference points** (not ours — for calibrating ambition):
 
 | Score | What |
 |---|---|
+| **0.960** | **Private LB #1 (final, unverified, 2026-10-23)**: `Team Kangaroo` and `MURAD` (azamat1ch + matthewliew), public 4th / 5th at 0.969; public #1 `Barry` 0.970 → private 7th 0.957; 10th 0.957; 211 ≥ 0.945, 615 ≥ 0.943, **1,937 ≥ 0.942 (1,322 at exactly)** of 6,425; top-10 % line (rank 642) 0.942. The public 0.958 tie (1,638 teams) averages 0.9420 on private. **We are 0.942, rank 771** (entry 2026-10-23 "Final private LB") |
 | 0.969 | Public LB #1 (2026-10-21 20:41 UTC; `CentralyDS`, `RB & Matheus & Tucker & Tony`, `BarryZhou`), 4th–8th 0.968, 10th 0.967, 100th 0.961; **1,768 teams ≥ 0.958 of 6,342 (1,534 at exactly 0.958)**, 234 ≥ 0.959 (83 at exactly), 151 ≥ 0.960, 1,953 ≥ 0.957 (185 at exactly), 2,192 ≥ 0.956, 2,331 ≥ 0.954, 2,502 ≥ 0.950. No new public anchor (`kernels list` 20:45 UTC). **Our best (#106 C19) = 0.958, rank 533** (299th of 1,534 at 0.958; top 8.4 %; the top-5 % line is rank 317) (entry 2026-10-21 "Submissions #107 / #108 read") |
 | 0.969 | Public LB #1 (2026-10-21 07:38 UTC; `RB & Matheus & Tucker & Tony` and `CentralyDS`), 3rd–6th 0.968, 10th 0.967, 100th 0.960; **1,693 teams ≥ 0.958 of 6,305 (1,466 at exactly 0.958)**, 227 ≥ 0.959 (`Heliosli` now among them, from a private entry), 1,868 ≥ 0.957 (175 at exactly), 2,122 ≥ 0.956, 2,267 ≥ 0.954, 2,445 ≥ 0.950. No public notebook for this competition since 10-17 claims more than 0.958. **Our best (#106 C19) = 0.958, rank 511** (284th of 1,466 at 0.958; top 8.1 %; the top-5 % line is rank 315) (entry 2026-10-21 "Submission #106 read") |
 | 0.969 | Public LB #1 (2026-10-20 07:33 UTC; `RB & Matheus & Tucker & Tony`), 2nd / 3rd 0.968 (`azamatt`, `CentralyDS`), 10th 0.967, 100th 0.960; **1,549 teams ≥ 0.958 of 6,255 (1,348 at exactly 0.958)**, 201 ≥ 0.959, 1,725 ≥ 0.957 (176 at exactly), 2,016 ≥ 0.956, 2,176 ≥ 0.954, 2,360 ≥ 0.950. No public notebook since 10-17 claims more than 0.958. **Our best (#101 C14, or #103 / #104) = 0.958, rank 489** (288th of 1,348 at 0.958; top 7.8 %; the top-5 % line is rank 312) (entry 2026-10-20 "Submission #104 read") |
@@ -7421,6 +7423,85 @@ Qwen 2.5 7B). None mounts heliosli's or nartaa's assets or names a score. **No n
 #101.** 10-21: 2 slots left (#107–#109 used 3); 10-22: 5. Kaggle GPU
 5.72 h used, 24.28 h left (`kaggle quota` 20:45 UTC).
 
+### 2026-10-23 — Final private LB (unverified): rank 771 of 6,425 at 0.942 (public 570 at 0.958) · every entry of ours lost ≈ 0.015, own models and public anchors alike · our 11 best entries all read 0.942 · best own single `v15c` = 0.928 private · ✅ a read (final)
+
+Tian, 10-23: "The unverified final private leaderboard is out, i want you to read the results and report on what happened … Is there
+now a way to test my single model best score".
+
+**Read** (10-23 ≈ 09:40 UTC). After the deadline `kaggle competitions leaderboard -s` pages the **private** board, while `-d` still
+downloads the public one (traps 79). Paged through `get_leaderboard` (page size 200, 33 pages). Files in `artifacts/lb_final/`:
+`private_lb.csv` (6,425 teams); the public CSV of 10-23 09:35 UTC; both merged by TeamId in `private_public_merged.csv`; all 111 of
+our submissions with both scores in `submissions_clean.json` and `our_entries_pub_priv.csv` (109 scored + the 2 ERRORs of 10-20).
+Private scores are shown to three decimals, as public ones were.
+
+**Where we finished:** **private 0.942, rank 771 of 6,425 (top 12.0 %)**; on public, at the end, 0.958 and rank 570 (314th of the 1,638
+at 0.958). Net −201 places.
+- **Top:** 0.960 `Team Kangaroo` (public 4th, 0.969) and `MURAD` (= azamat1ch + matthewliew, public 5th, 0.969; azamat1ch's "short
+  answer is labels"); 3rd `DataTech Club` 0.959; public #1 `Barry` (0.970) → private 7th, 0.957; 10th 0.957.
+- **Score lines:** 6 ≥ 0.958, 21 ≥ 0.955, 60 ≥ 0.950, 211 ≥ 0.945, 615 ≥ 0.943, **1,937 ≥ 0.942 (1,322 at exactly)**, 2,157 ≥ 0.941.
+  The top-5 % line (rank 321) is 0.943 and the top-10 % line (rank 642) 0.942. **We are 156th of the 1,322 at 0.942, 129 places under
+  the top-10 % line**; 0.943 would have meant rank ≤ 615.
+- **The public 0.958 tie on private:** 1,638 teams, private 0.899–0.946, mean 0.9420: 1,239 at 0.942, 272 at 0.943, 53 at 0.944, 15
+  at 0.945–0.946. Public score → mean private: 0.960 → 0.9461, 0.959 → 0.9447, **0.958 → 0.9420**, 0.957 → 0.9412, 0.956 → 0.9399,
+  0.954 → 0.9365. Public vs private over the teams ≥ 0.94 public: r 0.60. Median |rank move| in the public top 1,000: 93 places.
+
+**Who passed us** (770 teams above us on private):
+
+| on public they were | teams |
+|---|---|
+| ≥ 0.959 | **256: every one of them** (private mean 0.9475, min 0.942) |
+| 0.958, above us there too | 290 |
+| 0.958, **below us** there | **179** |
+| ≤ 0.957 | **45** |
+
+23 teams above us on public fell below us. **−201 = 179 + 45 − 23.**
+
+**Our entries, public → private** (all 109 in `our_entries_pub_priv.csv`):
+
+| # | what | public | private | gap |
+|---|---|---|---|---|
+| 106 / 101 | **C19 / C14, the two picks** | 0.958 | **0.942** | 0.016 |
+| 107 / 104 / 103 / 100 / 97 | C20 on C19, C17, C15 on C14, C13-V2 (V2's pushed weights), C13 (the 0.958 anchor) | 0.958 | 0.942 | 0.016 |
+| 93 / 94 / 95 / 102 | C10 (the R6 + flip notebook, **no** tuned weights, + B21 at β 0.20), C10w, C10w-b05, C15 on V2 | 0.957 | 0.942 | 0.015 |
+| 105 | C18 on C14 (384 CoAtNet full field) | 0.957 | 0.941 | 0.016 |
+| 87 / 90 / 91 | C7, C7′, C9 (the 0.956 anchors + our leg) | 0.956 | 0.941 | 0.015 |
+| 99 | C12 (R7 + s6fall + B18; OAI-free) | 0.954 | 0.941 | 0.013 |
+| 88 / 89 | C8 / C8′ (R7 + B18 / B22) | 0.953 | 0.940 | 0.013 |
+| 80 | C5 (the 0.954 anchor + our leg) | 0.954 | 0.938 | 0.016 |
+| 92 | C11 (s6fall + B18; no OAI, no fastMRI) | 0.952 | 0.938 | 0.014 |
+| 82 | C6 (S6 + B18) | 0.950 | 0.937 | 0.013 |
+| 68 / 73 | C4 (nartaa's CoAtNet solo) / C4b (+ B18) | 0.950 / 0.951 | 0.934 | 0.016 / 0.017 |
+| 86 | **B22, our best own blend** (`v15c` + `v13b3` + `v15cr`) | 0.945 | **0.932** | 0.013 |
+| 79 / 69 | B21 (`v15co` + `v13b3`, OAI) / C3 (the 0.942 stack + B18) | 0.946 | 0.931 | 0.015 |
+| 81 / 67 | A14 (S6 solo) / B18 (`v15c` + `v13b3`) | 0.944 | 0.930 | 0.014 |
+| 64 | **`v15c` solo, our best single** (ConvNeXt-T in12k @ 288, own optimiser) | 0.942 | **0.928** | 0.014 |
+| 78 | `v15co` solo (`v15c` + OAI) | 0.945 | 0.928 | 0.017 |
+| 83 / 70 / 50 | `v15cb`, `v15c2`, `v13b3` solos | 0.943 / 0.941 / 0.940 | 0.927 / 0.927 / 0.926 | 0.016 / 0.014 / 0.014 |
+| 15 | the public 0.942 stack, anchor only | 0.942 | 0.925 | 0.017 |
+
+**What it says:**
+1. **The private split is harder for everyone, by ≈ 0.015.** Over our 98 entries ≥ 0.90 public the gap is 0.0149 (SD 0.0014): own
+   models 0.0146 (63 entries), public-anchor entries 0.0154 (35), heliosli's 0.957 / 0.958 entries 0.0157 (12). The public order of our
+   entries held on private (Spearman 0.988, Pearson 0.994). `src/pubpriv_sim.py` (2026-10-16) drew public and private from one case mix,
+   so it predicted a shared shift of ± 0.007 around zero; the real shift is a level difference of the split, shared by every team.
+2. **The public-tuned notebook cost about one tick of overfit and was still our best entry on private.** heliosli's entries lost
+   ≈ 0.001 more than our own models (0.0157 vs 0.0146, under one SD of the per-entry gap) and still ended 0.010 above our best own blend
+   (B22 0.932) and 0.001 above our best OAI-free fork (C12 0.941). The weight question stays invisible at three decimals: C10 (no tuned
+   weights), C10w (the 0.958's four), C13-V2 (V2's pushes) and C19 all read 0.942 (sim rows 3a–3c: ± 0.0006–0.0027).
+3. **The 201 places were the tie's reshuffle, not a pick error.** Our 11 best entries all read 0.942, so at three decimals no pair of
+   picks could have scored more. The places were lost inside the public 0.958 tie (179 teams from below us there) and to 45 teams from
+   ≤ 0.957; the places that held were bought with own models: every public ≥ 0.959 team stayed above us (sim row 4: a true +0.004
+   lead flips ≤ 1 %).
+4. **The fork rule's diversity gain carried to private.** C6 = S6 (0.930) + B18 (0.930) at β 0.45 → 0.937, +0.007 over both members;
+   C3 = the 0.942 stack (0.925) + B18 (0.930) → 0.931; C8 = R7 + B18 → 0.940. On the 0.958 anchor our leg, which cost a tick on public,
+   reads level on private at three decimals (C10w / C10w-b05 0.942 = C13).
+5. **Our best single model, `v15c`, reads 0.928 on private** (#64; public 0.942), which would place ≈ rank 2,751–2,792 (top 43.5 %). OAI
+   bought nothing on private: `v15co` 0.928 too (#78; its +0.003 on public did not carry), B21 0.931 vs B18 0.930. Our best own blend,
+   B22, reads 0.932 (≈ rank 2,508–2,599). **No new submission was needed:** Kaggle shows the private score of every past entry.
+
+**Verdict: ✅ a read (final).** The competition is over; nothing is in flight. The private board is "unverified" until Kaggle finalises
+it.
+
 ## Infrastructure
 
 ### 2026-09-27 — The "0.943 Speedy Raptors CoAtNet D4" notebook is our anchor **plus two CoAt readers**, not a faster graph; its "< 30 min" is a 3-study commit run · P-41 (threaded scan + 8 decode workers) smoke-green and byte-identical
@@ -7865,6 +7946,8 @@ this recipe is the cheapest standing claim on part of it.
 
 Log every submission here with the exact kernel version, config diff, OOF score,
 and public LB score, so a public/private divergence can be traced to a specific change.
+
+**Private scores (2026-10-23):** every row's private score is in `artifacts/lb_final/our_entries_pub_priv.csv` (by `#`); the summary and the key rows are in the entry 2026-10-23 "Final private LB". Every entry lost ≈ 0.015 from public to private (SD 0.0014).
 
 | # | Date | Kernel ver | Config change | OOF | Public LB | Notes |
 |---|---|---|---|---|---|---|

@@ -1482,3 +1482,12 @@ compile. **Do:** on any third-party inference path, log per-study input coverage
 and read it before a send; a full, NaN-free output proves nothing about the inputs (experiments.md 2026-10-21 "V-JEPA loader bug").
 **The cost, measured (10-21):** the bugged solo #108 read **0.554**, near chance, against the fixed solo's 0.836 (#109): the bug costs
 0.28 AUC on the hidden test while its placeholder looked green (experiments.md 2026-10-21 "Submissions #107 / #108 read").
+
+### 79. After the deadline `kaggle competitions leaderboard -d` still downloads the PUBLIC board; only `-s` (the `get_leaderboard` view) shows the private one, 20 rows a page (Tier 3, 2026-10-23)
+
+On 10-23 the downloaded CSV was named `…-publicleaderboard-2026-10-23T09_35_58.csv` and held our public 0.958 (rank 570), while `-s`
+showed private scores (top 0.960, not public's 0.970). The view pages: 20 rows by default, 200 at most, with a "Next Page Token" line;
+the CLI's `--format json` output starts with the version warning, so it does not parse as JSON either. `competitions submissions --csv`
+also pages (20 by default; 200 at most) and puts the same warning on its first stdout line. **Do:** page the view through the Python
+client (`ApiGetLeaderboardRequest`, page size 200, follow `next_page_token`: 33 pages for 6,425 teams) and join it to the public CSV by
+TeamId; for submissions pass `--page-size 200` and drop the first line before parsing (experiments.md 2026-10-23 "Final private LB").
