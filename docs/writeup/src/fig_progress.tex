@@ -1,0 +1,36 @@
+\documentclass[tikz,border=2pt]{standalone}
+\input{style.tex}
+\input{pgfstyle.tex}
+\begin{document}
+\begin{tikzpicture}
+\begin{axis}[width=15.6cm, height=7.8cm, xmin=-1, xmax=112, ymin=0.812, ymax=0.986,
+  xlabel={submission number (chronological, 28 Aug -- 21 Oct 2026)}, ylabel={macro ROC-AUC},
+  ymajorgrids, xtick={0,10,...,110}, ytick={0.82,0.84,...,0.96},
+  y tick label style={/pgf/number format/precision=2}, x tick label style={/pgf/number format/precision=0},
+  legend style={at={(0.5,-0.19)}, anchor=north, legend columns=2, /tikz/every even column/.append style={column sep=14pt}}]
+% vertical segment from public down to private
+\addplot[own, line width=0.5pt, forget plot, only marks, mark=none,
+  error bars/.cd, y dir=minus, y explicit, error bar style={own, line width=0.5pt}, error mark=none]
+  table[x=no, y=pub, y error expr=\thisrow{pub}-\thisrow{priv}] {prog_own.dat};
+\addplot[pub, line width=0.5pt, forget plot, only marks, mark=none,
+  error bars/.cd, y dir=minus, y explicit, error bar style={pub, line width=0.5pt}, error mark=none]
+  table[x=no, y=pub, y error expr=\thisrow{pub}-\thisrow{priv}] {prog_pub.dat};
+\addplot[only marks, mark=*, mark size=1.7pt, own, mark options={fill=own, draw=paper, line width=0.3pt}] table[x=no,y=pub] {prog_own.dat};
+\addlegendentry{own models only: public}
+\addplot[only marks, mark=square*, mark size=1.5pt, pub, mark options={fill=pub, draw=paper, line width=0.3pt}] table[x=no,y=pub] {prog_pub.dat};
+\addlegendentry{with public members: public}
+\addplot[only marks, mark=o, mark size=1.5pt, own, mark options={fill=paper, draw=own, line width=0.55pt}] table[x=no,y=priv] {prog_own.dat};
+\addlegendentry{own models only: private}
+\addplot[only marks, mark=square, mark size=1.4pt, pub, mark options={fill=paper, draw=pub, line width=0.55pt}] table[x=no,y=priv] {prog_pub.dat};
+\addlegendentry{with public members: private}
+% milestones (public score), with leaders
+\draw[inkb, line width=0.35pt] (axis cs:3.6,0.869) -- (axis cs:13,0.862) node[note, text=ink, anchor=west] {DICOM cache (\#3)};
+\draw[inkb, line width=0.35pt] (axis cs:5.6,0.894) -- (axis cs:13,0.880) node[note, text=ink, anchor=west] {two heads (\#5)};
+\draw[inkb, line width=0.35pt] (axis cs:20,0.930) -- (axis cs:20,0.952) node[note, text=ink, anchor=south] {Raptor targets};
+\draw[inkb, line width=0.35pt] (axis cs:64,0.945) -- (axis cs:64,0.962) node[note, text=ink, anchor=south] {ConvNeXt-T 0.942};
+\draw[inkb, line width=0.35pt] (axis cs:86,0.929) -- (axis cs:86,0.912) node[note, text=ink, anchor=north] {B22, best own 0.945 / 0.932};
+\draw[inkb, line width=0.35pt] (axis cs:101,0.961) -- (axis cs:101,0.967) node[note, text=ink, anchor=south east, xshift=6pt] {C14, C19: 0.958 / 0.942};
+\draw[inkb, line width=0.35pt] (axis cs:108.3,0.831) -- (axis cs:102,0.831) node[note, text=ink, anchor=east] {V-JEPA solo};
+\end{axis}
+\end{tikzpicture}
+\end{document}

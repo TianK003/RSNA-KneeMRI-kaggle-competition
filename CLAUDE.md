@@ -87,6 +87,10 @@ Full reasoning and ~60 more failure modes in [docs/traps.md](docs/traps.md).
 ```
 CLAUDE.md               this file — index + verified facts
 docs/                   handoff, candidates, traps, experiments, proposals, research, brainstorm, setup
+docs/writeup/           the solution write-up: src/ (TikZ / pgfplots figures, template.html, chart data), build.py (-> figures/*.png + *.pdf,
+                        rsna-knee-solution.html, rsna-knee-solution.pdf; --data refreshes the charts from artifacts/lb_final/), fonts/ (Latin Modern);
+                        needs Tectonic (tools/tectonic.exe, gitignored), pdftocairo and Edge; published as the Artifact linked under "Next"
+src/pull_private_lb.py  after the deadline: page the private LB, join the public CSV, list our entries with both scores -> artifacts/lb_final/ (traps 79)
 src/kaggle_pipeline.py  THE PIPELINE, percent-format (runs as .py AND becomes the notebook)
 src/cache_pipeline.py   preprocessing-cache kernel (P-01): DICOM -> uint8 once, laterality, site proxy
 src/nbgen.py            percent-format .py -> .ipynb

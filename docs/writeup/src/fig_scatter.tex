@@ -1,0 +1,23 @@
+\documentclass[tikz,border=2pt]{standalone}
+\input{style.tex}
+\input{pgfstyle.tex}
+\begin{document}
+\begin{tikzpicture}
+\begin{axis}[width=8.6cm, height=8.0cm, xmin=0.900, xmax=0.961, ymin=0.885, ymax=0.946,
+  xlabel={public LB}, ylabel={private LB}, grid=major,
+  xtick={0.90,0.91,...,0.96}, ytick={0.89,0.90,...,0.94},
+  x tick label style={/pgf/number format/precision=2}, y tick label style={/pgf/number format/precision=2},
+  legend style={at={(0.03,0.97)}, anchor=north west, fill=paper}, clip=false]
+\addplot[domain=0.90:0.961, samples=2, draw=inkb, dashed, line width=0.5pt, forget plot] {x};
+\addplot[domain=0.90:0.961, samples=2, draw=ink, line width=0.6pt, forget plot] {x-0.0149};
+\addplot[only marks, mark=*, mark size=1.8pt, own, mark options={fill=own, draw=paper, line width=0.35pt}] table[x=pub,y=priv] {entries_own.dat};
+\addlegendentry{own models only (63)}
+\addplot[only marks, mark=square*, mark size=1.6pt, pub, mark options={fill=pub, draw=paper, line width=0.35pt}] table[x=pub,y=priv] {entries_pub.dat};
+\addlegendentry{with public members (35)}
+\node[note, anchor=south, rotate=45] at (axis cs:0.9165,0.9175) {private $=$ public};
+\node[note, text=ink, anchor=north, rotate=45, yshift=-8pt] at (axis cs:0.9265,0.9116) {private $=$ public $-\,0.0149$};
+\draw[ink, line width=0.45pt] (axis cs:0.958,0.942) circle (4.4pt);
+\draw[ink, line width=0.35pt] (axis cs:0.9578,0.9402) -- (axis cs:0.9545,0.9300) node[note, text=ink, anchor=north, align=center] {final picks\\C19, C14};
+\end{axis}
+\end{tikzpicture}
+\end{document}

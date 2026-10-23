@@ -1,0 +1,24 @@
+\documentclass[tikz,border=3pt]{standalone}
+\input{style.tex}
+\begin{document}
+\begin{tikzpicture}[font=\small]
+\tikzset{blk/.append style={text width=2.6cm, minimum height=1.35cm}}
+\def\dx{3.15}
+\node[data] (in) at (0,0) {One study\\[-1pt]{\footnotesize 3--14 DICOM series}};
+\node[blk] (s1) at (\dx,0)  {1\enspace Classify\\[-1pt]{\footnotesize plane, TR/TE weighting, fat-sat}};
+\node[blk] (s2) at (2*\dx,0)  {2\enspace Assign 6 slots\\[-1pt]{\footnotesize best match; nearest 32 slices}};
+\node[blk] (s3) at (3*\dx,0)  {3\enspace Order slices\\[-1pt]{\footnotesize by $\mathrm{IPP}\cdot\hat n$, never by file name}};
+\node[blk] (s4) at (4*\dx,0) {4\enspace Sample $n_s$\\[-1pt]{\footnotesize equidistant in the 2--98\,\% band}};
+\node[blk] (s5) at (0,-2.2)  {5\enspace Crop 150 mm\\[-1pt]{\footnotesize physical, from PixelSpacing}};
+\node[blk] (s6) at (\dx,-2.2)  {6\enspace Normalise\\[-1pt]{\footnotesize clip 1st--99th pct, scale to $[0,1]$}};
+\node[blk] (s7) at (2*\dx,-2.2)  {7\enspace Canonical side\\[-1pt]{\footnotesize mirror right knees}};
+\node[blk] (s8) at (3*\dx,-2.2)  {8\enspace Resize, store\\[-1pt]{\footnotesize $336^2$ uint8, 64 per blob}};
+\node[data] (out) at (4*\dx,-2.2) {Cached study\\[-1pt]{\footnotesize $102\times336^2$\\[-2pt]+ presence mask}};
+\draw[flow] (in) -- (s1);
+\draw[flow] (s1) -- (s2); \draw[flow] (s2) -- (s3); \draw[flow] (s3) -- (s4);
+\draw[flow] (s4.south) -- ++(0,-0.27) -| (s5.north);
+\draw[flow] (s5) -- (s6); \draw[flow] (s6) -- (s7); \draw[flow] (s7) -- (s8);
+\draw[flow] (s8) -- (out);
+\node[note, anchor=north] at (2*\dx,-3.05) {Slot budgets: SAG fluid FS 24, COR fluid FS 24, AX fluid FS 24, SAG fluid no FS 14, COR T1 8, SAG T1 8.\\All 4,407 training studies: $\approx$ 51 GB, built once on Kaggle CPU kernels.\\Hidden-test studies go through the same function at inference.};
+\end{tikzpicture}
+\end{document}

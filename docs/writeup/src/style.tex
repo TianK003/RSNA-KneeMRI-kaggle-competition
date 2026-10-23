@@ -1,0 +1,32 @@
+% Shared style for every figure: one font (Latin Modern), one block vocabulary, token colours.
+\usepackage{fontspec}
+\usepackage{unicode-math}
+\setmathfont{latinmodern-math.otf}
+\usetikzlibrary{arrows.meta,positioning,fit,calc,backgrounds,shapes.misc,decorations.pathreplacing}
+% Token colours: exact RGB codes, remapped to CSS variables after conversion (see tokens in svgfix.py)
+\definecolor{ink}{RGB}{0,0,0}
+\definecolor{inkb}{RGB}{90,90,90}
+\definecolor{grid}{RGB}{200,200,200}
+\definecolor{paper}{RGB}{255,255,255}
+\definecolor{fdata}{RGB}{231,238,246}
+\definecolor{fmodel}{RGB}{246,238,224}
+\definecolor{ftarget}{RGB}{232,243,234}
+\definecolor{fpub}{RGB}{248,233,226}
+\definecolor{own}{RGB}{42,120,214}
+\definecolor{pub}{RGB}{235,104,52}
+\tikzset{
+  >={Latex[length=1.9mm,width=1.5mm]},
+  every picture/.style={line width=0.5pt, ink, font=\normalsize},
+  blk/.style={draw=ink, rounded corners=1.2pt, align=center, inner xsep=5pt, inner ysep=4pt, minimum height=9mm, fill=paper},
+  data/.style={blk, fill=fdata},
+  model/.style={blk, fill=fmodel},
+  target/.style={blk, fill=ftarget},
+  pubm/.style={blk, fill=fpub},
+  op/.style={draw=ink, circle, inner sep=1.2pt, fill=paper, font=\small},
+  group/.style={draw=inkb, dashed, rounded corners=2pt, inner sep=6pt},
+  glabel/.style={font=\small\scshape, text=inkb, inner sep=1pt},
+  note/.style={font=\footnotesize, text=inkb, align=center, inner sep=1pt},
+  wt/.style={font=\footnotesize, fill=paper, inner sep=1pt},
+  flow/.style={->, draw=ink},
+  dflow/.style={->, draw=inkb, dashed},
+}

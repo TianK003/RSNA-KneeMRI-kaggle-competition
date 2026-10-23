@@ -17,3 +17,7 @@ kaggle.json
 # Local secrets (NDA credentials for nda-tools, etc.) -- never commit
 .env
 .env.*
+
+# Local tools (Tectonic TeX engine for docs/writeup) and write-up build intermediates
+tools/
+docs/writeup/build/

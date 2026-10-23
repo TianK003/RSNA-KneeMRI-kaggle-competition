@@ -1490,4 +1490,5 @@ showed private scores (top 0.960, not public's 0.970). The view pages: 20 rows b
 the CLI's `--format json` output starts with the version warning, so it does not parse as JSON either. `competitions submissions --csv`
 also pages (20 by default; 200 at most) and puts the same warning on its first stdout line. **Do:** page the view through the Python
 client (`ApiGetLeaderboardRequest`, page size 200, follow `next_page_token`: 33 pages for 6,425 teams) and join it to the public CSV by
-TeamId; for submissions pass `--page-size 200` and drop the first line before parsing (experiments.md 2026-10-23 "Final private LB").
+TeamId; for submissions pass `--page-size 200` and drop the first line before parsing. `src/pull_private_lb.py` does all of it
+(experiments.md 2026-10-23 "Final private LB").

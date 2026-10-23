@@ -1,0 +1,21 @@
+\documentclass[tikz,border=2pt]{standalone}
+\input{style.tex}
+\input{pgfstyle.tex}
+\begin{document}
+\begin{tikzpicture}
+\begin{axis}[width=15.2cm, height=6.0cm, ymode=log, xmin=0.9145, xmax=0.9615, ymin=0.7, ymax=9000,
+  ybar, bar width=5.2pt, log origin=infty,
+  xlabel={private LB score, rounded to three decimals}, ylabel={teams (log scale)},
+  ymajorgrids, xtick={0.915,0.920,...,0.960}, ytick={1,10,100,1000}, yticklabels={1,10,100,1\,000}]
+\addplot[fill=inkb, draw=none] table[x=score,y=n] {field_hist.dat};
+\end{axis}
+\begin{axis}[width=15.2cm, height=6.0cm, ymode=log, xmin=0.9145, xmax=0.9615, ymin=0.7, ymax=9000,
+  ybar, bar width=5.2pt, log origin=infty, axis lines=none]
+\addplot[fill=own, draw=none] coordinates {(0.942,1322)};
+\node[note, text=ink, anchor=south, align=center] at (axis cs:0.942,1500) {0.942: 1\,322 teams, ranks 616--1\,937\\our entries: rank 771};
+\draw[ink, line width=0.5pt, dash pattern=on 2pt off 1.5pt] (axis cs:0.9425,0.7) -- (axis cs:0.9425,700) -- (axis cs:0.9445,700);
+\node[note, text=ink, anchor=west, align=left] at (axis cs:0.9445,700) {top 10\,\% line (rank 642)};
+\node[note, anchor=south, align=center] at (axis cs:0.9598,3.0) {top\\0.960};
+\end{axis}
+\end{tikzpicture}
+\end{document}
