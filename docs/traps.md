@@ -1499,4 +1499,6 @@ competition page with a cookie jar (anonymous is enough), then POST JSON with he
 (rank, displayScore, `medal`, `inTheMoney`, submissionId) plus the teams in one ≈ 4.5 MB response. Adding a `leaderboardMode` field
 returns an empty body. `competitions.CompetitionService/GetCompetition` with `{"competitionName":"rsna-knee-abnormality-detection"}`
 gives `totalCompetitors`, `totalSubmissions` and `leaderboardPercentage` (the public share). Neither endpoint has a "verified" flag;
-whether the board is final is read from the forum (experiments.md 2026-10-26 "Private LB re-read").
+whether the board is final is read from the forum (experiments.md 2026-10-26 "Private LB re-read"). **The JS-rendered overview
+pages are readable the same way:** `competitions.PageService/ListPages` with `{"competitionId":154281}` returns every page (rules,
+Description, Evaluation, Timeline, Prizes, Code Requirements, Efficiency Prize Evaluation, …) with its content as HTML.

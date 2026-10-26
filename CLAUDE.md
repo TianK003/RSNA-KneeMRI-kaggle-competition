@@ -20,7 +20,7 @@ is in [docs/experiments.md](docs/experiments.md).
 | Final private LB (unverified; read 10-23 ≈ 09:40 UTC, re-read 10-26 unchanged) | **0.942, rank 771 of 6,425 teams, 7,683 competitors (top 12.0 %), no medal**; public at the end 0.958, rank 570 (314th of the 1,638 at 0.958). Private top 0.960 (`Team Kangaroo`; `MURAD` = azamat1ch + matthewliew), 10th 0.957. **Medal zones** (Kaggle's per-row `medal`, 10-26): gold ranks 1–22, silver 23–321 (down to 0.943), bronze 322–642 (0.942), so we are 129 places under bronze; 1,322 teams at exactly 0.942, we are 156th of them. Our scored entry is #106 C19. **Every entry of ours lost ≈ 0.015 public → private** (SD 0.0014; own models 0.0146, heliosli anchors 0.0157) and the public order of our entries held (Spearman 0.988 over 98 entries). The 201 places went in the 0.958 tie's reshuffle: 179 teams from below us in the tie and 45 from ≤ 0.957 passed us, and every public ≥ 0.959 team (own models) stayed above. Read with `leaderboard -s` paged (traps 79); files in `artifacts/lb_final/` (10-26 copy: `artifacts/lb_final_1026/`); experiments.md 2026-10-23 "Final private LB" and 2026-10-26 "Private LB re-read" |
 | Our entries on private | **Picks C19 #106 + C14 #101 = 0.942**, as are our other nine best (heliosli-anchor entries at public 0.957 / 0.958, with or without the tuned weights): the pick choice did not matter at three decimals. OAI-free best C12 #99 0.941; free of OAI and fastMRI C11 #92 0.938. **Own models: best blend B22 #86 0.932, best single `v15c` #64 0.928** (public 0.942; ≈ rank 2,751–2,792 alone); `v15co` (OAI) 0.928, so OAI's public +0.003 did not carry; `v13b3` 0.926. The fork rule's diversity gain held on private (C6 = S6 0.930 + B18 0.930 → 0.937). Every entry's private score: `artifacts/lb_final/our_entries_pub_priv.csv` |
 | Production recipe | CNNs on the `v13h` recipe: c03 input, CNN LR 3e-4 uniform, frozen BN, heavy aug, drop-path 0.1, 30 epochs, SWA of 27–29. **ConvNeXt-T on its own optimiser** (P-69, ✅ 10-08): AdamW 1e-4 + per-stage decay 0.9, head 1e-3, 20 epochs, SWA 17–19, the same data side (traps 46: a family needs its own optimiser). Targets 0.5 LLM + 0.5 quantile-matched Raptor: the only target change that ever transferred (the Claude relabel, the silent-cell mix, D4, self-distillation, the same-family OOF student and, 10-10, the cross-family CoAtNet OOF mix P-68 read no lift; 10-12, report-only `v15cr` −0.010 solo, a diversity effect only, P-85; **10-18, an OpenJev share `v15cj` −0.006, P-86**; the label side is closed) |
-| Next | **Nothing in flight; the competition is closed** (deadline 10-22 23:59 UTC; winners 11-05). **The private board was still unverified on 10-26**: identical to the 10-23 pull, no team removed; the host wrote on 10-23 that the winners should be selected "in the next few days". Re-read it with `src/pull_private_lb.py` after 11-05; a removal above us can only raise our rank. A model never sent can still be scored as a late submission if Kaggle opens them (scored on both splits, not ranked). Solution write-up (private Artifact, 10-23): https://claude.ai/artifact/XC9jxxbiGbENaY6vPTXRFz |
+| Next | **Nothing in flight; the competition is closed** (deadline 10-22 23:59 UTC; 11-05 is the Winners' Requirement Deadline, when prize winners hand in code, video and write-up, not a results date; the rules give no date for finalising the board). **The private board was still unverified on 10-26**: identical to the 10-23 pull, no team removed; the host wrote on 10-23 that the winners should be selected "in the next few days". Re-read it with `src/pull_private_lb.py` after 11-05; a removal above us can only raise our rank. A model never sent can still be scored as a late submission if Kaggle opens them (scored on both splits, not ranked). Solution write-up (private Artifact, 10-23): https://claude.ai/artifact/XC9jxxbiGbENaY6vPTXRFz |
 | Budgets | RunPod ≈ $4.2 left, all pods deleted. OpenRouter key capped at $13, $2.29 spent (`OPENROUTER_API_KEY` in `.env`). Kaggle GPU and submission quotas are moot after the deadline |
 
 ## 📚 Documentation map — read the relevant one before acting
@@ -482,9 +482,9 @@ kaggle competitions submissions rsna-knee-abnormality-detection
 kaggle competitions leaderboard rsna-knee-abnormality-detection -d -p <dir>    # the full CSV; -s shows one page
 ```
 
-**Unverified** (community-sourced, never read from the competition pages): the **≤9 hour**
-runtime limit and the internet-off requirement. `enable_internet: false` in every public
-submission corroborates the latter.
+**Verified 2026-10-26** from the competition's "Code Requirements" page (read through Kaggle's page endpoint, traps 79 addendum):
+CPU and GPU notebooks **≤ 9 hours** run time, **internet access disabled**, "freely & publicly available external data is allowed,
+including pre-trained models", output named `submission.csv`.
 
 ## Compute strategy
 
@@ -599,7 +599,7 @@ ConvNeXt **V1** weights are Apache-2.0 (`convnext_tiny.in12k_ft_in1k` is P-69's)
 | **2026-10-22 23:59 UTC** | Final submission deadline (API-verified) |
 | 2026-10-23 | Private LB shown (unverified): we finish 0.942, rank 771 of 6,425 (no medal; bronze ends at rank 642) |
 | 2026-10-26 | Re-read: unchanged, still unverified; host: winners "in the next few days" |
-| 2026-11-05 | Winners announced |
+| 2026-11-05 | Winners' Requirement Deadline: winners submit training code, video and method description (the Timeline page, read 10-26). No date is set for finalising the private board |
 | 2026-11-29 – 12-03 | RSNA 2026, Chicago |
 
 Category **Research**, reward **$77,000** covering the accuracy leaderboard **plus a
@@ -616,8 +616,8 @@ notebooks and label datasets; CLI auth and entry status; everything in
 rigorous write-up worth reading in full): the metric reasoning, sequence-slot design, DICOM
 ordering trap, Hanley–McNeil noise argument, and the graded-vs-thresholded label insight.
 
-**Community-sourced, still unverified:** the ≤9 h runtime limit, internet-off, the ~570 GB /
-819k-file totals, and the fold-leakage magnitudes.
+**Community-sourced, still unverified:** the ~570 GB / 819k-file totals and the fold-leakage magnitudes. (The ≤ 9 h runtime
+limit and internet-off were verified on 2026-10-26 from the Code Requirements page.)
 
 **Corrected 2026-08-28:** an earlier version of this file hypothesised that leaders were
 exploiting report text available at inference time. That is **wrong** — `test.csv` has no
@@ -626,5 +626,7 @@ ensembles of self-supervised ViTs, and partly from public-LB overfitting.
 
 Kaggle competition pages are JS-rendered, so `WebFetch`/`curl` return only the SPA shell and
 the CLI exposes no command for the overview or rules. The forum is read through the API
-(`scripts/harvest_forum.py`, research.md §2.7.3). Anything depending on the overview or rules pages remains unread and
-is flagged as such.
+(`scripts/harvest_forum.py`, research.md §2.7.3). **Since 2026-10-26 the overview, timeline, prizes, code-requirements and
+rules pages are readable as text** through Kaggle's page endpoint (`competitions.PageService/ListPages`, traps 79 addendum; a
+copy is in `artifacts/lb_final_1026/pages_web.json`). Claims in this file still marked "rules page unread" predate that copy and
+have not been re-checked against it.

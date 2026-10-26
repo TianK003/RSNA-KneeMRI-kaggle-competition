@@ -7528,6 +7528,15 @@ public scores. Top teams' write-ups are posted (1st `tascj` 752468 and `sakaku` 
 **Verdict: ✅ a read.** Our result stands at private 0.942, rank 771 of 6,425 (top 12.0 %) with no medal, **still unverified** on 10-26.
 If Kaggle removes teams above us when it finalises, our rank can only improve. Re-read with `src/pull_private_lb.py` after 11-05.
 
+**Addendum (10-26, later): the competition's own pages say when, and they set no date.** Read as text through
+`competitions.PageService/ListPages` (traps 79 addendum; `artifacts/lb_final_1026/pages_web.json`). The Timeline page's last date
+is **11-05, the "Winners' Requirement Deadline"**: prize winners submit their training code, video and method description. It is
+not a results date. The rules say only that "The final leaderboard list will be publicly displayed at Kaggle", that a disqualified
+participant "may be removed from the Competition leaderboard", and that code is checked for potential winners. Two ways our rank
+could still move: (a) removals of teams above us (up); (b) Kaggle accepting submissions that were stuck in the queue at the deadline,
+as Team Wiz asked in 751893 (down, by a few places at most). The Code Requirements page also confirms the 9 h notebook limit and
+internet off.
+
 ## Infrastructure
 
 ### 2026-09-27 — The "0.943 Speedy Raptors CoAtNet D4" notebook is our anchor **plus two CoAt readers**, not a faster graph; its "< 30 min" is a 3-study commit run · P-41 (threaded scan + 8 decode workers) smoke-green and byte-identical
