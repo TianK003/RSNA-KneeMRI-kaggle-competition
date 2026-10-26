@@ -1492,3 +1492,11 @@ also pages (20 by default; 200 at most) and puts the same warning on its first s
 client (`ApiGetLeaderboardRequest`, page size 200, follow `next_page_token`: 33 pages for 6,425 teams) and join it to the public CSV by
 TeamId; for submissions pass `--page-size 200` and drop the first line before parsing. `src/pull_private_lb.py` does all of it
 (experiments.md 2026-10-23 "Final private LB").
+
+**Addendum 2026-10-26: neither the CLI nor the SDK shows medals, the split or the field size; Kaggle's web endpoints do.** GET the
+competition page with a cookie jar (anonymous is enough), then POST JSON with header `x-xsrf-token: <the XSRF-TOKEN cookie>`:
+`https://www.kaggle.com/api/i/competitions.LeaderboardService/GetLeaderboard` with `{"competitionId":154281}` returns **both** boards
+(rank, displayScore, `medal`, `inTheMoney`, submissionId) plus the teams in one ≈ 4.5 MB response. Adding a `leaderboardMode` field
+returns an empty body. `competitions.CompetitionService/GetCompetition` with `{"competitionName":"rsna-knee-abnormality-detection"}`
+gives `totalCompetitors`, `totalSubmissions` and `leaderboardPercentage` (the public share). Neither endpoint has a "verified" flag;
+whether the board is final is read from the forum (experiments.md 2026-10-26 "Private LB re-read").

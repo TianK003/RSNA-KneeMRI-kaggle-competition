@@ -7502,6 +7502,32 @@ at 0.958). Net −201 places.
 **Verdict: ✅ a read (final).** The competition is over; nothing is in flight. The private board is "unverified" until Kaggle finalises
 it.
 
+### 2026-10-26 — Private LB re-read: unchanged since 10-23, still not finalised · 7,683 competitors in 6,425 teams · the split was 30 % public · medal zones: bronze ends at rank 642, we are 129 places short · our scored entry is #106 C19 · ✅ a read
+
+Tian, 10-26: "Check if the results are official and potentially update our docs + report/solution write up".
+
+**Read** (10-26). `src/pull_private_lb.py --out artifacts/lb_final_1026` and a diff against `artifacts/lb_final/`: the same 6,425
+teams, **no team removed, no score or rank changed, no submission date changed** (all 6,425 rows identical). Kaggle has not run
+its post-deadline clean-up yet. Two of Kaggle's own web endpoints (traps 79 addendum) add what the CLI does not show; their JSON is in
+`artifacts/lb_final_1026/` (`lb_web.json`, `competition_web.json`):
+- **Field:** `totalTeams` 6,425, **`totalCompetitors` 7,683**, `totalJoinedUsers` 25,797, `totalSubmissions` 161,309.
+- **`leaderboardPercentage` 30:** the public board scored 30 % of the hidden test and the private board the other 70 %. This confirms the
+  two participants' reading.
+- **`medalsAllowed` true, and every private row carries its medal:** gold ranks 1–22 (0.960–0.954), silver 23–321 (0.954–0.943),
+  bronze 322–642 (0.943–0.942). **We have no medal: rank 771 is 129 places under the bronze line, inside the same 0.942 tie.** The ten
+  `inTheMoney` rows are ranks 1–10.
+- **Our scored entry** (the private row's `submissionId`) is **57448686 = #106 C19**, pick 1. C19 and C14 both read 0.942, so C19's
+  unrounded score is the higher of the two or tied with it.
+
+**Official or not:** no endpoint exposes a "verified" flag (`GetCompetition` lists none; protobuf JSON omits a false boolean, so its
+absence settles nothing). The forum says not yet: the host (Po-Hao Chen, 752012, 10-23 12:36 UTC) writes "We hope to have the winners
+selected in the next few days". A participant (10-26 14:46 UTC) cites a winners' deadline of 11-05, and the efficiency board still shows
+public scores. Top teams' write-ups are posted (1st `tascj` 752468 and `sakaku` 752474; 2nd azamat1ch 752370; 3rd 752510; 5th, 7th, 8th,
+10th, and Chris Deotte's 243rd-place silver 751888, "Create Labels from Reports and Images"). They are unread here.
+
+**Verdict: ✅ a read.** Our result stands at private 0.942, rank 771 of 6,425 (top 12.0 %) with no medal, **still unverified** on 10-26.
+If Kaggle removes teams above us when it finalises, our rank can only improve. Re-read with `src/pull_private_lb.py` after 11-05.
+
 ## Infrastructure
 
 ### 2026-09-27 — The "0.943 Speedy Raptors CoAtNet D4" notebook is our anchor **plus two CoAt readers**, not a faster graph; its "< 30 min" is a 3-study commit run · P-41 (threaded scan + 8 decode workers) smoke-green and byte-identical

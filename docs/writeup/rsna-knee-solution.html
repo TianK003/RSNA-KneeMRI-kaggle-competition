@@ -9146,7 +9146,7 @@ footer p { text-align: left; text-indent: 0; }
   </table></div>
 </div>
 <h3><span class="n">8.1</span>Public versus private</h3>
-<p>The private split was harder for every entry by almost the same amount (Figure 7). Over our 98 entries above 0.90 public, the drop averaged 0.0149 with a standard deviation of 0.0014: 0.0146 for our own models, 0.0154 for entries with public members, and 0.0157 for the heavily tuned 0.957–0.958 notebooks. Those notebooks therefore paid about one tick for their public tuning and still finished 0.010 above our best own ensemble. Their per-finding weights made no visible difference on private: the notebook before the weights (#93), with the 0.958 set (#97) and with V2's set (#100) all read 0.942.</p>
+<p>The public board scored 30 % of the hidden test set and the private board the other 70 %. The private split was harder for every entry by almost the same amount (Figure 7). Over our 98 entries above 0.90 public, the drop averaged 0.0149 with a standard deviation of 0.0014: 0.0146 for our own models, 0.0154 for entries with public members, and 0.0157 for the heavily tuned 0.957–0.958 notebooks. Those notebooks therefore paid about one tick for their public tuning and still finished 0.010 above our best own ensemble. Their per-finding weights made no visible difference on private: the notebook before the weights (#93), with the 0.958 set (#97) and with V2's set (#100) all read 0.942.</p>
 <figure>
   <svg xmlns="http://www.w3.org/2000/svg" class="fig" viewBox="0 0 249.42 259.81" style="width:387px" role="img" aria-label="Private versus public score for 98 entries; points lie along the line private equals public minus 0.0149, for own models and public blends alike.">
 <defs>
@@ -9765,7 +9765,7 @@ footer p { text-align: left; text-indent: 0; }
   <figcaption><span class="lab">Figure 7:</span> Private against public score for every entry above 0.90 public. The solid line is the mean drop of 0.0149; the dashed line is no drop. The public order of our entries held on private (Spearman 0.988).</figcaption>
 </figure>
 <h3><span class="n">8.2</span>Where we finished</h3>
-<p>We finished at 0.942 private, rank 771 of 6,425, after 570 on the final public board. At three decimals our eleven best entries all read 0.942, so no choice of two picks could have scored more. The 201 places were lost inside the public tie: 1,638 teams shared 0.958 on public, mostly with copies of the same notebooks, and 1,239 of them landed on 0.942. Of the 770 teams above us on private, 256 were above 0.958 on public (all of them stayed above us), 290 were above us inside the tie already, 179 passed us from below inside the tie and 45 came from 0.957 or lower; 23 teams fell from above us to below. The teams that held their places had their own models: the 256 public leaders averaged 0.9475 on private.</p>
+<p>We finished at 0.942 private, rank 771 of 6,425 teams (7,683 competitors), after 570 on the final public board. The bronze-medal zone ended at rank 642, inside the same 0.942 tie, 129 places above us. At three decimals our eleven best entries all read 0.942, so no choice of two picks could have scored more. The 201 places were lost inside the public tie: 1,638 teams shared 0.958 on public, mostly with copies of the same notebooks, and 1,239 of them landed on 0.942. Of the 770 teams above us on private, 256 were above 0.958 on public (all of them stayed above us), 290 were above us inside the tie already, 179 passed us from below inside the tie and 45 came from 0.957 or lower; 23 teams fell from above us to below. The teams that held their places had their own models: the 256 public leaders averaged 0.9475 on private.</p>
 <figure class="wide">
   <svg xmlns="http://www.w3.org/2000/svg" class="fig" viewBox="0 0 434.9 164.3" style="width:674px" role="img" aria-label="Histogram of private scores of all 6,425 teams on a log scale, with a spike of 1,322 teams at 0.942 highlighted, the top 10 percent line just right of it, and the top score 0.960.">
 <defs>
@@ -10320,7 +10320,7 @@ footer p { text-align: left; text-indent: 0; }
 </ul>
 
 <footer>
-  <p>All scores are Kaggle's, rounded to three decimals; the private board was read on 23 October 2026 before Kaggle verified it. Code: <code>src/kaggle_pipeline.py</code> (training and inference), <code>src/cache_pipeline.py</code> (slice cache), <code>src/build_targets.py</code> (targets), <code>src/build_anchor_copy.py</code> (final picks); every measurement with its verdict is in <code>docs/experiments.md</code>. Figures and equations were typeset with TikZ, pgfplots and XeLaTeX in Latin Modern.</p>
+  <p>All scores are Kaggle's, rounded to three decimals; the private board was read on 23 October 2026 and again, unchanged, on 26 October, before Kaggle had verified it. Code: <code>src/kaggle_pipeline.py</code> (training and inference), <code>src/cache_pipeline.py</code> (slice cache), <code>src/build_targets.py</code> (targets), <code>src/build_anchor_copy.py</code> (final picks); every measurement with its verdict is in <code>docs/experiments.md</code>. Figures and equations were typeset with TikZ, pgfplots and XeLaTeX in Latin Modern.</p>
 </footer>
 </main>
 
