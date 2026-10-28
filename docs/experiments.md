@@ -176,13 +176,15 @@ agreement with the teacher, not truth. A one-seed LB delta needs ≥ 0.004 (P-44
 | 2026-10-21 | **C19 on C14, submission #106** (`rsna-knee-anchor9586s6fw` v1): C14 with the four per-finding Raptor-half weights back to the 0.958 notebook's (Lateral OA 0.20, PF OA 0.60, Synovitis 0.80, Baker's 0.35; V2 pushed each 0.05 further) | — | **0.958** | **🔁 at three decimals, ✅ by its rule: our place rose (strict stable 0.958 teams above us 122 → 107), so C19 > our previous best (#101, or #103 / #104) by sign → our best entry and pick 1; pick 2 = C14 #101 (V2's weights). A small margin (15 stable teams, against C14's 350 over V2). On C14's members V2's weight pushes cost on public. Rank 511 of 6,305 (284th of 1,466 at 0.958; top 8.1 %)** (entry 2026-10-21 "Submission #106 read") |
 | 2026-10-21 | **C21 V-JEPA solo, submissions #108 / #109** (`rsna-knee-vjepa-solo` v1 / v2): nurikw3's public V-JEPA 2.1 ViT-B 5-fold alone, fp16; v1 with the author's loader bug (series with > 24 slices blank, traps 78), v2 fixed | — | **0.554 / 0.836** | **❌ #109 = 0.836, 0.109 under the 0.945 bar: the one new public family is far too weak to be a member; C21m not sent. #108 (bugged) 0.554: the fix was right, the authors did not train with the bug** (entries 2026-10-21 "Submission #109 read", "Submissions #107 / #108 read") |
 | 2026-10-21 | **C20 on C19, submission #107** (`rsna-knee-anchor9586s6fr7w` v1): C19 (= #106) + heliosli's R7 as a third member of the R6 half (0.36 R6 / 0.24 R7 / 0.40 s6fall) | — | **0.958** | **🔁 no move: strict stable 0.958 teams above us 108 → 108 (0 crossed; the nearest stable teams bracket us at 510 / 513 before and after), so C20 on C19 ≤ C19 by sign → no pick; picks stay C19 #106 + C14 #101. R7 next to R6 adds nothing visible, as goodpjw2008 measured; C22 not triggered. Rank 533 of 6,342 (299th of 1,534 at 0.958; top 8.4 %)** (entry 2026-10-21 "Submissions #107 / #108 read") |
-| 2026-10-23 | **Final private LB (unverified)**: our picks C19 #106 + C14 #101 | — | **0.958 public → 0.942 private** | **✅ final: rank 771 of 6,425 (top 12.0 %; public rank 570, 314th of 1,638 at 0.958). Every entry of ours lost ≈ 0.015 (SD 0.0014; own models 0.0146, heliosli anchors 0.0157); our 11 best entries all 0.942; best own blend B22 0.932, best single `v15c` 0.928** (entry 2026-10-23 "Final private LB") |
+| 2026-10-28 | **Final private LB (finalised by Kaggle 10-27, 126 teams removed)**: our picks C19 #106 + C14 #101 | — | **0.958 public → 0.942 private** | **✅ final: rank 738 of 6,299 (top 11.7 %; public rank 544, 296th of 1,591 at 0.958); bronze ends at rank 629, 109 places above us** (entry 2026-10-28 "Private LB finalised") |
+| 2026-10-23 | **Final private LB (unverified)** ❌ superseded (Kaggle's clean-up, 2026-10-28 row): our picks C19 #106 + C14 #101 | — | **0.958 public → 0.942 private** | **✅ final: rank 771 of 6,425 (top 12.0 %; public rank 570, 314th of 1,638 at 0.958). Every entry of ours lost ≈ 0.015 (SD 0.0014; own models 0.0146, heliosli anchors 0.0157); our 11 best entries all 0.942; best own blend B22 0.932, best single `v15c` 0.928** (entry 2026-10-23 "Final private LB") |
 
 **External reference points** (not ours — for calibrating ambition):
 
 | Score | What |
 |---|---|
-| **0.960** | **Private LB #1 (final, unverified, 2026-10-23)**: `Team Kangaroo` and `MURAD` (azamat1ch + matthewliew), public 4th / 5th at 0.969; public #1 `Barry` 0.970 → private 7th 0.957; 10th 0.957; 211 ≥ 0.945, 615 ≥ 0.943, **1,937 ≥ 0.942 (1,322 at exactly)** of 6,425; top-10 % line (rank 642) 0.942. The public 0.958 tie (1,638 teams) averages 0.9420 on private. **We are 0.942, rank 771** (entry 2026-10-23 "Final private LB") |
+| **0.960** | **Private LB #1 (finalised 2026-10-27, read 10-28)**: `Team Kangaroo` and `MURAD`, top 12 unchanged; 10th 0.957; 203 ≥ 0.945, 583 ≥ 0.943, **1,880 ≥ 0.942 (1,297 at exactly)** of 6,299; gold 1–22, silver 23–314, bronze 315–629 (0.942). **We are 0.942, rank 738** (entry 2026-10-28 "Private LB finalised") |
+| 0.960 | ❌ superseded by the row above (126 teams removed): **Private LB #1 (final, unverified, 2026-10-23)**: `Team Kangaroo` and `MURAD` (azamat1ch + matthewliew), public 4th / 5th at 0.969; public #1 `Barry` 0.970 → private 7th 0.957; 10th 0.957; 211 ≥ 0.945, 615 ≥ 0.943, **1,937 ≥ 0.942 (1,322 at exactly)** of 6,425; top-10 % line (rank 642) 0.942. The public 0.958 tie (1,638 teams) averages 0.9420 on private. **We are 0.942, rank 771** (entry 2026-10-23 "Final private LB") |
 | 0.969 | Public LB #1 (2026-10-21 20:41 UTC; `CentralyDS`, `RB & Matheus & Tucker & Tony`, `BarryZhou`), 4th–8th 0.968, 10th 0.967, 100th 0.961; **1,768 teams ≥ 0.958 of 6,342 (1,534 at exactly 0.958)**, 234 ≥ 0.959 (83 at exactly), 151 ≥ 0.960, 1,953 ≥ 0.957 (185 at exactly), 2,192 ≥ 0.956, 2,331 ≥ 0.954, 2,502 ≥ 0.950. No new public anchor (`kernels list` 20:45 UTC). **Our best (#106 C19) = 0.958, rank 533** (299th of 1,534 at 0.958; top 8.4 %; the top-5 % line is rank 317) (entry 2026-10-21 "Submissions #107 / #108 read") |
 | 0.969 | Public LB #1 (2026-10-21 07:38 UTC; `RB & Matheus & Tucker & Tony` and `CentralyDS`), 3rd–6th 0.968, 10th 0.967, 100th 0.960; **1,693 teams ≥ 0.958 of 6,305 (1,466 at exactly 0.958)**, 227 ≥ 0.959 (`Heliosli` now among them, from a private entry), 1,868 ≥ 0.957 (175 at exactly), 2,122 ≥ 0.956, 2,267 ≥ 0.954, 2,445 ≥ 0.950. No public notebook for this competition since 10-17 claims more than 0.958. **Our best (#106 C19) = 0.958, rank 511** (284th of 1,466 at 0.958; top 8.1 %; the top-5 % line is rank 315) (entry 2026-10-21 "Submission #106 read") |
 | 0.969 | Public LB #1 (2026-10-20 07:33 UTC; `RB & Matheus & Tucker & Tony`), 2nd / 3rd 0.968 (`azamatt`, `CentralyDS`), 10th 0.967, 100th 0.960; **1,549 teams ≥ 0.958 of 6,255 (1,348 at exactly 0.958)**, 201 ≥ 0.959, 1,725 ≥ 0.957 (176 at exactly), 2,016 ≥ 0.956, 2,176 ≥ 0.954, 2,360 ≥ 0.950. No public notebook since 10-17 claims more than 0.958. **Our best (#101 C14, or #103 / #104) = 0.958, rank 489** (288th of 1,348 at 0.958; top 7.8 %; the top-5 % line is rank 312) (entry 2026-10-20 "Submission #104 read") |
@@ -7536,6 +7538,34 @@ participant "may be removed from the Competition leaderboard", and that code is 
 could still move: (a) removals of teams above us (up); (b) Kaggle accepting submissions that were stuck in the queue at the deadline,
 as Team Wiz asked in 751893 (down, by a few places at most). The Code Requirements page also confirms the 9 h notebook limit and
 internet off.
+
+**CORRECTED 2026-10-28:** Kaggle finalised the board on 10-27 with removals; we are rank 738 of 6,299, 109 places short of bronze
+(entry 2026-10-28 "Private LB finalised").
+
+### 2026-10-28 — Private LB finalised: Kaggle removed 126 teams, 33 of them above us → **rank 738 of 6,299 at 0.942 (top 11.7 %)**, still no medal (bronze ends at rank 629, 109 places above us) · our scores unchanged · ✅ a read (final)
+
+Tian, 10-28: "The results have been finalised, check if anything changed for us".
+
+**Official:** Kaggle Team's "Recap of Competition - Congratulations to the Winners!" (753198, 10-27 14:43 UTC): "We've cleaned the
+leaderboard and disqualified some teams that have violated the rules"; the field was 6,300 teams, 7,490 participants, 156,452
+submissions, 135 countries. A team at private rank 273 reports it was removed after receiving its medal email (753057).
+
+**Read** (10-28). `src/pull_private_lb.py --out artifacts/lb_final_1028` plus the three web endpoints (traps 79 addendum;
+`lb_web.json`, `competition_web.json`, `pages_web.json` in the same folder):
+- **Field:** `totalTeams` 6,299 (126 fewer than on 10-26), `totalCompetitors` 7,487, `totalSubmissions` 156,448.
+- **Us: private 0.942, rank 738 of 6,299 (top 11.7 %; 10-26: 771 of 6,425)**, 155th of the 1,297 teams at 0.942; public 0.958, rank 544
+  (296th of the 1,591 at 0.958). The scored entry is still 57448686 = #106 C19. All 109 of our entries carry the same public and private
+  scores as on 10-26.
+- **Removed teams by their 10-26 private rank:** 0 in gold (1–22), 16 in silver, 16 in bronze, 1 between bronze and us, 93 below us.
+  Their private scores ran from 0.954 down; 25 of them sat at 0.942.
+- **Medal zones (Kaggle's per-row `medal`):** gold 1–22 (0.960–0.954; the top 12 rows identical to 10-26), **silver 23–314** (to 0.943),
+  **bronze 315–629** (0.942; 629 / 6,299 = 10.0 %). **No medal for us: 109 places under the bronze line, inside the same 0.942 tie.**
+- **Final board:** 203 teams ≥ 0.945, 583 ≥ 0.943, 1,880 ≥ 0.942; 10th 0.957. The public 0.958 tie (1,591 teams) averages 0.942 on
+  private, 1,216 of them at exactly 0.942.
+- **Our own models on this board:** the best own blend B22 (0.932) would rank 2,443–2,533, the best single `v15c` (0.928) 2,683–2,723.
+
+**Verdict: ✅ a read (final).** Private 0.942, **rank 738 of 6,299 teams (7,487 competitors), top 11.7 %, no medal**. Nothing else can
+move it, short of a compliance reversal.
 
 ## Infrastructure
 

@@ -151,17 +151,17 @@ footer p { text-align: left; text-indent: 0; }
 <header class="title">
   <h1>Report labels as supervision: our solution to the RSNA 2026 Knee Abnormality Detection challenge</h1>
   <p class="author">Tian Kljucanin</p>
-  <p class="meta num">Kaggle, 30 July – 22 October 2026 · private LB 0.942, rank 771 of 6,425</p>
+  <p class="meta num">Kaggle, 30 July – 22 October 2026 · private LB 0.942, rank 738 of 6,299</p>
 </header>
 
 <section class="abstract">
   <h2>Abstract</h2>
-  <p>The challenge asks for twelve independent findings per knee MRI study, scored by macro ROC-AUC, but only 58 of the 4,407 training studies carry labels. Every training study has a free-text radiology report, and the test studies have none, so we treated the task as weak supervision. Training targets mix three public LLM readings of the reports, half and half, with a quantile-matched image teacher. Our models read each study as windows of three adjacent slices drawn from six standardised series, encode every window with a 2D CNN, and pool the windows separately for each finding with an attention head. Our best single model, a ConvNeXt-T, scored 0.942 on the public leaderboard and 0.928 on the private one; our best ensemble of our own models scored 0.945 and 0.932. Our two final picks recombined public checkpoints and scored 0.958 public and 0.942 private, rank 771 of 6,425. All 109 of our scored entries lost about 0.015 from public to private, our own models and the public blends alike, and the order of our entries held (Spearman 0.988).</p>
+  <p>The challenge asks for twelve independent findings per knee MRI study, scored by macro ROC-AUC, but only 58 of the 4,407 training studies carry labels. Every training study has a free-text radiology report, and the test studies have none, so we treated the task as weak supervision. Training targets mix three public LLM readings of the reports, half and half, with a quantile-matched image teacher. Our models read each study as windows of three adjacent slices drawn from six standardised series, encode every window with a 2D CNN, and pool the windows separately for each finding with an attention head. Our best single model, a ConvNeXt-T, scored 0.942 on the public leaderboard and 0.928 on the private one; our best ensemble of our own models scored 0.945 and 0.932. Our two final picks recombined public checkpoints and scored 0.958 public and 0.942 private, rank 738 of 6,299. All 109 of our scored entries lost about 0.015 from public to private, our own models and the public blends alike, and the order of our entries held (Spearman 0.988).</p>
 </section>
 
 <div class="keyline" role="list">
   <div role="listitem"><div class="v">0.942</div><div class="k">private LB, final picks C19 and C14</div></div>
-  <div role="listitem"><div class="v">771 / 6,425</div><div class="k">private rank (top 12.0 %); public rank 570</div></div>
+  <div role="listitem"><div class="v">738 / 6,299</div><div class="k">private rank (top 11.7 %); public rank 544</div></div>
   <div role="listitem"><div class="v">0.932</div><div class="k">private, best ensemble of our own models (public 0.945)</div></div>
   <div role="listitem"><div class="v">0.928</div><div class="k">private, best single model, ConvNeXt-T (public 0.942)</div></div>
 </div>
@@ -282,10 +282,10 @@ footer p { text-align: left; text-indent: 0; }
   <figcaption><span class="lab">Figure 7:</span> Private against public score for every entry above 0.90 public. The solid line is the mean drop of 0.0149; the dashed line is no drop. The public order of our entries held on private (Spearman 0.988).</figcaption>
 </figure>
 <h3><span class="n">8.2</span>Where we finished</h3>
-<p>We finished at 0.942 private, rank 771 of 6,425 teams (7,683 competitors), after 570 on the final public board. The bronze-medal zone ended at rank 642, inside the same 0.942 tie, 129 places above us. At three decimals our eleven best entries all read 0.942, so no choice of two picks could have scored more. The 201 places were lost inside the public tie: 1,638 teams shared 0.958 on public, mostly with copies of the same notebooks, and 1,239 of them landed on 0.942. Of the 770 teams above us on private, 256 were above 0.958 on public (all of them stayed above us), 290 were above us inside the tie already, 179 passed us from below inside the tie and 45 came from 0.957 or lower; 23 teams fell from above us to below. The teams that held their places had their own models: the 256 public leaders averaged 0.9475 on private.</p>
+<p>We finished at 0.942 private, rank 738 of 6,299 teams (7,487 competitors), after 544 on the final public board. These are the numbers after Kaggle's clean-up of 27 October, which removed 126 teams, 33 of them above us. The bronze-medal zone ended at rank 629, inside the same 0.942 tie, 109 places above us. At three decimals our eleven best entries all read 0.942, so no choice of two picks could have scored more. The 194 places were lost inside the public tie: 1,591 teams shared 0.958 on public, mostly with copies of the same notebooks, and 1,216 of them landed on 0.942. Of the 737 teams above us on private, 248 were above 0.958 on public (all of them stayed above us), 272 were above us inside the tie already, 173 passed us from below inside the tie and 44 came from 0.957 or lower; 23 teams fell from above us to below. The teams that held their places had their own models: the 248 public leaders averaged 0.9475 on private.</p>
 <figure class="wide">
-  {{fig:fig_field|Histogram of private scores of all 6,425 teams on a log scale, with a spike of 1,322 teams at 0.942 highlighted, the top 10 percent line just right of it, and the top score 0.960.}}
-  <figcaption><span class="lab">Figure 8:</span> The private leaderboard. The spike at 0.942 is the public 0.958 tie after the shake-up; ties are ordered by unrounded score, which places us 156th of the 1,322 teams there.</figcaption>
+  {{fig:fig_field|Histogram of private scores of all 6,299 teams on a log scale, with a spike of 1,297 teams at 0.942 highlighted, the top 10 percent line just right of it, and the top score 0.960.}}
+  <figcaption><span class="lab">Figure 8:</span> The private leaderboard. The spike at 0.942 is the public 0.958 tie after the shake-up; ties are ordered by unrounded score, which places us 155th of the 1,297 teams there.</figcaption>
 </figure>
 
 <h2><span class="n">9</span>What did not transfer</h2>

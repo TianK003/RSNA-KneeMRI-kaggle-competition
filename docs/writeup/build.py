@@ -13,7 +13,7 @@ Outputs:
 Tools: Tectonic (tools/tectonic.exe, $TECTONIC, or on PATH; fetches TeX packages on first use), pdftocairo (Poppler),
 and Edge or Chrome for the PDF. Run from the repo root:
   .venv/Scripts/python.exe docs/writeup/build.py           # figures + HTML + PDF
-  .venv/Scripts/python.exe docs/writeup/build.py --data    # first regenerate src/chartdata/ from artifacts/lb_final/
+  .venv/Scripts/python.exe docs/writeup/build.py --data    # first regenerate src/chartdata/ from artifacts/lb_final_1028/
 The numbers in the text are written in src/template.html; --data refreshes only the charts.
 Fonts: Latin Modern (GUST Font License), subset to WOFF2.
 """
@@ -60,7 +60,7 @@ def tool(name, env, candidates):
 # ---------------------------------------------------------------- chart data
 def make_data():
     import pandas as pd
-    lb = os.path.join(REPO, 'artifacts', 'lb_final')
+    lb = os.path.join(REPO, 'artifacts', 'lb_final_1028')   # the board as Kaggle finalised it (10-27)
     t = pd.read_csv(os.path.join(lb, 'our_entries_pub_priv.csv'))
     public = t.desc.str.match(r'^(C[0-9]|P-27|anchor-only|Hedge|P-40|A14|C21)')   # entries with public members
     t['grp'] = ['pub' if p else 'own' for p in public]
@@ -177,7 +177,7 @@ def build_pdf(fragment):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--data', action='store_true', help='regenerate src/chartdata/ from artifacts/lb_final/ first')
+    ap.add_argument('--data', action='store_true', help='regenerate src/chartdata/ from artifacts/lb_final_1028/ first')
     ap.add_argument('--skip-tex', action='store_true', help='reuse the PDFs already in build/')
     ap.add_argument('--no-pdf', action='store_true', help='skip the page PDF')
     a = ap.parse_args()
